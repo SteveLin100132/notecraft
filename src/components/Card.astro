@@ -1,0 +1,34 @@
+---
+export interface Props {
+  accent?: "orange" | "blue";
+  padding?: number | string;
+  hoverable?: boolean;
+  style?: string;
+  class?: string;
+  as?: string;
+  href?: string;
+}
+const { accent, padding = 22, hoverable = false, style = "", class: cls, as = "div", href } = Astro.props;
+const padCss = typeof padding === "number" ? `${padding}px` : padding;
+const accentBorder =
+  accent === "orange"
+    ? "border-top:3px solid var(--orange-400);"
+    : accent === "blue"
+    ? "border-top:3px solid var(--blue-500);"
+    : "";
+const base = `display:block;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);box-shadow:var(--shadow-xs);padding:${padCss};transition:transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out);${accentBorder}${style}`;
+const Tag = href ? "a" : as;
+---
+<Tag
+  href={href}
+  class={`nc-card ${hoverable ? "nc-card-hover" : ""} ${cls ?? ""}`}
+  style={base}
+>
+  <slot />
+</Tag>
+
+<style>
+  .nc-card-hover { cursor: pointer; }
+  .nc-card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  a.nc-card { text-decoration: none; color: inherit; }
+</style>

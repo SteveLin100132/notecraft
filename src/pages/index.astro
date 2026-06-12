@@ -1,0 +1,150 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PageHead from "@/components/PageHead.astro";
+import Card from "@/components/Card.astro";
+import Badge from "@/components/Badge.astro";
+import Button from "@/components/Button.astro";
+import Icon from "@/components/Icon.astro";
+import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
+import { getAllNotes, buildDashboardStats } from "@/lib/notes";
+import { daysAgo } from "@/lib/dates";
+
+const TODAY = "2026-06-12";
+const isDev = import.meta.env.DEV;
+
+const notes = await getAllNotes();
+const s = buildDashboardStats(notes, TODAY);
+const tagMax = s.tags[0]?.count ?? 1;
+
+const kpis = [
+  { label: "筆記總數", value: s.total, suffix: "篇", icon: "notes" as const, tone: "blue" as const },
+  { label: "本週新增", value: s.weekNew, suffix: "篇", icon: "bolt" as const, tone: "blue" as const },
+  { label: "本月新增", value: s.monthNew, suffix: "篇", icon: "clock" as const, tone: "blue" as const },
+  {
+    label: "AI 視覺化",
+    value: s.markersGenerated,
+    suffix: `/ ${s.markersTotal}`,
+    icon: "sparkle" as const,
+    tone: "orange" as const,
+  },
+];
+const genPct = s.markersTotal > 0 ? Math.round((s.markersGenerated / s.markersTotal) * 100) : 0;
+---
+<BaseLayout title="知識總覽" current="dashboard" description="NoteCraft 知識總覽">
+  <PageHead
+    eyebrow="DASHBOARD"
+    title="知識總覽"
+    sub="所有統計皆於 astro build 階段掃描 MDX 計算，前端直接讀取。"
+  >
+    {isDev && (
+      <Fragment slot="action">
+        <Button id="nc-new-note" variant="primary" size="md">
+          <Icon name="plus" size={18} /> 新增筆記
+        </Button>
+      </Fragment>
+    )}
+  </PageHead>
+
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;">
+    {kpis.map((k) => (
+      <Card padding={20}>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text-muted);font-weight:500;white-space:nowrap;">{k.label}</span>
+          <span
+            style={`display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:4px;background:${k.tone === "orange" ? "var(--orange-50)" : "var(--blue-50)"};color:${k.tone === "orange" ? "var(--orange-500)" : "var(--blue-500)"};`}
+          >
+            <Icon name={k.icon} size={18} />
+          </span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:5px;margin-top:12px;white-space:nowrap;">
+          <span
+            style={`font-size:34px;font-weight:900;color:${k.tone === "orange" ? "var(--orange-500)" : "var(--blue-700)"};line-height:1;`}
+          >{k.value}</span>
+          <span style="font-size:15px;font-weight:700;color:var(--text-muted);">{k.suffix}</span>
+        </div>
+      </Card>
+    ))}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;">
+    <!-- recent updates -->
+    <Card padding={0} style="overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;">
+        <h2 style="font-size:17px;color:var(--text-strong);margin:0;">最近更新</h2>
+        <a href="/notes" style="display:inline-flex;align-items:center;gap:4px;color:var(--blue-600);font-size:13px;font-weight:700;text-decoration:none;">
+          查看全部 <Icon name="arrowRight" size={15} />
+        </a>
+      </div>
+      {s.recent.map((n, i) => (
+        <a
+          href={`/notes/${n.slug}`}
+          class="nc-recent-item"
+          style={`display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:13px 22px;border-top:1px solid var(--neutral-100);background:transparent;text-decoration:none;color:inherit;transition:background 140ms;`}
+        >
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:4px;background:var(--blue-50);color:var(--blue-500);flex:none;">
+            <Icon name="notes" size={18} />
+          </span>
+          <span style="min-width:0;flex:1;">
+            <span style="display:block;font-size:14.5px;font-weight:700;color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{n.title}</span>
+            <span style="display:flex;gap:8px;margin-top:3px;font-size:12px;color:var(--text-muted);white-space:nowrap;">
+              <span>{daysAgo(n.updatedAt, TODAY)}</span>
+              <span>·</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;">{n.tags.slice(0, 2).join("、")}</span>
+            </span>
+          </span>
+          {n.markersTotal > 0 && (
+            n.markersGenerated === n.markersTotal
+              ? <Badge tone="success" variant="soft">已生成</Badge>
+              : <Badge tone="warning" variant="soft">{`${n.markersGenerated}/${n.markersTotal}`}</Badge>
+          )}
+          <span style="color:var(--neutral-300);display:flex;"><Icon name="chevronRight" size={16} /></span>
+        </a>
+      ))}
+    </Card>
+
+    <!-- right column -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <Card accent="orange" padding={22}>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <span style="display:flex;color:var(--orange-500);"><Icon name="sparkle" size={18} /></span>
+          <h2 style="font-size:16px;color:var(--text-strong);margin:0;">AI 視覺化進度</h2>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-size:30px;font-weight:900;color:var(--orange-500);">{genPct}%</span>
+          <span style="font-size:13px;color:var(--text-muted);">{s.markersGenerated} 已生成 · {s.markersTotal - s.markersGenerated} 待生成</span>
+        </div>
+        <div style="height:10px;border-radius:999px;background:var(--neutral-100);overflow:hidden;margin-top:12px;">
+          <div style={`height:100%;width:${genPct}%;background:var(--gradient-accent);border-radius:999px;transition:width 600ms cubic-bezier(0.16,1,0.3,1);`}></div>
+        </div>
+        <p style="font-size:12.5px;color:var(--text-muted);margin:12px 0 0;line-height:1.7;">
+          {s.notesWithMarkers} 篇筆記含 @ai-visualize 標記區塊。
+        </p>
+      </Card>
+
+      <Card padding={22}>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h2 style="font-size:16px;color:var(--text-strong);margin:0;">標籤分布</h2>
+          <a href="/tags" style="color:var(--blue-600);font-size:13px;font-weight:700;text-decoration:none;">全部</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          {s.tags.map((t) => (
+            <a href={`/notes?tag=${encodeURIComponent(t.name)}`} style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
+              <span style="width:70px;font-size:13px;color:var(--text-body);font-weight:600;text-align:left;white-space:nowrap;">{t.name}</span>
+              <span style="flex:1;height:8px;border-radius:999px;background:var(--neutral-100);overflow:hidden;">
+                <span style={`display:block;height:100%;width:${(t.count / tagMax) * 100}%;background:var(--blue-500);border-radius:999px;`}></span>
+              </span>
+              <span style="width:20px;font-size:12.5px;color:var(--text-muted);font-weight:700;text-align:right;">{t.count}</span>
+            </a>
+          ))}
+        </div>
+      </Card>
+    </div>
+  </div>
+
+  <style>
+    .nc-recent-item:hover { background: var(--neutral-50); }
+  </style>
+
+  {isDev && <NewNoteModal client:idle />}
+</BaseLayout>

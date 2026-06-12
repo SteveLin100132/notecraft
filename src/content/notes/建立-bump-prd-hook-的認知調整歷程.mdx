@@ -1,0 +1,211 @@
+---
+title: 建立 Bump PRD Hook 的認知調整歷程
+description: ''
+tags:
+  - AI 陪跑筆記
+  - AI 技術
+createdAt: '2026-06-12'
+updatedAt: '2026-06-12'
+---
+
+好的，以下是將標記穿插回原文後的完整版本：
+
+---
+
+# 建立 Bump PRD Hook 的認知調整歷程
+
+> 從「以為 hook 什麼都能做」到「理解 hook 只是哨兵」的學習筆記
+
+---
+
+## 一、認知差異對照
+
+{/* @ai-visualize
+id: hook-cognition-contrast
+type: diagram
+prompt: |
+  左右雙欄對照卡片：左欄紅色系「原本認知」5 條 ❌、右欄綠色系「實際 hook」5 條 ✅，條目一對一橫向對齊。
+  下方加一張黃色警示卡，強調「最關鍵的誤解」內容。
+  手寫 SVG，使用 trendlink-design 色票，純靜態無互動。
+status: generated
+*/}
+
+import HookCognitionContrast from '@/components/generated/hook-cognition-contrast'
+
+<HookCognitionContrast />
+
+---
+
+## 二、循序漸進的調整過程
+
+{/* @ai-visualize
+id: hook-learning-journey
+type: timeline
+prompt: |
+  垂直時間軸呈現步驟 1 → 步驟 6 的認知演進。
+  每個節點：左側圓形編號 + 步驟標題 + 一行想法，右側箭頭帶出「→ 發現/理解」轉折說明。
+  步驟 4「關鍵轉折」用橘色標示、步驟 6「最終定位」用綠色高亮。
+  以 motion 套件讓節點隨滾動依序淡入；手寫 SVG + Tailwind 文字混排。
+  需 client:visible。
+status: generated
+*/}
+
+import HookLearningJourney from '@/components/generated/hook-learning-journey'
+
+<HookLearningJourney client:visible />
+
+---
+
+## 三、七種 Hook 事件
+
+{/* @ai-visualize
+id: hook-lifecycle-events
+type: diagram
+prompt: |
+  手寫 SVG 畫一條 Claude Code session 生命週期橫線，由左到右標出 7 個 hook 事件節點：
+  SessionStart → UserPromptSubmit → PreToolUse → PostToolUse → Notification → Stop ⭐ → SubagentStop。
+  Stop 節點放大、加星星標記與「✅ 使用中」徽章，其餘節點灰階。
+  使用 trendlink-design 色票，純靜態 SVG，無需互動。
+status: generated
+*/}
+
+import HookLifecycleEvents from '@/components/generated/hook-lifecycle-events'
+
+<HookLifecycleEvents client:visible />
+
+| 事件 | 觸發時機 | 我的使用 |
+|---|---|---|
+| `SessionStart` | Session 開始時 | — |
+| `UserPromptSubmit` | 使用者送出訊息、AI 還沒處理 | — |
+| `PreToolUse` | AI 決定用工具、還沒執行 | — |
+| `PostToolUse` | 工具執行完成 | — |
+| `Notification` | Claude Code 要通知你 | — |
+| **`Stop`** ⭐ | **AI 結束回應時** | **✅ 使用中** |
+| `SubagentStop` | 子 agent 結束時 | — |
+
+### 為什麼選 Stop event
+
+{/* @ai-visualize
+id: why-stop-event
+type: diagram
+prompt: |
+  三張並排卡片，每張上方一個 icon、中間粗體標題、下方一句說明：
+  1. 「一次性檢查」— 不像 PostToolUse 每改檔就觸發
+  2. 「避免無限迴圈」— 不會因為改 PRD 又觸發自己
+  3. 「時機自然」— Claude 講完話的瞬間，使用者剛好看到提醒
+  手寫 SVG + Tailwind 卡片，使用 trendlink-design 色票。
+merged-into: hook-lifecycle-events
+status: generated
+*/}
+
+- **對話結束時做一次性檢查**:不會像 PostToolUse 那樣每改一個檔案就觸發
+- **避免無限迴圈**:不會因為改了 PRD 又再次觸發自己
+- **時機自然**:Claude 講完話的瞬間檢查,使用者剛好會看到提醒
+
+---
+
+## 四、最終成果架構
+
+{/* @ai-visualize
+id: bump-prd-architecture
+type: diagram
+prompt: |
+  三層職責分層圖（由上至下三個色塊）：
+    🧠 判斷層 (AI / CLAUDE.md SOP) — 列出 4 個職責 bullet
+    ⚡ 執行層 (Slash command /bump-prd) — 列出 3 個職責 bullet
+    🛡️ 守門員 (Stop hook 哨兵) — 列出 3 個職責 bullet
+  層與層之間用箭頭標示控制流向。
+  手寫 SVG，使用 trendlink-design 色票，純靜態。
+status: generated
+*/}
+
+import BumpPrdArchitecture from '@/components/generated/bump-prd-architecture'
+
+<BumpPrdArchitecture client:visible />
+
+### 流程示意
+
+{/* @ai-visualize
+id: bump-prd-flows
+type: diagram
+prompt: |
+  兩條並排流程帶（手寫 SVG，上下排列）：
+    上：正常流程（綠色實線箭頭）改 docs → 說「commit」→ AI 判斷 → /bump-prd → commit
+    下：哨兵介入（橘色虛線箭頭）改 docs → 對話結束 → Stop hook 檢查 → 提醒「該發版」
+  每個節點用圓角矩形，動詞節點與物件節點以顏色區分。
+  trendlink-design 色票，純靜態。
+merged-into: bump-prd-architecture
+status: generated
+*/}
+
+#### 正常流程
+
+```
+改 docs → 說「commit」 → AI 判斷 → /bump-prd → commit
+```
+
+#### 忘了發版時(哨兵介入)
+
+```
+改 docs → 對話結束 → Stop hook 檢查 → 提醒「該發版」
+```
+
+---
+
+## 五、Key Takeaway
+
+{/* @ai-visualize
+id: hook-takeaway-quote
+type: free
+prompt: |
+  大型引言卡：置中粗體金句「Hook 是哨兵，不是司令官。」
+  下方副文較小灰色：「它站在固定位置（事件）、看到固定情況（matcher）、做固定動作（script）——不思考、不判斷、不指揮，那是 AI 的工作。」
+  使用 trendlink-design 強調字體與留白規範；純 Tailwind 排版，無需 SVG。
+status: generated
+*/}
+
+import HookTakeawayQuote from '@/components/generated/hook-takeaway-quote'
+
+<HookTakeawayQuote client:visible />
+
+### 判斷該不該用 hook 的三個準則
+
+1. **這件事「不能漏」嗎?** → 漏了沒關係的事,寫在 CLAUDE.md 就好
+2. **這件事「不需要判斷」嗎?** → 需要語意判斷的,給 AI
+3. **這件事「綁定在生命週期事件」嗎?** → 使用者意圖驅動的,給 slash command
+
+三個都 yes 才該用 hook。
+
+{/* @ai-visualize
+id: hook-decision-tree
+type: diagram
+prompt: |
+  手寫 SVG 決策樹，三個 Yes/No 判斷節點縱向排列：
+    Q1「這件事不能漏嗎？」— No 分支 → 葉節點「CLAUDE.md」
+    Q2「不需要判斷嗎？」  — No 分支 → 葉節點「AI」
+    Q3「綁定在生命週期事件嗎？」— No 分支 → 葉節點「Slash command」
+    三題都 Yes → 綠色終點葉節點「✅ 用 Hook」
+  各葉節點用對應色塊；trendlink-design 色票；純靜態。
+status: generated
+*/}
+
+import HookDecisionTree from '@/components/generated/hook-decision-tree'
+
+<HookDecisionTree client:visible />
+
+### 機制對照表
+
+{/* @ai-visualize
+id: mechanism-comparison-table
+type: table
+prompt: |
+  用 Tailwind <table> 呈現 5 列機制對照（Hook / Slash command / CLAUDE.md / Skill / Git hook）。
+  欄位：機制 / 誰觸發 / 做什麼。
+  最左欄用色塊圖示前綴標示分類；trendlink-design 設計系統的 table 樣式。
+  純靜態，不要做成 SVG。
+status: generated
+*/}
+
+import MechanismComparisonTable from '@/components/generated/mechanism-comparison-table'
+
+<MechanismComparisonTable />

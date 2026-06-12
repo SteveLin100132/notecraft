@@ -1,0 +1,1080 @@
+<!--
+  =====================================================================
+  Duty Mate · 登入頁 (Login)
+  =====================================================================
+  自包含規格頁 — 所有 HTML、CSS、JS 都在這一個檔案裡。
+  供 AI Agent 讀取時，一次取得該頁面的完整上下文。
+
+  ▸ 頁面用途：
+    系統登入入口。使用公司郵箱 + 密碼登入。
+    登入成功後將帳號與角色持久化至 localStorage，並導航至正式班表頁。
+
+  ▸ 角色權限：
+    未登入狀態 — 任何人皆可看到此頁
+    登入後依帳號角色（admin / duty）決定後續頁面權限
+
+  ▸ 認證邏輯：
+    - 比對 email 是否存在於 USERS 陣列（不區分大小寫）
+    - 密碼長度 ≥ 8（demo 不做真正驗證）
+    - 成功 → localStorage 寫入 dutymate_account (JSON) + dutymate_role (string)
+    - 失敗 → 顯示「帳號不存在或密碼錯誤」
+
+  ▸ 示範帳號（預填）：
+    郵箱：jinyan.wu@trendlink.com.tw
+    密碼：dutymate2026
+    角色：排班負責人（admin）· 吳金燕
+
+  ▸ 全部可用帳號（USERS 陣列）：
+    u1 劉亭筠  duty   tingyun.liu@trendlink.com.tw
+    u2 張耘瑄  duty   yunxuan.chang@trendlink.com.tw
+    u3 吳金燕  admin  jinyan.wu@trendlink.com.tw
+    u4 陳舒珊  duty   shushan.chen@trendlink.com.tw
+    u5 Vicky   duty   vicky.huang@trendlink.com.tw（不列入排班）
+    u6 黃喻靖  duty   yujing.huang@trendlink.com.tw
+    u7 黃宣凱  duty   xuankai.huang@trendlink.com.tw
+
+  ▸ UI 結構：
+    雙欄 grid（RWD < 880px 隱藏右側）
+    ┌─ 左欄 dm-login-card：
+    │   ├─ dm-brand（logo mark + wordmark）
+    │   ├─ 標題「歡迎回來」+ 說明
+    │   ├─ Input（公司郵箱，含 mail icon）
+    │   ├─ Input（密碼，含 lock icon，含 error 狀態）
+    │   ├─ Button「登入系統」（primary, fullWidth, lg）
+    │   └─ 提示文字（示範帳號說明）
+    └─ 右欄 dm-login-aside（品牌漸層背景）：
+        ├─ eyebrow "INTERNAL TOOL"
+        ├─ 標題「集眾人之力，把排班交給系統」
+        ├─ 說明段落
+        └─ 三個數據指標（7 位成員 / 1鍵推薦 / ≥3天間隔）
+
+  ▸ 使用的 DS 元件：
+    Input（label, type, value, iconLeft, onChange, placeholder, error）
+    Button（variant="primary", fullWidth, size="lg"）
+
+  ▸ 登入成功後導航：
+    → official.html（正式班表）
+
+  ▸ localStorage 寫入：
+    dutymate_account — JSON.stringify(user object)
+    dutymate_role    — "admin" | "duty"
+
+  ▸ 外部相依（非本檔內容）：
+    - React 18 / ReactDOM 18 / Babel Standalone（CDN）
+    - _ds_bundle.js：設計系統元件庫，提供 window.TrendLinkDesignSystem_b2a0d6
+      其中本頁用到：Input, Button
+  =====================================================================
+-->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duty Mate · 登入</title>
+
+<!-- ============================================================
+     STYLES — Duty Mate 全域樣式（.dm-* 命名空間）
+     ============================================================ -->
+<style>
+/* --- Google Fonts (from tokens/fonts.css) --- */
+/* ============================================================
+   TrendLink 聯和趨動 — Webfonts
+   ------------------------------------------------------------
+   The brand site uses a clean Traditional-Chinese humanist sans.
+   We ship Noto Sans TC (the de-facto standard for zh-TW web UI)
+   as the primary face, with Noto Sans for crisp Latin / numerals.
+   Loaded from Google Fonts CDN.
+
+   ⚠ SUBSTITUTION NOTE: the live trendlink.com.tw site serves its
+   own bundled CJK font; we could not extract the original binary,
+   so Noto Sans TC is used as the nearest high-quality match.
+   Swap the @import below if the brand font files are provided.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;600;700&display=swap');
+
+/* --- Design System Tokens: Colors --- */
+/* ============================================================
+   TrendLink 聯和趨動 — Color Tokens
+   ------------------------------------------------------------
+   Brand DNA: a trustworthy corporate BLUE (drawn from the
+   navy→azure header gradient and logo mark) paired with a warm
+   GOLDEN-ORANGE accent (CTA buttons, logo swoosh). Blue carries
+   authority & stability; orange carries warmth & approachability
+   toward SME owners. Neutrals are cool, slightly blue-tinted.
+   ============================================================ */
+
+:root {
+  /* ---- Brand blue (primary) ----------------------------- */
+  --blue-50:  #eef4fb;
+  --blue-100: #d6e4f5;
+  --blue-200: #adc8e8;
+  --blue-300: #7ba6da;
+  --blue-400: #4d84cb;
+  --blue-500: #2c6ebb;   /* azure — right side of header gradient */
+  --blue-600: #1f5aa6;
+  --blue-700: #1b4f9c;   /* PRIMARY navy — left side of header   */
+  --blue-800: #163f7d;
+  --blue-900: #112f5d;
+  --blue-950: #0b1f3e;
+
+  /* ---- Sky / cyan (secondary brand accent) -------------- */
+  --sky-400: #4aa3d6;
+  --sky-500: #348bc9;    /* search circle / highlight blue       */
+  --sky-600: #2a76ad;
+
+  /* ---- Brand orange (accent / CTA) ---------------------- */
+  --orange-50:  #fdf4e6;
+  --orange-100: #fbe7c6;
+  --orange-200: #f6cd86;
+  --orange-300: #f2b955;
+  --orange-400: #ed9b26;  /* primary CTA gold                    */
+  --orange-500: #e37b24;  /* logo swoosh / hover deep orange     */
+  --orange-600: #c7641a;
+  --orange-700: #a04f15;
+
+  /* ---- Neutral (cool, blue-tinted grays) ---------------- */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f6f8fb;
+  --neutral-100: #eef1f6;
+  --neutral-200: #e1e6ee;
+  --neutral-300: #cbd3df;
+  --neutral-400: #9aa6b8;
+  --neutral-500: #6c798e;
+  --neutral-600: #4f5b6e;
+  --neutral-700: #3a4456;
+  --neutral-800: #262e3d;
+  --neutral-900: #161c28;
+
+  /* ---- Semantic status ---------------------------------- */
+  --success-500: #2e9e6b;
+  --success-50:  #e7f6ee;
+  --warning-500: #e3a008;
+  --warning-50:  #fcf3da;
+  --danger-500:  #d64545;
+  --danger-50:   #fbeaea;
+  --info-500:    #2c6ebb;
+  --info-50:     #eef4fb;
+
+  /* ============================================================
+     SEMANTIC ALIASES — reach for these in product UI
+     ============================================================ */
+
+  /* Text */
+  --text-strong:   var(--neutral-900);   /* headings              */
+  --text-body:     var(--neutral-700);   /* paragraph copy        */
+  --text-muted:    var(--neutral-500);   /* captions, meta        */
+  --text-on-brand: #ffffff;              /* text on blue/orange   */
+  --text-brand:    var(--blue-700);      /* blue headings & links */
+  --text-accent:   var(--orange-500);
+
+  /* Surfaces */
+  --surface-page:    var(--neutral-50);
+  --surface-card:    var(--neutral-0);
+  --surface-sunken:  var(--neutral-100);
+  --surface-brand:   var(--blue-700);
+  --surface-brand-soft: var(--blue-50);
+  --surface-accent-soft: var(--orange-50);
+  --surface-inverse: var(--neutral-900);
+
+  /* Borders */
+  --border-subtle:  var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong:  var(--neutral-400);
+  --border-brand:   var(--blue-500);
+
+  /* Interactive */
+  --action-primary:        var(--orange-400);
+  --action-primary-hover:  var(--orange-500);
+  --action-primary-press:  var(--orange-600);
+  --action-secondary:      var(--blue-700);
+  --action-secondary-hover:var(--blue-800);
+  --action-link:           var(--blue-600);
+  --focus-ring:            var(--sky-500);
+
+  /* Signature header gradient (navy → azure, ~12° like the site) */
+  --gradient-header: linear-gradient(105deg, var(--blue-800) 0%, var(--blue-700) 45%, var(--blue-500) 100%);
+  --gradient-accent: linear-gradient(105deg, var(--orange-500) 0%, var(--orange-400) 100%);
+}
+
+/* --- Design System Tokens: Typography --- */
+/* ============================================================
+   TrendLink 聯和趨動 — Typography Tokens
+   ------------------------------------------------------------
+   One humanist sans family carries everything (zh-TW + Latin).
+   Weights: 400 regular body, 500 medium UI, 700 bold headings,
+   900 black for hero display. Generous line-height for CJK
+   legibility (1.7 body, 1.3 headings). Latin/numerals fall
+   through to Noto Sans for crisp figures.
+   ============================================================ */
+
+:root {
+  /* ---- Families ---------------------------------------- */
+  --font-sans: "Noto Sans TC", "Noto Sans", "PingFang TC",
+               "Microsoft JhengHei", "Helvetica Neue", system-ui, sans-serif;
+  --font-latin: "Noto Sans", "Noto Sans TC", system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+
+  /* ---- Weights ----------------------------------------- */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-bold:    700;
+  --weight-black:   900;
+
+  /* ---- Type scale (px → rem at 16px base) -------------- */
+  --text-2xs:  0.6875rem;  /* 11 — micro labels            */
+  --text-xs:   0.75rem;    /* 12 — captions, meta          */
+  --text-sm:   0.875rem;   /* 14 — secondary UI            */
+  --text-base: 1rem;       /* 16 — body                    */
+  --text-md:   1.125rem;   /* 18 — lead body               */
+  --text-lg:   1.25rem;    /* 20 — card titles             */
+  --text-xl:   1.5rem;     /* 24 — section sub-heads       */
+  --text-2xl:  1.875rem;   /* 30 — H3                      */
+  --text-3xl:  2.25rem;    /* 36 — H2                      */
+  --text-4xl:  2.875rem;   /* 46 — H1                      */
+  --text-5xl:  3.75rem;    /* 60 — hero display            */
+
+  /* ---- Line heights ------------------------------------ */
+  --leading-tight:   1.25;
+  --leading-snug:    1.4;
+  --leading-normal:  1.6;
+  --leading-relaxed: 1.8;   /* long-form CJK prose          */
+
+  /* ---- Letter spacing (CJK likes a touch of tracking) -- */
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-wider:  0.12em;  /* eyebrow / overline labels  */
+
+  /* ---- Semantic roles ---------------------------------- */
+  --display-font: var(--font-sans);
+  --display-weight: var(--weight-black);
+  --heading-font: var(--font-sans);
+  --heading-weight: var(--weight-bold);
+  --body-font: var(--font-sans);
+  --body-weight: var(--weight-regular);
+}
+
+/* --- Design System Tokens: Spacing & Shadows --- */
+/* ============================================================
+   TrendLink 聯和趨動 — Spacing, Radius, Shadow, Layout Tokens
+   ------------------------------------------------------------
+   4px base grid. The brand reads CLEAN & ROOMY: large section
+   padding, soft-but-shallow shadows, gently rounded cards, and a
+   signature FULL PILL radius on primary buttons (from the site's
+   orange CTAs).
+   ============================================================ */
+
+:root {
+  /* ---- Spacing scale (4px grid) ------------------------ */
+  --space-0:  0;
+  --space-1:  0.25rem;   /* 4   */
+  --space-2:  0.5rem;    /* 8   */
+  --space-3:  0.75rem;   /* 12  */
+  --space-4:  1rem;      /* 16  */
+  --space-5:  1.5rem;    /* 24  */
+  --space-6:  2rem;      /* 32  */
+  --space-7:  2.5rem;    /* 40  */
+  --space-8:  3rem;      /* 48  */
+  --space-9:  4rem;      /* 64  */
+  --space-10: 5rem;      /* 80  */
+  --space-12: 7.5rem;    /* 120 — section rhythm */
+
+  /* ---- Radius ------------------------------------------ */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   10px;   /* inputs, small cards          */
+  --radius-lg:   16px;   /* cards                        */
+  --radius-xl:   24px;   /* feature panels               */
+  --radius-2xl:  32px;
+  --radius-pill: 999px;  /* CTA buttons, tags, chips     */
+  --radius-circle: 50%;
+
+  /* ---- Shadows (soft, cool-tinted, shallow) ------------ */
+  --shadow-xs:  0 1px 2px rgba(17, 47, 93, 0.06);
+  --shadow-sm:  0 2px 6px rgba(17, 47, 93, 0.08);
+  --shadow-md:  0 6px 18px rgba(17, 47, 93, 0.10);
+  --shadow-lg:  0 14px 34px rgba(17, 47, 93, 0.12);
+  --shadow-xl:  0 24px 60px rgba(17, 47, 93, 0.16);
+  /* Warm glow for orange CTAs on hover */
+  --shadow-accent: 0 8px 22px rgba(227, 123, 36, 0.32);
+  --shadow-brand:  0 10px 28px rgba(27, 79, 156, 0.28);
+
+  /* ---- Borders ----------------------------------------- */
+  --border-width: 1px;
+  --border-width-strong: 2px;
+
+  /* ---- Focus ring -------------------------------------- */
+  --ring-width: 3px;
+  --ring-offset: 2px;
+
+  /* ---- Layout ------------------------------------------ */
+  --container-max: 1200px;
+  --container-narrow: 880px;
+  --header-height: 76px;
+  --section-pad-y: clamp(3rem, 7vw, 7.5rem);
+  --gutter: clamp(1rem, 4vw, 2.5rem); /* @kind spacing */
+
+  /* ---- Motion ------------------------------------------ */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+  --duration-fast: 140ms; /* @kind other */
+  --duration-normal: 220ms; /* @kind other */
+  --duration-slow: 360ms; /* @kind other */
+
+  /* ---- Z-index ----------------------------------------- */
+  --z-sticky: 100; /* @kind other */
+  --z-overlay: 500; /* @kind other */
+  --z-modal: 600; /* @kind other */
+  --z-toast: 700; /* @kind other */
+}
+
+/* --- Design System Tokens: Base resets --- */
+/* ============================================================
+   TrendLink 聯和趨動 — Base element styles & helpers
+   Light reset + brand defaults. Safe to ship to consumers.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-body);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--heading-font);
+  font-weight: var(--heading-weight);
+  line-height: var(--leading-tight);
+  color: var(--text-strong);
+  text-wrap: balance;
+}
+
+p { margin: 0; line-height: var(--leading-relaxed); }
+p { text-wrap: pretty; }
+
+a { color: var(--action-link); text-decoration: none; }
+a:hover { color: var(--blue-700); }
+
+img { max-width: 100%; display: block; }
+
+::selection { background: var(--orange-200); color: var(--blue-900); }
+
+:focus-visible {
+  outline: var(--ring-width) solid color-mix(in srgb, var(--focus-ring) 55%, transparent);
+  outline-offset: var(--ring-offset);
+  border-radius: var(--radius-xs);
+}
+
+/* ---- Brand eyebrow / overline label ------------------- */
+.tl-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-accent);
+  text-transform: uppercase;
+}
+.tl-eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-accent);
+}
+
+/* ---- Section title underline accent ------------------- */
+.tl-title-accent { position: relative; display: inline-block; }
+.tl-title-accent::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -10px;
+  width: 56px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-accent);
+}
+
+/* --- Duty Mate App Styles --- */
+/* Duty Mate — shared styles (extracted from index.html). Used by index.html + every page in pages/. */
+html, body { margin: 0; padding: 0; background: var(--surface-page); height: 100%; }
+  #root { min-height: 100vh; }
+  .dm-app, .dm-login { font-family: var(--font-sans); color: var(--text-body); }
+  button { font-family: var(--font-sans); }
+
+  /* ---------- Brand mark ---------- */
+  .dm-brand { display: flex; align-items: center; gap: 11px; }
+  .dm-logo-mark { width: 40px; height: 40px; border-radius: 11px; flex: none;
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-500)); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 21px; font-weight: 900;
+    box-shadow: 0 4px 12px rgba(27,79,156,.32); position: relative; }
+  .dm-logo-mark::after { content: ""; position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px;
+    border-radius: 5px; background: var(--gradient-accent); border: 2px solid #fff; }
+  .dm-wordmark { font-size: 18px; font-weight: 900; color: var(--text-strong); letter-spacing: .01em; line-height: 1; }
+  .dm-wordmark-sub { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; color: var(--orange-500); margin-top: 4px; }
+
+  /* ---------- Login ---------- */
+  .dm-login { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .dm-login-card { align-self: center; width: 100%; max-width: 400px; margin: 0 auto; padding: 40px 36px; }
+  .dm-login-aside { background: var(--gradient-header); display: flex; align-items: center; justify-content: center;
+    padding: 48px; position: relative; overflow: hidden; }
+  .dm-login-aside::before { content: ""; position: absolute; right: -140px; top: -100px; width: 460px; height: 460px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(237,155,38,.22), transparent 70%); }
+
+  /* ---------- App layout ---------- */
+  .dm-app { display: flex; min-height: 100vh; }
+  .dm-sidebar { width: 234px; flex: none; background: #fff; border-right: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .dm-sidebar-brand { padding: 18px 18px; border-bottom: 1px solid var(--border-subtle); }
+  .dm-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1; }
+  .dm-nav-sect { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--text-muted);
+    padding: 14px 12px 6px; text-transform: uppercase; }
+  .dm-nav-item { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: none; background: none;
+    border-radius: 10px; cursor: pointer; text-align: left; width: 100%; font-size: 14px; font-weight: 600;
+    color: var(--text-muted); transition: background var(--duration-fast), color var(--duration-fast); position: relative; }
+  .dm-nav-item:hover { background: var(--neutral-50); color: var(--text-body); }
+  .dm-nav-item.active { background: var(--blue-50); color: var(--blue-700); }
+  .dm-nav-item.active::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px;
+    border-radius: 999px; background: var(--gradient-accent); }
+  .dm-nav-ic { display: flex; color: currentColor; opacity: .9; }
+  .dm-nav-item.active .dm-nav-ic { color: var(--blue-600); }
+  .dm-soon { margin-left: auto; font-size: 9.5px; font-weight: 700; color: var(--orange-600);
+    background: var(--orange-50); padding: 2px 6px; border-radius: 999px; }
+  .dm-sidebar-foot { padding: 12px; border-top: 1px solid var(--border-subtle); }
+  .dm-help { background: var(--surface-brand-soft); border-radius: 12px; padding: 12px 13px; }
+
+  .dm-sidebar-mobile { display: none; }
+  .dm-scrim { position: fixed; inset: 0; background: rgba(11,31,62,.4); z-index: 590; }
+
+  .dm-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .dm-topbar { height: 76px; background: #fff; border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 14px; padding: 0 22px; position: sticky; top: 0; z-index: 80; }
+  .dm-topbar-title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 800; color: var(--text-strong); }
+  .dm-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .dm-roleswitch { display: inline-flex; background: var(--neutral-100); border-radius: 999px; padding: 3px; }
+  .dm-roleswitch button { border: none; background: none; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: var(--text-muted); }
+  .dm-roleswitch button.on { background: #fff; color: var(--blue-700); box-shadow: var(--shadow-xs); }
+  .dm-user { display: flex; align-items: center; gap: 9px; }
+  .dm-avatar { width: 34px; height: 34px; border-radius: 50%; flex: none; background: var(--blue-700); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .dm-avatar.sm { width: 28px; height: 28px; font-size: 12px; background: var(--blue-100); color: var(--blue-700); }
+  .dm-iconbtn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border-subtle); background: #fff;
+    color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .dm-iconbtn:hover { background: var(--neutral-50); color: var(--text-body); }
+  .dm-iconbtn.sm { width: 32px; height: 32px; border-radius: 8px; }
+  .dm-iconbtn.danger:hover { background: var(--danger-50); color: var(--danger-500); border-color: color-mix(in srgb,var(--danger-500) 24%,transparent); }
+  .dm-iconbtn:disabled { opacity: .4; cursor: not-allowed; }
+  .dm-task-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border-subtle); border-radius: 10px; background: #fff; }
+  .dm-task-row:hover { border-color: var(--border-default); }
+  .dm-task-no { width: 24px; height: 24px; flex: none; border-radius: 7px; background: var(--blue-50); color: var(--blue-700); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-latin); }
+  .dm-previewbar { background: var(--orange-50); color: var(--orange-700); font-size: 13px; font-weight: 600;
+    padding: 9px 22px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid color-mix(in srgb,var(--orange-400) 24%,transparent); }
+  .dm-previewbar button { margin-left: auto; border: none; background: var(--orange-400); color: #fff; font-weight: 700;
+    font-size: 12px; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+  .dm-content { padding: 26px; max-width: 1240px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+
+  /* ---------- Cards / layout ---------- */
+  .dm-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: 14px; box-shadow: var(--shadow-sm); }
+  .dm-split { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+  .dm-empty { padding: 48px 26px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+  .dm-empty-ic { width: 64px; height: 64px; border-radius: 18px; background: var(--blue-50); color: var(--blue-500);
+    display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .dm-banner { background: var(--blue-50); color: var(--blue-800); border-radius: 10px; padding: 11px 14px;
+    font-size: 13px; display: flex; align-items: center; gap: 8px; line-height: 1.5; }
+  .dm-banner.warn { background: var(--warning-50); color: #8a6206; }
+
+  /* ---------- Calendar ---------- */
+  .dm-cal { width: 100%; }
+  .dm-weekhead, .dm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+  .dm-weekhead { margin-bottom: 7px; }
+  .dm-wh { text-align: center; font-size: 12px; font-weight: 700; padding: 4px 0; }
+  .dm-cell { min-height: 84px; border: 1px solid var(--border-subtle); border-radius: 9px; padding: 6px 7px;
+    display: flex; flex-direction: column; gap: 4px; background: #fff; transition: box-shadow var(--duration-fast), transform var(--duration-fast); }
+  .dm-cell-empty { border: none; background: transparent; min-height: 0; }
+  .dm-clickable:hover { box-shadow: 0 0 0 2px var(--blue-300) inset; }
+  .dm-selected { box-shadow: 0 0 0 2px var(--blue-500) inset; }
+  .dm-cell-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+  .dm-daynum { font-size: 13px; font-weight: 700; font-family: var(--font-latin); }
+  .dm-cell-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .dm-addslot { display: inline-flex; align-items: center; gap: 4px; color: var(--blue-400); font-size: 12px; font-weight: 600; }
+  .dm-addslot.subtle { color: var(--neutral-400); font-weight: 500; }
+  .dm-daynote { font-size: 10.5px; color: var(--text-muted); line-height: 1.3; }
+  .dm-absent { font-size: 10px; font-weight: 800; color: var(--danger-500); margin-top: 2px; }
+
+  /* ---------- Filter chips ---------- */
+  .dm-fchip { border: 1px solid var(--border-default); background: #fff; color: var(--text-body); border-radius: 999px;
+    padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--duration-fast); }
+  .dm-fchip:hover { border-color: var(--blue-400); color: var(--blue-700); }
+  .dm-fchip.on { background: var(--blue-600); border-color: var(--blue-600); color: #fff; }
+
+  /* ---------- Table ---------- */
+  .dm-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .dm-table thead th { background: var(--surface-sunken); color: var(--text-muted); font-weight: 600; font-size: 12.5px;
+    text-align: left; padding: 12px 18px; }
+  .dm-table tbody td { padding: 13px 18px; border-top: 1px solid var(--neutral-100); }
+  .dm-rowsel { cursor: pointer; }
+  .dm-rowsel:hover { background: var(--neutral-50); }
+  .dm-rowsel.on { background: var(--blue-50); }
+  .dm-self { font-size: 10.5px; font-weight: 700; color: var(--blue-700); background: var(--blue-100); border-radius: 999px; padding: 1px 7px; margin-left: 7px; }
+
+  /* ---------- Modal ---------- */
+  .dm-modal-scrim { position: fixed; inset: 0; background: rgba(11,31,62,.45); display: flex; align-items: center;
+    justify-content: center; z-index: 600; padding: 20px; animation: dmfade .14s ease; }
+  .dm-modal { background: #fff; border-radius: 16px; box-shadow: var(--shadow-xl); width: 100%; max-width: 420px;
+    max-height: 86vh; overflow: hidden; display: flex; flex-direction: column; animation: dmpop .18s var(--ease-out); }
+  .dm-modal.sm { max-width: 380px; }
+  @keyframes dmfade { from { opacity: 0; } }
+  @keyframes dmpop { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+  .dm-modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 22px 12px; }
+  .dm-modal-body { padding: 4px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .dm-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 14px 22px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+  .dm-pick { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: none; background: none;
+    border-radius: 10px; cursor: pointer; width: 100%; text-align: left; font-size: 14px; color: var(--text-body); }
+  .dm-pick:hover:not(:disabled) { background: var(--neutral-50); }
+  .dm-pick.on { background: var(--blue-50); }
+  .dm-pick:disabled { opacity: .45; cursor: not-allowed; }
+  .dm-pick-tag { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--orange-600); background: var(--orange-50); padding: 2px 8px; border-radius: 999px; }
+  .dm-btn-text { border: none; background: none; cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--text-muted);
+    display: inline-flex; align-items: center; gap: 5px; padding: 8px 6px; }
+  .dm-btn-text:hover { color: var(--text-body); }
+  .dm-btn-text.danger { color: var(--danger-500); }
+  .dm-typebtn { flex: 1; border: 1.5px solid var(--border-default); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 13.5px; }
+  .dm-input { width: 100%; box-sizing: border-box; height: 42px; padding: 0 13px; border: 1.5px solid var(--border-default);
+    border-radius: 10px; font-size: 14px; font-family: var(--font-sans); color: var(--text-strong); outline: none; background: #fff; }
+  .dm-input:focus { border-color: var(--blue-500); box-shadow: 0 0 0 3px color-mix(in srgb,var(--sky-500) 20%,transparent); }
+  select.dm-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c798e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 38px; }
+  .dm-field { display: flex; flex-direction: column; gap: 6px; }
+  .dm-field > span { font-size: 13px; font-weight: 600; color: var(--text-body); }
+  .dm-drop { border: 2px dashed var(--border-default); border-radius: 14px; padding: 34px 20px; text-align: center;
+    cursor: pointer; transition: all var(--duration-fast); }
+  .dm-drop:hover { border-color: var(--blue-400); background: var(--blue-50); }
+
+  /* ---------- Toast ---------- */
+  .dm-toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 700;
+    background: var(--neutral-900); color: #fff; padding: 12px 20px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-lg); animation: dmtoast .26s var(--ease-out); }
+  .dm-toast svg { color: var(--success-500); }
+  @keyframes dmtoast { from { opacity: 0; transform: translate(-50%, 12px); } }
+
+  .dm-only-mobile { display: none !important; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1024px) { .dm-split { grid-template-columns: 1fr; } }
+  @media (max-width: 880px) {
+    .dm-sidebar { display: none; }
+    .dm-sidebar-mobile { display: flex; position: fixed; left: 0; top: 0; height: 100vh; width: 270px; z-index: 600;
+      transform: translateX(-100%); transition: transform .24s var(--ease-out); box-shadow: var(--shadow-xl); }
+    .dm-sidebar-mobile.open { transform: translateX(0); }
+    .dm-only-mobile { display: inline-flex !important; }
+    .dm-only-desktop { display: none !important; }
+    .dm-login { grid-template-columns: 1fr; }
+    .dm-login-aside { display: none; }
+    .dm-content { padding: 18px 14px; }
+    .dm-cell { min-height: 66px; padding: 5px; }
+    .dm-weekhead, .dm-grid { gap: 4px; }
+  }
+  @media (max-width: 520px) {
+    .dm-cell { min-height: 56px; border-radius: 7px; }
+    .dm-daynum { font-size: 12px; }
+    .dm-topbar { padding: 0 14px; gap: 10px; }
+    .dm-roleswitch button { padding: 6px 10px; font-size: 12px; }
+  }
+</style>
+
+<!-- External: React + Babel (CDN) + Design System Bundle -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- Design System: provides Input, Button via window.TrendLinkDesignSystem_b2a0d6 -->
+<script src="../_ds_bundle.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ============================================================
+     SECTION 1: DutyKit — 共用資料模型、Icons、Helpers
+     ============================================================
+     本頁主要用到：
+     - DutyIcons.mail / DutyIcons.lock（Input icon）
+     - USERS 陣列（驗證 email）
+     - roleLabel()（角色顯示）
+     ============================================================ -->
+<script type="text/babel">
+// Duty Mate 值日生排班 — shared data, icons, helpers, recommendation engine.
+// Exposes window.Duty namespace.
+
+/* ----------------------------- Icons (line, ~1.9 stroke) ----------------------------- */
+const ic = (paths, s = 20) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>
+);
+const DutyIcons = {
+  calendar: (s) => ic(<><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>, s),
+  exclude: (s) => ic(<><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9.5 14.5l5 5M14.5 14.5l-5 5"/></>, s),
+  constraint: (s) => ic(<><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></>, s),
+  draft: (s) => ic(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m11.5 13-2.5 2.5L8 18l2.5-1 2.5-2.5a1 1 0 0 0-1.5-1.5Z"/></>, s),
+  official: (s) => ic(<><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></>, s),
+  activity: (s) => ic(<><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></>, s),
+  users: (s) => ic(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></>, s),
+  stats: (s) => ic(<><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="13" y="7" width="3" height="10"/></>, s),
+  import: (s) => ic(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></>, s),
+  swap: (s) => ic(<><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></>, s),
+  logout: (s) => ic(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></>, s),
+  bell: (s) => ic(<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>, s),
+  chevL: (s) => ic(<path d="m15 18-6-6 6-6"/>, s),
+  chevR: (s) => ic(<path d="m9 18 6-6-6-6"/>, s),
+  chevDown: (s) => ic(<path d="m6 9 6 6 6-6"/>, s),
+  plus: (s) => ic(<path d="M12 5v14M5 12h14"/>, s),
+  x: (s) => ic(<path d="M18 6 6 18M6 6l12 12"/>, s),
+  check: (s) => ic(<path d="M20 6 9 17l-5-5"/>, s),
+  menu: (s) => ic(<path d="M4 6h16M4 12h16M4 18h16"/>, s),
+  filter: (s) => ic(<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>, s),
+  spark: (s) => ic(<><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></>, s),
+  trash: (s) => ic(<><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></>, s),
+  edit: (s) => ic(<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></>, s),
+  warn: (s) => ic(<><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></>, s),
+  note: (s) => ic(<><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6M9 13h6M9 17h4"/></>, s),
+  task: (s) => ic(<><path d="M16 4h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 3h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="m9.5 13 1.8 1.8 3.7-3.8"/></>, s),
+  user: (s) => ic(<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>, s),
+  lock: (s) => ic(<><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>, s),
+  mail: (s) => ic(<><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></>, s),
+};
+
+/* ----------------------------- Sample data ----------------------------- */
+const USERS = [
+  { id: "u1", name: "劉亭筠", role: "duty",  include: true,  email: "tingyun.liu@trendlink.com.tw" },
+  { id: "u2", name: "張耘瑄", role: "duty",  include: true,  email: "yunxuan.chang@trendlink.com.tw" },
+  { id: "u3", name: "吳金燕", role: "admin", include: true,  email: "jinyan.wu@trendlink.com.tw" },
+  { id: "u4", name: "陳舒珊", role: "duty",  include: true,  email: "shushan.chen@trendlink.com.tw" },
+  { id: "u5", name: "Vicky Huang", role: "duty", include: false, email: "vicky.huang@trendlink.com.tw" },
+  { id: "u6", name: "黃喻靖", role: "duty",  include: true,  email: "yujing.huang@trendlink.com.tw" },
+  { id: "u7", name: "黃宣凱", role: "duty",  include: true,  email: "xuankai.huang@trendlink.com.tw" },
+];
+
+// "current" month for the demo: 2026 年 6 月
+const SEED_YEAR = 2026, SEED_MONTH = 5; // 0-indexed (June)
+
+// Activities: 端午節 (停班) + 補班 (調整上班日)
+const SEED_ACTIVITIES = {
+  "2026-06-19": { type: "off",    note: "端午節" },
+  "2026-06-20": { type: "adjust", note: "端午節補班" },
+};
+
+// 排除時段（各值日生不能排的日期）
+const SEED_EXCLUSIONS = {
+  u1: ["2026-06-08", "2026-06-09"],
+  u2: ["2026-06-15"],
+  u4: ["2026-06-22", "2026-06-23"],
+  u6: ["2026-06-11"],
+  u7: ["2026-06-03", "2026-06-29"],
+};
+
+const SEED_TASKS = [
+  { id: "t1", text: "上午 8:30 前開啟辦公室門窗與冷氣" },
+  { id: "t2", text: "倒茶水間與影印區垃圾、更換垃圾袋" },
+  { id: "t3", text: "補充茶水間紙杯與飲用水" },
+  { id: "t4", text: "下班前巡檢會議室電源與門窗" },
+];
+
+/* ----------------------------- Date helpers ----------------------------- */
+const WK = ["日", "一", "二", "三", "四", "五", "六"];
+const pad2 = (n) => String(n).padStart(2, "0");
+const dstr = (y, m, d) => `${y}-${pad2(m + 1)}-${pad2(d)}`;
+const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+const isWeekend = (date) => { const w = date.getDay(); return w === 0 || w === 6; };
+const MONTH_LABEL = (y, m) => `${y} 年 ${m + 1} 月`;
+
+// schedulable: a base weekday that isn't 停班日, OR a weekend that's 調整上班日
+function isSchedulable(date, dateStr, activities) {
+  const a = activities[dateStr];
+  if (a && a.type === "off") return false;
+  if (isWeekend(date)) return !!(a && a.type === "adjust");
+  return true;
+}
+
+function schedulableDays(year, month, activities) {
+  const out = [];
+  for (let d = 1; d <= daysInMonth(year, month); d++) {
+    const date = new Date(year, month, d);
+    const ds = dstr(year, month, d);
+    if (isSchedulable(date, ds, activities)) out.push(ds);
+  }
+  return out;
+}
+
+// pool = users that are 列入排班
+const schedulingPool = (users) => users.filter((u) => u.include);
+
+function counts(schedule, pool) {
+  const c = {}; pool.forEach((u) => (c[u.id] = 0));
+  Object.values(schedule).forEach((uid) => { if (c[uid] != null) c[uid]++; });
+  return c;
+}
+
+// 推薦演算法：排除停班日、納入調整上班日、平均分配、間隔 ≥3 天、避開排除時段。
+// 不覆蓋既有指派（PRD：推薦僅針對尚未排班的部分）。
+function recommend(year, month, users, exclusions, activities, existing = {}) {
+  const pool = schedulingPool(users);
+  const days = schedulableDays(year, month, activities);
+  const result = { ...existing };
+  const cnt = counts(result, pool);
+  const last = {};
+  Object.keys(result).forEach((ds) => {
+    const d = parseInt(ds.slice(-2), 10);
+    if (last[result[ds]] == null || d > last[result[ds]]) last[result[ds]] = d;
+  });
+  const open = days.filter((ds) => !result[ds]);
+  for (const ds of open) {
+    const dnum = parseInt(ds.slice(-2), 10);
+    let cand = pool.filter((u) => !(exclusions[u.id] || []).includes(ds));
+    const spaced = cand.filter((u) => last[u.id] == null || dnum - last[u.id] >= 3);
+    let use = spaced.length ? spaced : cand;
+    if (!use.length) continue; // 無人可排 → 留空（發布時提醒）
+    use = use.slice().sort((a, b) => (cnt[a.id] - cnt[b.id]) || ((last[a.id] || 0) - (last[b.id] || 0)));
+    const pick = use[0];
+    result[ds] = pick.id;
+    cnt[pick.id]++; last[pick.id] = dnum;
+  }
+  return result;
+}
+
+const userById = (users, id) => users.find((u) => u.id === id);
+const roleLabel = (r) => (r === "admin" ? "排班負責人" : "值日生");
+
+window.Duty = {
+  DutyIcons, USERS, SEED_YEAR, SEED_MONTH, SEED_ACTIVITIES, SEED_EXCLUSIONS, SEED_TASKS,
+  WK, pad2, dstr, daysInMonth, isWeekend, MONTH_LABEL, isSchedulable, schedulableDays,
+  schedulingPool, counts, recommend, userById, roleLabel,
+};
+
+</script>
+
+<!-- ============================================================
+     SECTION 2: DutyShell — ★ 本頁核心：Login 元件 ★
+     ============================================================
+     Login 元件定義在此。也包含 AppShell 等其他元件（本頁不使用，
+     但保留以維持 window.Duty 命名空間完整性）。
+
+     Login 元件邏輯：
+     - useState: email（預填 admin）, pw（預填）, err（錯誤訊息）
+     - submit: 比對 USERS.find(email) + pw.length >= 8
+     - 成功 → onLogin(user)
+     - 失敗 → setErr("帳號不存在或密碼錯誤")
+     ============================================================ -->
+<script type="text/babel">
+// Duty Mate — Login screen + App shell (sidebar, topbar, role switch) + shared atoms.
+// Exposes window.Duty.Login, AppShell, and atoms.
+
+const D = window.Duty;
+
+/* ----------------------------- Shared atoms ----------------------------- */
+function NameChip({ name, tone = "blue", absent, onRemove, small }) {
+  const tones = {
+    blue:   ["var(--blue-50)", "var(--blue-700)", "color-mix(in srgb,var(--blue-500) 30%, transparent)"],
+    gold:   ["var(--orange-50)", "var(--orange-600)", "color-mix(in srgb,var(--orange-400) 36%, transparent)"],
+    me:     ["var(--blue-600)", "#fff", "var(--blue-600)"],
+  };
+  const [bg, fg, bd] = tones[tone] || tones.blue;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5, maxWidth: "100%",
+      padding: small ? "2px 7px" : "3px 9px", borderRadius: 999, background: bg, color: fg,
+      border: `1px solid ${bd}`, fontSize: small ? 11.5 : 12.5, fontWeight: 700,
+      textDecoration: absent ? "line-through" : "none", opacity: absent ? 0.7 : 1, whiteSpace: "nowrap",
+    }}>
+      {name}
+      {onRemove && (
+        <button onClick={(e) => { e.stopPropagation(); onRemove(); }} aria-label="移除"
+          style={{ border: "none", background: "none", padding: 0, display: "flex", cursor: "pointer", color: "currentColor", opacity: 0.7 }}>
+          {D.DutyIcons.x(12)}
+        </button>
+      )}
+    </span>
+  );
+}
+
+function ActivityRibbon({ type }) {
+  if (!type) return null;
+  const map = {
+    off:    ["var(--danger-500)", "停班"],
+    adjust: ["var(--success-500)", "補班"],
+  }[type];
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 800, color: "#fff", background: map[0],
+      borderRadius: 5, padding: "1px 6px", letterSpacing: ".03em", lineHeight: 1.5,
+    }}>{map[1]}</span>
+  );
+}
+
+function PageHeader({ icon, title, desc, actions }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 22, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--blue-50)", color: "var(--blue-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "none" }}>{icon}</span>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 22, color: "var(--text-strong)", margin: 0, lineHeight: 1.2 }}>{title}</h1>
+          {desc && <p style={{ fontSize: 13.5, color: "var(--text-muted)", margin: "5px 0 0", lineHeight: 1.5 }}>{desc}</p>}
+        </div>
+      </div>
+      {actions && <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>{actions}</div>}
+    </div>
+  );
+}
+
+function Legend({ items }) {
+  return (
+    <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+      {items.map(([color, label]) => (
+        <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-muted)" }}>
+          <span style={{ width: 12, height: 12, borderRadius: 4, background: color, flex: "none" }} />{label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ----------------------------- Person stat panel ----------------------------- */
+function StatPanel({ users, schedule, year, month, title = "人員排班統計", highlightId, onPick }) {
+  const pool = D.schedulingPool(users);
+  const days = D.schedulableDays(year, month, window.__dmActivities || {});
+  const avg = pool.length ? days.length / pool.length : 0;
+  const cnt = D.counts(schedule, pool);
+  return (
+    <div className="dm-card" style={{ padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
+        <h3 style={{ fontSize: 15, color: "var(--text-strong)", margin: 0 }}>{title}</h3>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>應排 {days.length} 天</span>
+      </div>
+      <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 14 }}>平均次數 <strong style={{ color: "var(--orange-600)" }}>{avg.toFixed(1)}</strong> 次 / 人</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        {pool.map((u) => {
+          const c = cnt[u.id];
+          const reached = avg > 0 ? c >= Math.round(avg) : c > 0;
+          const pct = avg > 0 ? Math.min(100, (c / avg) * 100) : (c > 0 ? 100 : 0);
+          const on = highlightId === u.id;
+          return (
+            <div key={u.id} onClick={() => onPick && onPick(u.id)} style={{ cursor: onPick ? "pointer" : "default", opacity: highlightId && !on ? 0.5 : 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? "var(--blue-700)" : "var(--text-body)" }}>{u.name}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: reached ? "var(--success-500)" : "var(--orange-600)", fontVariantNumeric: "tabular-nums" }}>
+                  {c} <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>/ {avg.toFixed(1)}</span>
+                </span>
+              </div>
+              <div style={{ height: 7, borderRadius: 999, background: "var(--neutral-100)", overflow: "hidden" }}>
+                <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: reached ? "var(--blue-500)" : "var(--gradient-accent)", transition: "width .35s var(--ease-out)" }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- Login ----------------------------- */
+function Login({ onLogin }) {
+  const [email, setEmail] = React.useState("jinyan.wu@trendlink.com.tw");
+  const [pw, setPw] = React.useState("dutymate2026");
+  const [err, setErr] = React.useState("");
+  const { Input, Button } = window.TrendLinkDesignSystem_b2a0d6;
+
+  const submit = (e) => {
+    e.preventDefault();
+    const u = D.USERS.find((x) => x.email === email.trim().toLowerCase());
+    if (!u || pw.length < 8) { setErr("帳號不存在或密碼錯誤"); return; }
+    onLogin(u);
+  };
+
+  return (
+    <div className="dm-login">
+      <form className="dm-login-card" onSubmit={submit}>
+        <div className="dm-brand" style={{ marginBottom: 26 }}>
+          <span className="dm-logo-mark">值</span>
+          <div>
+            <div className="dm-wordmark">Duty Mate</div>
+            <div className="dm-wordmark-sub">值日生排班 · 聯和趨動</div>
+          </div>
+        </div>
+        <h1 style={{ fontSize: 22, color: "var(--text-strong)", margin: "0 0 6px" }}>歡迎回來</h1>
+        <p style={{ fontSize: 13.5, color: "var(--text-muted)", margin: "0 0 24px" }}>請使用公司郵箱登入排班系統</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Input label="公司郵箱" type="email" value={email} iconLeft={D.DutyIcons.mail(18)}
+            onChange={(e) => { setEmail(e.target.value); setErr(""); }} placeholder="you@trendlink.com.tw" />
+          <Input label="密碼" type="password" value={pw} iconLeft={D.DutyIcons.lock(18)}
+            onChange={(e) => { setPw(e.target.value); setErr(""); }} placeholder="至少 8 碼，含字母與數字"
+            error={err || undefined} />
+        </div>
+        <Button type="submit" variant="primary" fullWidth size="lg" style={{ marginTop: 24 }}>登入系統</Button>
+        <div style={{ marginTop: 16, fontSize: 12, color: "var(--text-muted)", textAlign: "center", lineHeight: 1.7 }}>
+          示範帳號已預填（排班負責人 · 吳金燕）<br/>帳號由管理員建立，忘記密碼請洽運維人員
+        </div>
+      </form>
+      <div className="dm-login-aside">
+        <div style={{ maxWidth: 360 }}>
+          <div className="tl-eyebrow" style={{ color: "var(--orange-300)" }}>INTERNAL TOOL</div>
+          <h2 style={{ color: "#fff", fontSize: 34, margin: "16px 0 14px", lineHeight: 1.3 }}>集眾人之力<br/>把排班交給系統</h2>
+          <p style={{ color: "rgba(255,255,255,.82)", fontSize: 15, lineHeight: 1.9 }}>
+            值日生自助填寫不能排的時間，系統一鍵產生平均、無衝突的推薦班表，負責人微調後即可發布——把繁瑣的協調從一個人身上解放出來。
+          </p>
+          <div style={{ display: "flex", gap: 26, marginTop: 30 }}>
+            {[["7", "位成員"], ["1鍵", "產生推薦"], ["≥3天", "排班間隔"]].map(([v, l]) => (
+              <div key={l}><div style={{ color: "#fff", fontSize: 26, fontWeight: 900 }}>{v}</div><div style={{ color: "rgba(255,255,255,.7)", fontSize: 12.5, marginTop: 3 }}>{l}</div></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- App shell ----------------------------- */
+const NAV = [
+  { sect: "排班作業" },
+  { id: "official",   label: "正式班表",   icon: "official",   roles: ["admin", "duty"] },
+  { id: "exclude",    label: "排除時段",   icon: "exclude",    roles: ["admin", "duty"] },
+  { id: "constraint", label: "排班限制表", icon: "constraint", roles: ["admin"] },
+  { id: "draft",      label: "草稿班表",   icon: "draft",      roles: ["admin"] },
+  { sect: "設定與管理" },
+  { id: "activity",   label: "活動設定",   icon: "activity",   roles: ["admin", "duty"] },
+  { id: "worktask",   label: "工作任務設定", icon: "task",     roles: ["admin"] },
+  { id: "users",      label: "用戶管理",   icon: "users",      roles: ["admin"] },
+  { id: "stats",      label: "出勤統計",   icon: "stats",      roles: ["admin"] },
+  { id: "import",     label: "過往班表匯入", icon: "import",   roles: ["admin"] },
+  { id: "swap",       label: "申請換班",   icon: "swap",       roles: ["admin", "duty"], soon: true },
+];
+
+function AppShell({ account, viewRole, onRole, page, onNav, children }) {
+  const [openMobile, setOpenMobile] = React.useState(false);
+  const items = NAV.filter((n) => n.sect || n.roles.includes(viewRole));
+  const current = NAV.find((n) => n.id === page);
+
+  const navList = (
+    <nav className="dm-nav">
+      {items.map((n, i) =>
+        n.sect ? (
+          <div key={"s" + i} className="dm-nav-sect">{n.sect}</div>
+        ) : (
+          <button key={n.id} className={"dm-nav-item" + (page === n.id ? " active" : "")}
+            onClick={() => { onNav(n.id); setOpenMobile(false); }}>
+            <span className="dm-nav-ic">{D.DutyIcons[n.icon](19)}</span>
+            <span>{n.label}</span>
+            {n.soon && <span className="dm-soon">即將推出</span>}
+          </button>
+        )
+      )}
+    </nav>
+  );
+
+  return (
+    <div className="dm-app">
+      <aside className="dm-sidebar">
+        <div className="dm-brand dm-sidebar-brand">
+          <span className="dm-logo-mark">值</span>
+          <div>
+            <div className="dm-wordmark">Duty Mate</div>
+            <div className="dm-wordmark-sub">值日生排班</div>
+          </div>
+        </div>
+        {navList}
+        <div className="dm-sidebar-foot">
+          <div className="dm-help">
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-strong)" }}>每月排班週期</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.6 }}>填寫排除 → 產生推薦 → 微調 → 發布 → 統計</div>
+          </div>
+        </div>
+      </aside>
+
+      {openMobile && <div className="dm-scrim" onClick={() => setOpenMobile(false)} />}
+      <aside className={"dm-sidebar dm-sidebar-mobile" + (openMobile ? " open" : "")}>
+        <div className="dm-brand dm-sidebar-brand">
+          <span className="dm-logo-mark">值</span>
+          <div><div className="dm-wordmark">Duty Mate</div><div className="dm-wordmark-sub">值日生排班</div></div>
+          <button className="dm-iconbtn" style={{ marginLeft: "auto" }} onClick={() => setOpenMobile(false)}>{D.DutyIcons.x(18)}</button>
+        </div>
+        {navList}
+      </aside>
+
+      <div className="dm-main">
+        <header className="dm-topbar">
+          <button className="dm-iconbtn dm-only-mobile" onClick={() => setOpenMobile(true)} aria-label="選單">{D.DutyIcons.menu(20)}</button>
+          <div className="dm-topbar-title">
+            <span className="dm-only-desktop" style={{ color: "var(--blue-600)" }}>{current && D.DutyIcons[current.icon](18)}</span>
+            <span>{current ? current.label : "Duty Mate"}</span>
+          </div>
+          <div className="dm-topbar-right">
+            <div className="dm-roleswitch" role="tablist" aria-label="視角切換">
+              <button className={viewRole === "admin" ? "on" : ""} onClick={() => onRole("admin")}>負責人</button>
+              <button className={viewRole === "duty" ? "on" : ""} onClick={() => onRole("duty")}>值日生預覽</button>
+            </div>
+            <button className="dm-iconbtn dm-only-desktop" aria-label="通知">{D.DutyIcons.bell(19)}</button>
+            <div className="dm-user">
+              <span className="dm-avatar">{(viewRole === "duty" ? "劉" : account.name[0])}</span>
+              <div className="dm-only-desktop" style={{ lineHeight: 1.15 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-strong)" }}>{viewRole === "duty" ? "劉亭筠" : account.name}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{D.roleLabel(viewRole)}</div>
+              </div>
+            </div>
+            <button className="dm-iconbtn" aria-label="登出" onClick={() => onNav("__logout")}>{D.DutyIcons.logout(19)}</button>
+          </div>
+        </header>
+        {viewRole === "duty" && (
+          <div className="dm-previewbar">{D.DutyIcons.user(15)} 值日生視角預覽 — 僅顯示值日生可使用的功能與自己的資料。<button onClick={() => onRole("admin")}>回到負責人視角</button></div>
+        )}
+        <main className="dm-content">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window.Duty, { Login, AppShell, NameChip, ActivityRibbon, PageHeader, Legend, StatPanel });
+
+</script>
+
+<!-- ============================================================
+     SECTION 3: 頁面啟動 — 登入後持久化帳號並導航
+     ============================================================
+     - 渲染 Login 元件
+     - onLogin: 寫入 localStorage 並跳轉到 official.html
+     - 若已登入（dutymate_account 存在）→ 直接導航到 official.html
+     ============================================================ -->
+<script type="text/babel">
+const Duty = window.Duty;
+
+function LoginPage() {
+  // If already logged in, redirect to official
+  const existing = (() => { try { return JSON.parse(localStorage.getItem("dutymate_account")); } catch(e) { return null; } })();
+  if (existing) {
+    window.location.replace("official.html");
+    return null;
+  }
+
+  const handleLogin = (u) => {
+    const role = u.role === "admin" ? "admin" : "duty";
+    localStorage.setItem("dutymate_account", JSON.stringify(u));
+    localStorage.setItem("dutymate_role", role);
+    window.location.href = "official.html";
+  };
+
+  return <Duty.Login onLogin={handleLogin} />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<LoginPage />);
+</script>
+</body>
+</html>

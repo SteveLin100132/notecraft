@@ -1,0 +1,120 @@
+<!-- @dsCard group="Duty Mate" viewport="1280x860" name="Duty Mate 值日生排班" subtitle="Internal duty-roster scheduler — login, calendar, recommend, publish, stats" -->
+<!-- @startingPoint section="App" subtitle="Duty Mate 值日生排班內部系統（完整可點擊原型）" viewport="1280x860" -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duty Mate · 值日生排班</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="dutymate.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="_ds_bundle.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#1b4f9c">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#1b4f9c"/>
+    <g transform="translate(420 200)">
+      <rect x="0" y="0" width="360" height="360" rx="44" fill="#ffffff"/>
+      <rect x="0" y="0" width="360" height="92" rx="44" fill="#2c6ebb"/>
+      <rect x="0" y="48" width="360" height="44" fill="#2c6ebb"/>
+      <rect x="78" y="-26" width="36" height="80" rx="18" fill="#163f7d"/>
+      <rect x="246" y="-26" width="36" height="80" rx="18" fill="#163f7d"/>
+      <g fill="#d6e4f5">
+        <rect x="44" y="150" width="58" height="44" rx="10"/>
+        <rect x="132" y="150" width="58" height="44" rx="10"/>
+        <rect x="220" y="150" width="58" height="44" rx="10"/>
+        <rect x="44" y="216" width="58" height="44" rx="10"/>
+        <rect x="220" y="216" width="58" height="44" rx="10"/>
+        <rect x="44" y="282" width="58" height="44" rx="10"/>
+        <rect x="132" y="282" width="58" height="44" rx="10"/>
+      </g>
+      <rect x="132" y="216" width="58" height="44" rx="10" fill="#ed9b26"/>
+      <circle cx="300" cy="300" r="66" fill="#ed9b26"/>
+      <path d="M272 300 l20 20 l38 -42" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="600" y="660" font-family="'Noto Sans TC',sans-serif" font-size="58" font-weight="900" fill="#ffffff" text-anchor="middle">Duty Mate</text>
+    <text x="600" y="712" font-family="'Noto Sans TC',sans-serif" font-size="28" font-weight="700" letter-spacing="8" fill="#f2b955" text-anchor="middle">值日生排班</text>
+  </svg>
+</template>
+<div id="root"></div>
+<!-- base runtime -->
+<script type="text/babel" src="DutyKit.jsx"></script>
+<script type="text/babel" src="DutyCalendar.jsx"></script>
+<script type="text/babel" src="DutyShell.jsx"></script>
+<script type="text/babel" src="DutyViewShared.jsx"></script>
+<!-- page views (one file each — shared with pages/*.html) -->
+<script type="text/babel" src="views/OfficialView.jsx"></script>
+<script type="text/babel" src="views/ExcludeView.jsx"></script>
+<script type="text/babel" src="views/ConstraintView.jsx"></script>
+<script type="text/babel" src="views/DraftView.jsx"></script>
+<script type="text/babel" src="views/ActivityView.jsx"></script>
+<script type="text/babel" src="views/WorkTaskView.jsx"></script>
+<script type="text/babel" src="views/UsersView.jsx"></script>
+<script type="text/babel" src="views/StatsView.jsx"></script>
+<script type="text/babel" src="views/ImportView.jsx"></script>
+<script type="text/babel" src="views/SwapView.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const Duty = window.Duty;
+
+const seed = () => ({
+  users: Duty.USERS,
+  activities: Duty.SEED_ACTIVITIES,
+  exclusions: Duty.SEED_EXCLUSIONS,
+  draft: {}, official: {}, publishedMonths: [],
+  taskList: Duty.SEED_TASKS,
+  year: Duty.SEED_YEAR, month: Duty.SEED_MONTH,
+});
+function load() { try { return JSON.parse(localStorage.getItem("dutymate_v1")); } catch (e) { return null; } }
+
+const ALLOWED = {
+  admin: ["official", "exclude", "constraint", "draft", "activity", "worktask", "users", "stats", "import", "swap"],
+  duty:  ["official", "exclude", "activity", "swap"],
+};
+
+function App() {
+  const [account, setAccount] = useState(null);
+  const [viewRole, setViewRole] = useState("admin");
+  const [page, setPage] = useState("official");
+  const [state, setState] = useState(() => { const s = load(); return s ? { ...seed(), ...s } : seed(); });
+  const [toast, setToast] = useState(null);
+
+  window.__dmActivities = state.activities;
+  useEffect(() => { try { localStorage.setItem("dutymate_v1", JSON.stringify(state)); } catch (e) {} }, [state]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2600); return () => clearTimeout(t); }, [toast]);
+
+  const set = (patch) => setState((s) => ({ ...s, ...patch }));
+  const showToast = (msg) => setToast({ msg, id: Date.now() });
+  const go = (pg) => setPage(pg);
+
+  if (!account) {
+    return <Duty.Login onLogin={(u) => { setAccount(u); setViewRole(u.role === "admin" ? "admin" : "duty"); setPage("official"); }} />;
+  }
+
+  const onNav = (id) => { if (id === "__logout") { setAccount(null); return; } setPage(id); };
+  const safePage = ALLOWED[viewRole].includes(page) ? page : "official";
+  const Views = {
+    official: Duty.OfficialView, exclude: Duty.ExcludeView, constraint: Duty.ConstraintView,
+    draft: Duty.DraftView, activity: Duty.ActivityView, worktask: Duty.WorkTaskView, users: Duty.UsersView,
+    stats: Duty.StatsView, import: Duty.ImportView, swap: Duty.SwapView,
+  };
+  const View = Views[safePage] || Duty.OfficialView;
+  const props = { state, set, viewRole, account, toast: showToast, go };
+
+  return (
+    <Duty.AppShell account={account} viewRole={viewRole}
+      onRole={(r) => { setViewRole(r); if (!ALLOWED[r].includes(page)) setPage("official"); }}
+      page={safePage} onNav={onNav}>
+      <View {...props} />
+      {toast && <div className="dm-toast" key={toast.id}>{Duty.DutyIcons.check(16)}{toast.msg}</div>}
+    </Duty.AppShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

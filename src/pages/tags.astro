@@ -1,0 +1,21 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PageHead from "@/components/PageHead.astro";
+import TagsManager from "@/components/islands/TagsManager.tsx";
+import { getAllNotes, tagStats } from "@/lib/notes";
+
+const isDev = import.meta.env.DEV;
+const notes = await getAllNotes();
+const stats = tagStats(notes);
+---
+<BaseLayout title="標籤索引" current="tags" description="依標籤瀏覽筆記">
+  <PageHead
+    eyebrow="TAGS"
+    title="標籤索引"
+    sub={isDev
+      ? "瀏覽、重新命名或刪除標籤 — 寫入動作僅 dev 環境可用。"
+      : "依標籤瀏覽筆記，點擊任一標籤進入過濾後的列表。"}
+  />
+
+  <TagsManager client:load initial={stats} devMode={isDev} />
+</BaseLayout>

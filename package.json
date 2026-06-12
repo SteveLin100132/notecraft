@@ -1,0 +1,40 @@
+{
+  "name": "notecraft",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist",
+    "preview": "astro preview",
+    "astro": "astro",
+    "typecheck": "astro check",
+    "new-note": "node scripts/new-note.mjs"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.0.3",
+    "@astrojs/react": "^4.1.2",
+    "@astrojs/tailwind": "^5.1.4",
+    "astro": "^5.0.5",
+    "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.469.0",
+    "motion": "^11.15.0",
+    "pagefind": "^1.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

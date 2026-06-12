@@ -1,0 +1,106 @@
+---
+title: Waterfall V.S Agile
+description: ''
+tags:
+  - AI 陪跑筆記
+  - 專案管理
+createdAt: '2026-06-12'
+updatedAt: '2026-06-12'
+---
+
+# Waterfall V.S Agile
+
+{/* @ai-visualize
+id: waterfall-agile-comparison
+type: table
+prompt: |
+  瀑布 vs 敏捷的多維度比較表,放在文章開頭作為全局概覽。
+  欄位為兩種方法(瀑布、敏捷),列為以下面向:
+  - 交付方式:階段一次性交付 vs 迭代增量交付
+  - 需求變更:成本高 / 抗拒變更 vs 成本低 / 擁抱變化
+  - 文件:前期齊全、文件驅動 vs 精簡夠用即可
+  - 規劃時機:前期規劃重、一次定案 vs 持續滾動、隨迭代調整
+  - 溝通反饋:里程碑階段審查 vs 高頻、持續反饋
+  - 適用情境:需求穩定 / 合規(政府標案、ERP 導入、金融系統)
+            vs 需求不明 / 快速試錯(消費型 App、SaaS 產品)
+  以 Tailwind 樣式化的 HTML <table> 呈現,不要做成 SVG。
+  用 lucide-react 的 icon 與 badge 凸顯每格的屬性傾向
+  (例如變更成本高用 TrendingUp、低用 Check;抗拒用 Lock、擁抱用 Repeat),
+  icon 顏色用 trendlink-design 的色票透過 currentColor 繼承,不要硬編碼色碼。
+  讓兩欄在視覺上形成「剛性 vs 柔性」的冷暖對比。
+status: generated
+*/}
+
+import WaterfallAgileComparison from '@/components/generated/waterfall-agile-comparison'
+
+<WaterfallAgileComparison />
+
+## Waterfall(瀑布式)
+
+階段清楚、文件齊全、前期規劃重、變更成本高。
+適合需求穩定、合規要求高、或對交付物有明確規範的專案(例如:政府標案、ERP 導入、金融系統)。
+
+## Agile(敏捷式)
+
+迭代交付、擁抱變化、強調溝通與反饋。
+適合需求不明確、需要快速試錯、市場變化快的產品(例如:消費型 App、SaaS 產品)。
+
+{/* @ai-visualize
+id: waterfall-agile-change-response
+type: motion
+prompt: |
+  互動式對比「需求中途變更」時,瀑布與敏捷的反應差異 —— 這是本篇的核心張力,
+  目標是讓讀者「親身體驗」同一個變更在兩種方法下代價天差地別。
+
+  版面上下兩條泳道,共用同一條時間軸(專案進度 0% → 100%):
+  - 上排「瀑布」:一條線性階段鏈(需求 → 設計 → 開發 → 測試 → 上線),
+    階段之間以實線箭頭單向串接。
+  - 下排「敏捷」:一串重複的小迭代迴圈(Sprint),以循環箭頭連續推進。
+
+  互動:讀者拖動時間軸 slider 推進專案進度,並可在任意點按下「需求變更」按鈕。
+  - 觸發後,瀑布泳道:在已完成階段出現一道紅色裂痕,需要倒回前面階段重做,
+    一條「變更成本」量條大幅上升並標示「變更成本高」。
+  - 敏捷泳道:變更只是被收進「下一個 Sprint」的待辦,成本條僅微幅變動,
+    標示「擁抱變化」。
+  收斂訊息:在專案越後期觸發變更,瀑布的成本攀升越劇烈,敏捷則相對平緩。
+
+  底層幾何(泳道、階段方塊、Sprint 迴圈、成本條)用手寫 SVG 繪製,
+  以 react state + motion 驅動推進與變更動畫(200–400ms ease-out,
+  並用 useReducedMotion 尊重 prefers-reduced-motion)。
+  禁止 emoji,狀態 / 方向語意一律用 lucide-react icon。
+  色彩、字級、間距遵循 trendlink-design。
+status: generated
+*/}
+
+import WaterfallAgileChangeResponse from '@/components/generated/waterfall-agile-change-response'
+
+<WaterfallAgileChangeResponse client:visible />
+
+## 我的觀察
+
+實務上很少有「純瀑布」或「純敏捷」,多數團隊會視專案性質做混搭。
+例如:對外契約用瀑布的方式定義範疇與里程碑,對內團隊則用敏捷的方式跑 Sprint 來推進。
+
+{/* @ai-visualize
+id: waterfall-agile-hybrid
+type: diagram
+prompt: |
+  呈現實務上的「混搭模型」,把我的觀察視覺化:同一個專案,
+  對外用瀑布定範疇與里程碑、對內用敏捷跑 Sprint,兩者並存而非二選一。
+
+  以「剛性外框 + 柔性內核」的隱喻構圖:
+  - 外層「對外契約層(瀑布)」:一條水平時間軸,上面放幾個固定的里程碑節點
+    (方形、實線、剛性),標注範疇定義與交付里程碑。
+  - 內層「對內團隊層(敏捷)」:在每兩個相鄰里程碑之間,以循環箭頭跑 Sprint,
+    用圓形迭代迴圈(柔性)表現持續推進,把成果餵向下一個里程碑。
+
+  視覺上讓外層直線 / 方塊 / 實線 與 內層圓形 / 循環 形成明確對比。
+  手寫 SVG 為主;若加上 motion 讓內層 Sprint 迴圈緩慢轉動 / 逐步推進更佳
+  (節制動畫,並尊重 prefers-reduced-motion)。
+  禁止 emoji,需要圖示時用 lucide-react;色票與間距遵循 trendlink-design。
+status: generated
+*/}
+
+import WaterfallAgileHybrid from '@/components/generated/waterfall-agile-hybrid'
+
+<WaterfallAgileHybrid client:visible />

@@ -1,0 +1,155 @@
+---
+name: content-visualize
+description: 為 NoteCraft 的 MDX 筆記生成豐富的視覺化與動態互動元件。當 MDX 筆記中含有 `@ai-visualize` 標記區塊、使用者要求「處理視覺化」/「重新生成」/「補上某張圖」、或希望將文字知識轉化為示意圖、圖表、時間軸、動態互動元件並嵌入 MDX 時，使用此 Skill。視覺樣式請遵循 `trendlink-design` Skill 所定義的設計系統。Also triggers on English requests like "process visualizations" or "generate diagrams from markers".
+---
+
+# Content Visualize Skill
+
+從 MDX 筆記中的 `@ai-visualize` 標記區塊生成 React / SVG 元件。請依提示詞自行判斷適合的視覺化形式 —— 除非提示詞真的含糊不清，否則不要反問作者該用哪個函式庫。
+
+## 何時使用此 Skill
+
+- `src/content/notes/` 下的 MDX 檔含有一或多個 `@ai-visualize` 標記區塊，其 `status` 為 `pending`，或作者要求重新生成
+- 作者說出如「處理視覺化」、「重新生成 xxx.mdx 的標記」、「把 OAuth 那張圖補上」等指令
+- 作者要求為現有筆記新增一個視覺化
+
+## 何時不使用此 Skill
+
+- 作者只想做文字校對或潤稿 —— 用不到視覺化
+- MDX 檔沒有標記區塊，且作者也沒要求新增
+- 請求是關於整站樣式、Astro 設定，或其他與單篇筆記視覺元件無關的事
+
+## 工作流程
+
+### 1. 掃描
+
+讀取作者指名的每一個 `.mdx` 檔（若是全站性請求，則讀取 `src/content/notes/` 底下全部）。擷取每個 `@ai-visualize` 區塊，格式如下：
+
+```mdx
+{/* @ai-visualize
+id: <kebab-case-id>
+type: diagram | chart | timeline | table | motion | free
+prompt: |
+  <自然語言描述>
+status: pending | generated | locked | failed
+*/}
+```
+
+`status: locked` 的區塊一律跳過；`status: generated` 的區塊僅在作者明確要求時才重新生成；`status: failed` 的區塊預設不重跑，除非作者調整 prompt 後明確要求重試。
+
+### 2. 決定視覺化方式
+
+**互動優先原則**：先問「用什麼互動能讓讀者**親身體驗**這個概念的差異與張力，而不只是閱讀？」一張會被拖動、能逐步揭露、可並排對照的互動元件，幾乎永遠勝過靜態示意圖。預設往互動與敘事走；只有當內容本質上是靜態的（純參考查表、單張結構快照）才回退到靜態形式。
+
+動手前先挖出**核心洞察**——這段內容真正想讓讀者記住的一句話，常常是作者沒明寫、藏在字裡行間的那層意思。元件應以它為收斂點，並把概念間的張力（有限 vs 無限、凍結 vs 流動、固定 vs 浮動）放大。
+
+對每個區塊套用以下決策樹，命中第一條符合的即停止：
+
+1. **可被「體驗」的概念對比 / 走查**（兩種情境的差異、隨某個變數推進的變化、需要逐步揭露的流程）—— 這是預設的首選。用 `motion` + react state 做成互動元件，讓讀者透過操作感受差異。常用互動隱喻：
+   - **時間軸 slider**：拖動推進，看兩條線「一條停下、一條繼續」
+   - **並排模擬按鈕**：點一下左右兩欄各跑出流程，對比輕重
+   - **tab / stepper 走查**：把多個面向收進分頁，形成敘事節奏
+   - **可增長 / 浮動列表**：用「長出新項目」「虛線占位」暗示持續變動
+   底層幾何（線段、流程、狀態）仍用手寫 SVG 繪製，再以 state / motion 驅動。
+
+2. **流程 / 時序 / 狀態機 / 架構圖** —— 描述「依序的步驟」、「角色對話」、「方塊與箭頭」。底層用手寫 SVG（vertical lanes / boxes-and-arrows / circles-and-transitions）。**若步驟有先後或值得逐步揭露，優先加上 motion 逐步播放或點擊推進**，而非一次全部畫出來的靜態圖。
+
+3. **有軸的量化資料（長條 / 折線 / 區域 / 散佈 / 圓餅）** —— 提示詞提到數值、隨時間比較、分佈。標準圖表使用 `recharts`；非標準圖表（Sankey、力導向圖、自訂幾何）才動用 `d3`。
+
+4. **時間軸 / Gantt / 階段推進** —— 描述「沿時間發生的事件」。自行繪製 SVG 時間軸；若能用 slider 或捲動推進，優先做成可互動。
+
+5. **含豐富欄位的比較表（圖示、徽章、迷你長條）** —— 以 Tailwind 樣式化的 HTML `<table>` 呈現，不要做成 SVG。表格本質靜態，通常不需互動；但若比較項目多到適合分頁或篩選，可考慮升級為 tab。
+
+6. **複合需求** —— 把上面幾種組合起來。例如「以動畫呈現 token bucket 的限流演算法」就是自訂 SVG + motion 的組合。請組合，不要二選一。
+
+7. **自由 / 含糊** —— 挑選最能讓讀者**體驗**該概念的形式；同樣優先互動。當兩種可行形式並列時，選更能放大概念張力的那一種。
+
+標記區塊中的 `type` 欄位只是提示，不是限制。若你想到明顯更好的做法，可以覆蓋它，但請在對話回覆中告訴作者你做了這個選擇。
+
+**跨標記合併（敘事整合）**：當一篇筆記有多個彼此相關的標記（同一組對比的不同切面），主動評估是否該把它們**合併成單一互動元件**——例如用 tab 串起「生命週期 / 需求變動 / 衡量標準」三面向，比三張各自獨立的圖更有敘事節奏。合併時：產出單一 `.tsx`（取一個涵蓋性的 id），並在對話中告知作者你合併了哪些標記；mdx-writer 寫回時，把元件接在第一個標記下方、其餘被併入的標記只更新 `status: generated` 並註明已併入哪個元件。也可反向建議拆分一個過載的標記。不確定是否該合併時，於對話中向作者確認。
+
+### 3. 生成元件
+
+開始撰寫程式碼前，若尚未在本次對話讀過 `trendlink-design` Skill，請先讀取，取得色票、字級、間距、圓角等設計 token；除非提示詞明確要求跳脫設計系統，否則一律以該 Skill 的規範為視覺基準。
+
+- 輸出路徑：`src/components/generated/<id>.tsx`（kebab-case，與標記的 `id` 一致）
+- 元件必須：
+  - 是一個自包含的 React Functional Component，使用 default export
+  - 完整型別標註（`.tsx`，除非有理由並在註解中說明，否則禁用 `any`）
+  - 不可有 required props —— MDX 使用端不會傳入任何 props
+  - import 來源限制為：`react`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`、以及專案內的相對路徑檔案。若需要其他套件，請先在對話中詢問作者
+  - **禁止使用 emoji**（包含 Unicode emoji、表情符號、🚀 ✅ ⚠️ 等任何 emoji 字元），無論是 JSX 文字節點、字串、aria-label、註解、或 SVG `<text>` 內。需要表達狀態 / 物件 / 方向 / 警示等語意時，一律改用 `lucide-react` 的 icon 元件（例如 `<Check />`、`<TriangleAlert />`、`<ArrowRight />`），icon 大小以 `size` prop 控制，顏色用 Tailwind class 透過 `currentColor` 繼承
+  - 樣式使用 Tailwind utility classes；除非動畫需要，否則不要寫原生 CSS
+  - 純 SVG 元件請設定 `viewBox` 並用 `width="100%"` 讓它可縮放；挑一個合理的長寬比
+  - motion 元件預設動畫保持節制（200–400ms、ease-out）；並透過 `motion/react` 的 `useReducedMotion()` 尊重 `prefers-reduced-motion`
+- 目標是讓元件看起來像「一位用心的設計師寫出來的」，而不是「程式生成的產物」。具體的顏色與間距，永遠勝過通用的灰色方塊。
+
+### 4. 驗證
+
+> 此步驟由 component-generator Subagent 在元件寫入後自行執行。
+
+完成元件寫入後，執行：
+
+```bash
+npx tsc --noEmit
+npx astro build
+```
+
+若任一指令失敗，讀取錯誤訊息、修正元件、再次驗證。每個區塊最多嘗試修正 3 次。若仍失敗，**跳到第 5 步、將該 MDX 標記的 `status` 設為 `failed`**（保留原始 prompt），並在對話中回報錯誤節錄。驗證未通過前，不要進行第 5 步的 MDX 寫回。
+
+### 5. 寫回 MDX
+
+> 此步驟通常由 mdx-writer Subagent 執行。
+
+對每個處理完且驗證通過的標記區塊，將其 `status: pending` 改為 `status: generated`，並確保該區塊正下方緊接著：
+
+```mdx
+import <PascalCaseId> from '@/components/generated/<id>'
+
+<<PascalCaseId> client:visible />
+```
+
+只有當元件含有 motion 或互動狀態時才加 `client:visible`；純靜態 SVG 請省略此 directive。已存在的 import 不要重複，原地更新即可。
+
+**重要：拆掉包住標記的 code fence。** 有些作者會把 `{/* @ai-visualize ... */}` 標記寫在 ```` ```mdx ```` ／ ```` ``` ```` 圍欄裡（當成草稿時的可見範例）。MDX 註解 `{/* ... */}` 本身渲染後是隱形的，但一旦被圍欄包住，整段 prompt 與 `status` 就會被當成「程式碼區塊」**原樣顯示給讀者**（包含 `status: generated` 這種雜訊）。因此 generated 寫回時，**必須一併刪除標記上下兩行的圍欄**，讓標記回到純註解狀態，再把 import／JSX 緊接在 `*/}` 之後。委派 mdx-writer 時，請明確要求它「拆掉圍欄」，不要叫它「插在收尾 ``` 之後」——後者會把圍欄留下、導致 prompt 外露。
+
+驗證失敗的區塊：僅把 `status` 改為 `failed`，**不要寫入 import 與 JSX**（避免 MDX 引用到不可用的元件）；此時**保留**作者原本的圍欄，不要拆。
+
+## Astro / MDX 整合規範
+
+- 元件統一放在 `src/components/generated/`；`tsconfig.json` 已設定 import 別名 `@/components/generated/<id>`
+- `src/content/notes/` 下的 MDX 由 Astro 渲染。在 MDX 中嵌入的 React 元件，只有具備互動或動畫時才需要 `client:*` directive；純靜態 SVG 不加更快
+- 生成的元件不要加入頁面層級的版型、標題或外層包裝 —— 元件是嵌入於筆記之中，會繼承筆記本身的排版樣式
+- 生成元件不得 import 另一個生成元件（避免相互耦合）
+
+## 預設樣式 —— 依循 trendlink-design
+
+本系統有一個獨立的 design system Skill `trendlink-design`，定義了統一的色票、字體、間距、圓角、陰影等視覺語彙。生成元件時，**請以 `trendlink-design` 為預設樣式來源**：
+
+- 在第 3 步「生成元件」之前，若尚未在本次對話中讀過 `trendlink-design`，先讀取其 SKILL.md，了解可用的色票 token、字級、間距系統與既有 utility class 慣例
+- 元件的色彩、字級、間距、圓角、陰影、互動狀態（hover / focus / active）等，一律遵循 `trendlink-design` 的規範
+- 在 SVG 中使用顏色時，優先採用 `trendlink-design` 指定的色票 token；若該 Skill 提供 CSS variables 或 Tailwind 自訂 class，請優先使用，而非寫死十六進位色碼
+- `trendlink-design` 未涵蓋的細節（例如某些 SVG 線寬、特定動畫曲線），才回到本 Skill 的常識性原則決定
+
+只有當提示詞明確要求「跳脫設計系統」（例如「畫一張像黑板手繪的示意圖」、「請用 80 年代復古風」）時，才暫時忽略 `trendlink-design`，並在對話回覆中告知作者你做了這個決定與理由。
+
+## 對話回覆範本
+
+處理完成後，請用以下格式在對話中簡短摘要：
+
+> 已處理 `<filename>`：
+> - `<id-1>` —— 以「<採用的方式>」生成（例：「手寫 SVG 時序圖」）
+> - `<id-2>` —— 已重新生成；原本的 <舊方式> 改為 <新方式>，原因：<原因>
+> - `<id-3>` —— 嘗試 3 次後失敗：<錯誤節錄>
+
+不要把生成的元件原始碼整段貼回對話 —— 檔案已經在磁碟上了。
+
+## 參考資料
+
+以下是函式庫專屬樣式與較長範例的參考檔，需要時再讀取（非預載）：
+
+- `references/svg-patterns.md` —— 常見 SVG 示意圖樣式（時序、流程、架構）
+- `references/motion-patterns.md` —— 嵌入筆記中的 Framer Motion 範例
+- `references/recharts-patterns.md` —— recharts 組合技巧與常見陷阱
+
+僅在當前任務符合對應主題時才讀取上述檔案。

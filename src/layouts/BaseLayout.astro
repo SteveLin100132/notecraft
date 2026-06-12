@@ -1,0 +1,47 @@
+---
+import "@/styles/global.css";
+import Sidebar from "@/components/Sidebar.astro";
+import ToastHost from "@/components/islands/ToastHost.tsx";
+import { getAllNotes, parseMarkers } from "@/lib/notes";
+
+export interface Props {
+  title: string;
+  description?: string;
+  current: "dashboard" | "notes" | "tags" | "about";
+}
+const { title, description, current } = Astro.props;
+
+const notes = await getAllNotes();
+const markersPending = notes
+  .flatMap((n) => parseMarkers(n.body))
+  .filter((m) => m.status !== "generated").length;
+---
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — NoteCraft</title>
+    {description && <meta name="description" content={description} />}
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap"
+    />
+  </head>
+  <body>
+    <div id="nc-app" style="display:flex;min-height:100vh;background:var(--surface-page);">
+      <Sidebar current={current} markersPending={markersPending} />
+      <div id="nc-scroll" style="flex:1;min-width:0;height:100vh;overflow:auto;">
+        <div style="max-width:1120px;margin:0 auto;padding:34px 40px 80px;">
+          <slot />
+        </div>
+      </div>
+      <ToastHost client:idle />
+    </div>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+---
+export interface Props {
+  variant?: "primary" | "secondary" | "outline" | "ghost";
+  size?: "sm" | "md" | "lg";
+  href?: string;
+  type?: "button" | "submit";
+  id?: string;
+  style?: string;
+  class?: string;
+  disabled?: boolean;
+  dataAttrs?: Record<string, string>;
+}
+const { variant = "primary", size = "md", href, type = "button", id, style = "", class: cls, disabled, dataAttrs = {} } = Astro.props;
+
+const sizeMap = {
+  sm: "height:34px;padding:0 14px;font-size:13px;",
+  md: "height:42px;padding:0 20px;font-size:14px;",
+  lg: "height:48px;padding:0 24px;font-size:15px;",
+}[size];
+
+const variants: Record<string, string> = {
+  primary:
+    "background:var(--gradient-accent);color:#fff;border:none;box-shadow:0 2px 8px rgba(227,123,36,0.28);",
+  secondary:
+    "background:var(--action-secondary);color:#fff;border:none;",
+  outline:
+    "background:#fff;color:var(--blue-700);border:1.5px solid var(--blue-500);",
+  ghost:
+    "background:transparent;color:var(--text-body);border:1.5px solid var(--border-subtle);",
+};
+
+const base = `display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;font-family:var(--font-sans);font-weight:700;cursor:pointer;transition:transform 120ms var(--ease-out), filter 140ms;text-decoration:none;white-space:nowrap;${sizeMap}${variants[variant]}${disabled ? "opacity:0.5;cursor:not-allowed;" : ""}${style}`;
+
+const Tag = href ? "a" : "button";
+const attrs: Record<string, unknown> = { id, class: `nc-btn ${cls ?? ""}`, style: base, ...dataAttrs };
+if (Tag === "button") {
+  attrs.type = type;
+  attrs.disabled = disabled;
+} else {
+  attrs.href = href;
+}
+---
+<Tag {...attrs}><slot /></Tag>
+
+<style>
+  .nc-btn:hover:not([disabled]) { filter: brightness(1.05); }
+  .nc-btn:active:not([disabled]) { transform: scale(0.97); }
+</style>

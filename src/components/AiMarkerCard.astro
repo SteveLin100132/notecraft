@@ -1,0 +1,50 @@
+---
+import Badge from "./Badge.astro";
+import Icon from "./Icon.astro";
+
+export interface Props {
+  id: string;
+  type: string;
+  status: "pending" | "generated" | "locked" | "failed";
+  prompt: string;
+}
+const { id, type, status, prompt } = Astro.props;
+
+const isPending = status !== "generated";
+const tone =
+  status === "generated" ? "success" : status === "failed" ? "danger" : status === "locked" ? "neutral" : "warning";
+const label =
+  status === "generated"
+    ? "已生成"
+    : status === "failed"
+    ? "生成失敗"
+    : status === "locked"
+    ? "已鎖定"
+    : "待生成";
+---
+<div
+  style={`margin:22px 0;border-radius:var(--radius-lg);overflow:hidden;border:1px dashed ${isPending ? "var(--orange-300)" : "var(--neutral-300)"};background:${isPending ? "var(--orange-50)" : "var(--neutral-50)"};`}
+>
+  <div
+    style={`display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid ${isPending ? "var(--orange-100)" : "var(--neutral-100)"};`}
+  >
+    <span style="display:flex;color:var(--orange-500);"><Icon name="sparkle" size={16} /></span>
+    <code style="font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--blue-700);">
+      @ai-visualize · {id}
+    </code>
+    <span style="margin-left:auto;display:flex;gap:6px;">
+      <Badge tone="blue" variant="soft">{type}</Badge>
+      <Badge tone={tone} variant="soft">{label}</Badge>
+    </span>
+  </div>
+  <div style="padding:12px 16px 14px;">
+    <div style="font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--text-muted);margin-bottom:5px;">PROMPT</div>
+    <p style="margin:0;font-size:13.5px;color:var(--text-body);line-height:1.7;white-space:pre-wrap;">{prompt}</p>
+    {isPending && (
+      <div style="margin-top:10px;font-size:12.5px;color:var(--orange-600);display:flex;align-items:center;gap:6px;">
+        <Icon name="clock" size={14} />
+        尚未生成 — 在 Claude Code 中請 AI 處理此標記即可在筆記內渲染元件
+      </div>
+    )}
+  </div>
+</div>

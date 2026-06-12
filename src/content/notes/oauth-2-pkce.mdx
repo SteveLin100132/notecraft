@@ -1,0 +1,43 @@
+---
+title: OAuth 2.0 與 PKCE 授權流程
+description: 拆解 Authorization Code Flow，以及為什麼公開用戶端一定要加上 PKCE。
+tags: []
+category: security
+createdAt: '2026-06-02'
+updatedAt: '2026-06-12'
+---
+import OAuthPkceFlow from "@/components/generated/oauth-pkce-flow";
+
+OAuth 2.0 的 Authorization Code Flow 是目前最主流的授權方式。但在沒有後端、無法安全保存 client_secret 的環境（SPA、行動 App）中，授權碼一旦被攔截就可能被惡意換取 token。PKCE（Proof Key for Code Exchange）就是為此設計的延伸。
+
+## 三方角色與訊息順序
+
+整個流程牽涉用戶端、授權伺服器與資源伺服器三者。與其用文字描述每一步，不如直接看一張時序圖：
+
+{/* @ai-visualize
+id: oauth-pkce-flow
+type: diagram
+status: generated
+prompt: |
+  用一張時序圖說明 OAuth 2.0 Authorization Code Flow，強調 PKCE 步驟，
+  以及 client、auth server、resource server 三者之間的訊息順序。
+*/}
+<OAuthPkceFlow client:visible />
+
+## PKCE 的關鍵
+
+- 用戶端先產生隨機 code_verifier，雜湊後得到 code_challenge。
+- 授權請求只帶 code_challenge；換 token 時才帶原始 code_verifier。
+- 授權伺服器驗證兩者吻合，確保「換 token 的人」就是「發起授權的人」。
+
+> 即使授權碼被攔截，攻擊者沒有 code_verifier 也無法換到 access_token。
+
+## 實作注意事項
+
+code_verifier 建議使用 43–128 字元的高熵亂數，並以 S256（SHA-256）而非 plain 作為 challenge method。
+
+```ts
+const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
+const challenge = base64url(await sha256(verifier));
+// 授權請求：?code_challenge=${challenge}&code_challenge_method=S256
+```

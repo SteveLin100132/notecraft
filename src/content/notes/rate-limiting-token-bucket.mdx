@@ -1,0 +1,40 @@
+---
+title: API 限流：Token Bucket 演算法
+description: 用一個會動的桶子，直覺理解突發流量與平均速率的取捨。
+tags: []
+category: backend
+createdAt: '2026-05-28'
+updatedAt: '2026-06-12'
+---
+import TokenBucket from "@/components/generated/token-bucket";
+
+限流（Rate Limiting）保護後端不被突發流量打垮。Token Bucket 是最常見的演算法之一，因為它同時能控制「平均速率」又允許一定程度的「突發」。
+
+## 運作方式
+
+想像一個固定容量的桶子，系統以固定速率往桶裡放 token。每個請求進來時消耗一個 token；桶空了，請求就被拒絕（回 429）。動手玩玩看：
+
+{/* @ai-visualize
+id: token-bucket
+type: motion
+status: generated
+prompt: |
+  以可互動的動畫呈現 token bucket 限流演算法：桶子定速補充 token、
+  按鈕送出請求消耗 token、桶空時請求被拒。
+*/}
+<TokenBucket client:visible />
+
+## 兩個關鍵參數
+
+1. 補充速率（refill rate）— 決定長期允許的平均 QPS。
+2. 桶容量（capacity）— 決定一次能容忍多大的突發。
+
+若把容量設為 1，Token Bucket 就退化成嚴格的固定速率限流；容量越大，越能吸收瞬間尖峰。
+
+```ts
+function allow(bucket: Bucket, now: number): boolean {
+  refill(bucket, now);
+  if (bucket.tokens >= 1) { bucket.tokens -= 1; return true; }
+  return false; // 429 Too Many Requests
+}
+```

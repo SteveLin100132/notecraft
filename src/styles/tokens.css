@@ -1,0 +1,70 @@
+/* TrendLink Design System tokens (excerpted for NoteCraft).
+   Source: .claude/skills/tokens/*.css — keep in sync if DS updates. */
+
+:root {
+  /* ── colors ── */
+  --blue-50:#eef4fb; --blue-100:#d6e4f5; --blue-200:#adc8e8; --blue-300:#7ba6da;
+  --blue-400:#4d84cb; --blue-500:#2c6ebb; --blue-600:#1f5aa6; --blue-700:#1b4f9c;
+  --blue-800:#163f7d; --blue-900:#112f5d; --blue-950:#0b1f3e;
+  --sky-400:#4aa3d6; --sky-500:#348bc9; --sky-600:#2a76ad;
+  --orange-50:#fdf4e6; --orange-100:#fbe7c6; --orange-200:#f6cd86; --orange-300:#f2b955;
+  --orange-400:#ed9b26; --orange-500:#e37b24; --orange-600:#c7641a; --orange-700:#a04f15;
+  --neutral-0:#ffffff; --neutral-50:#f6f8fb; --neutral-100:#eef1f6; --neutral-200:#e1e6ee;
+  --neutral-300:#cbd3df; --neutral-400:#9aa6b8; --neutral-500:#6c798e; --neutral-600:#4f5b6e;
+  --neutral-700:#3a4456; --neutral-800:#262e3d; --neutral-900:#161c28;
+  --success-500:#2e9e6b; --success-50:#e7f6ee;
+  --warning-500:#e3a008; --warning-50:#fcf3da;
+  --danger-500:#d64545; --danger-50:#fbeaea;
+  --info-500:#2c6ebb; --info-50:#eef4fb;
+
+  --text-strong:var(--neutral-900); --text-body:var(--neutral-700);
+  --text-muted:var(--neutral-500); --text-on-brand:#ffffff;
+  --text-brand:var(--blue-700); --text-accent:var(--orange-500);
+
+  --surface-page:var(--neutral-50); --surface-card:var(--neutral-0);
+  --surface-sunken:var(--neutral-100); --surface-brand:var(--blue-700);
+  --surface-brand-soft:var(--blue-50); --surface-accent-soft:var(--orange-50);
+  --surface-inverse:var(--neutral-900);
+
+  --border-subtle:var(--neutral-200); --border-default:var(--neutral-300);
+  --border-strong:var(--neutral-400); --border-brand:var(--blue-500);
+
+  --action-primary:var(--orange-400); --action-primary-hover:var(--orange-500);
+  --action-primary-press:var(--orange-600); --action-secondary:var(--blue-700);
+  --action-secondary-hover:var(--blue-800); --action-link:var(--blue-600);
+  --focus-ring:var(--sky-500);
+
+  --gradient-header:linear-gradient(105deg,var(--blue-800) 0%,var(--blue-700) 45%,var(--blue-500) 100%);
+  --gradient-accent:linear-gradient(105deg,var(--orange-500) 0%,var(--orange-400) 100%);
+
+  /* ── typography ── */
+  --font-sans:"Noto Sans TC","Noto Sans","PingFang TC","Microsoft JhengHei","Helvetica Neue",system-ui,sans-serif;
+  --font-latin:"Noto Sans","Noto Sans TC",system-ui,sans-serif;
+  --font-mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  --weight-regular:400; --weight-medium:500; --weight-bold:700; --weight-black:900;
+  --text-2xs:0.6875rem; --text-xs:0.75rem; --text-sm:0.875rem; --text-base:1rem;
+  --text-md:1.125rem; --text-lg:1.25rem; --text-xl:1.5rem; --text-2xl:1.875rem;
+  --text-3xl:2.25rem; --text-4xl:2.875rem; --text-5xl:3.75rem;
+  --leading-tight:1.25; --leading-snug:1.4; --leading-normal:1.6; --leading-relaxed:1.8;
+  --tracking-tight:-0.01em; --tracking-normal:0; --tracking-wide:0.04em; --tracking-wider:0.12em;
+
+  /* ── spacing / radius / shadow ── */
+  --space-1:0.25rem; --space-2:0.5rem; --space-3:0.75rem; --space-4:1rem;
+  --space-5:1.5rem; --space-6:2rem; --space-7:2.5rem; --space-8:3rem;
+
+  /* Softer radius scale (prototype override), pill kept for buttons/tags */
+  --radius-xs:2px; --radius-sm:3px; --radius-md:5px; --radius-lg:8px;
+  --radius-xl:11px; --radius-2xl:14px; --radius-pill:999px; --radius-circle:50%;
+
+  --shadow-xs:0 1px 2px rgba(17,47,93,0.06);
+  --shadow-sm:0 2px 6px rgba(17,47,93,0.08);
+  --shadow-md:0 6px 18px rgba(17,47,93,0.10);
+  --shadow-lg:0 14px 34px rgba(17,47,93,0.12);
+  --shadow-xl:0 24px 60px rgba(17,47,93,0.16);
+  --shadow-accent:0 8px 22px rgba(227,123,36,0.32);
+  --shadow-brand:0 10px 28px rgba(27,79,156,0.28);
+
+  --ease-standard:cubic-bezier(0.4,0,0.2,1);
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+  --duration-fast:140ms; --duration-normal:220ms; --duration-slow:360ms;
+}

@@ -1,0 +1,18 @@
+---
+export interface Props {
+  eyebrow?: string;
+  title: string;
+  sub?: string;
+}
+const { eyebrow, title, sub } = Astro.props;
+---
+<div
+  style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:26px;flex-wrap:wrap;"
+>
+  <div>
+    {eyebrow && <div class="tl-eyebrow" style="margin-bottom:10px;">{eyebrow}</div>}
+    <h1 style="font-size:var(--text-3xl);color:var(--text-strong);font-weight:900;margin:0;line-height:1.2;">{title}</h1>
+    {sub && <p style="font-size:var(--text-md);color:var(--text-muted);margin:8px 0 0;line-height:1.6;">{sub}</p>}
+  </div>
+  <slot name="action" />
+</div>

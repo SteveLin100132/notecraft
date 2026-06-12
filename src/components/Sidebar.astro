@@ -1,0 +1,86 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Props {
+  current: "dashboard" | "notes" | "tags" | "about";
+  markersPending: number;
+}
+const { current, markersPending } = Astro.props;
+
+const nav: { id: Props["current"]; zh: string; en: string; ic: "dashboard" | "notes" | "tag" | "about"; href: string }[] = [
+  { id: "dashboard", zh: "總覽", en: "Dashboard", ic: "dashboard", href: "/" },
+  { id: "notes", zh: "筆記", en: "Notes", ic: "notes", href: "/notes" },
+  { id: "tags", zh: "標籤", en: "Tags", ic: "tag", href: "/tags" },
+  { id: "about", zh: "關於", en: "About", ic: "about", href: "/about" },
+];
+---
+<aside
+  style="width:248px;flex:none;background:var(--gradient-header);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;"
+>
+  <div
+    style="height:72px;display:flex;align-items:center;padding:0 22px;border-bottom:1px solid rgba(255,255,255,0.12);"
+  >
+    <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <span
+        style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:5px;background:rgba(255,255,255,0.12);color:#fff;flex:none;"
+      >
+        <Icon name="notes" size={22} />
+      </span>
+      <span style="line-height:1.1;">
+        <span style="display:block;font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.01em;">NoteCraft</span>
+        <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.22em;color:var(--orange-300);">AI NOTES</span>
+      </span>
+    </a>
+  </div>
+
+  <nav style="padding:16px 14px;display:flex;flex-direction:column;gap:4px;">
+    {nav.map((item) => {
+      const on = item.id === current;
+      const activeBg = on ? "rgba(255,255,255,0.16)" : "transparent";
+      const fg = on ? "#fff" : "rgba(255,255,255,0.78)";
+      return (
+        <a
+          href={item.href}
+          data-nav={item.id}
+          style={`display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:5px;text-decoration:none;width:100%;background:${activeBg};color:${fg};font-weight:${on ? 700 : 500};font-size:14.5px;font-family:var(--font-sans);transition:background 140ms;`}
+        >
+          <span style="display:flex;"><Icon name={item.ic} size={20} /></span>
+          <span style="flex:1;">{item.zh}</span>
+          <span style="font-size:11px;font-weight:600;letter-spacing:.05em;opacity:.55;">{item.en}</span>
+        </a>
+      );
+    })}
+  </nav>
+
+  <div
+    style="margin:auto 14px 14px;padding:16px;border-radius:6px;background:rgba(255,255,255,0.1);color:#fff;"
+  >
+    <div style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff;">
+      <Icon name="sparkle" size={16} style="color:var(--orange-400);" />
+      待生成視覺化
+    </div>
+    <div style="font-size:12px;opacity:.85;color:#fff;margin:6px 0 10px;line-height:1.6;">
+      {markersPending} 個 @ai-visualize 標記等待處理
+    </div>
+    <a
+      href="/notes"
+      style="display:flex;align-items:center;justify-content:center;width:100%;height:34px;border-radius:999px;background:var(--gradient-accent);color:#fff;font-weight:700;font-size:12.5px;text-decoration:none;font-family:var(--font-sans);"
+    >
+      查看筆記
+    </a>
+  </div>
+</aside>
+
+<script>
+  // Light hover effect without React
+  const links = document.querySelectorAll<HTMLAnchorElement>("aside a[data-nav]");
+  links.forEach((a) => {
+    const base = a.style.background;
+    a.addEventListener("mouseenter", () => {
+      if (!a.style.background.includes("0.16")) a.style.background = "rgba(255,255,255,0.08)";
+    });
+    a.addEventListener("mouseleave", () => {
+      a.style.background = base;
+    });
+  });
+</script>

@@ -1,0 +1,47 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PageHead from "@/components/PageHead.astro";
+import Button from "@/components/Button.astro";
+import Icon from "@/components/Icon.astro";
+import NotesList from "@/components/islands/NotesList.tsx";
+import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
+import PagefindSearch from "@/components/islands/PagefindSearch.tsx";
+import { getAllNotes, parseMarkers, tagStats, excerpt } from "@/lib/notes";
+
+const isDev = import.meta.env.DEV;
+const notes = await getAllNotes();
+const cards = notes.map((n) => {
+  const ms = parseMarkers(n.body);
+  return {
+    slug: n.slug,
+    title: n.data.title,
+    description: n.data.description,
+    tags: n.data.tags,
+    updatedAt: n.data.updatedAt,
+    excerpt: excerpt(n.body, n.data.description),
+    markersTotal: ms.length,
+    markersGenerated: ms.filter((m) => m.status === "generated").length,
+  };
+});
+const stats = tagStats(notes).map((t) => ({ name: t.name, count: t.count }));
+---
+<BaseLayout title="所有筆記" current="notes" description="瀏覽所有 NoteCraft 筆記">
+  <PageHead
+    eyebrow="NOTES"
+    title="所有筆記"
+    sub={`${notes.length} 篇筆記 · 預設依更新時間倒序`}
+  >
+    {isDev && (
+      <Fragment slot="action">
+        <Button id="nc-new-note" variant="primary" size="md">
+          <Icon name="plus" size={18} /> 新增筆記
+        </Button>
+      </Fragment>
+    )}
+  </PageHead>
+
+  <PagefindSearch client:idle />
+  <NotesList client:load notes={cards} tagStats={stats} />
+
+  {isDev && <NewNoteModal client:idle />}
+</BaseLayout>

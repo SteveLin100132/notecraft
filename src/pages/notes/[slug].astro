@@ -1,0 +1,107 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import TagEditor from "@/components/islands/TagEditor.tsx";
+import Toc from "@/components/islands/Toc.tsx";
+import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
+import AiMarkerCard from "@/components/AiMarkerCard.astro";
+import Icon from "@/components/Icon.astro";
+import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
+import { fmtDate } from "@/lib/dates";
+
+export async function getStaticPaths() {
+  const notes = await getCollection("notes");
+  return notes.map((n) => ({ params: { slug: n.slug }, props: { note: n } }));
+}
+
+const { note } = Astro.props;
+const { Content, headings } = await note.render();
+const markers = parseMarkers(note.body);
+const genCount = markers.filter((m) => m.status === "generated").length;
+const pendingIds = markers.filter((m) => m.status !== "generated").map((m) => m.id);
+const isDev = import.meta.env.DEV;
+const noteAbsPath = `${process.cwd()}/src/content/notes/${note.id}`;
+const vscodeHref = `vscode://file${noteAbsPath}`;
+
+const allNotes = await getAllNotes();
+const stats = tagStats(allNotes).map((t) => ({ name: t.name, count: t.count }));
+
+const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text }));
+---
+<BaseLayout title={note.data.title} current="notes" description={note.data.description}>
+  <a
+    href="/notes"
+    style="display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:18px;"
+  >
+    <Icon name="chevronLeft" size={16} /> 返回筆記列表
+  </a>
+
+  <div style={`display:grid;grid-template-columns:${toc.length ? "1fr 220px" : "1fr"};gap:40px;align-items:start;`}>
+    <article style="min-width:0;max-width:760px;">
+      <div style="margin-bottom:14px;">
+        <TagEditor
+          client:load
+          slug={note.slug}
+          initialTags={note.data.tags}
+          editable={isDev}
+          suggestions={stats}
+        />
+      </div>
+
+      <h1 style="font-size:var(--text-4xl);color:var(--text-strong);line-height:1.2;margin:0 0 14px;font-weight:900;">
+        {note.data.title}
+      </h1>
+      <p style="font-size:var(--text-lg);color:var(--text-muted);line-height:1.7;margin:0 0 18px;">
+        {note.data.description}
+      </p>
+
+      <div
+        style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding-bottom:18px;margin-bottom:8px;border-bottom:1px solid var(--neutral-200);font-size:13px;color:var(--text-muted);"
+      >
+        <span style="display:inline-flex;align-items:center;gap:5px;">
+          <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
+        </span>
+        {markers.length > 0 && (
+          <span style="display:inline-flex;align-items:center;gap:5px;">
+            <Icon name="sparkle" size={15} style="color:var(--orange-500);" />
+            {genCount}/{markers.length} 視覺化已生成
+          </span>
+        )}
+        {isDev && (
+          <span style="margin-left:auto;display:inline-flex;gap:8px;">
+            <a
+              href={vscodeHref}
+              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;"
+            >
+              <Icon name="edit" size={15} /> 以 VS Code 編輯
+            </a>
+            {pendingIds.length > 0 && (
+              <RegenerateButton client:idle slug={note.slug} pendingIds={pendingIds} />
+            )}
+          </span>
+        )}
+      </div>
+
+      {markers.length > 0 && (
+        <div style="margin:18px 0 6px;">
+          {markers.map((m) => (
+            <AiMarkerCard id={m.id} type={m.type} status={m.status} prompt={m.prompt} />
+          ))}
+        </div>
+      )}
+
+      <div class="nc-prose" data-pagefind-body>
+        <Content />
+      </div>
+
+      <div
+        style="margin-top:44px;padding-top:22px;border-top:1px solid var(--neutral-200);display:flex;justify-content:space-between;color:var(--text-muted);font-size:13px;"
+      >
+        <span>建立於 {fmtDate(note.data.createdAt)}</span>
+        <span style="font-family:var(--font-mono);">src/content/notes/{note.id}</span>
+      </div>
+    </article>
+
+    {toc.length > 0 && <Toc client:visible items={toc} />}
+  </div>
+</BaseLayout>

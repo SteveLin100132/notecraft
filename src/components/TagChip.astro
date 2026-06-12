@@ -1,0 +1,16 @@
+---
+export interface Props {
+  label: string;
+  href?: string;
+  count?: number;
+}
+const { label, href, count } = Astro.props;
+const Tag = href ? "a" : "span";
+---
+<Tag
+  href={href}
+  style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:600;background:var(--blue-50);color:var(--blue-700);text-decoration:none;line-height:1.4;white-space:nowrap;"
+>
+  {label}
+  {count !== undefined && <span style="font-size:11px;opacity:0.7;">{count}</span>}
+</Tag>

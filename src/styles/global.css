@@ -1,0 +1,131 @@
+@import "./tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── base reset (mirrors DS base.css) ── */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-body);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  color: var(--text-strong);
+  text-wrap: balance;
+}
+p { margin: 0; line-height: var(--leading-relaxed); text-wrap: pretty; }
+a { color: var(--action-link); text-decoration: none; }
+a:hover { color: var(--blue-700); }
+img { max-width: 100%; display: block; }
+::selection { background: var(--orange-200); color: var(--blue-900); }
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus-ring) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+#root, #nc-app { min-height: 100vh; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb { background: var(--neutral-300); border-radius: 999px; border: 3px solid var(--surface-page); }
+::-webkit-scrollbar-thumb:hover { background: var(--neutral-400); }
+
+/* ── animation keyframes ── */
+@keyframes ncFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ncRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ncPop  { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes ncGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ── eyebrow / title-accent helpers (DS) ── */
+.tl-eyebrow {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-sm); font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wider); color: var(--text-accent);
+  text-transform: uppercase;
+}
+.tl-eyebrow::before {
+  content: ""; width: 28px; height: 3px; border-radius: var(--radius-pill);
+  background: var(--gradient-accent);
+}
+
+/* ── prose styles for MDX note bodies ── */
+.nc-prose { max-width: 760px; }
+.nc-prose h2 { font-size: var(--text-2xl); color: var(--text-strong); margin: 38px 0 14px; scroll-margin-top: 90px; }
+.nc-prose h3 { font-size: var(--text-xl); color: var(--text-strong); margin: 28px 0 10px; scroll-margin-top: 90px; }
+.nc-prose p { font-size: var(--text-md); color: var(--text-body); line-height: 1.85; margin: 0 0 16px; }
+.nc-prose ul, .nc-prose ol { margin: 0 0 18px; padding-left: 26px; color: var(--text-body); font-size: var(--text-md); line-height: 1.85; }
+.nc-prose ul { list-style: disc; }
+.nc-prose ol { list-style: decimal; }
+.nc-prose ul ul { list-style: circle; }
+.nc-prose ul ul ul { list-style: square; }
+.nc-prose li { margin: 0 0 7px; padding-left: 4px; }
+.nc-prose li::marker { color: var(--orange-500); }
+.nc-prose li > ul, .nc-prose li > ol { margin: 7px 0 0; }
+.nc-prose li > p { margin: 0 0 7px; }
+.nc-prose blockquote {
+  margin: 22px 0; padding: 14px 20px;
+  border-left: 4px solid var(--orange-500);
+  background: var(--orange-50);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: var(--text-md); color: var(--blue-900); font-weight: 500; line-height: 1.8;
+}
+.nc-prose blockquote p { margin: 0; font-size: inherit; color: inherit; }
+.nc-prose pre {
+  margin: 20px 0; padding: 16px 18px; overflow: auto;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.75;
+  color: #d6e4f5; background: #0b1f3e;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+}
+.nc-prose pre code { font-family: var(--font-mono); color: inherit; background: none; }
+.nc-prose :not(pre) > code {
+  font-family: var(--font-mono); font-size: 0.9em; padding: 2px 6px;
+  background: var(--neutral-100); color: var(--blue-800); border-radius: var(--radius-xs);
+}
+.nc-prose a { color: var(--action-link); text-decoration: underline; text-underline-offset: 3px; }
+.nc-prose hr { margin: 32px 0; border: 0; border-top: 1px solid var(--neutral-200); }
+.nc-prose table {
+  width: 100%;
+  margin: 22px 0;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  color: var(--text-body);
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.nc-prose thead { background: var(--neutral-100); }
+.nc-prose th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--neutral-200);
+}
+.nc-prose td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--neutral-200);
+  line-height: 1.7;
+  vertical-align: top;
+}
+.nc-prose tbody tr:last-child td { border-bottom: 0; }
+.nc-prose tbody tr:hover { background: var(--neutral-50, #fafafa); }
+
+/* ── unstyled button reset for ghost buttons ── */
+.nc-btn-reset {
+  border: none; background: none; padding: 0; margin: 0; cursor: pointer;
+  font-family: var(--font-sans); color: inherit;
+}

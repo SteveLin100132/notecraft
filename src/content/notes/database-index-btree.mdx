@@ -1,0 +1,27 @@
+---
+title: 資料庫索引原理：B-Tree
+description: 為什麼索引能把查詢從 O(n) 變 O(log n)，以及它的代價。
+tags: []
+category: backend
+createdAt: '2026-05-08'
+updatedAt: '2026-06-12'
+---
+
+索引是用空間與寫入成本，換取讀取速度的經典取捨。大多數關聯式資料庫的預設索引結構是 B-Tree（更精確說是 B+Tree）。
+
+## 為什麼是 B-Tree
+
+這張圖會說明 B+Tree 的多層結構，以及範圍查詢如何沿著葉節點的鏈結串列掃描。
+
+{/* @ai-visualize
+id: btree-structure
+type: diagram
+status: pending
+prompt: |
+  畫出 B+Tree 的結構：多層內部節點 + 葉節點鏈結串列，
+  並標示一次點查詢的路徑與一次範圍查詢的掃描。
+*/}
+
+- 讀取：點查詢從根到葉只需 `O(log n)` 次節點存取。
+- 寫入：每次 insert / update 都要維護索引，增加成本。
+- 選擇性低的欄位（如布林）不適合單獨建索引。

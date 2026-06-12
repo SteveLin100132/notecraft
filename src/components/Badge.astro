@@ -1,0 +1,24 @@
+---
+export interface Props {
+  tone?: "blue" | "orange" | "success" | "warning" | "danger" | "neutral";
+  variant?: "soft" | "solid";
+}
+const { tone = "blue", variant = "soft" } = Astro.props;
+
+const tones: Record<string, { bg: string; fg: string; solidBg: string }> = {
+  blue: { bg: "var(--blue-50)", fg: "var(--blue-700)", solidBg: "var(--blue-700)" },
+  orange: { bg: "var(--orange-50)", fg: "var(--orange-600)", solidBg: "var(--orange-500)" },
+  success: { bg: "var(--success-50)", fg: "#1d6b48", solidBg: "var(--success-500)" },
+  warning: { bg: "var(--warning-50)", fg: "var(--orange-600)", solidBg: "var(--warning-500)" },
+  danger: { bg: "var(--danger-50)", fg: "var(--danger-500)", solidBg: "var(--danger-500)" },
+  neutral: { bg: "var(--neutral-100)", fg: "var(--neutral-700)", solidBg: "var(--neutral-700)" },
+};
+const t = tones[tone] ?? tones.blue;
+const bg = variant === "soft" ? t.bg : t.solidBg;
+const fg = variant === "soft" ? t.fg : "#fff";
+---
+<span
+  style={`display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:${bg};color:${fg};white-space:nowrap;`}
+>
+  <slot />
+</span>

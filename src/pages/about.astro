@@ -1,0 +1,71 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PageHead from "@/components/PageHead.astro";
+import Card from "@/components/Card.astro";
+import Icon from "@/components/Icon.astro";
+
+const flow: { title: string; desc: string; icon: "plus" | "edit" | "sparkle" | "code" | "search" | "layers" }[] = [
+  { title: "建立", desc: "在 Dashboard 點「新增筆記」，dev API 寫入含範本的 MDX 檔", icon: "plus" },
+  { title: "撰寫", desc: "以 VS Code 自由撰寫文字內容", icon: "edit" },
+  { title: "標記", desc: "在需要圖、動畫、互動處填入 @ai-visualize 標記與提示詞", icon: "sparkle" },
+  { title: "生成", desc: "在 Claude Code 中請 AI 依 content-visualize-skill 掃描標記、生成元件", icon: "code" },
+  { title: "檢視", desc: "不滿意可調整提示詞、重跑生成", icon: "search" },
+  { title: "發佈", desc: "commit 後由 Netlify 自動 build & deploy 為靜態網頁", icon: "layers" },
+];
+
+const stack: { name: string; role: string }[] = [
+  { name: "Astro 5", role: "框架" },
+  { name: "MDX", role: "原始檔" },
+  { name: "React", role: "互動元件" },
+  { name: "TailwindCSS", role: "樣式" },
+  { name: "motion", role: "動態互動" },
+  { name: "Claude Code", role: "AI 載體" },
+  { name: "pagefind", role: "搜尋" },
+  { name: "Netlify", role: "部署" },
+];
+---
+<BaseLayout title="關於 NoteCraft" current="about" description="關於 NoteCraft：AI 生成視覺化的筆記系統">
+  <div style="max-width:820px;">
+    <PageHead
+      eyebrow="ABOUT"
+      title="關於 NoteCraft"
+      sub="以 MDX 為原始檔、由 AI Agent 與 Skill 自動生成視覺化與動態互動的筆記系統。"
+    />
+
+    <Card padding={28} style="margin-bottom:20px;">
+      <p style="font-size:var(--text-md);color:var(--text-body);line-height:1.85;margin:0;">
+        讓知識學習不再是枯燥的文字堆疊，而是能被「看見」與「操作」的體驗。作者只需用 VS Code 撰寫筆記、放入 AI 標記區塊，系統便能在建構階段由 AI 讀取提示詞、自由發想並產出對應的元件，最終以靜態網頁部署。
+      </p>
+    </Card>
+
+    <h2 style="font-size:var(--text-xl);color:var(--text-strong);margin:8px 0 16px;">一份筆記的生命週期</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:30px;">
+      {flow.map((f, i) => (
+        <Card padding={18} style="display:flex;gap:14px;align-items:flex-start;">
+          <span
+            style={`display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:5px;flex:none;background:${i % 2 ? "var(--orange-50)" : "var(--blue-50)"};color:${i % 2 ? "var(--orange-500)" : "var(--blue-700)"};`}
+          >
+            <Icon name={f.icon} size={18} />
+          </span>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.05em;">STEP {i + 1}</div>
+            <div style="font-size:15.5px;font-weight:700;color:var(--text-strong);margin:2px 0 4px;">{f.title}</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65;">{f.desc}</div>
+          </div>
+        </Card>
+      ))}
+    </div>
+
+    <h2 style="font-size:var(--text-xl);color:var(--text-strong);margin:8px 0 16px;">技術選型</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      {stack.map((s) => (
+        <div
+          style="display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;border:1.5px solid var(--neutral-200);background:#fff;"
+        >
+          <span style="font-size:14px;font-weight:700;color:var(--text-strong);">{s.name}</span>
+          <span style="font-size:12px;color:var(--text-muted);">{s.role}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
