@@ -174,8 +174,8 @@ export default function RaciMatrixInteractive() {
   const expandDuration = prefersReduced ? 0 : 0.2;
 
   return (
-    <div className="overflow-x-auto">
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden min-w-[540px]">
+    <div className="not-prose overflow-x-auto">
+      <div className="overflow-hidden min-w-[540px]">
         {/* Legend */}
         <div className="flex flex-wrap gap-3 px-4 py-3 border-b border-neutral-200">
           {LEGEND_ITEMS.map((item) => (

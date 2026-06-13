@@ -465,7 +465,7 @@ export default function WaterfallLifecycle() {
       : '點擊右側交付物 badge，查看說明。';
 
   return (
-    <figure className="w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+    <figure className="not-prose w-full overflow-hidden">
       {/* Tab bar */}
       <div className="flex border-b border-neutral-200 bg-neutral-50 px-4">
         {TABS.map(({ id, label, Icon }) => {

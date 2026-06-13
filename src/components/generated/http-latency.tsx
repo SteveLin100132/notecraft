@@ -1,5 +1,3 @@
-import Figure from "./Figure";
-
 const C = {
   blue500: "#2c6ebb",
   orange: "#ed9b26",
@@ -26,12 +24,7 @@ export default function HttpLatency() {
   const bw = 92;
   const gap = (chartW - bw * data.length) / (data.length + 1);
   return (
-    <Figure
-      id="http-latency"
-      kind="圖表 · SVG Bar"
-      caption="相對頁面載入時間（HTTP/1.1 = 100 為基準，數值越低越快）。HTTP/3 以 QUIC 避免 TCP 隊頭阻塞，在高遺失率網路上的改善最明顯。"
-    >
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ fontFamily: "var(--font-sans)" }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="not-prose" style={{ fontFamily: "var(--font-sans)" }}>
         {[0, 25, 50, 75, 100].map((g) => {
           const y = padT + chartH - (g / max) * chartH;
           return (
@@ -80,7 +73,6 @@ export default function HttpLatency() {
             </g>
           );
         })}
-      </svg>
-    </Figure>
+    </svg>
   );
 }

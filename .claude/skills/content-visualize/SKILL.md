@@ -81,6 +81,7 @@ status: pending | generated | locked | failed
   - 完整型別標註（`.tsx`，除非有理由並在註解中說明，否則禁用 `any`）
   - 不可有 required props —— MDX 使用端不會傳入任何 props
   - import 來源限制為：`react`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`、以及專案內的相對路徑檔案。若需要其他套件，請先在對話中詢問作者
+  - **元件本體不得自帶外框卡片**：根（最外層）元素**禁止**同時或單獨加上 `border`／`shadow-*`／`rounded-*`（大圓角卡片）／白底（`bg-white`）等「卡片化」樣式，也**不要**自畫左上類型標籤或右上 `generated/<id>.tsx` 來源標頭、或外層 padding。這些外框、陰影、來源標頭、底部 caption 一律由系統元件 `GeneratedFrame` 在寫回時統一提供（見第 5 步），元件自帶會造成**雙層外框**。根元素只應是透明的版型容器（`flex`／`grid`／`space-y-*` 等），以及必要的 `max-w-*`、`mx-auto`、`not-prose`。**也不要 import 任何自製的 `Figure` 之類外框包裝元件**——外框只有 `GeneratedFrame` 一個來源。（內部的子卡片、面板、表格圓角等屬於內容結構，不在此限。）
   - **禁止使用 emoji**（包含 Unicode emoji、表情符號、🚀 ✅ ⚠️ 等任何 emoji 字元），無論是 JSX 文字節點、字串、aria-label、註解、或 SVG `<text>` 內。需要表達狀態 / 物件 / 方向 / 警示等語意時，一律改用 `lucide-react` 的 icon 元件（例如 `<Check />`、`<TriangleAlert />`、`<ArrowRight />`），icon 大小以 `size` prop 控制，顏色用 Tailwind class 透過 `currentColor` 繼承
   - 樣式使用 Tailwind utility classes；除非動畫需要，否則不要寫原生 CSS
   - 純 SVG 元件請設定 `viewBox` 並用 `width="100%"` 讓它可縮放；挑一個合理的長寬比

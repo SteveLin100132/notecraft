@@ -44,6 +44,7 @@ model: haiku
      ```
 
      - `GeneratedFrame` 為純展示外框，`client:visible` 仍掛在被包住的生成元件上、**不要**掛在 `GeneratedFrame` 上。
+     - 外框只由 `GeneratedFrame` 提供。**不要**改用、也不要保留任何自製的 `Figure` 之類外框包裝；若發現生成元件本體自帶外框（border / shadow / 卡片）或重複的來源標頭，回報主 Agent（這屬 component-generator 的瑕疵），不要在 MDX 端補包第二層。
      - `GeneratedFrame` 的 import 每個檔案只需一次；若該檔已 import 過則不要重複插入。
 5. 若標記區塊上下方已有同名的 import，請 in-place 更新而非重複插入
 6. 若 `newStatus` 為 `failed`，則只更新 status，不插入 import / JSX

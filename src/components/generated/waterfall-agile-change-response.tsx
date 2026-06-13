@@ -156,7 +156,7 @@ export default function WaterfallAgileChangeResponse() {
 
   return (
     <figure
-      className="max-w-3xl rounded-2xl shadow-md bg-white p-6"
+      className="not-prose max-w-3xl"
       style={{ fontFamily: 'var(--font-sans)' }}
     >
       {/* ── Header ── */}

@@ -133,7 +133,7 @@ export default function WaterfallAgileComparison() {
         </p>
       </figcaption>
 
-      <div className="overflow-x-auto rounded-lg shadow-md">
+      <div className="overflow-x-auto rounded-lg">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>

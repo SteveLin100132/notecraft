@@ -1,5 +1,3 @@
-import Figure from "./Figure";
-
 const C = {
   blue: "#1b4f9c",
   blue500: "#2c6ebb",
@@ -26,12 +24,7 @@ export default function OAuthPkceFlow() {
     { y: 312, from: 0, to: 2, label: "5 · 以 access_token 取資源", pkce: false, dashed: false },
   ];
   return (
-    <Figure
-      id="oauth-pkce-flow"
-      kind="手寫 SVG 時序圖"
-      caption="PKCE（步驟 1、3，金色強調）以 code_verifier / code_challenge 取代 client_secret，避免授權碼在公開用戶端被攔截後遭濫用。"
-    >
-      <svg viewBox="0 0 720 360" width="100%" style={{ fontFamily: "var(--font-sans)" }}>
+    <svg viewBox="0 0 720 360" width="100%" className="not-prose" style={{ fontFamily: "var(--font-sans)" }}>
         {lanes.map((l, i) => (
           <g key={i}>
             <rect
@@ -92,7 +85,6 @@ export default function OAuthPkceFlow() {
             <path d="M0 0 L9 4.5 L0 9 Z" fill={C.orange500} />
           </marker>
         </defs>
-      </svg>
-    </Figure>
+    </svg>
   );
 }

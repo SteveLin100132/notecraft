@@ -393,7 +393,7 @@ export default function WaterfallChangeCost() {
 
   return (
     <div
-      className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 space-y-5"
+      className="not-prose space-y-5"
       style={{ fontFamily: "'Noto Sans TC', 'Noto Sans', sans-serif" }}
     >
       {/* Title */}

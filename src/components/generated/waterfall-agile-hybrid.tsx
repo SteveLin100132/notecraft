@@ -208,7 +208,7 @@ export default function WaterfallAgileHybrid() {
   const uid = useId();
 
   return (
-    <figure className="rounded-2xl bg-white shadow-sm p-6 my-6" style={{ boxShadow: '0 2px 6px rgba(17,47,93,0.08)' }}>
+    <figure className="not-prose">
       {/* Title row */}
       <div className="flex items-center gap-2 mb-4">
         <Layers size={16} className="text-blue-700 shrink-0" />

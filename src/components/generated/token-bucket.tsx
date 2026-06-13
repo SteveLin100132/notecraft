@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import Figure from "./Figure";
 
 const C = {
   blue: "#1b4f9c",
@@ -52,12 +51,7 @@ export default function TokenBucket() {
 
   const pct = tokens / CAP;
   return (
-    <Figure
-      id="token-bucket"
-      kind="互動動畫 · Motion"
-      caption="桶子以固定速率補充 token（每 0.7 秒 +1，上限 10）。每個請求消耗 1 個 token；桶空時請求被拒。突發流量由桶容量吸收，平均速率由補充速率決定。"
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 28, alignItems: "center" }}>
+    <div className="not-prose" style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 28, alignItems: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
           <div
             style={{
@@ -144,6 +138,5 @@ export default function TokenBucket() {
           </div>
         </div>
       </div>
-    </Figure>
   );
 }

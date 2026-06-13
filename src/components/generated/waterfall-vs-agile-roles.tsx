@@ -422,7 +422,7 @@ export default function WaterfallVsAgileRoles() {
   const activeNodeData = activeNode ? getNodeById(activeMode, activeNode) : null
 
   return (
-    <figure className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+    <figure className="not-prose space-y-4">
       {/* Toggle */}
       <div className="flex gap-2 justify-center flex-wrap">
         <button

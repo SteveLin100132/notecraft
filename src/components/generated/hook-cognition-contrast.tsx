@@ -31,7 +31,7 @@ const rows: ContrastRow[] = [
 export default function HookCognitionContrast() {
   return (
     <figure
-      className="not-prose my-6 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm"
+      className="not-prose overflow-hidden rounded-xl"
       role="figure"
       aria-label="Hook 認知對照：原本的誤解 vs 實際上的運作方式"
     >

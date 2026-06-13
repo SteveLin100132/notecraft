@@ -581,14 +581,9 @@ export default function PmProjectVsProduct(): React.ReactElement {
 
   return (
     <figure
-      className="not-prose my-8 mx-auto"
+      className="not-prose mx-auto"
       style={{
         maxWidth: '48rem',
-        backgroundColor: 'var(--surface-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-md)',
-        padding: '1.5rem',
       }}
     >
       {/* Core insight eyebrow */}

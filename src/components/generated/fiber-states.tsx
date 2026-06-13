@@ -54,7 +54,7 @@ export default function FiberStates() {
     <figure
       role="img"
       aria-label="React Fiber Work Loop 狀態圖"
-      className="rounded-2xl border border-[#e1e6ee] bg-white shadow-sm p-6 not-prose"
+      className="not-prose"
     >
       {/* Eyebrow label */}
       <FadeIn reduced={reduced} delay={0} className="mb-4">
