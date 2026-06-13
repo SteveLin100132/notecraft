@@ -12,34 +12,6 @@ updatedAt: '2026-06-12'
 
 # Waterfall V.S Agile
 
-{/* @ai-visualize
-id: waterfall-agile-comparison
-type: table
-prompt: |
-  瀑布 vs 敏捷的多維度比較表,放在文章開頭作為全局概覽。
-  欄位為兩種方法(瀑布、敏捷),列為以下面向:
-  - 交付方式:階段一次性交付 vs 迭代增量交付
-  - 需求變更:成本高 / 抗拒變更 vs 成本低 / 擁抱變化
-  - 文件:前期齊全、文件驅動 vs 精簡夠用即可
-  - 規劃時機:前期規劃重、一次定案 vs 持續滾動、隨迭代調整
-  - 溝通反饋:里程碑階段審查 vs 高頻、持續反饋
-  - 適用情境:需求穩定 / 合規(政府標案、ERP 導入、金融系統)
-            vs 需求不明 / 快速試錯(消費型 App、SaaS 產品)
-  以 Tailwind 樣式化的 HTML <table> 呈現,不要做成 SVG。
-  用 lucide-react 的 icon 與 badge 凸顯每格的屬性傾向
-  (例如變更成本高用 TrendingUp、低用 Check;抗拒用 Lock、擁抱用 Repeat),
-  icon 顏色用 trendlink-design 的色票透過 currentColor 繼承,不要硬編碼色碼。
-  讓兩欄在視覺上形成「剛性 vs 柔性」的冷暖對比。
-status: generated
-*/}
-
-import GeneratedFrame from "@/components/GeneratedFrame.astro";
-import WaterfallAgileComparison from '@/components/generated/waterfall-agile-comparison'
-
-<GeneratedFrame id="waterfall-agile-comparison" type="table" prompt={"瀑布 vs 敏捷的多維度比較表,放在文章開頭作為全局概覽。\n欄位為兩種方法(瀑布、敏捷),列為以下面向:\n- 交付方式:階段一次性交付 vs 迭代增量交付\n- 需求變更:成本高 / 抗拒變更 vs 成本低 / 擁抱變化\n- 文件:前期齊全、文件驅動 vs 精簡夠用即可\n- 規劃時機:前期規劃重、一次定案 vs 持續滾動、隨迭代調整\n- 溝通反饋:里程碑階段審查 vs 高頻、持續反饋\n- 適用情境:需求穩定 / 合規(政府標案、ERP 導入、金融系統)\n          vs 需求不明 / 快速試錯(消費型 App、SaaS 產品)\n以 Tailwind 樣式化的 HTML <table> 呈現,不要做成 SVG。\n用 lucide-react 的 icon 與 badge 凸顯每格的屬性傾向\n(例如變更成本高用 TrendingUp、低用 Check;抗拒用 Lock、擁抱用 Repeat),\nicon 顏色用 trendlink-design 的色票透過 currentColor 繼承,不要硬編碼色碼。\n讓兩欄在視覺上形成「剛性 vs 柔性」的冷暖對比。"}>
-  <WaterfallAgileComparison />
-</GeneratedFrame>
-
 ## Waterfall(瀑布式)
 
 階段清楚、文件齊全、前期規劃重、變更成本高。
@@ -49,6 +21,44 @@ import WaterfallAgileComparison from '@/components/generated/waterfall-agile-com
 
 迭代交付、擁抱變化、強調溝通與反饋。
 適合需求不明確、需要快速試錯、市場變化快的產品(例如:消費型 App、SaaS 產品)。
+
+{/* @ai-visualize
+id: waterfall-agile-dimensions
+type: motion
+prompt: |
+  瀑布 vs 敏捷的多維度差異,做成可逐項切換的互動走查元件,放在文章開頭作為全局概覽。
+  核心洞察:一個把「變更」視為威脅而力求凍結(剛性),一個把變更視為原料而擁抱流動(柔性)。
+  互動:頂部一排面向選擇器(可點擊)+ 底部步進控制(上/下一個、進度點),
+  讀者每切換一個面向,就並排看到瀑布(左、冷藍、方角、Lock 系語意)與
+  敏捷(右、暖橘、圓角、Repeat 系語意)在該面向上的對照。
+  面向包含:交付方式、需求變更、文件、規劃時機、溝通反饋、適用情境。
+  每個面向下方加一條「剛性 — 柔性」漸層對比軸,
+  瀑布(方點)落在剛性端、敏捷(圓點)落在柔性端,切換時以動畫滑動到位,
+  把「同一面向上兩種方法的拉扯」具象化。
+  以 react state + motion 驅動切換動畫(200–400ms ease-out,
+  並用 useReducedMotion 尊重 prefers-reduced-motion)。
+  禁止 emoji,語意一律用 lucide-react icon;色票、字級、間距遵循 trendlink-design,
+  方角/暖色=剛性瀑布、圓角/冷暖對比=柔性敏捷。
+status: generated
+*/}
+
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
+import WaterfallAgileDimensions from '@/components/generated/waterfall-agile-dimensions'
+
+<GeneratedFrame id="waterfall-agile-dimensions" type="motion" prompt={"瀑布 vs 敏捷的多維度差異,做成可逐項切換的互動走查元件,放在文章開頭作為全局概覽。\n核心洞察:一個把「變更」視為威脅而力求凍結(剛性),一個把變更視為原料而擁抱流動(柔性)。\n互動:頂部一排面向選擇器(可點擊)+ 底部步進控制(上/下一個、進度點),\n讀者每切換一個面向,就並排看到瀑布(左、冷藍、方角、Lock 系語意)與\n敏捷(右、暖橘、圓角、Repeat 系語意)在該面向上的對照。\n面向包含:交付方式、需求變更、文件、規劃時機、溝通反饋、適用情境。\n每個面向下方加一條「剛性 — 柔性」漸層對比軸,\n瀑布(方點)落在剛性端、敏捷(圓點)落在柔性端,切換時以動畫滑動到位,\n把「同一面向上兩種方法的拉扯」具象化。\n以 react state + motion 驅動切換動畫(200–400ms ease-out,\n並用 useReducedMotion 尊重 prefers-reduced-motion)。\n禁止 emoji,語意一律用 lucide-react icon;色票、字級、間距遵循 trendlink-design,\n方角/暖色=剛性瀑布、圓角/冷暖對比=柔性敏捷。"}>
+  <WaterfallAgileDimensions client:visible />
+</GeneratedFrame>
+
+完整對照如下表，方便一次掃讀全部面向：
+
+| 面向 | Waterfall 瀑布 | Agile 敏捷 |
+| --- | --- | --- |
+| 交付方式 | 階段一次性交付 | 迭代增量交付 |
+| 需求變更 | 成本高、抗拒變更 | 成本低、擁抱變化 |
+| 文件 | 前期齊全、文件驅動 | 精簡夠用即可 |
+| 規劃時機 | 前期規劃重、一次定案 | 持續滾動、隨迭代調整 |
+| 溝通反饋 | 里程碑階段審查 | 高頻、持續反饋 |
+| 適用情境 | 需求穩定 / 合規（政府標案、ERP 導入、金融系統） | 需求不明 / 快速試錯（消費型 App、SaaS 產品） |
 
 {/* @ai-visualize
 id: waterfall-agile-change-response

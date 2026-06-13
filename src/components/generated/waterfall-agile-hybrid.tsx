@@ -337,20 +337,22 @@ export default function WaterfallAgileHybrid() {
           </text>
         </g>
 
-        {/* ---- Legend (right side) ---- */}
-        <g transform="translate(700, 72)">
-          {/* Blue diamond */}
+        {/* ---- Legend (top-centred, horizontal) ---- */}
+        {/* itemA ≈ icon14 + gap4 + 7 CJK glyphs(63) = 81；間距 26；itemB ≈ icon14 + gap4 + 87 = 105；
+            實測 legend 寬 ≈ 207，於 VIEW_W=760 置中 → startX = (760-207)/2 ≈ 277 */}
+        <g transform="translate(277, 6)">
+          {/* Blue diamond — 里程碑（剛性） */}
           <polygon points="7,0 14,7 7,14 0,7" fill={BLUE_700} />
-          <text x={18} y={10} fontSize={9} fill={NEUTRAL_700}>
+          <text x={18} y={11} fontSize={9} fill={NEUTRAL_700}>
             里程碑（剛性）
           </text>
-        </g>
-        <g transform="translate(700, 92)">
-          {/* Orange circle */}
-          <circle cx={7} cy={7} r={6} fill={ORANGE_50} stroke={ORANGE_400} strokeWidth={2} />
-          <text x={18} y={11} fontSize={9} fill={NEUTRAL_700}>
-            Sprint 迴圈（柔性）
-          </text>
+          {/* Orange circle — Sprint 迴圈（柔性），右移成同一橫列 */}
+          <g transform="translate(107, 0)">
+            <circle cx={7} cy={7} r={6} fill={ORANGE_50} stroke={ORANGE_400} strokeWidth={2} />
+            <text x={18} y={11} fontSize={9} fill={NEUTRAL_700}>
+              Sprint 迴圈（柔性）
+            </text>
+          </g>
         </g>
 
         {/* ---- Separator line between contract and team layers ---- */}
