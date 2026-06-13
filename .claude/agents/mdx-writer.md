@@ -15,6 +15,8 @@ model: haiku
 - `id`：標記區塊的 id
 - `pascalCaseId`：對應的元件名稱
 - `type`：標記的 `type`（如 `motion` / `chart` / `diagram`），帶入外框
+- `prompt`：該標記的 `prompt` 原文，寫回時以 `JSON.stringify` 帶入外框的 `prompt` prop
+  - **合併元件（merged-into）**：當 `GeneratedFrame` 的 `id` 是某些標記的 `merged-into` 目標、而非任一標記自己的 `id` 時（例如 frame `id: pm-project-vs-product`，來源標記 `id: pm-project-vs-product-concept` 帶有 `merged-into: pm-project-vs-product`），`prompt` 取自**被合併的來源標記**的 `prompt`；若有多個來源標記，依出現順序串接（以空行分隔）。切勿因「找不到 id 完全相符的標記」就略過 `prompt`。
 - `caption`：選用，外框底部說明；省略則不帶
 - `clientDirective`：`client:visible` 或省略
 - `newStatus`：`generated` 或 `failed`
@@ -38,7 +40,7 @@ model: haiku
      import GeneratedFrame from '@/components/GeneratedFrame.astro'
      import <PascalCaseId> from '@/components/generated/<id>'
 
-     <GeneratedFrame id="<id>" type="<type>"{caption ? ' caption="<caption>"' : ''}>
+     <GeneratedFrame id="<id>" type="<type>" prompt={<JSON.stringify(prompt)>}{caption ? ' caption="<caption>"' : ''}>
        <<PascalCaseId>{clientDirective ? ' client:visible' : ''} />
      </GeneratedFrame>
      ```
@@ -46,6 +48,7 @@ model: haiku
      - `GeneratedFrame` 為純展示外框，`client:visible` 仍掛在被包住的生成元件上、**不要**掛在 `GeneratedFrame` 上。
      - 外框只由 `GeneratedFrame` 提供。**不要**改用、也不要保留任何自製的 `Figure` 之類外框包裝；若發現生成元件本體自帶外框（border / shadow / 卡片）或重複的來源標頭，回報主 Agent（這屬 component-generator 的瑕疵），不要在 MDX 端補包第二層。
      - `GeneratedFrame` 的 import 每個檔案只需一次；若該檔已 import 過則不要重複插入。
+     - `prompt` 以 `JSON.stringify(prompt)` 的結果作為 JSX 屬性值（`prompt={"...\n..."}`），安全處理換行 / 引號 / 反引號；外框會以此提供「複製提示詞」按鈕。
 5. 若標記區塊上下方已有同名的 import，請 in-place 更新而非重複插入
 6. 若 `newStatus` 為 `failed`，則只更新 status，不插入 import / JSX
 
@@ -73,7 +76,7 @@ status: generated
 import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import Foo from '@/components/generated/foo'
 
-<GeneratedFrame id="foo" type="diagram">
+<GeneratedFrame id="foo" type="diagram" prompt={"用一張流程圖呈現 foo……"}>
   <Foo />
 </GeneratedFrame>
 ```

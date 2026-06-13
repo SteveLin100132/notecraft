@@ -25,7 +25,7 @@ prompt: |
 import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import BtreeStructure from '@/components/generated/btree-structure'
 
-<GeneratedFrame id="btree-structure" type="diagram">
+<GeneratedFrame id="btree-structure" type="diagram" prompt={"畫出 B+Tree 的結構：多層內部節點 + 葉節點鏈結串列，\n並標示一次點查詢的路徑與一次範圍查詢的掃描。"}>
   <BtreeStructure client:visible />
 </GeneratedFrame>
 

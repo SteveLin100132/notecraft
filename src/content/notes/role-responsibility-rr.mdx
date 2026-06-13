@@ -62,7 +62,7 @@ status: generated
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import WaterfallVsAgileRoles from '@/components/generated/waterfall-vs-agile-roles'
 
-<GeneratedFrame id="waterfall-vs-agile-roles" type="motion">
+<GeneratedFrame id="waterfall-vs-agile-roles" type="motion" prompt={"以「指揮鏈 vs 服務圈」為核心洞察,做一個可切換對照的互動元件,讓讀者親身感受\nWaterfall 與 Agile 在角色「權力結構」上的根本差異 —— 重點是結構翻轉,不只是角色換名字。\n\n互動與版面:\n- 頂部用 tab / toggle 在「Waterfall」與「Agile」兩種模式間切換;切換時用 motion\n  做 200–400ms ease-out 的平滑過渡(節點位置與連線重新編排)。\n- 底層幾何一律用手寫 SVG 繪製(viewBox + width=\"100%\" 可縮放),再以 react state / motion 驅動。\n\nWaterfall 模式 —— 由上而下的「指揮鏈」:\n- 垂直階層:Project Manager 在最頂,往下接 System Architect,再往下分出\n  Development Team 與 QA Team。\n- 用向下箭頭表現自上而下的指派與「交付 handoff」關係(上層產出規格 → 下層接手)。\n\nAgile 模式 —— 環繞式的「服務圈」:\n- 自組織的 Development Team 置於圓心;Product Owner 與 Scrum Master 環繞外圈。\n- 箭頭朝內或雙向,表現 PO/SM 是在「服務 / 支撐 / 排除障礙」團隊,而非指揮團隊。\n\n共同行為:\n- 點擊任一角色節點 → 在側邊或下方顯示該角色的職責摘要(文字取自本文角色清單)。\n- 底部用一句話收斂核心洞察:從「PM 由上而下指揮」到「PO/SM 由外圍服務一個自組織團隊」\n  —— 是權力結構的翻轉,不只是改名。\n- 用 lucide-react 的 icon 表達方向 / 角色語意(禁用 emoji);尊重 prefers-reduced-motion。\n- 色票、字級、圓角全部取自 trendlink-design,不要硬編碼色碼。"}>
   <WaterfallVsAgileRoles client:visible />
 </GeneratedFrame>
 
@@ -116,7 +116,7 @@ status: generated
 
 import RaciMatrixInteractive from '@/components/generated/raci-matrix-interactive'
 
-<GeneratedFrame id="raci-matrix-interactive" type="motion">
+<GeneratedFrame id="raci-matrix-interactive" type="motion" prompt={"把 RACI Matrix 做成一個互動矩陣,核心洞察是\n「每一列(任務)有且只有一個 A —— A 一旦多於一個,責任就被稀釋,出事互踢皮球」。\n\n矩陣本體:\n- 以 Tailwind 樣式化的格狀矩陣呈現(非 SVG)。列 = 任務,欄 = 角色。\n- 列:PRD 撰寫 / 架構設計 / UAT 驗收 / 上線核准。\n- 欄:PM / PO / Tech Lead / QA。\n- 格內為 R / A / C / I 徽章,四種字母用四種可清楚區分的色票(取自 trendlink-design):\n    PRD 撰寫 → PM:R, PO:A, Tech Lead:C, QA:I\n    架構設計 → PM:I, PO:I, Tech Lead:A/R, QA:C\n    UAT 驗收 → PM:C, PO:A, Tech Lead:I, QA:R\n    上線核准 → PM:C, PO:A, Tech Lead:R, QA:I\n\n互動:\n- hover / 點擊任一列 → 整列高亮,並用 motion(200–400ms ease-out)讓該列的 A 格放大或脈動;\n  旁邊浮出責任流動說明:誰是最終負責人(A)、誰執行(R)、誰被諮詢(C)、誰被通知(I)。\n- 提供圖例(legend)解釋 R / A / C / I 四個縮寫的中文意思\n  (Responsible 執行者 / Accountable 最終負責人 / Consulted 被諮詢者 / Informed 需被通知者)。\n\n「A 唯一性」健檢(本元件的收斂點):\n- 當某列剛好只有一個 A 時,顯示通過狀態(用 lucide-react 的 Check)。\n- 配一段警示文案,說明若一列出現兩個 A 會怎樣(責任稀釋、出事互踢皮球),\n  用 lucide-react 的 TriangleAlert 呈現警示語氣。\n\n- 全程禁用 emoji,狀態 / 警示 / 方向一律改用 lucide-react icon。\n- 色票、字級、圓角全部取自 trendlink-design,不要硬編碼色碼;尊重 prefers-reduced-motion。"}>
   <RaciMatrixInteractive client:visible />
 </GeneratedFrame>
 

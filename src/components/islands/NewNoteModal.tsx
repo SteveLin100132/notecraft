@@ -25,7 +25,10 @@ type Props = { triggerId?: string };
 export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [tags, setTags] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [tagQuery, setTagQuery] = useState("");
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
   const [folder, setFolder] = useState(FOLDERS[0]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -37,7 +40,8 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
     const onClick = () => {
       setOpen(true);
       setTitle("");
-      setTags("");
+      setSelected([]);
+      setTagQuery("");
       setFolder(FOLDERS[0]);
       setError("");
       setDone(null);
@@ -46,6 +50,39 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
     trigger.addEventListener("click", onClick);
     return () => trigger.removeEventListener("click", onClick);
   }, [triggerId]);
+
+  // 載入全站既有標籤（dev API）；失敗則退回純文字輸入
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    fetch("/api/tags")
+      .then((r) => r.json())
+      .then((d: { tags?: { name: string; count: number }[] }) => {
+        if (!alive) return;
+        const names = (d.tags ?? [])
+          .slice()
+          .sort((a, b) => b.count - a.count)
+          .map((t) => t.name);
+        setAllTags(names);
+      })
+      .catch(() => alive && setApiUnavailable(true));
+    return () => {
+      alive = false;
+    };
+  }, [open]);
+
+  const addTag = (raw: string) => {
+    const t = raw.trim();
+    if (!t) return;
+    const exists = selected.some((s) => s.toLowerCase() === t.toLowerCase());
+    if (!exists) {
+      // 若與既有標籤同名（不分大小寫），採用既有的大小寫
+      const canonical = allTags.find((a) => a.toLowerCase() === t.toLowerCase()) ?? t;
+      setSelected((s) => [...s, canonical]);
+    }
+    setTagQuery("");
+  };
+  const removeTag = (t: string) => setSelected((s) => s.filter((x) => x !== t));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -72,10 +109,7 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          tags: tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
+          tags: selected,
           folder,
         }),
       });
@@ -233,12 +267,15 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
                 slug: {slug}
               </div>
             )}
-            <Field label="標籤（以逗號分隔，可空）">
-              <input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="前端, WebSocket, 即時通訊"
-                style={inputStyle}
+            <Field label="標籤（可勾選既有或自行新增）">
+              <TagPicker
+                selected={selected}
+                allTags={allTags}
+                query={tagQuery}
+                apiUnavailable={apiUnavailable}
+                onQuery={setTagQuery}
+                onAdd={addTag}
+                onRemove={removeTag}
               />
             </Field>
             <Field label="分類 / 資料夾">
@@ -265,29 +302,6 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
                 </span>
               </div>
             </Field>
-            {tags.trim() && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: -4 }}>
-                {tags
-                  .split(",")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
-                  .map((t, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: "var(--blue-700)",
-                        background: "var(--blue-50)",
-                        padding: "3px 9px",
-                        borderRadius: 999,
-                      }}
-                    >
-                      {t}
-                    </span>
-                  ))}
-              </div>
-            )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
               <button onClick={() => setOpen(false)} style={ghostBtn}>
                 取消
@@ -303,6 +317,133 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function TagPicker({
+  selected,
+  allTags,
+  query,
+  apiUnavailable,
+  onQuery,
+  onAdd,
+  onRemove,
+}: {
+  selected: string[];
+  allTags: string[];
+  query: string;
+  apiUnavailable: boolean;
+  onQuery: (v: string) => void;
+  onAdd: (v: string) => void;
+  onRemove: (v: string) => void;
+}) {
+  const ql = query.trim().toLowerCase();
+  const suggestions = allTags
+    .filter((t) => !selected.some((s) => s.toLowerCase() === t.toLowerCase()))
+    .filter((t) => (ql ? t.toLowerCase().includes(ql) : true))
+    .slice(0, 8);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      onAdd(query);
+    } else if (e.key === "Backspace" && !query && selected.length) {
+      onRemove(selected[selected.length - 1]);
+    }
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          alignItems: "center",
+          minHeight: 46,
+          padding: "7px 12px",
+          background: "#fff",
+          border: "1.5px solid var(--neutral-200)",
+          borderRadius: 5,
+        }}
+      >
+        {selected.map((t) => (
+          <span
+            key={t}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: "var(--blue-700)",
+              background: "var(--blue-50)",
+              padding: "3px 6px 3px 10px",
+              borderRadius: 999,
+            }}
+          >
+            {t}
+            <button
+              type="button"
+              onClick={() => onRemove(t)}
+              aria-label={`移除 ${t}`}
+              style={{ border: "none", background: "none", cursor: "pointer", color: "var(--blue-700)", display: "flex", padding: 0 }}
+            >
+              <X size={13} />
+            </button>
+          </span>
+        ))}
+        <input
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={selected.length ? "" : "搜尋既有或輸入新標籤，Enter 新增"}
+          style={{
+            flex: 1,
+            minWidth: 120,
+            height: 30,
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            fontFamily: "var(--font-sans)",
+            fontSize: 14,
+            color: "var(--text-strong)",
+          }}
+        />
+      </div>
+      {!apiUnavailable && suggestions.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {suggestions.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onAdd(t)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: "var(--text-body)",
+                background: "#fff",
+                border: "1.5px solid var(--neutral-200)",
+                padding: "4px 11px",
+                borderRadius: 999,
+                cursor: "pointer",
+              }}
+            >
+              <Plus size={12} /> {t}
+            </button>
+          ))}
+        </div>
+      )}
+      {!apiUnavailable && allTags.length === 0 && (
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>目前尚無既有標籤，直接輸入新增即可。</div>
+      )}
+      {apiUnavailable && (
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+          無法載入既有標籤（dev API 不可用），可直接輸入新標籤後 Enter 新增。
+        </div>
+      )}
     </div>
   );
 }

@@ -5,8 +5,9 @@ export interface Props {
   id: string;
   type?: string;
   caption?: string;
+  prompt?: string;
 }
-const { id, type = "free", caption } = Astro.props;
+const { id, type = "free", caption, prompt } = Astro.props;
 
 const TYPE_LABELS: Record<string, string> = {
   motion: "動畫",
@@ -33,6 +34,21 @@ const label = TYPE_LABELS[type] ?? "視覺化";
     <code style="margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted);">
       generated/{id}.tsx
     </code>
+    {prompt && (
+      <span style="display:inline-flex;align-items:center;position:relative;">
+        <button
+          type="button"
+          data-nc-copy-prompt
+          aria-label="複製提示詞"
+          title="複製生成此元件的提示詞"
+          style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--neutral-200);background:#fff;color:var(--text-muted);font-family:var(--font-sans);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;"
+        >
+          <Icon name="clipboard" size={12} />
+          <span data-nc-copy-label>複製提示詞</span>
+        </button>
+        <script type="application/json" data-nc-prompt set:html={JSON.stringify(prompt)} />
+      </span>
+    )}
   </div>
   <div style="padding:18px 16px;">
     <slot />
@@ -45,3 +61,40 @@ const label = TYPE_LABELS[type] ?? "視覺化";
     </figcaption>
   )}
 </figure>
+
+<script>
+  // 事件委派：整頁只綁定一次（Astro 會去重相同的 hoisted script）
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    const btn = target.closest<HTMLButtonElement>("[data-nc-copy-prompt]");
+    if (!btn) return;
+    const node = btn.parentElement?.querySelector("[data-nc-prompt]");
+    if (!node) return;
+    let prompt = "";
+    try {
+      prompt = JSON.parse(node.textContent || '""');
+    } catch {
+      prompt = node.textContent || "";
+    }
+    const label = btn.querySelector("[data-nc-copy-label]");
+    const done = () => {
+      if (!label) return;
+      const prev = label.textContent;
+      label.textContent = "已複製";
+      window.setTimeout(() => {
+        label.textContent = prev;
+      }, 1800);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(prompt).then(done).catch(() => {
+        window.dispatchEvent(
+          new CustomEvent("nc-toast", { detail: { msg: "無法複製，請檢查瀏覽器權限", icon: "x" } }),
+        );
+      });
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("nc-toast", { detail: { msg: "瀏覽器不支援剪貼簿", icon: "x" } }),
+      );
+    }
+  });
+</script>

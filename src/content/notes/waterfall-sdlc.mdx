@@ -38,7 +38,7 @@ status: generated
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import WaterfallLifecycle from '@/components/generated/waterfall-lifecycle'
 
-<GeneratedFrame id="waterfall-lifecycle" type="motion">
+<GeneratedFrame id="waterfall-lifecycle" type="motion" prompt={"把 Waterfall SDLC 的三個面向整合成「單一互動式瀑布時間軸」元件。核心洞察(收斂句):瀑布是「閘門式、單向」的流程——每個階段的交付物經會議驗收通過,水流才往下一階,回頭重做的成本很高。\n\n視覺骨幹:9 個階段(Blueprint → System Analysis → System Design → Coding → SIT → UAT → Cutover → Go-Live → Maintenance)以由左上往右下、逐級遞降的階梯 / 瀑布造型排列(手寫 SVG),呼應「水只能往下流」。Cutover 標註為「視情況」,用虛線或淡化樣式區隔。\n\n互動:以 tab 切換三個面向,三個 tab 共用同一條瀑布骨幹;點擊任一階段,在側欄 / 卡片展開該階段的細節:\n- 「階段說明」:展開該階段的目標與產出(取自筆記「各階段說明」段落)。\n- 「對應會議」:把 5 場會議定位成時間軸上的節點 / 括號——Kickoff(啟動,流程最前)、Milestone Review(各閘門節點,可跨多階段)、UAT Meeting(UAT 階段)、Go-Live Meeting(上線前)、Handover(交接,流程最後);點節點展開會議目的。\n- 「交付物鏈」:沿階段串出文件交付鏈 PRD → SRS → SDD → Test Plan / Test Case → UAT Checklist → Cutover Plan → Maintenance Manual,以箭頭顯示「前一份文件是後一份的輸入」的接力關係,點擊看每份文件由哪個階段產出。\n\n動畫:切換 tab / 點擊階段時用 200–400ms ease-out 的揭露動畫;尊重 prefers-reduced-motion。不使用 emoji,需要圖示時改用 lucide-react。色彩、字級、間距、圓角一律遵循 trendlink-design,勿硬編碼色碼。"}>
   <WaterfallLifecycle client:visible />
 </GeneratedFrame>
 
@@ -89,6 +89,6 @@ status: generated
 
 import WaterfallChangeCost from '@/components/generated/waterfall-change-cost'
 
-<GeneratedFrame id="waterfall-change-cost" type="motion">
+<GeneratedFrame id="waterfall-change-cost" type="motion" prompt={"互動式「變更成本曲線」,讓讀者親身體驗 Waterfall 的核心張力:需求變更發生得越晚,回頭重做的成本越高。\n\n互動:沿 SDLC 階段(Blueprint → … → Maintenance)放一條時間軸 slider,讀者拖動選擇「需求在哪個階段才發生變更」。隨 slider 往後移:\n- 下游受影響的所有階段在瀑布骨幹上被高亮 / 亮起「需重做」狀態(手寫 SVG + motion 的回流 / 漣漪動畫,呼應主圖的瀑布造型)。\n- 一個成本指標(數值或長條)隨之放大,描出一條近似指數成長的成本曲線,凸顯「越晚改越貴」。\n底層曲線可用 recharts,或全部手寫 SVG;以拖曳 slider 與下游高亮的即時連動為互動主軸。\n\n核心洞察收斂句:在瀑布裡,越晚發現問題、修正成本越高——這就是前期藍圖、需求凍結與階段閘門如此重要的原因。\n\n動畫節制(200–400ms ease-out),尊重 prefers-reduced-motion,不使用 emoji(改用 lucide-react),樣式遵循 trendlink-design。"}>
   <WaterfallChangeCost client:visible />
 </GeneratedFrame>

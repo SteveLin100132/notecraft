@@ -20,6 +20,21 @@ export default function ToastHost() {
       setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
     };
     window.addEventListener("nc-toast", on as EventListener);
+
+    // 顯示由前一個頁面（如刪除筆記後導頁）暫存的提示
+    try {
+      const pending = sessionStorage.getItem("nc-toast-next");
+      if (pending) {
+        sessionStorage.removeItem("nc-toast-next");
+        const detail = JSON.parse(pending) as { msg: string; icon?: string };
+        const id = Date.now() + Math.random();
+        setToasts((t) => [...t, { id, ...detail }]);
+        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+      }
+    } catch {
+      /* sessionStorage / JSON 不可用時略過 */
+    }
+
     return () => window.removeEventListener("nc-toast", on as EventListener);
   }, []);
 

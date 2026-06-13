@@ -25,7 +25,7 @@ prompt: |
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import FiberStates from '@/components/generated/fiber-states'
 
-<GeneratedFrame id="fiber-states" type="diagram">
+<GeneratedFrame id="fiber-states" type="diagram" prompt={"用狀態圖呈現 React Fiber 的 work loop：beginWork → completeWork → commit，\n以及可中斷的 yield 點。"}>
   <FiberStates client:visible />
 </GeneratedFrame>
 

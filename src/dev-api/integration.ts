@@ -242,6 +242,58 @@ async function handleDeleteTag(cwd: string, name: string, res: ServerResponse) {
   return json(res, 200, { ok: true, done, failed, affected: target.files.length, name });
 }
 
+function markerIds(content: string): string[] {
+  const out: string[] = [];
+  for (const m of content.matchAll(/\{\/\*\s*@ai-visualize([\s\S]*?)\*\/\}/g)) {
+    const idMatch = m[1].match(/\bid:\s*([\w-]+)/);
+    if (idMatch) out.push(idMatch[1]);
+  }
+  return out;
+}
+
+async function handleDeleteNote(cwd: string, slug: string, res: ServerResponse) {
+  const file = await findNoteFile(cwd, slug);
+  if (!file) return json(res, 404, { error: "note not found" });
+
+  const { content } = await readNote(file);
+  const ids = markerIds(content);
+
+  // 掃描其他 MDX 是否仍引用這些 id（保留共用元件）
+  const root = path.join(cwd, NOTES_ROOT);
+  const others = (await listMdx(root)).filter((f) => f !== file);
+  const referencedElsewhere = new Set<string>();
+  for (const f of others) {
+    const otherIds = new Set(markerIds((await readNote(f)).content));
+    for (const id of ids) if (otherIds.has(id)) referencedElsewhere.add(id);
+  }
+
+  const deletedComponents: string[] = [];
+  const keptShared: string[] = [];
+  const failed: string[] = [];
+  for (const id of ids) {
+    if (referencedElsewhere.has(id)) {
+      keptShared.push(`${id}.tsx`);
+      continue;
+    }
+    const comp = path.join(cwd, "src/components/generated", `${id}.tsx`);
+    try {
+      await fs.unlink(comp);
+      deletedComponents.push(`${id}.tsx`);
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code !== "ENOENT") failed.push(`${id}.tsx`);
+    }
+  }
+
+  await fs.unlink(file);
+  return json(res, 200, {
+    deletedNote: path.relative(cwd, file),
+    deletedComponents,
+    keptShared,
+    failed,
+  });
+}
+
 function localhostOnly(req: IncomingMessage): boolean {
   const addr = req.socket.remoteAddress || "";
   return addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1";
@@ -280,6 +332,11 @@ export default function devApi(): AstroIntegration {
             if (parts.length === 4 && parts[1] === "notes" && parts[3] === "tags" && req.method === "PUT") {
               const slug = decodeURIComponent(parts[2]);
               return await handleSetNoteTags(cwd, slug, req, res);
+            }
+            // /api/notes/:slug — DELETE
+            if (parts.length === 3 && parts[1] === "notes" && req.method === "DELETE") {
+              const slug = decodeURIComponent(parts[2]);
+              return await handleDeleteNote(cwd, slug, res);
             }
             return json(res, 404, { error: "not found" });
           } catch (e: unknown) {

@@ -4,6 +4,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
 import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
+import DeleteNoteButton from "@/components/islands/DeleteNoteButton.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
 import SeriesNav from "@/components/SeriesNav.astro";
 import Icon from "@/components/Icon.astro";
@@ -81,6 +82,12 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
             {pendingIds.length > 0 && (
               <RegenerateButton client:idle slug={note.slug} pendingIds={pendingIds} />
             )}
+            <DeleteNoteButton
+              client:idle
+              slug={note.slug}
+              title={note.data.title}
+              componentIds={markers.map((m) => m.id)}
+            />
           </span>
         )}
       </div>

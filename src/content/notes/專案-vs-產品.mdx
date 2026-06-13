@@ -46,30 +46,13 @@ prompt: |
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import PmProjectVsProduct from '@/components/generated/pm-project-vs-product'
 
-<GeneratedFrame id="pm-project-vs-product" type="free">
+<GeneratedFrame id="pm-project-vs-product" type="free" prompt={"雙欄「同步模擬」互動：按下「開始模擬」後，左右兩欄跑在同一個時鐘上。\n左欄「專案」：沿單一線性軌道前進，依序點亮里程碑（啟動→執行→交付物→結案），\n抵達交付物為橘色強調節點、抵達結案後停止並顯示「✓ 已結案 · 生命週期結束」徽章，\n採藍色系（blue-700 / blue-500）。\n右欄「產品」：橘色 token 繞迭代圓環（探索→打造→發布→學習）持續旋轉、永不停止，\n圈數與累積價值持續上升，採橘色系（orange-400 / orange-500）。\n兩欄之間用垂直 dashed 分隔線；下方洞察列依「未開始 / 進行中 / 已結案」三態切換文字。\n控制列：開始模擬 / 暫停 / 繼續 / 重置；預設不自動播放，對 prefers-reduced-motion 友善。\n色票與字級請依 trendlink-design。"}>
   <PmProjectVsProduct client:visible />
 </GeneratedFrame>
 
 ### 小結
 
 同樣是 PM 的角色，在「專案」與「產品」的情境下，思考重點其實是不同的：
-
-{/* @ai-visualize
-id: pm-project-vs-product-table
-type: table
-status: generated
-merged-into: pm-project-vs-product
-prompt: |
-  把下列四列比較做成有色彩識別的強化比較表（Tailwind HTML table，純靜態，不要做成 SVG）。
-  欄頭：「比較項目」、「專案」（藍底白字）、「產品」（橘底白字）。
-  每一列在「比較項目」欄前面加一個 lucide-react icon（16px）輔助語意：
-  - 生命週期：Clock —— 專案「有明確結束」／產品「持續迭代，沒有結束」
-  - 衡量標準：Target —— 專案「範疇、時程、品質、預算」／產品「用戶價值、商業價值、留存」
-  - 需求變動：GitBranch —— 專案「盡量凍結，變更需走 CR」／產品「預期會變，擁抱變化」
-  - 思考方式：Lightbulb —— 專案「以終為始，規劃導向」／產品「假設驗證，持續學習」
-  偶數列加 row striping，外層 wrapper 用 radius-md + shadow-sm，並可橫向捲動。
-  色票依 trendlink-design：專案欄 blue-700、產品欄 orange-400/500。
-*/}
 
 | 比較項目 | 專案 | 產品 |
 | --- | --- | --- |

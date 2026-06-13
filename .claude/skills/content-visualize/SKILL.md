@@ -111,15 +111,17 @@ npx astro build
 import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import <PascalCaseId> from '@/components/generated/<id>'
 
-<GeneratedFrame id="<id>" type="<type>" caption="<選用說明，可省略整個屬性>">
+<GeneratedFrame id="<id>" type="<type>" prompt={<JSON 字串化的 prompt>} caption="<選用說明，可省略整個屬性>">
   <<PascalCaseId> client:visible />
 </GeneratedFrame>
 ```
 
-**統一外框（GeneratedFrame）**：每個 generated 元件一律以系統共用元件 `GeneratedFrame` 包住，它提供一致的外框卡片（左上角顯示視覺化類型、右上角顯示 `generated/<id>.tsx` 來源、底部選用 caption 說明）。`GeneratedFrame` 是純展示容器，`client:*` directive 仍掛在被包住的生成元件上、不掛在外框上，因此互動 / 動畫不受影響。
+**統一外框（GeneratedFrame）**：每個 generated 元件一律以系統共用元件 `GeneratedFrame` 包住，它提供一致的外框卡片（左上角顯示視覺化類型、右上角顯示 `generated/<id>.tsx` 來源、一個「複製提示詞」按鈕、底部選用 caption 說明）。`GeneratedFrame` 是純展示容器，`client:*` directive 仍掛在被包住的生成元件上、不掛在外框上，因此互動 / 動畫不受影響。
 
 - 只有當元件含有 motion 或互動狀態時才在「被包住的元件」上加 `client:visible`；純靜態 SVG 請省略此 directive（但外框照常包）。
 - `GeneratedFrame` 的 import 每個檔案只需一次；若已存在不要重複。`type` 帶入標記的 `type` 值；`caption` 為選用，無說明時整個屬性省略。
+- `prompt` 帶入該標記的 `prompt` 原文，**採 JSON 字串化**（`prompt={"...\n..."}`）作為 JSX 屬性值，安全處理換行 / 引號 / 反引號 / `${`。讀者可藉外框上的按鈕複製此提示詞。
+  - **合併元件**：若把多個相關標記合併成單一 `GeneratedFrame`（frame 的 `id` 是來源標記的 `merged-into` 目標、而非任一標記自己的 `id`），`prompt` 取自被合併的來源標記；多個來源時依序串接（空行分隔）。不要因 id 不相符就略過 `prompt`。
 - 已存在的元件 import 不要重複，原地更新即可。
 
 **重要：拆掉包住標記的 code fence。** 有些作者會把 `{/* @ai-visualize ... */}` 標記寫在 ```` ```mdx ```` ／ ```` ``` ```` 圍欄裡（當成草稿時的可見範例）。MDX 註解 `{/* ... */}` 本身渲染後是隱形的，但一旦被圍欄包住，整段 prompt 與 `status` 就會被當成「程式碼區塊」**原樣顯示給讀者**（包含 `status: generated` 這種雜訊）。因此 generated 寫回時，**必須一併刪除標記上下兩行的圍欄**，讓標記回到純註解狀態，再把 import／JSX 緊接在 `*/}` 之後。委派 mdx-writer 時，請明確要求它「拆掉圍欄」，不要叫它「插在收尾 ``` 之後」——後者會把圍欄留下、導致 prompt 外露。

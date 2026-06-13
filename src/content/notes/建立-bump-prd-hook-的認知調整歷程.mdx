@@ -33,7 +33,7 @@ status: generated
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import HookCognitionContrast from '@/components/generated/hook-cognition-contrast'
 
-<GeneratedFrame id="hook-cognition-contrast" type="diagram">
+<GeneratedFrame id="hook-cognition-contrast" type="diagram" prompt={"左右雙欄對照卡片：左欄紅色系「原本認知」5 條 ❌、右欄綠色系「實際 hook」5 條 ✅，條目一對一橫向對齊。\n下方加一張黃色警示卡，強調「最關鍵的誤解」內容。\n手寫 SVG，使用 trendlink-design 色票，純靜態無互動。"}>
   <HookCognitionContrast />
 </GeneratedFrame>
 
@@ -55,7 +55,7 @@ status: generated
 
 import HookLearningJourney from '@/components/generated/hook-learning-journey'
 
-<GeneratedFrame id="hook-learning-journey" type="timeline">
+<GeneratedFrame id="hook-learning-journey" type="timeline" prompt={"垂直時間軸呈現步驟 1 → 步驟 6 的認知演進。\n每個節點：左側圓形編號 + 步驟標題 + 一行想法，右側箭頭帶出「→ 發現/理解」轉折說明。\n步驟 4「關鍵轉折」用橘色標示、步驟 6「最終定位」用綠色高亮。\n以 motion 套件讓節點隨滾動依序淡入；手寫 SVG + Tailwind 文字混排。\n需 client:visible。"}>
   <HookLearningJourney client:visible />
 </GeneratedFrame>
 
@@ -76,7 +76,7 @@ status: generated
 
 import HookLifecycleEvents from '@/components/generated/hook-lifecycle-events'
 
-<GeneratedFrame id="hook-lifecycle-events" type="diagram">
+<GeneratedFrame id="hook-lifecycle-events" type="diagram" prompt={"手寫 SVG 畫一條 Claude Code session 生命週期橫線，由左到右標出 7 個 hook 事件節點：\nSessionStart → UserPromptSubmit → PreToolUse → PostToolUse → Notification → Stop ⭐ → SubagentStop。\nStop 節點放大、加星星標記與「✅ 使用中」徽章，其餘節點灰階。\n使用 trendlink-design 色票，純靜態 SVG，無需互動。"}>
   <HookLifecycleEvents client:visible />
 </GeneratedFrame>
 
@@ -128,7 +128,7 @@ status: generated
 
 import BumpPrdArchitecture from '@/components/generated/bump-prd-architecture'
 
-<GeneratedFrame id="bump-prd-architecture" type="diagram">
+<GeneratedFrame id="bump-prd-architecture" type="diagram" prompt={"三層職責分層圖（由上至下三個色塊）：\n  🧠 判斷層 (AI / CLAUDE.md SOP) — 列出 4 個職責 bullet\n  ⚡ 執行層 (Slash command /bump-prd) — 列出 3 個職責 bullet\n  🛡️ 守門員 (Stop hook 哨兵) — 列出 3 個職責 bullet\n層與層之間用箭頭標示控制流向。\n手寫 SVG，使用 trendlink-design 色票，純靜態。"}>
   <BumpPrdArchitecture client:visible />
 </GeneratedFrame>
 
@@ -175,7 +175,7 @@ status: generated
 
 import HookTakeawayQuote from '@/components/generated/hook-takeaway-quote'
 
-<GeneratedFrame id="hook-takeaway-quote" type="free">
+<GeneratedFrame id="hook-takeaway-quote" type="free" prompt={"大型引言卡：置中粗體金句「Hook 是哨兵，不是司令官。」\n下方副文較小灰色：「它站在固定位置（事件）、看到固定情況（matcher）、做固定動作（script）——不思考、不判斷、不指揮，那是 AI 的工作。」\n使用 trendlink-design 強調字體與留白規範；純 Tailwind 排版，無需 SVG。"}>
   <HookTakeawayQuote client:visible />
 </GeneratedFrame>
 
@@ -202,7 +202,7 @@ status: generated
 
 import HookDecisionTree from '@/components/generated/hook-decision-tree'
 
-<GeneratedFrame id="hook-decision-tree" type="diagram">
+<GeneratedFrame id="hook-decision-tree" type="diagram" prompt={"手寫 SVG 決策樹，三個 Yes/No 判斷節點縱向排列：\n  Q1「這件事不能漏嗎？」— No 分支 → 葉節點「CLAUDE.md」\n  Q2「不需要判斷嗎？」  — No 分支 → 葉節點「AI」\n  Q3「綁定在生命週期事件嗎？」— No 分支 → 葉節點「Slash command」\n  三題都 Yes → 綠色終點葉節點「✅ 用 Hook」\n各葉節點用對應色塊；trendlink-design 色票；純靜態。"}>
   <HookDecisionTree client:visible />
 </GeneratedFrame>
 
@@ -221,6 +221,6 @@ status: generated
 
 import MechanismComparisonTable from '@/components/generated/mechanism-comparison-table'
 
-<GeneratedFrame id="mechanism-comparison-table" type="table">
+<GeneratedFrame id="mechanism-comparison-table" type="table" prompt={"用 Tailwind <table> 呈現 5 列機制對照（Hook / Slash command / CLAUDE.md / Skill / Git hook）。\n欄位：機制 / 誰觸發 / 做什麼。\n最左欄用色塊圖示前綴標示分類；trendlink-design 設計系統的 table 樣式。\n純靜態，不要做成 SVG。"}>
   <MechanismComparisonTable />
 </GeneratedFrame>
