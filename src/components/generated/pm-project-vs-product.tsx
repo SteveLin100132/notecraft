@@ -329,6 +329,8 @@ function LifecyclePanel() {
                   const isEnd = m.p === 1;
                   const labelColor = m.key ? 'var(--orange-500)' : 'var(--blue-700)';
                   const dotColor = m.key ? 'var(--orange-500)' : 'var(--blue-700)';
+                  // 用偶數尺寸，圓心對齊軌道中心線（y = 28）時 margin 落在整數像素 → 邊框不會半像素糊掉
+                  const size = m.key ? 22 : 18;
                   return (
                     <div
                       key={i}
@@ -343,11 +345,10 @@ function LifecyclePanel() {
                     >
                       <div
                         style={{
-                          width: m.key ? 22 : 17,
-                          height: m.key ? 22 : 17,
+                          width: size,
+                          height: size,
                           borderRadius: 'var(--radius-pill)',
-                          // 讓每個節點圓心都對齊軌道中心線（y = 28）
-                          margin: `${28 - (m.key ? 22 : 17) / 2}px auto 0`,
+                          margin: `${28 - size / 2}px auto 0`,
                           background: reached ? dotColor : 'var(--surface-card)',
                           border: `2.5px solid ${reached ? dotColor : 'var(--neutral-300)'}`,
                           display: 'flex',
