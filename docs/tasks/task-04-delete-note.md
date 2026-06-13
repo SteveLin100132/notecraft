@@ -87,12 +87,12 @@ const componentIds = markers.map((m) => m.id);
 
 ## 驗收（對應 PRD 驗收表）
 
-- [ ] 刪除筆記同時刪除其專屬 generated 元件，導回列表
-- [ ] 被其他筆記引用的共用元件保留（API 回傳 `keptShared`）
-- [ ] 二次確認 Modal 列出 MDX 路徑與將刪 / 將保留元件
-- [ ] 正式環境不顯示刪除按鈕；build 不輸出 `DELETE` endpoint
-- [ ] 不存在的 slug → 404，不刪任何檔案
-- [ ] `npx astro build` 通過
+- [x] 刪除筆記同時刪除其專屬 generated 元件，導回列表
+- [x] 被其他筆記引用的共用元件保留（API 回傳 `keptShared`）
+- [x] 二次確認 Modal 列出 MDX 路徑與將刪 / 將保留元件
+- [x] 正式環境不顯示刪除按鈕；build 不輸出 `DELETE` endpoint
+- [x] 不存在的 slug → 404，不刪任何檔案
+- [x] `npx astro build` 通過
 
 ## 風險 / 備註
 

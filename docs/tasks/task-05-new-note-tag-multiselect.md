@@ -23,7 +23,9 @@ useEffect(() => {
   if (!open) return;
   fetch("/api/tags")
     .then((r) => r.json())
-    .then((d) => setAllTags((d.tags ?? []).map((t: { name: string }) => t.name)))
+    .then((d) =>
+      setAllTags((d.tags ?? []).map((t: { name: string }) => t.name)),
+    )
     .catch(() => setApiUnavailable(true));
 }, [open]);
 ```
@@ -52,12 +54,12 @@ body: JSON.stringify({ title: title.trim(), tags: selected, folder }),
 
 ## 驗收（對應 PRD 驗收表）
 
-- [ ] 打開 Modal 列出既有標籤（依使用次數倒序）供勾選
-- [ ] 輸入關鍵字即時過濾既有標籤
-- [ ] 可勾選既有 + 自訂新增，chips 正確呈現並送出寫入 frontmatter.tags
-- [ ] 新標籤與既有不分大小寫重複時自動去重
-- [ ] `GET /api/tags` 失敗時退回純文字輸入仍可建立
-- [ ] `npx astro build` 通過
+- [x] 打開 Modal 列出既有標籤（依使用次數倒序）供勾選
+- [x] 輸入關鍵字即時過濾既有標籤
+- [x] 可勾選既有 + 自訂新增，chips 正確呈現並送出寫入 frontmatter.tags
+- [x] 新標籤與既有不分大小寫重複時自動去重
+- [x] `GET /api/tags` 失敗時退回純文字輸入仍可建立
+- [x] `npx astro build` 通過
 
 ## 風險 / 備註
 

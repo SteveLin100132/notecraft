@@ -38,8 +38,11 @@
     const node = btn.parentElement.querySelector("[data-nc-prompt]");
     const prompt = node ? JSON.parse(node.textContent) : "";
     navigator.clipboard.writeText(prompt).then(() => {
-      const old = btn.innerHTML; btn.textContent = "已複製";
-      setTimeout(() => { btn.innerHTML = old; }, 1800);
+      const old = btn.innerHTML;
+      btn.textContent = "已複製";
+      setTimeout(() => {
+        btn.innerHTML = old;
+      }, 1800);
     });
   });
 </script>
@@ -70,12 +73,12 @@
 
 ## 驗收（對應 PRD 驗收表）
 
-- [ ] 外框帶 `prompt` 時顯示「複製提示詞」按鈕，點擊複製原文並切換「已複製」
-- [ ] 無 `prompt` 時不顯示按鈕
-- [ ] 正式環境（build 後）按鈕存在且可複製
-- [ ] mdx-writer 寫回帶入 `prompt={JSON 字串}`，含特殊字元也能 build / render
-- [ ] SKILL.md / mdx-writer.md 同步更新
-- [ ] `npx tsc --noEmit`（不含既有無關錯誤）與 `npx astro build` 通過
+- [x] 外框帶 `prompt` 時顯示「複製提示詞」按鈕，點擊複製原文並切換「已複製」
+- [x] 無 `prompt` 時不顯示按鈕
+- [x] 正式環境（build 後）按鈕存在且可複製
+- [x] mdx-writer 寫回帶入 `prompt={JSON 字串}`，含特殊字元也能 build / render
+- [x] SKILL.md / mdx-writer.md 同步更新
+- [x] `npx tsc --noEmit`（不含既有無關錯誤）與 `npx astro build` 通過
 
 ## 風險 / 備註
 
