@@ -1,6 +1,16 @@
-import React, { useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { FileText, Calendar, File, Users, ArrowRight, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import {
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
+  TriangleAlert,
+  FileText,
+  Calendar,
+  File,
+  ArrowRight,
+} from 'lucide-react';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -27,134 +37,204 @@ type Deliverable = {
 };
 
 const STAGES: Stage[] = [
-  { id: 0, key: 'blueprint',   label: 'Blueprint',      desc: '確認專案目標、範疇、預期成果,通常會產出 Project Charter 或藍圖文件。' },
-  { id: 1, key: 'analysis',    label: 'System Analysis', desc: '訪談需求、釐清業務流程,產出需求規格 (SRS)、業務流程圖等。' },
+  { id: 0, key: 'blueprint',   label: 'Blueprint',       desc: '確認專案目標、範疇、預期成果，通常會產出 Project Charter 或藍圖文件。' },
+  { id: 1, key: 'analysis',    label: 'System Analysis', desc: '訪談需求、釐清業務流程，產出需求規格 (SRS)、業務流程圖等。' },
   { id: 2, key: 'design',      label: 'System Design',   desc: '依需求設計系統架構、資料模型、介面、API 規格等。' },
   { id: 3, key: 'coding',      label: 'Coding',          desc: '依設計文件實作系統。' },
-  { id: 4, key: 'sit',         label: 'SIT',             desc: '由 QA 進行模組整合測試,驗證系統各部分能正確協作。' },
-  { id: 5, key: 'uat',         label: 'UAT',             desc: '由用戶端依驗收標準實際操作,確認系統符合需求。' },
-  { id: 6, key: 'cutover',     label: 'Cutover',         desc: '正式上線前的切換作業,包含資料移轉、停機作業、舊系統下線等。', optional: true },
+  { id: 4, key: 'sit',         label: 'SIT',             desc: '由 QA 進行模組整合測試，驗證系統各部分能正確協作。' },
+  { id: 5, key: 'uat',         label: 'UAT',             desc: '由用戶端依驗收標準實際操作，確認系統符合需求。' },
+  { id: 6, key: 'cutover',     label: 'Cutover',         desc: '正式上線前的切換作業，包含資料移轉、停機作業、舊系統下線等。', optional: true },
   { id: 7, key: 'golive',      label: 'Go-Live',         desc: '系統正式上線。' },
   { id: 8, key: 'maintenance', label: 'Maintenance',     desc: '上線後的維護、修補、優化。' },
 ];
 
 const MEETINGS: Meeting[] = [
   { id: 'kickoff',   label: 'Kickoff Meeting',          stageRange: [0, 0], desc: '讓所有參與者了解目標、範疇、角色責任及初步計劃。' },
-  { id: 'milestone', label: 'Milestone Review Meeting', stageRange: [1, 4], desc: '在關鍵節點評估進度與成果,必要時調整計劃與資源。' },
-  { id: 'uat',       label: 'UAT Meeting',              stageRange: [5, 5], desc: '讓用戶或利益相關者實際參與驗收,收集回饋。' },
-  { id: 'golive',    label: 'Go-Live Meeting',          stageRange: [6, 7], desc: '確認部署計劃、步驟、責任分工與支援資源,確保順利上線。' },
-  { id: 'handover',  label: 'Handover Meeting',         stageRange: [8, 8], desc: '專案結束時將成果與文件交接給維運團隊,含專案總結、知識轉移。' },
+  { id: 'milestone', label: 'Milestone Review Meeting', stageRange: [1, 4], desc: '在關鍵節點評估進度與成果，必要時調整計劃與資源。' },
+  { id: 'uat',       label: 'UAT Meeting',              stageRange: [5, 5], desc: '讓用戶或利益相關者實際參與驗收，收集回饋。' },
+  { id: 'golive',    label: 'Go-Live Meeting',          stageRange: [6, 7], desc: '確認部署計劃、步驟、責任分工與支援資源，確保順利上線。' },
+  { id: 'handover',  label: 'Handover Meeting',         stageRange: [8, 8], desc: '專案結束時將成果與文件交接給維運團隊，含專案總結、知識轉移。' },
 ];
 
 const DELIVERABLES: Deliverable[] = [
-  { id: 'prd',      label: 'PRD',               stage: 0, desc: 'Product Requirement Document — Blueprint 階段產出' },
-  { id: 'srs',      label: 'SRS',               stage: 1, desc: 'System Requirement Spec — System Analysis 階段產出' },
-  { id: 'sdd',      label: 'SDD',               stage: 2, desc: 'System Design Document — System Design 階段產出' },
-  { id: 'testplan', label: 'Test Plan / Case',  stage: 4, desc: 'SIT 階段產出的測試計畫與測試案例' },
-  { id: 'uat',      label: 'UAT Checklist',     stage: 5, desc: 'UAT 階段的驗收清單' },
-  { id: 'cutover',  label: 'Cutover Plan',      stage: 6, desc: 'Cutover 階段的切換計劃' },
+  { id: 'prd',      label: 'PRD',              stage: 0, desc: 'Product Requirement Document — Blueprint 階段產出' },
+  { id: 'srs',      label: 'SRS',              stage: 1, desc: 'System Requirement Spec — System Analysis 階段產出' },
+  { id: 'sdd',      label: 'SDD',              stage: 2, desc: 'System Design Document — System Design 階段產出' },
+  { id: 'testplan', label: 'Test Plan / Case', stage: 4, desc: 'SIT 階段產出的測試計畫與測試案例' },
+  { id: 'uat',      label: 'UAT Checklist',    stage: 5, desc: 'UAT 階段的驗收清單' },
+  { id: 'cutover',  label: 'Cutover Plan',     stage: 6, desc: 'Cutover 階段的切換計劃' },
   { id: 'manual',   label: 'Maintenance Manual', stage: 8, desc: 'Go-Live 後的維運手冊' },
 ];
 
-// ── SVG Layout constants (vertical 3-column) ──────────────────────────────────
+const TOTAL = STAGES.length; // 9
 
-const ROW_H   = 52;
-const BOX_H   = 36;
-const BOX_W   = 100;
-const CENTER_X = 104; // left edge of centre column box
+// ── Waterfall SVG ─────────────────────────────────────────────────────────────
+// Vertical channel SVG: each stage is a rectangle, water "fills" from top
+// as user progresses. Arranged in a single column, connected by downward arrows.
 
-const SVG_W   = 380;
-const SVG_H   = 9 * ROW_H + 16; // 484
+const BOX_W  = 150;
+const BOX_H  = 32;
+const GAP_Y  = 20;  // gap between boxes
+const SVG_PW = BOX_W + 24; // padding left+right
+const UNIT_H = BOX_H + GAP_Y;
+const SVG_H  = UNIT_H * TOTAL + GAP_Y;
+const SVG_W  = SVG_PW;
+const OX     = (SVG_W - BOX_W) / 2; // box x origin
+const OY     = GAP_Y / 2;            // first box y origin
 
-function stageY(i: number): number { return i * ROW_H + 8; }
-function stageCY(i: number): number { return stageY(i) + BOX_H / 2; }
+function boxY(i: number): number { return OY + i * UNIT_H; }
+function boxCY(i: number): number { return boxY(i) + BOX_H / 2; }
 
-const ARROW_CX = CENTER_X + BOX_W / 2; // 154 — vertical arrow x-centre
-const RIGHT_WING_X = CENTER_X + BOX_W + 8; // 212
-const BADGE_W  = 152;
-const BADGE_H  = 22;
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type TabId = 'phases' | 'meetings' | 'deliverables';
-
-type DetailContent =
-  | { kind: 'stage';       stage: Stage }
-  | { kind: 'meeting';     meeting: Meeting }
-  | { kind: 'deliverable'; deliverable: Deliverable };
-
-// ── SVG sub-components ────────────────────────────────────────────────────────
-
-function ArrowConnectors() {
-  return (
-    <>
-      {STAGES.slice(0, -1).map((s) => {
-        const y1 = stageY(s.id) + BOX_H;
-        const y2 = stageY(s.id + 1);
-        // dashed for UAT->Cutover and Cutover->GoLive (can be bypassed)
-        const dashed = s.id === 5 || s.id === 6;
-        return (
-          <line
-            key={`arr-${s.id}`}
-            x1={ARROW_CX} y1={y1}
-            x2={ARROW_CX} y2={y2}
-            stroke="var(--neutral-300)"
-            strokeWidth={1.5}
-            strokeDasharray={dashed ? '4 3' : undefined}
-            markerEnd="url(#arrowhead)"
-          />
-        );
-      })}
-    </>
-  );
+interface WaterfallSVGProps {
+  current: number;
+  onSelect: (i: number) => void;
+  reduced: boolean;
+  gradId: string;
 }
 
-function StageBoxes({
-  activeTab,
-  selectedStage,
-  onSelect,
-}: {
-  activeTab: TabId;
-  selectedStage: number | null;
-  onSelect: (id: number | null) => void;
-}) {
+function WaterfallSVG({ current, onSelect, reduced, gradId }: WaterfallSVGProps) {
   return (
-    <>
+    <svg
+      viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+      width="100%"
+      aria-label="瀑布式開發流程圖"
+      style={{ fontFamily: 'inherit', display: 'block' }}
+    >
+      <defs>
+        <linearGradient id={`${gradId}-fill`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="var(--blue-400, #4a90d9)" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="var(--blue-700, #1b4f9c)" stopOpacity="0.95" />
+        </linearGradient>
+        <linearGradient id={`${gradId}-current`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="var(--orange-400, #ed9b26)" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="var(--orange-500, #e37b24)" stopOpacity="1"   />
+        </linearGradient>
+      </defs>
+
+      {/* Connector lines between stages */}
+      {STAGES.slice(0, -1).map((s) => {
+        const y1 = boxY(s.id) + BOX_H;
+        const y2 = boxY(s.id + 1);
+        const cx = OX + BOX_W / 2;
+        const midY = (y1 + y2) / 2;
+        const isPast = s.id < current;
+        const isCutoverEdge = s.id === 5 || s.id === 6;
+        return (
+          <g key={`conn-${s.id}`}>
+            <line
+              x1={cx} y1={y1}
+              x2={cx} y2={y2 - 6}
+              stroke={
+                isPast
+                  ? 'var(--blue-500, #2c6ebb)'
+                  : isCutoverEdge
+                  ? 'var(--neutral-300, #cbd5e1)'
+                  : 'var(--neutral-200, #e2e8f0)'
+              }
+              strokeWidth={isPast ? 3 : 1.5}
+              strokeDasharray={isCutoverEdge ? '4 3' : undefined}
+              strokeLinecap="round"
+            />
+            {/* Arrowhead */}
+            <path
+              d={`M ${cx - 5} ${y2 - 9} L ${cx} ${y2 - 2} L ${cx + 5} ${y2 - 9}`}
+              fill="none"
+              stroke={
+                isPast
+                  ? 'var(--blue-500, #2c6ebb)'
+                  : isCutoverEdge
+                  ? 'var(--neutral-300, #cbd5e1)'
+                  : 'var(--neutral-200, #e2e8f0)'
+              }
+              strokeWidth={isPast ? 2 : 1.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {/* Gate dot at midpoint */}
+            {isPast && (
+              <circle
+                cx={cx}
+                cy={midY}
+                r={4}
+                fill="var(--orange-400, #ed9b26)"
+                opacity={0.85}
+              />
+            )}
+          </g>
+        );
+      })}
+
+      {/* Stage boxes */}
       {STAGES.map((s) => {
-        const isCutover  = s.optional === true;
-        const isSelected = selectedStage === s.id;
+        const isPast    = s.id < current;
+        const isCurrent = s.id === current;
+        const isFuture  = s.id > current;
+        const isCutover = s.optional === true;
 
-        // Cutover box is narrower and slightly indented to mark it as optional
-        const bx = isCutover ? CENTER_X + 8 : CENTER_X;
-        const bw = isCutover ? BOX_W - 16   : BOX_W;
-        const y  = stageY(s.id);
+        const fill   = isCurrent ? 'var(--orange-50, #fdf4e6)'
+                     : isPast    ? 'var(--blue-50, #eef4fb)'
+                     : 'var(--neutral-50, #f8fafc)';
+        const stroke = isCurrent ? 'var(--orange-500, #e37b24)'
+                     : isPast    ? 'var(--blue-500, #2c6ebb)'
+                     : isCutover ? 'var(--neutral-300, #cbd5e1)'
+                     : 'var(--neutral-200, #e2e8f0)';
+        const textColor = isCurrent ? 'var(--orange-600, #c7641a)'
+                     : isPast    ? 'var(--blue-700, #1b4f9c)'
+                     : isCutover ? 'var(--neutral-400, #94a3b8)'
+                     : 'var(--neutral-500, #64748b)';
+        const opacity = isFuture ? 0.55 : 1;
 
-        const fillColor   = isSelected ? 'var(--blue-700)' : isCutover ? 'var(--neutral-100)' : 'var(--blue-50)';
-        const strokeColor = isSelected ? 'var(--blue-700)' : isCutover ? 'var(--neutral-400)' : 'var(--blue-500)';
-        const textColor   = isSelected ? '#ffffff'         : isCutover ? 'var(--neutral-500)' : 'var(--blue-700)';
+        const bx = OX;
+        const by = boxY(s.id);
 
-        const hasDel = activeTab === 'deliverables' && DELIVERABLES.some((d) => d.stage === s.id);
+        // Has deliverable
+        const hasDel = DELIVERABLES.some((d) => d.stage === s.id);
 
         return (
           <g
             key={s.id}
-            onClick={() => onSelect(isSelected ? null : s.id)}
+            opacity={opacity}
             style={{ cursor: 'pointer' }}
             role="button"
-            aria-label={s.label}
-            aria-pressed={isSelected}
+            tabIndex={0}
+            aria-label={`前往 ${s.label} 階段`}
+            aria-current={isCurrent ? 'step' : undefined}
+            onClick={() => onSelect(s.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(s.id); } }}
           >
-            <rect
-              x={bx} y={y}
-              width={bw} height={BOX_H}
+            <motion.rect
+              x={bx} y={by}
+              width={BOX_W} height={BOX_H}
               rx={6}
-              fill={fillColor}
-              stroke={strokeColor}
-              strokeWidth={isSelected ? 2 : 1.5}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={isCurrent ? 2 : 1.5}
               strokeDasharray={isCutover ? '5 3' : undefined}
+              initial={false}
+              animate={
+                isCurrent && !reduced
+                  ? { strokeWidth: [2, 2.8, 2], opacity: [1, 0.9, 1] }
+                  : { strokeWidth: isCurrent ? 2 : 1.5, opacity: 1 }
+              }
+              transition={{ duration: 0.8, repeat: isCurrent ? Infinity : 0, ease: 'easeInOut' }}
             />
+            {/* Stage number */}
             <text
-              x={bx + bw / 2} y={y + BOX_H / 2 + 1}
+              x={bx + 10}
+              y={by + BOX_H / 2 + 1}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={9}
+              fontWeight={700}
+              fill={isCurrent ? 'var(--orange-300, #f2b955)' : isPast ? 'var(--blue-300, #7ba6da)' : 'var(--neutral-300)'}
+              style={{ pointerEvents: 'none', userSelect: 'none' }}
+            >
+              {s.id + 1}
+            </text>
+            {/* Stage label */}
+            <text
+              x={bx + BOX_W / 2}
+              y={by + BOX_H / 2 + 1}
               textAnchor="middle"
               dominantBaseline="middle"
               fontSize={11}
@@ -164,443 +244,465 @@ function StageBoxes({
             >
               {s.label}
             </text>
-            {/* Deliverable indicator dot */}
+            {/* Deliverable dot */}
             {hasDel && (
               <circle
-                cx={CENTER_X + BOX_W - 6}
-                cy={y + 6}
-                r={4}
-                fill="var(--blue-500)"
+                cx={bx + BOX_W - 9}
+                cy={by + BOX_H / 2}
+                r={3.5}
+                fill={isCurrent ? 'var(--orange-400, #ed9b26)' : isPast ? 'var(--blue-400, #4d84cb)' : 'var(--blue-200, #bfdbfe)'}
               />
             )}
-          </g>
-        );
-      })}
-    </>
-  );
-}
-
-function MeetingBrackets({
-  selectedMeetingId,
-  onSelect,
-}: {
-  selectedMeetingId: string | null;
-  onSelect: (id: string | null) => void;
-}) {
-  const BRACKET_X  = CENTER_X - 10; // bracket vertical line x
-  const TOOTH      = 4;             // horizontal tooth length
-  const PILL_W     = 80;
-  const PILL_H     = 18;
-  const PILL_RIGHT = BRACKET_X - 6; // right edge of pill
-
-  return (
-    <>
-      {MEETINGS.map((m) => {
-        const [s1, s2]   = m.stageRange;
-        const isSelected  = selectedMeetingId === m.id;
-        const bracketColor = isSelected ? 'var(--orange-500)' : 'var(--orange-400)';
-
-        // bracket spans from top of s1 to bottom of s2
-        const by1 = stageY(s1);
-        const by2 = stageY(s2) + BOX_H;
-
-        // For Go-Live meeting (covers Cutover+GoLive), bracket right edge
-        // intentionally aligns with CENTER_X - 10 (not the narrowed Cutover box)
-        const pillCY  = (by1 + by2) / 2;
-        const pillX   = PILL_RIGHT - PILL_W;
-        const labelRaw = m.label.replace(' Meeting', '');
-        const label    = labelRaw.length > 12 ? labelRaw.slice(0, 9) + '...' : labelRaw;
-
-        return (
-          <g
-            key={m.id}
-            onClick={() => onSelect(isSelected ? null : m.id)}
-            style={{ cursor: 'pointer' }}
-            role="button"
-            aria-label={m.label}
-          >
-            {/* Vertical bracket line */}
-            <line
-              x1={BRACKET_X} y1={by1}
-              x2={BRACKET_X} y2={by2}
-              stroke={bracketColor} strokeWidth={2} strokeLinecap="round"
-            />
-            {/* Top tooth */}
-            <line
-              x1={BRACKET_X} y1={by1}
-              x2={BRACKET_X + TOOTH} y2={by1}
-              stroke={bracketColor} strokeWidth={2} strokeLinecap="round"
-            />
-            {/* Bottom tooth */}
-            <line
-              x1={BRACKET_X} y1={by2}
-              x2={BRACKET_X + TOOTH} y2={by2}
-              stroke={bracketColor} strokeWidth={2} strokeLinecap="round"
-            />
-            {/* Dashed connector from pill right-centre to bracket mid-point */}
-            <line
-              x1={PILL_RIGHT} y1={pillCY}
-              x2={BRACKET_X}  y2={pillCY}
-              stroke={bracketColor}
-              strokeWidth={1}
-              strokeDasharray="2 2"
-              opacity={0.7}
-            />
-            {/* Label pill */}
-            <rect
-              x={pillX} y={pillCY - PILL_H / 2}
-              width={PILL_W} height={PILL_H}
-              rx={9}
-              fill={isSelected ? 'var(--orange-400)' : 'var(--orange-50)'}
-              stroke={bracketColor}
-              strokeWidth={1}
-            />
-            <text
-              x={pillX + PILL_W / 2} y={pillCY + 1}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={9}
-              fontWeight={600}
-              fill={isSelected ? '#ffffff' : 'var(--orange-600)'}
-              style={{ pointerEvents: 'none', userSelect: 'none' }}
-            >
-              {label}
-            </text>
-          </g>
-        );
-      })}
-    </>
-  );
-}
-
-function DeliverableBadges({
-  selectedId,
-  onSelect,
-}: {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-}) {
-  return (
-    <>
-      {DELIVERABLES.map((d, idx) => {
-        const isSelected = selectedId === d.id;
-        const cy = stageCY(d.stage);
-        const bx = RIGHT_WING_X;
-        const by = cy - BADGE_H / 2;
-
-        // Arrow connector from previous badge (if any and adjacent in array)
-        const prev = idx > 0 ? DELIVERABLES[idx - 1] : null;
-        const showConnector = prev !== null && prev.stage < d.stage;
-
-        return (
-          <g key={d.id}>
-            {/* Relay connector from previous badge's bottom to this badge's top */}
-            {showConnector && prev !== null && (
-              <line
-                x1={bx + BADGE_W / 2}
-                y1={stageCY(prev.stage) + BADGE_H / 2}
-                x2={bx + BADGE_W / 2}
-                y2={by}
-                stroke="var(--blue-200)"
-                strokeWidth={1.5}
-                markerEnd="url(#arrowBlue)"
-              />
-            )}
-            <g
-              onClick={() => onSelect(isSelected ? null : d.id)}
-              style={{ cursor: 'pointer' }}
-              role="button"
-              aria-label={d.label}
-            >
-              <rect
-                x={bx} y={by}
-                width={BADGE_W} height={BADGE_H}
-                rx={11}
-                fill={isSelected ? 'var(--blue-700)' : 'var(--blue-50)'}
-                stroke={isSelected ? 'var(--blue-700)' : 'var(--blue-200)'}
-                strokeWidth={1}
-              />
+            {/* Optional label */}
+            {isCutover && (
               <text
-                x={bx + BADGE_W / 2} y={cy + 1}
-                textAnchor="middle"
+                x={bx + BOX_W + 6}
+                y={by + BOX_H / 2 + 1}
+                textAnchor="start"
                 dominantBaseline="middle"
-                fontSize={9}
-                fontWeight={600}
-                fill={isSelected ? '#ffffff' : 'var(--blue-700)'}
+                fontSize={8}
+                fill="var(--neutral-400)"
                 style={{ pointerEvents: 'none', userSelect: 'none' }}
               >
-                {d.label}
+                視情況
               </text>
-            </g>
+            )}
           </g>
         );
       })}
-    </>
+    </svg>
   );
 }
 
-// ── Detail card ───────────────────────────────────────────────────────────────
+// ── Deliverable Chain ──────────────────────────────────────────────────────────
 
-function DetailCard({ content, reduced }: { content: DetailContent; reduced: boolean }) {
-  const enter      = reduced ? {} : { x: 16, opacity: 0 };
-  const center     = { x: 0, opacity: 1 };
-  const transition = { duration: reduced ? 0 : 0.3, ease: 'easeOut' };
+interface DeliverableChainProps {
+  current: number;
+  reduced: boolean;
+}
 
-  if (content.kind === 'stage') {
-    const { stage } = content;
+function DeliverableChain({ current, reduced }: DeliverableChainProps) {
+  const reached = DELIVERABLES.filter((d) => d.stage <= current);
+
+  if (reached.length === 0) {
     return (
+      <div className="flex items-center gap-2 text-xs text-neutral-400 py-2">
+        <File size={13} className="shrink-0" />
+        <span>通過各階段後，交付物將在此串連</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1" aria-label="交付物接力鏈">
+      {DELIVERABLES.map((d, idx) => {
+        const isReached = d.stage <= current;
+        const isNew     = d.stage === current;
+        const prevReached = idx > 0 ? DELIVERABLES[idx - 1].stage <= current : false;
+
+        return (
+          <React.Fragment key={d.id}>
+            {/* Connector arrow */}
+            {idx > 0 && (isReached || prevReached) && (
+              <span className="text-neutral-300 select-none" aria-hidden="true">
+                <ArrowRight size={10} />
+              </span>
+            )}
+            {isReached && (
+              <motion.span
+                initial={reduced || !isNew ? false : { opacity: 0, y: -8, scale: 0.85 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: reduced ? 0 : 0.3, ease: 'easeOut' }}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                style={{
+                  background: 'var(--blue-700, #1b4f9c)',
+                  color: '#ffffff',
+                }}
+                title={d.desc}
+              >
+                <File size={10} />
+                {d.label}
+              </motion.span>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── HUD Panel ─────────────────────────────────────────────────────────────────
+
+interface HudPanelProps {
+  current: number;
+  reduced: boolean;
+}
+
+function HudPanel({ current, reduced }: HudPanelProps) {
+  const stage = STAGES[current];
+  if (!stage) return null;
+
+  const activeMeetings = MEETINGS.filter(
+    (m) => current >= m.stageRange[0] && current <= m.stageRange[1]
+  );
+  const stageDeliverable = DELIVERABLES.find((d) => d.stage === current);
+
+  const enter = reduced ? {} : { opacity: 0, x: 10 };
+  const animate = { opacity: 1, x: 0 };
+  const transition = { duration: reduced ? 0 : 0.28, ease: 'easeOut' as const };
+
+  return (
+    <AnimatePresence mode="wait">
       <motion.div
-        key={`stage-${stage.id}`}
-        initial={enter} animate={center} exit={{ opacity: 0 }} transition={transition}
-        className="rounded-lg border border-blue-200 bg-blue-50 p-4"
+        key={`hud-${current}`}
+        initial={enter}
+        animate={animate}
+        exit={{ opacity: 0 }}
+        transition={transition}
+        className="flex flex-col gap-3"
+        aria-live="polite"
       >
-        <div className="mb-2 flex items-center gap-2">
-          <FileText size={16} className="text-blue-700 shrink-0" />
-          <span className="text-base font-bold text-blue-900">{stage.label}</span>
-          {stage.optional && (
-            <span className="ml-auto rounded-full bg-neutral-200 px-2 py-0.5 text-xs text-neutral-500">
-              視情況
+        {/* Stage block */}
+        <div
+          className="rounded-lg p-3"
+          style={{
+            background: 'var(--blue-50, #eff6ff)',
+            border: '1px solid var(--blue-200, #bfdbfe)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <FileText size={13} style={{ color: 'var(--blue-700, #1b4f9c)' }} className="shrink-0" />
+            <span className="text-xs font-bold" style={{ color: 'var(--blue-900, #1e3a5f)' }}>
+              {stage.id + 1} / {TOTAL} — {stage.label}
             </span>
+            {stage.optional && (
+              <span
+                className="ml-auto rounded-full px-1.5 py-0.5 text-xs"
+                style={{ background: 'var(--neutral-100)', color: 'var(--neutral-500)' }}
+              >
+                視情況
+              </span>
+            )}
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--neutral-700, #374151)' }}>
+            {stage.desc}
+          </p>
+        </div>
+
+        {/* Meetings block */}
+        <div
+          className="rounded-lg p-3"
+          style={{
+            background: 'var(--orange-50, #fffbeb)',
+            border: '1px solid var(--orange-200, #fde68a)',
+          }}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Calendar size={12} style={{ color: 'var(--orange-500, #e37b24)' }} className="shrink-0" />
+            <span className="text-xs font-bold" style={{ color: 'var(--orange-900, #7c2d12)' }}>
+              此階段的會議
+            </span>
+          </div>
+          {activeMeetings.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--neutral-400)' }}>此階段無排程會議</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {activeMeetings.map((m) => (
+                <div key={m.id} className="flex flex-col gap-0.5">
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold w-fit"
+                    style={{
+                      background: 'var(--orange-400, #ed9b26)',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {m.label}
+                  </span>
+                  <p className="text-xs pl-1" style={{ color: 'var(--neutral-600, #4b5563)' }}>
+                    {m.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-        <p className="text-sm leading-relaxed text-neutral-700">{stage.desc}</p>
-      </motion.div>
-    );
-  }
 
-  if (content.kind === 'meeting') {
-    const { meeting } = content;
-    return (
-      <motion.div
-        key={`meeting-${meeting.id}`}
-        initial={enter} animate={center} exit={{ opacity: 0 }} transition={transition}
-        className="rounded-lg border border-orange-200 bg-orange-50 p-4"
-      >
-        <div className="mb-2 flex items-center gap-2">
-          <Calendar size={16} className="text-orange-500 shrink-0" />
-          <span className="text-base font-bold text-orange-900">{meeting.label}</span>
+        {/* Deliverable block */}
+        <div
+          className="rounded-lg p-3"
+          style={{
+            background: stageDeliverable ? 'var(--blue-50, #eff6ff)' : 'var(--neutral-50, #f8fafc)',
+            border: `1px solid ${stageDeliverable ? 'var(--blue-200, #bfdbfe)' : 'var(--neutral-200, #e2e8f0)'}`,
+          }}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <File size={12} style={{ color: stageDeliverable ? 'var(--blue-700, #1b4f9c)' : 'var(--neutral-400)' }} className="shrink-0" />
+            <span
+              className="text-xs font-bold"
+              style={{ color: stageDeliverable ? 'var(--blue-900, #1e3a5f)' : 'var(--neutral-500)' }}
+            >
+              本階段交付物
+            </span>
+          </div>
+          {stageDeliverable ? (
+            <div className="flex flex-col gap-0.5">
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold w-fit"
+                style={{ background: 'var(--blue-700, #1b4f9c)', color: '#ffffff' }}
+              >
+                <File size={9} />
+                {stageDeliverable.label}
+              </span>
+              <p className="text-xs pl-1 mt-0.5" style={{ color: 'var(--neutral-600)' }}>
+                {stageDeliverable.desc}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--neutral-400)' }}>此階段無指定交付物</p>
+          )}
         </div>
-        <div className="mb-2 flex items-center gap-1">
-          <Users size={13} className="text-orange-400 shrink-0" />
-          <span className="text-xs text-orange-600">
-            Stage {meeting.stageRange[0]}
-            {meeting.stageRange[0] !== meeting.stageRange[1] ? ` – ${meeting.stageRange[1]}` : ''}
-          </span>
-        </div>
-        <p className="text-sm leading-relaxed text-neutral-700">{meeting.desc}</p>
       </motion.div>
-    );
-  }
-
-  const { deliverable } = content;
-  return (
-    <motion.div
-      key={`del-${deliverable.id}`}
-      initial={enter} animate={center} exit={{ opacity: 0 }} transition={transition}
-      className="rounded-lg border border-blue-200 bg-blue-50 p-4"
-    >
-      <div className="mb-2 flex items-center gap-2">
-        <File size={16} className="text-blue-700 shrink-0" />
-        <span className="text-base font-bold text-blue-900">{deliverable.label}</span>
-        <ArrowRight size={13} className="text-neutral-400 shrink-0 ml-auto" />
-        <span className="text-xs text-neutral-500">
-          {STAGES[deliverable.stage]?.label ?? ''}
-        </span>
-      </div>
-      <p className="text-sm leading-relaxed text-neutral-700">{deliverable.desc}</p>
-    </motion.div>
+    </AnimatePresence>
   );
 }
 
-// ── Tab bar ───────────────────────────────────────────────────────────────────
-
-const TABS: { id: TabId; label: string; Icon: React.ElementType }[] = [
-  { id: 'phases',       label: '階段',   Icon: FileText },
-  { id: 'meetings',     label: '會議',   Icon: Calendar },
-  { id: 'deliverables', label: '交付物', Icon: File },
-];
-
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function WaterfallLifecycle() {
   const reduced = useReducedMotion() ?? false;
+  const uid = useId().replace(/:/g, '');
+  const gradId = `wfl-${uid}`;
 
-  const [activeTab,           setActiveTab]           = useState<TabId>('phases');
-  const [selectedStage,       setSelectedStage]       = useState<number | null>(null);
-  const [selectedMeeting,     setSelectedMeeting]     = useState<string | null>(null);
-  const [selectedDeliverable, setSelectedDeliverable] = useState<string | null>(null);
+  const [current,    setCurrent]    = useState(0);
+  const [isPlaying,  setIsPlaying]  = useState(false);
+  const [showHint,   setShowHint]   = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hintRef     = useRef<ReturnType<typeof setTimeout>  | null>(null);
 
-  const detailContent: DetailContent | null = (() => {
-    if (activeTab === 'phases' && selectedStage !== null) {
-      const s = STAGES[selectedStage];
-      return s ? { kind: 'stage', stage: s } : null;
+  const clearAutoPlay = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    if (activeTab === 'meetings' && selectedMeeting !== null) {
-      const m = MEETINGS.find((x) => x.id === selectedMeeting);
-      return m ? { kind: 'meeting', meeting: m } : null;
-    }
-    if (activeTab === 'deliverables' && selectedDeliverable !== null) {
-      const d = DELIVERABLES.find((x) => x.id === selectedDeliverable);
-      return d ? { kind: 'deliverable', deliverable: d } : null;
-    }
-    return null;
-  })();
+  }, []);
 
-  function handleTabChange(tab: TabId) {
-    setActiveTab(tab);
-    setSelectedStage(null);
-    setSelectedMeeting(null);
-    setSelectedDeliverable(null);
+  const clearHint = useCallback(() => {
+    if (hintRef.current !== null) {
+      clearTimeout(hintRef.current);
+      hintRef.current = null;
+    }
+  }, []);
+
+  // Auto-play
+  useEffect(() => {
+    if (!isPlaying) {
+      clearAutoPlay();
+      return;
+    }
+    if (current >= TOTAL - 1) {
+      setIsPlaying(false);
+      return;
+    }
+    intervalRef.current = setInterval(() => {
+      setCurrent((c) => {
+        const next = c + 1;
+        if (next >= TOTAL - 1) {
+          setIsPlaying(false);
+          clearAutoPlay();
+        }
+        return next;
+      });
+    }, 1800);
+    return clearAutoPlay;
+  }, [isPlaying, current, clearAutoPlay]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearAutoPlay();
+      clearHint();
+    };
+  }, [clearAutoPlay, clearHint]);
+
+  function goTo(i: number) {
+    if (i < 0 || i >= TOTAL) return;
+    // Show backward hint when going back
+    if (i < current) {
+      clearHint();
+      setShowHint(true);
+      hintRef.current = setTimeout(() => setShowHint(false), 2400);
+    }
+    setCurrent(i);
+    setIsPlaying(false);
   }
 
-  const tabEnter      = reduced ? {} : { opacity: 0 };
-  const tabCenter     = { opacity: 1 };
-  const tabTransition = { duration: reduced ? 0 : 0.2, ease: 'easeOut' };
+  function goNext() {
+    if (current < TOTAL - 1) {
+      setCurrent((c) => c + 1);
+      setIsPlaying(false);
+    }
+  }
 
-  const emptyHint =
-    activeTab === 'phases'
-      ? '點擊中央任一階段方塊，查看說明。'
-      : activeTab === 'meetings'
-      ? '點擊左側括號標記的會議，查看說明。'
-      : '點擊右側交付物 badge，查看說明。';
+  function goPrev() {
+    if (current > 0) {
+      goTo(current - 1);
+    }
+  }
+
+  function togglePlay() {
+    if (current >= TOTAL - 1) {
+      setCurrent(0);
+      setIsPlaying(true);
+    } else {
+      setIsPlaying((p) => !p);
+    }
+  }
+
+  // Progress %
+  const progress = (current / (TOTAL - 1)) * 100;
 
   return (
-    <figure className="not-prose w-full overflow-hidden">
-      {/* Tab bar */}
-      <div className="flex border-b border-neutral-200 bg-neutral-50 px-4">
-        {TABS.map(({ id, label, Icon }) => {
-          const isActive = activeTab === id;
-          return (
-            <button
-              key={id}
-              onClick={() => handleTabChange(id)}
-              className={[
-                'flex items-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors',
-                'border-b-2',
-                isActive
-                  ? 'border-blue-700 text-blue-700'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-700',
-              ].join(' ')}
-              aria-selected={isActive}
-              role="tab"
-            >
-              <Icon size={14} />
-              {label}
-            </button>
-          );
-        })}
-      </div>
+    <figure className="not-prose w-full max-w-3xl mx-auto">
 
-      {/* Body: SVG column + detail card. Inline flex with wrap so the card
-          sits beside the diagram when there is room and drops below when not —
-          independent of Tailwind responsive variants. */}
-      <div className="p-3" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-start' }}>
-        {/* SVG waterfall — vertical 3-column layout. Capped width keeps the
-            tall vertical diagram at ~1x scale instead of filling the container. */}
-        <div
-          className="overflow-x-auto"
-          style={{ flex: '0 1 auto', width: '100%', maxWidth: 360, margin: '0 auto' }}
+      {/* ── HUD Control Bar ─────────────────────────────────────────────── */}
+      <div
+        className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2.5 mb-3"
+        style={{
+          background: 'var(--neutral-50, #f8fafc)',
+          border: '1px solid var(--neutral-200, #e2e8f0)',
+        }}
+      >
+        {/* Prev */}
+        <button
+          onClick={goPrev}
+          disabled={current === 0}
+          className="rounded p-1.5 transition-colors disabled:opacity-30"
+          style={{
+            background: current === 0 ? 'transparent' : 'var(--neutral-100)',
+            color: 'var(--neutral-600)',
+          }}
+          aria-label="上一階段"
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={tabEnter}
-              animate={tabCenter}
-              exit={{ opacity: 0 }}
-              transition={tabTransition}
-            >
-              <svg
-                viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-                width="100%"
-                aria-label="瀑布式開發生命週期圖"
-                style={{ fontFamily: 'inherit' }}
-              >
-                <defs>
-                  {/* Neutral arrowhead for vertical connectors */}
-                  <marker
-                    id="arrowhead"
-                    markerWidth="7" markerHeight="7"
-                    refX="3.5" refY="3.5"
-                    orient="auto"
-                  >
-                    <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--neutral-300)" />
-                  </marker>
-                  {/* Blue arrowhead for deliverable relay connectors */}
-                  <marker
-                    id="arrowBlue"
-                    markerWidth="6" markerHeight="6"
-                    refX="3" refY="3"
-                    orient="auto"
-                  >
-                    <path d="M0,0 L6,3 L0,6 Z" fill="var(--blue-200)" />
-                  </marker>
-                </defs>
+          <ChevronLeft size={16} />
+        </button>
 
-                {/* Vertical down-arrows between stages */}
-                <ArrowConnectors />
+        {/* Play / Pause */}
+        <button
+          onClick={togglePlay}
+          className="rounded-full px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          style={{
+            background: isPlaying ? 'var(--neutral-200)' : 'var(--orange-400, #ed9b26)',
+            color: isPlaying ? 'var(--neutral-700)' : '#ffffff',
+          }}
+          aria-label={isPlaying ? '暫停自動播放' : '自動播放'}
+        >
+          {isPlaying ? <Pause size={13} /> : <Play size={13} />}
+          {isPlaying ? '暫停' : '自動播放'}
+        </button>
 
-                {/* Left-wing: meeting brackets (meetings tab only) */}
-                {activeTab === 'meetings' && (
-                  <MeetingBrackets
-                    selectedMeetingId={selectedMeeting}
-                    onSelect={setSelectedMeeting}
-                  />
-                )}
+        {/* Next / Gate */}
+        <button
+          onClick={goNext}
+          disabled={current === TOTAL - 1}
+          className="rounded-full px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-30"
+          style={{
+            background: current < TOTAL - 1 ? 'var(--blue-700, #1b4f9c)' : 'var(--neutral-200)',
+            color: current < TOTAL - 1 ? '#ffffff' : 'var(--neutral-400)',
+          }}
+          aria-label="通過閘門，前往下一階段"
+        >
+          通過閘門
+          <ChevronRight size={13} />
+        </button>
 
-                {/* Right-wing: deliverable badges (deliverables tab only) */}
-                {activeTab === 'deliverables' && (
-                  <DeliverableBadges
-                    selectedId={selectedDeliverable}
-                    onSelect={setSelectedDeliverable}
-                  />
-                )}
-
-                {/* Centre column: stage boxes (always rendered) */}
-                <StageBoxes
-                  activeTab={activeTab}
-                  selectedStage={selectedStage}
-                  onSelect={(id) => {
-                    if (activeTab === 'phases') setSelectedStage(id);
-                  }}
-                />
-              </svg>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Detail panel */}
-        <div
-          className="p-4 flex flex-col justify-start gap-3"
-          style={{ flex: '1 1 240px', minWidth: 220 }}
+        {/* Step indicator */}
+        <span
+          className="ml-auto text-xs font-medium tabular-nums"
+          style={{ color: 'var(--neutral-500)' }}
           aria-live="polite"
+          aria-atomic="true"
         >
-          <AnimatePresence mode="wait">
-            {detailContent ? (
-              <DetailCard
-                key={
-                  detailContent.kind === 'stage'       ? `s${detailContent.stage.id}`
-                  : detailContent.kind === 'meeting'   ? `m${detailContent.meeting.id}`
-                  : `d${detailContent.deliverable.id}`
-                }
-                content={detailContent}
-                reduced={reduced}
-              />
-            ) : (
-              <motion.div
-                key="empty"
-                initial={reduced ? {} : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduced ? 0 : 0.2 }}
-                className="flex flex-col items-center justify-center gap-2 py-8 text-center"
-              >
-                <Info size={28} className="text-neutral-300" />
-                <p className="text-sm text-neutral-400">{emptyHint}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          第 {current + 1} / {TOTAL} 階段
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div
+        className="h-1.5 rounded-full mb-3 overflow-hidden"
+        style={{ background: 'var(--neutral-100, #f1f5f9)' }}
+        role="progressbar"
+        aria-valuenow={current + 1}
+        aria-valuemin={1}
+        aria-valuemax={TOTAL}
+        aria-label="流程進度"
+      >
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: 'linear-gradient(90deg, var(--blue-500, #2c6ebb), var(--orange-400, #ed9b26))' }}
+          initial={false}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: reduced ? 0 : 0.35, ease: 'easeOut' }}
+        />
+      </div>
+
+      {/* ── Backward hint ──────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showHint && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduced ? 0 : 0.22, ease: 'easeOut' }}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 mb-3 text-xs"
+            style={{
+              background: 'var(--warning-50, #fffbeb)',
+              border: '1px solid var(--warning-200, #fde68a)',
+              color: 'var(--warning-700, #92400e)',
+            }}
+            role="alert"
+          >
+            <TriangleAlert size={13} className="shrink-0" style={{ color: 'var(--warning-500, #f59e0b)' }} />
+            <span>回頭重做在瀑布模型中成本很高，每一閘門的決策都是不可逆的。</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Main Body: SVG + HUD Panel ─────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+
+        {/* Waterfall SVG column */}
+        <div style={{ flex: '0 0 auto', width: '100%', maxWidth: 200 }}>
+          <WaterfallSVG
+            current={current}
+            onSelect={goTo}
+            reduced={reduced}
+            gradId={gradId}
+          />
+        </div>
+
+        {/* HUD info panel */}
+        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+          <HudPanel current={current} reduced={reduced} />
         </div>
       </div>
+
+      {/* ── Deliverable Chain ──────────────────────────────────────────────── */}
+      <div
+        className="mt-4 rounded-lg px-3 py-2.5"
+        style={{
+          background: 'var(--neutral-50)',
+          border: '1px solid var(--neutral-200)',
+        }}
+      >
+        <div className="flex items-center gap-1.5 mb-2">
+          <ArrowRight size={12} style={{ color: 'var(--blue-500)' }} />
+          <span className="text-xs font-semibold" style={{ color: 'var(--neutral-600)' }}>
+            交付物接力鏈
+          </span>
+        </div>
+        <DeliverableChain current={current} reduced={reduced} />
+      </div>
+
     </figure>
   );
 }
