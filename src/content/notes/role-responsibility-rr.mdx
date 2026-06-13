@@ -4,6 +4,8 @@ description: ''
 tags:
   - AI 陪跑筆記
   - 專案管理
+series: 專案管理基礎
+order: 2
 createdAt: '2026-06-12'
 updatedAt: '2026-06-12'
 ---
@@ -57,9 +59,12 @@ prompt: |
 status: generated
 */}
 
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import WaterfallVsAgileRoles from '@/components/generated/waterfall-vs-agile-roles'
 
-<WaterfallVsAgileRoles client:visible />
+<GeneratedFrame id="waterfall-vs-agile-roles" type="motion">
+  <WaterfallVsAgileRoles client:visible />
+</GeneratedFrame>
 
 ### 常見的衍生角色(視專案需要)
 
@@ -111,7 +116,9 @@ status: generated
 
 import RaciMatrixInteractive from '@/components/generated/raci-matrix-interactive'
 
-<RaciMatrixInteractive client:visible />
+<GeneratedFrame id="raci-matrix-interactive" type="motion">
+  <RaciMatrixInteractive client:visible />
+</GeneratedFrame>
 
 | Task | PM | PO | Tech Lead | QA |
 | --- | --- | --- | --- | --- |

@@ -1,0 +1,47 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Props {
+  id: string;
+  type?: string;
+  caption?: string;
+}
+const { id, type = "free", caption } = Astro.props;
+
+const TYPE_LABELS: Record<string, string> = {
+  motion: "動畫",
+  chart: "圖表",
+  diagram: "示意圖",
+  timeline: "時間軸",
+  table: "表格",
+  free: "視覺化",
+};
+const label = TYPE_LABELS[type] ?? "視覺化";
+---
+<figure
+  style="margin:22px 0;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--neutral-200);background:#fff;box-shadow:var(--shadow-xs);"
+>
+  <div
+    style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--neutral-100);background:var(--neutral-50);"
+  >
+    <span
+      style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--blue-50);color:var(--blue-700);"
+    >
+      <Icon name="sparkle" size={13} /> {label}
+      <span style="text-transform:uppercase;letter-spacing:.05em;opacity:.75;">· {type}</span>
+    </span>
+    <code style="margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted);">
+      generated/{id}.tsx
+    </code>
+  </div>
+  <div style="padding:18px 16px;">
+    <slot />
+  </div>
+  {caption && (
+    <figcaption
+      style="padding:11px 16px 13px;border-top:1px solid var(--neutral-100);font-size:13px;color:var(--text-muted);line-height:1.6;"
+    >
+      {caption}
+    </figcaption>
+  )}
+</figure>

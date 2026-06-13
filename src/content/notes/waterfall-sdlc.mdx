@@ -4,6 +4,8 @@ description: ''
 tags:
   - AI 陪跑筆記
   - 專案管理
+series: 專案管理基礎
+order: 4
 createdAt: '2026-06-12'
 updatedAt: '2026-06-12'
 ---
@@ -33,9 +35,12 @@ prompt: |
 status: generated
 */}
 
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import WaterfallLifecycle from '@/components/generated/waterfall-lifecycle'
 
-<WaterfallLifecycle client:visible />
+<GeneratedFrame id="waterfall-lifecycle" type="motion">
+  <WaterfallLifecycle client:visible />
+</GeneratedFrame>
 
 ### 各階段說明
 
@@ -84,4 +89,6 @@ status: generated
 
 import WaterfallChangeCost from '@/components/generated/waterfall-change-cost'
 
-<WaterfallChangeCost client:visible />
+<GeneratedFrame id="waterfall-change-cost" type="motion">
+  <WaterfallChangeCost client:visible />
+</GeneratedFrame>

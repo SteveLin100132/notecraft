@@ -22,9 +22,12 @@ prompt: |
   以及可中斷的 yield 點。
 */}
 
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import FiberStates from '@/components/generated/fiber-states'
 
-<FiberStates client:visible />
+<GeneratedFrame id="fiber-states" type="diagram">
+  <FiberStates client:visible />
+</GeneratedFrame>
 
 ## 為什麼需要穩定的 key
 

@@ -127,7 +127,7 @@ async function handleCreateNote(cwd: string, req: IncomingMessage, res: ServerRe
   return json(res, 200, {
     slug,
     path: path.relative(cwd, abs),
-    vscode: `vscode://file${abs}`,
+    vscode: `vscode://file/${abs.replace(/\\/g, "/").replace(/^\/+/, "")}`,
   });
 }
 

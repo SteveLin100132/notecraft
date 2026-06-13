@@ -5,8 +5,9 @@ import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
 import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
+import SeriesNav from "@/components/SeriesNav.astro";
 import Icon from "@/components/Icon.astro";
-import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
+import { getAllNotes, parseMarkers, seriesNav, tagStats } from "@/lib/notes";
 import { fmtDate } from "@/lib/dates";
 
 export async function getStaticPaths() {
@@ -21,10 +22,12 @@ const genCount = markers.filter((m) => m.status === "generated").length;
 const pendingIds = markers.filter((m) => m.status !== "generated").map((m) => m.id);
 const isDev = import.meta.env.DEV;
 const noteAbsPath = `${process.cwd()}/src/content/notes/${note.id}`;
-const vscodeHref = `vscode://file${noteAbsPath}`;
+// vscode:// 需要正斜線路徑；Windows 的 process.cwd() 會帶反斜線，且磁碟機代號前要補一個斜線
+const vscodeHref = `vscode://file/${noteAbsPath.replace(/\\/g, "/").replace(/^\/+/, "")}`;
 
 const allNotes = await getAllNotes();
 const stats = tagStats(allNotes).map((t) => ({ name: t.name, count: t.count }));
+const nav = seriesNav(allNotes, note);
 
 const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text }));
 ---
@@ -100,6 +103,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         <span>建立於 {fmtDate(note.data.createdAt)}</span>
         <span style="font-family:var(--font-mono);">src/content/notes/{note.id}</span>
       </div>
+
+      {(nav.prev || nav.next) && <SeriesNav prev={nav.prev} next={nav.next} />}
     </article>
 
     {toc.length > 0 && <Toc client:visible items={toc} />}

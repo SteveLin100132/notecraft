@@ -30,9 +30,12 @@ prompt: |
 status: generated
 */}
 
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import HookCognitionContrast from '@/components/generated/hook-cognition-contrast'
 
-<HookCognitionContrast />
+<GeneratedFrame id="hook-cognition-contrast" type="diagram">
+  <HookCognitionContrast />
+</GeneratedFrame>
 
 ---
 
@@ -52,7 +55,9 @@ status: generated
 
 import HookLearningJourney from '@/components/generated/hook-learning-journey'
 
-<HookLearningJourney client:visible />
+<GeneratedFrame id="hook-learning-journey" type="timeline">
+  <HookLearningJourney client:visible />
+</GeneratedFrame>
 
 ---
 
@@ -71,7 +76,9 @@ status: generated
 
 import HookLifecycleEvents from '@/components/generated/hook-lifecycle-events'
 
-<HookLifecycleEvents client:visible />
+<GeneratedFrame id="hook-lifecycle-events" type="diagram">
+  <HookLifecycleEvents client:visible />
+</GeneratedFrame>
 
 | 事件 | 觸發時機 | 我的使用 |
 |---|---|---|
@@ -121,7 +128,9 @@ status: generated
 
 import BumpPrdArchitecture from '@/components/generated/bump-prd-architecture'
 
-<BumpPrdArchitecture client:visible />
+<GeneratedFrame id="bump-prd-architecture" type="diagram">
+  <BumpPrdArchitecture client:visible />
+</GeneratedFrame>
 
 ### 流程示意
 
@@ -166,7 +175,9 @@ status: generated
 
 import HookTakeawayQuote from '@/components/generated/hook-takeaway-quote'
 
-<HookTakeawayQuote client:visible />
+<GeneratedFrame id="hook-takeaway-quote" type="free">
+  <HookTakeawayQuote client:visible />
+</GeneratedFrame>
 
 ### 判斷該不該用 hook 的三個準則
 
@@ -191,7 +202,9 @@ status: generated
 
 import HookDecisionTree from '@/components/generated/hook-decision-tree'
 
-<HookDecisionTree client:visible />
+<GeneratedFrame id="hook-decision-tree" type="diagram">
+  <HookDecisionTree client:visible />
+</GeneratedFrame>
 
 ### 機制對照表
 
@@ -208,4 +221,6 @@ status: generated
 
 import MechanismComparisonTable from '@/components/generated/mechanism-comparison-table'
 
-<MechanismComparisonTable />
+<GeneratedFrame id="mechanism-comparison-table" type="table">
+  <MechanismComparisonTable />
+</GeneratedFrame>

@@ -4,6 +4,8 @@ description: ''
 tags:
   - 專案管理
   - AI 陪跑筆記
+series: 專案管理基礎
+order: 1
 createdAt: '2026-06-12'
 updatedAt: '2026-06-12'
 ---
@@ -39,9 +41,12 @@ prompt: |
   色票與字級請依 trendlink-design：專案用 blue-700、產品用 orange-500。
 */}
 
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import PmProjectVsProduct from '@/components/generated/pm-project-vs-product'
 
-<PmProjectVsProduct client:visible />
+<GeneratedFrame id="pm-project-vs-product" type="free">
+  <PmProjectVsProduct client:visible />
+</GeneratedFrame>
 
 ### 小結
 

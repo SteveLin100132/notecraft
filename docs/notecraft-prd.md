@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.1.0
+文件版本: v1.2.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-06-12
+更新日期: 2026-06-13
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -68,6 +68,9 @@ Project Name: NoteCraft
 6. 提供一組 [AI Subagent](#ai-subagent) 與 [Skill](#skill)，能掃描筆記中的 [AI 標記區塊](#ai-標記區塊)，依提示詞自由生成 [視覺化](#視覺化)（Table、Chart、Flow、Timeline 等 Diagram）與 [動態互動效果](#動態互動效果)（以 `motion`（Framer Motion） 為主）對應的元件並嵌入 MDX
 7. 提供標籤管理功能：在 [標籤索引與管理頁面](#標籤索引與管理頁面) 進行全站範圍的標籤新增 / 重新命名 / 刪除（dev-only，批次修改受影響 MDX）；在 [筆記檢視頁面](#筆記檢視頁面) 提供「編輯標籤」UI，讓作者直接在頁面上增刪某篇筆記的標籤，不需開啟 VS Code
 8. 以 Netlify 靜態部署整個網站，build 階段完成所有 AI 生成的視覺化與互動，發佈後不需任何 Server / Function
+9. \* 在 [筆記檢視頁面](#筆記檢視頁面) 底部提供「上一篇 / 下一篇」關聯筆記卡片導覽，依作者於 frontmatter 定義的 `series` / `order` 手動序列計算前後篇，方便讀者在同一系列筆記間連續閱讀
+10. \* 為每個嵌入筆記的 [Generated 元件](#generated-元件) 套上統一的外框卡片（顯示視覺化類型、來源檔名與選用說明文字），由 AI Pipeline 在寫回 MDX 時自動包裹，不影響元件本身的互動 / 動畫效果
+11. \* 在 [筆記列表頁面](#筆記列表頁面) 提供排序控制，可依建立時間 / 更新時間 / 標題切換，並支援升冪 / 降冪
 
 ### 4.2 非目標（Out of Scope）
 
@@ -184,6 +187,48 @@ flowchart TD
 | 依標籤過濾      | 用戶選擇一或多個標籤   | 套用過濾         | 只顯示含所有所選標籤的筆記                 |
 | 依關鍵字搜尋    | 用戶輸入關鍵字         | 觸發搜尋         | 顯示 title/description/tags/內文符合的筆記 |
 
+#### 筆記列表排序（\*）
+
+## 目標
+
+讓 [筆記用戶](#筆記用戶) 在 [筆記列表頁面](#筆記列表頁面) 自由切換排序依據與方向，快速找到最新建立、最近修改或依字序排列的筆記，補足原本僅「依更新時間倒序」的單一排序
+
+## 規格
+
+- 在列表頁的工具列（搜尋框 / 版型切換同列）新增「排序控制」，含兩個部分：
+  - **排序欄位**（下拉或分段按鈕）：`建立時間`（createdAt）、`更新時間`（updatedAt）、`標題`（title）
+  - **排序方向**（升冪 / 降冪切換鈕，icon 呈現）：時間欄位降冪＝新→舊，標題降冪＝Z→A / ㄗ→ㄅ
+- 預設值：**更新時間 + 降冪**（維持現行 §筆記列表頁面「預設依更新時間倒序」的行為不變）
+- 排序與既有的標籤過濾、關鍵字搜尋**疊加**：先過濾 / 搜尋，再對結果集排序
+- 排序為純前端互動（list / grid 兩種版型皆套用），不需後端 API；資料於 `astro build` 時已含 `createdAt`、`updatedAt`、`title`
+  - 字串日期（`YYYY-MM-DD`）採字典序比較即等同時間序；標題以 `localeCompare`（含中文）比較
+- 排序狀態以 client 端 state 保存；切換不重新載入頁面。是否同步到 URL query（如 `?sort=createdAt&dir=asc`）列為加分項，見待釐清
+- 視覺樣式遵循 [trendlink-design](#skills) 的分段按鈕 / 下拉與 pill 樣式，與既有版型切換鈕一致
+
+## 卡控機制
+
+- 標題排序需處理空標題與大小寫；採 `localeCompare` 並以穩定排序避免同鍵亂序
+- 排序選項為固定列舉（三欄位 × 兩方向），不接受任意欄位，避免暴露非預期 frontmatter
+
+## 驗收標準
+
+| Scenario               | Given                          | When                       | Then                                                  |
+| ---------------------- | ------------------------------ | -------------------------- | ----------------------------------------------------- |
+| 預設排序維持現狀       | 用戶進入筆記列表未調整排序     | 載入頁面                   | 依更新時間降冪排列，與舊版行為一致                    |
+| 依建立時間升冪排序     | 列表含多篇不同 createdAt 的筆記 | 選「建立時間」+「升冪」     | 筆記由最早建立到最新建立排列                          |
+| 依標題排序             | 列表含多篇不同標題的筆記       | 選「標題」+「降冪」         | 筆記依標題字序（含中文 localeCompare）反向排列        |
+| 排序與過濾疊加         | 用戶已選某標籤過濾             | 切換排序欄位 / 方向         | 僅對過濾後的結果重新排序，過濾條件不被清除            |
+
+## 待釐清
+
+### Q1. 排序狀態是否同步到 URL query？
+
+- [x] 不同步（v1）：純前端 state，重新整理後回到預設
+- [ ] 同步：寫入 `?sort=&dir=`，可分享 / 保留排序的連結
+- [ ] 其他
+
+> 建議：v1 先不同步，保持實作簡潔；若日後需要「可分享的排序連結」或與 `?tag=` 一致的行為，再補上 query 同步。
+
 #### 筆記檢視頁面
 
 ## 目標
@@ -232,6 +277,63 @@ flowchart TD
 - [ ] 其他（請說明）
 
 > 建議：完全隱藏，避免讀者點擊無效連結造成困惑
+
+#### 筆記關聯導覽（上一篇 / 下一篇）（\*）
+
+## 目標
+
+在 [筆記檢視頁面](#筆記檢視頁面) 底部提供「上一篇 / 下一篇」關聯筆記卡片連結，讓讀者能在同一系列（series）的筆記間連續閱讀，提升教學型筆記的閱讀動線
+
+## 規格
+
+- 關聯依據：**作者於 frontmatter 手動定義的系列序列**（非自動以時間 / 標籤推導），對教學型筆記提供最可控、最符合作者意圖的前後篇關係
+- 新增兩個選用 frontmatter 欄位（擴充 Content Collections schema）：
+  - `series`：字串，系列識別名稱（如 `oauth-101`）。未設定者不屬於任何系列、不顯示關聯導覽
+  - `order`：數字，於同一 `series` 內的排序位置（升冪）。同 series 內 `order` 應唯一
+- 計算規則（於 `astro build` 階段以 Content Collections 預計算，無執行時 API）：
+  - 取與當前筆記 `series` 相同的所有筆記，依 `order` 升冪排序
+  - **上一篇** = 序列中緊鄰前一筆；**下一篇** = 緊鄰後一筆；位於頭 / 尾則對應方向不顯示卡片
+  - 同 series 內 `order` 重複或缺漏時，以 `order`→`createdAt`→`title` 為次序穩定排序，並於 build log 提示作者（不中斷 build）
+- UI（如附件參考的卡片樣式，遵循 [trendlink-design](#skills) 設計系統）：
+  - 置於筆記內文底部（現有「建立 / 更新時間」footer 之上或之下，擇一固定）
+  - 兩張並排卡片：左卡標「上一篇」+ `«` 圖示與標題，右卡標「下一篇」+ 標題與 `»` 圖示；單側存在時佔半、另一側留白或撐滿
+  - 卡片點擊導向對應 `/notes/[slug]`；hover 套用 design system 的 card hover 樣式
+  - 卡片僅顯示標題（與方向標籤）；不顯示摘要 / 標籤，保持精簡
+- 與 dev / 正式環境無關，**正式環境同樣顯示**（屬讀者導覽功能，非編輯功能）
+
+## 卡控機制
+
+- `series` 未設定或系列中僅有自己一篇 → 不渲染導覽區塊（避免空卡片）
+- 連結目標 slug 於 build 階段解析；若序列資料異常導致找不到目標，該側卡片不顯示而非產出死連結
+
+## 驗收標準
+
+| Scenario                   | Given                                            | When             | Then                                                       |
+| -------------------------- | ------------------------------------------------ | ---------------- | ---------------------------------------------------------- |
+| 系列中段顯示前後兩卡       | 筆記屬 `series:oauth-101`，order 居中且前後都有篇 | 進入該筆記頁面   | 底部同時顯示「上一篇」與「下一篇」卡片，連到正確 slug      |
+| 系列首篇只顯示下一篇       | 該筆記為系列中 order 最小者                       | 進入該筆記頁面   | 只顯示「下一篇」卡片，「上一篇」不渲染                      |
+| 系列末篇只顯示上一篇       | 該筆記為系列中 order 最大者                       | 進入該筆記頁面   | 只顯示「上一篇」卡片，「下一篇」不渲染                      |
+| 無系列不顯示導覽           | 筆記未設定 `series`                               | 進入該筆記頁面   | 不顯示任何關聯導覽卡片                                      |
+| 點擊卡片可導向關聯筆記     | 底部顯示「下一篇」卡片                            | 點擊該卡片       | 導向對應 `/notes/[slug]`                                   |
+
+## 待釐清
+
+### Q1. 關聯依據採哪一種？
+
+- [x] frontmatter 手動序列（`series` + `order`）—— 作者完全掌控前後篇，最貼合教學型筆記
+- [ ] 依排序（updatedAt / createdAt）相鄰自動推導
+- [ ] 依共享標籤的相似度推導
+- [ ] 其他
+
+> 已收斂：採 frontmatter 手動序列。優點是語意明確（「上一篇/下一篇」即作者定義的閱讀順序），缺點是需作者維護 `series`/`order`；新增筆記範本可留空，不影響未分系列的筆記。
+
+### Q2. 未設 `series` 的筆記是否提供「全站相鄰」後援？
+
+- [x] 不提供：未分系列即不顯示導覽，避免誤導關聯性
+- [ ] 提供：回退為依預設排序的相鄰筆記
+- [ ] 其他
+
+> 建議：不提供後援。手動序列的價值在「明確的關聯」，自動相鄰反而可能連到不相關的筆記造成誤解。
 
 #### 新增筆記功能（按鈕）
 
@@ -369,6 +471,90 @@ flowchart TD
 - [ ] 完全自由
 
 > 建議：列舉為提示但保留 `free`，兼顧引導與創造力
+
+#### AI 生成內容外框卡片（\*）
+
+## 目標
+
+為每一個嵌入筆記的 [Generated 元件](#generated-元件) 套上**統一的外框卡片**（如附件參考的 `TokenBucket` 元件外框），讓所有 AI 生成內容在筆記中有一致的視覺容器與來源標示，同時**完全不影響元件本身的互動與動畫效果**
+
+## 設計與職責分離（關鍵衝突解法）
+
+> ⚠️ 既有 `content-visualize-skill` 明定「**生成的元件不要加入頁面層級的版型、標題或外層包裝**」。本功能與該條原則看似衝突，解法是**將外框與元件職責分離**：
+>
+> - **Generated 元件本體維持「無外框」**：仍是自包含、不含標題 / 卡片的純內容元件（此原則不變，避免重複包裝、保留可組合性）
+> - **外框由獨立的共用包裹元件提供**：新增一個專案內共用元件 `GeneratedFrame`（如 `src/components/GeneratedFrame.astro` 或對應 React 版），由 [mdx-writer](#subagents-定義) 在寫回 MDX 時，用它包住生成元件的 JSX
+> - 外框是**純展示容器**，將生成元件作為 `children` / slot 原樣渲染，不攔截事件、不包 `client:*`（互動 directive 仍掛在被包住的生成元件上），因此互動 / 動畫不受影響
+
+## 規格
+
+- 新增共用包裹元件 `GeneratedFrame`（非放在 `src/components/generated/`，屬系統元件、不被 AI 覆寫）。Props：
+  - `id`：對應標記 `id`（用於來源檔名顯示與 `data-*`）
+  - `type`：標記的 `type`（如 `motion` / `chart` / `diagram`），用於左上角類型標籤
+  - `caption`（選用）：說明文字，顯示於卡片底部；來源見「caption 來源」
+- 卡片內容（參考附件二與 `rate-limiting-token-bucket.mdx` 的 `TokenBucket` 外框）：
+  - **左上角**：視覺化類型標籤（如「動畫 · MOTION」「圖表 · SVG BAR」），由 `type` 推導
+  - **右上角**：來源檔名 `generated/<id>.tsx`，以 mono 字體淡色呈現，標示此區塊為 AI 生成
+  - **主體**：原樣渲染生成元件（slot / children），不加額外 padding 以致破壞元件自身佈局，僅提供一致的外框、圓角、邊框、背景
+  - **底部（選用）**：`caption` 說明文字（figcaption 語意）
+- 樣式遵循 [trendlink-design](#skills)：圓角 `--radius-lg`、邊框 / 陰影 token、type 標籤用 Badge 樣式，**不硬編碼色碼**
+- 寫回規則（取代原本「直接插入 `<Component client:visible />`」）：mdx-writer 在標記區塊下方插入
+  ```mdx
+  import <PascalCaseId> from '@/components/generated/<id>'
+
+  <GeneratedFrame id="<id>" type="<type>"{caption ? ' caption="..."' : ''}>
+    <<PascalCaseId>{clientDirective ? ' client:visible' : ''} />
+  </GeneratedFrame>
+  ```
+  - `GeneratedFrame` 的 import 由 MDX 佈局 / 全域提供，或由 mdx-writer 一併插入（見實作 Task）
+  - 與現行 [筆記檢視頁面](#筆記檢視頁面) 上方 dev-only 的「@ai-visualize 標記資訊卡」（顯示 prompt / status）為**不同元件**：後者是編輯用 metadata 卡，本卡是讀者可見的內容外框，兩者並存
+- caption 來源：
+  - 主要由 AI 在生成時，於標記新增選用欄位 `caption:`（一行說明），mdx-writer 寫回時帶入 `GeneratedFrame`
+  - 無 caption 時，卡片底部不渲染，僅保留 header + 內容
+
+## 對 Skill 與 Subagent 的調整（需同步更新，詳見實作 Task）
+
+- **`content-visualize-skill`（SKILL.md）**：
+  - 「3. 生成元件」維持「元件本體不加外層包裝」原則，並新增說明：外框由系統 `GeneratedFrame` 統一提供，元件只需專注內容
+  - 「5. 寫回 MDX」的範本由 `<Component client:visible />` 改為以 `<GeneratedFrame>` 包裹的版本；新增選用 `caption` 欄位說明
+- **`mdx-writer`（Subagent）**：寫回流程改為插入 `GeneratedFrame` 包裹版 JSX、處理 `caption` 與 `GeneratedFrame` import；`failed` 時一樣不插入
+- **`component-generator`（Subagent）**：守則重申「元件本體不要加頁面層級標題或外層 layout」（與外框職責分離一致），無需自行畫卡片
+- **`note-scanner` / `visualize-planner`**：規劃 / 掃描不變，planner 可選擇性建議 caption 文案
+
+## 卡控機制
+
+- 外框為純展示容器，**不得包裹 `client:*` directive**（directive 留在生成元件上），確保 hydration 與互動行為不被外框改變
+- `GeneratedFrame` 不可 import 任何 `generated/` 元件，避免耦合
+- 對 `status: failed` 的標記不插入外框與元件（與既有規則一致）
+
+## 驗收標準
+
+| Scenario                       | Given                                       | When                       | Then                                                                 |
+| ------------------------------ | ------------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| 生成內容套上統一外框           | 某標記已 `generated`，元件已存在            | 進入筆記頁面               | 元件以 `GeneratedFrame` 外框呈現，左上顯示類型、右上顯示 `generated/<id>.tsx` |
+| 互動效果不受外框影響           | `TokenBucket`（motion 互動元件）被外框包住   | 在頁面操作該元件           | 點擊 / 拖曳 / 動畫照常運作，與未加外框時行為一致                     |
+| 有 caption 時顯示說明          | 標記含 `caption:` 欄位                       | 進入筆記頁面               | 外框底部顯示該說明文字                                               |
+| 無 caption 時不渲染底部        | 標記未設 `caption`                           | 進入筆記頁面               | 外框只有 header + 內容，無底部說明區                                 |
+| 樣式遵循設計系統               | 未指定特殊風格                               | 進入筆記頁面               | 外框圓角 / 邊框 / 標籤色採 trendlink-design token，無硬編碼衝突色   |
+
+## 待釐清
+
+### Q1. caption 的來源？
+
+- [x] AI 生成時於標記新增選用 `caption:` 欄位，mdx-writer 帶入外框
+- [ ] 由 `prompt` 首行自動截取
+- [ ] 不提供 caption，外框僅 header + 內容
+- [ ] 其他
+
+> 建議：採選用 `caption:` 欄位，作者 / AI 可明確控制；省略時外框自動隱藏底部，零負擔。
+
+### Q2. `GeneratedFrame` 的 import 如何提供給 MDX？
+
+- [x] 由 mdx-writer 在筆記頂部一併插入 `import GeneratedFrame ...`（與生成元件 import 並列）
+- [ ] 透過 MDX `components` provider / 全域注入，免去逐檔 import
+- [ ] 其他
+
+> 建議：v1 由 mdx-writer 顯式插入，行為直觀可追蹤；若日後外框使用普及，再評估改為全域 provider 減少重複 import。
 
 #### AI Subagent 與 Skill 設計
 
@@ -1096,6 +1282,17 @@ model: haiku
 
 **理由：** 主路徑穩了之後再廣化能力。
 
+#### Phase 4.5 — 閱讀動線與生成內容外框（v1.2.0 追加）
+
+**目標：補強讀者閱讀體驗與生成內容的一致性**
+
+- 筆記列表排序控制（建立 / 更新時間 / 標題 × 升降冪，純前端；列表卡片資料補上 `createdAt`）
+- Content Collections schema 擴充 `series`、`order`；筆記檢視頁底部「上一篇 / 下一篇」關聯導覽（build 階段預計算）
+- 新增共用 `GeneratedFrame` 外框元件，並同步調整 `content-visualize-skill`、`mdx-writer`、`component-generator` 的寫回 / 守則；既有已生成筆記回填外框
+- 詳見 `docs/tasks/` 下三份實作 Task
+
+**理由：** 屬增量體驗優化，依賴 Phase 1～4 的列表 / 檢視頁與 AI Pipeline 已就緒。
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -1245,6 +1442,14 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.2.0] - 2026-06-13
+
+- **Added (筆記關聯導覽)**: §7.1 新增「筆記關聯導覽（上一篇 / 下一篇）」spec；依 frontmatter 手動序列（新增 `series` / `order` 選用欄位）於 build 階段預計算前後篇，於筆記檢視頁底部以 trendlink-design 卡片呈現，正式環境同樣顯示
+- **Added (AI 生成內容外框卡片)**: §7.1 新增「AI 生成內容外框卡片」spec；以獨立共用元件 `GeneratedFrame` 包裹生成元件（顯示類型標籤、`generated/<id>.tsx` 來源、選用 caption），與既有「元件本體不加外層包裝」原則以**職責分離**解衝突；同步要求調整 `content-visualize-skill` 寫回範本與 `mdx-writer` / `component-generator` 守則；新增選用 `caption` 標記欄位
+- **Added (筆記列表排序)**: §7.1 新增「筆記列表排序」spec；列表頁可依建立 / 更新時間 / 標題切換並支援升降冪，與過濾 / 搜尋疊加，預設維持更新時間倒序
+- **Updated**: §4.1 核心目標新增第 9～11 項；§8.1 新增 Phase 4.5；對應實作 Task 置於 `docs/tasks/`
+- **Decided**: 關聯導覽採手動 `series`/`order`（不自動以時間 / 標籤推導）；外框由系統 `GeneratedFrame` 提供而非寫進生成元件；排序預設不變且 v1 不同步 URL query
 
 ### [1.1.0] - 2026-06-12
 

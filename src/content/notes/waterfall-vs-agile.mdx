@@ -4,6 +4,8 @@ description: ''
 tags:
   - AI 陪跑筆記
   - 專案管理
+series: 專案管理基礎
+order: 3
 createdAt: '2026-06-12'
 updatedAt: '2026-06-12'
 ---
@@ -31,9 +33,12 @@ prompt: |
 status: generated
 */}
 
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import WaterfallAgileComparison from '@/components/generated/waterfall-agile-comparison'
 
-<WaterfallAgileComparison />
+<GeneratedFrame id="waterfall-agile-comparison" type="table">
+  <WaterfallAgileComparison />
+</GeneratedFrame>
 
 ## Waterfall(瀑布式)
 
@@ -74,7 +79,9 @@ status: generated
 
 import WaterfallAgileChangeResponse from '@/components/generated/waterfall-agile-change-response'
 
-<WaterfallAgileChangeResponse client:visible />
+<GeneratedFrame id="waterfall-agile-change-response" type="motion">
+  <WaterfallAgileChangeResponse client:visible />
+</GeneratedFrame>
 
 ## 我的觀察
 
@@ -103,4 +110,6 @@ status: generated
 
 import WaterfallAgileHybrid from '@/components/generated/waterfall-agile-hybrid'
 
-<WaterfallAgileHybrid client:visible />
+<GeneratedFrame id="waterfall-agile-hybrid" type="diagram">
+  <WaterfallAgileHybrid client:visible />
+</GeneratedFrame>

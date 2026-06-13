@@ -8,6 +8,8 @@ import {
   Sparkles,
   ChevronRight,
   FileText,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 export type NoteCardData = {
@@ -16,10 +18,20 @@ export type NoteCardData = {
   description: string;
   tags: string[];
   updatedAt: string;
+  createdAt: string;
   excerpt: string;
   markersTotal: number;
   markersGenerated: number;
 };
+
+type SortField = "updatedAt" | "createdAt" | "title";
+type SortDir = "asc" | "desc";
+
+const SORT_FIELDS: { key: SortField; label: string }[] = [
+  { key: "updatedAt", label: "更新時間" },
+  { key: "createdAt", label: "建立時間" },
+  { key: "title", label: "標題" },
+];
 
 type Props = {
   notes: NoteCardData[];
@@ -42,6 +54,8 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
   const [q, setQ] = useState("");
   const [active, setActive] = useState<string[]>(initialTag ? [initialTag] : []);
   const [layout, setLayout] = useState<"grid" | "list">(defaultLayout);
+  const [sortField, setSortField] = useState<SortField>("updatedAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
     const u = new URL(window.location.href);
@@ -62,8 +76,14 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
           (n.title + n.description + n.tags.join(" ") + n.excerpt).toLowerCase().includes(ql)
         );
       })
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [q, active, notes]);
+      .sort((a, b) => {
+        const cmp =
+          sortField === "title"
+            ? a.title.localeCompare(b.title)
+            : a[sortField].localeCompare(b[sortField]);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+  }, [q, active, notes, sortField, sortDir]);
 
   return (
     <div>
@@ -107,6 +127,52 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
               <X size={16} />
             </button>
           )}
+        </div>
+        <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--neutral-100)", borderRadius: 999 }}>
+          {SORT_FIELDS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setSortField(f.key)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                height: 36,
+                padding: "0 14px",
+                border: "none",
+                borderRadius: 999,
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+                fontSize: 13,
+                fontWeight: 700,
+                background: sortField === f.key ? "#fff" : "transparent",
+                color: sortField === f.key ? "var(--blue-700)" : "var(--text-muted)",
+                boxShadow: sortField === f.key ? "var(--shadow-xs)" : "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            title={sortDir === "asc" ? "升冪" : "降冪"}
+            aria-label={sortDir === "asc" ? "升冪排序" : "降冪排序"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              border: "none",
+              borderRadius: 999,
+              cursor: "pointer",
+              background: "#fff",
+              color: "var(--blue-700)",
+              boxShadow: "var(--shadow-xs)",
+            }}
+          >
+            {sortDir === "asc" ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+          </button>
         </div>
         <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--neutral-100)", borderRadius: 999 }}>
           {(["grid", "list"] as const).map((k) => (

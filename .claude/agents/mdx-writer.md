@@ -14,6 +14,8 @@ model: haiku
 - `file`：MDX 檔路徑
 - `id`：標記區塊的 id
 - `pascalCaseId`：對應的元件名稱
+- `type`：標記的 `type`（如 `motion` / `chart` / `diagram`），帶入外框
+- `caption`：選用，外框底部說明；省略則不帶
 - `clientDirective`：`client:visible` 或省略
 - `newStatus`：`generated` 或 `failed`
 
@@ -30,14 +32,19 @@ model: haiku
    若 `newStatus` 為 `failed`：**保留 fence**（fence 是作者寫的，不要動），只更新 status。
 4. 用 Edit 完成兩件事：
    - 將標記區塊中的 `status: pending` 改為 `status: <newStatus>`
-   - 在上一步判斷出的「插入點」插入兩行（若已存在則更新）：
+   - 在上一步判斷出的「插入點」插入以下內容（若已存在則更新）。生成元件一律以系統共用元件 `GeneratedFrame` 包住：
 
      ```mdx
+     import GeneratedFrame from '@/components/GeneratedFrame.astro'
      import <PascalCaseId> from '@/components/generated/<id>'
 
-     <<PascalCaseId>{clientDirective ? ' client:visible' : ''} />
+     <GeneratedFrame id="<id>" type="<type>"{caption ? ' caption="<caption>"' : ''}>
+       <<PascalCaseId>{clientDirective ? ' client:visible' : ''} />
+     </GeneratedFrame>
      ```
 
+     - `GeneratedFrame` 為純展示外框，`client:visible` 仍掛在被包住的生成元件上、**不要**掛在 `GeneratedFrame` 上。
+     - `GeneratedFrame` 的 import 每個檔案只需一次；若該檔已 import 過則不要重複插入。
 5. 若標記區塊上下方已有同名的 import，請 in-place 更新而非重複插入
 6. 若 `newStatus` 為 `failed`，則只更新 status，不插入 import / JSX
 
@@ -62,9 +69,12 @@ id: foo
 status: generated
 */}
 
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import Foo from '@/components/generated/foo'
 
-<Foo />
+<GeneratedFrame id="foo" type="diagram">
+  <Foo />
+</GeneratedFrame>
 ```
 
 MDX 註解 `{/* ... */}` 不會渲染，讀者看不到 prompt；note-scanner 仍能用 regex 掃到。

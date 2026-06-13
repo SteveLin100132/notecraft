@@ -7,6 +7,7 @@ export type AiMarker = {
   type: string;
   status: "pending" | "generated" | "locked" | "failed";
   prompt: string;
+  caption?: string;
 };
 
 const MARKER_RE = /\{\/\*\s*@ai-visualize\s+([\s\S]*?)\*\/\}/g;
@@ -48,6 +49,7 @@ export function parseMarkers(body: string): AiMarker[] {
         type: obj.type || "free",
         status: (obj.status as AiMarker["status"]) || "pending",
         prompt: obj.prompt || "",
+        ...(obj.caption ? { caption: obj.caption } : {}),
       });
     }
   }
@@ -57,6 +59,26 @@ export function parseMarkers(body: string): AiMarker[] {
 export async function getAllNotes(): Promise<Note[]> {
   const notes = await getCollection("notes");
   return notes.sort((a, b) => b.data.updatedAt.localeCompare(a.data.updatedAt));
+}
+
+export type SeriesLink = { slug: string; title: string };
+export type SeriesNav = { prev: SeriesLink | null; next: SeriesLink | null };
+
+export function seriesNav(notes: Note[], current: Note): SeriesNav {
+  const series = current.data.series;
+  if (!series) return { prev: null, next: null };
+  const group = notes
+    .filter((n) => n.data.series === series)
+    .sort(
+      (a, b) =>
+        (a.data.order ?? 0) - (b.data.order ?? 0) ||
+        a.data.createdAt.localeCompare(b.data.createdAt) ||
+        a.data.title.localeCompare(b.data.title),
+    );
+  if (group.length < 2) return { prev: null, next: null };
+  const i = group.findIndex((n) => n.slug === current.slug);
+  const toLink = (n?: Note): SeriesLink | null => (n ? { slug: n.slug, title: n.data.title } : null);
+  return { prev: toLink(group[i - 1]), next: toLink(group[i + 1]) };
 }
 
 export type TagStat = { name: string; count: number; lastUsed: string };

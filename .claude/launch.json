@@ -3,15 +3,17 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeExecutable": "node",
       "runtimeArgs": ["node_modules/astro/astro.js", "dev"],
-      "port": 4321
+      "port": 4321,
+      "autoPort": true
     },
     {
       "name": "preview",
-      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeExecutable": "node",
       "runtimeArgs": ["node_modules/astro/astro.js", "preview"],
-      "port": 4321
+      "port": 4321,
+      "autoPort": true
     }
   ]
 }

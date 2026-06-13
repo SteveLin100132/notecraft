@@ -6,6 +6,7 @@ category: security
 createdAt: '2026-06-02'
 updatedAt: '2026-06-12'
 ---
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import OAuthPkceFlow from "@/components/generated/oauth-pkce-flow";
 
 OAuth 2.0 的 Authorization Code Flow 是目前最主流的授權方式。但在沒有後端、無法安全保存 client_secret 的環境（SPA、行動 App）中，授權碼一旦被攔截就可能被惡意換取 token。PKCE（Proof Key for Code Exchange）就是為此設計的延伸。
@@ -22,7 +23,9 @@ prompt: |
   用一張時序圖說明 OAuth 2.0 Authorization Code Flow，強調 PKCE 步驟，
   以及 client、auth server、resource server 三者之間的訊息順序。
 */}
-<OAuthPkceFlow client:visible />
+<GeneratedFrame id="oauth-pkce-flow" type="diagram">
+  <OAuthPkceFlow client:visible />
+</GeneratedFrame>
 
 ## PKCE 的關鍵
 

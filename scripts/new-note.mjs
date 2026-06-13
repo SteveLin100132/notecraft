@@ -71,4 +71,4 @@ try {
 } catch {}
 await fs.writeFile(abs, body, "utf8");
 console.log(`created: ${path.relative(process.cwd(), abs)}`);
-console.log(`vscode://file${abs}`);
+console.log(`vscode://file/${abs.replace(/\\/g, "/").replace(/^\/+/, "")}`);

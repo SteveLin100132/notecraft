@@ -29,7 +29,7 @@ model: sonnet
 - 樣式採 Tailwind utility class；色彩、間距、圓角等優先使用 `trendlink-design` 提供的 token 或 class
 - SVG 設定 `viewBox` 與 `width="100%"`
 - motion 元件套用 `useReducedMotion()`，預設動畫 200–400ms ease-out
-- 元件本體不要加頁面層級的標題或外層 layout
+- 元件本體不要加頁面層級的標題或外層 layout / 卡片 / 邊框 —— 統一外框由系統元件 `GeneratedFrame` 在寫回時提供（mdx-writer 負責），你只需專注元件內容，避免重複包裝
 
 ## 輸出格式
 

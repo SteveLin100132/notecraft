@@ -6,6 +6,7 @@ category: network
 createdAt: '2026-05-20'
 updatedAt: '2026-06-12'
 ---
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import HttpLatency from "@/components/generated/http-latency";
 
 每一代 HTTP 協定都在解決上一代的瓶頸。理解它們的差異，能幫你判斷該不該升級基礎設施。
@@ -22,7 +23,9 @@ prompt: |
   用長條圖比較 HTTP/1.1、HTTP/2、HTTP/3 的相對頁面載入時間，
   並標註各自的關鍵技術。
 */}
-<HttpLatency client:visible />
+<GeneratedFrame id="http-latency" type="chart">
+  <HttpLatency client:visible />
+</GeneratedFrame>
 
 ## 各代解決的問題
 

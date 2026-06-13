@@ -31,9 +31,12 @@ id: <kebab-case-id>
 type: diagram | chart | timeline | table | motion | free
 prompt: |
   <自然語言描述>
+caption: <選用，一行說明，顯示於外框卡片底部>
 status: pending | generated | locked | failed
 */}
 ```
+
+`caption` 為選用欄位：若填寫，寫回時會帶入外框卡片（`GeneratedFrame`）底部作為說明文字；省略則外框不顯示底部說明。
 
 `status: locked` 的區塊一律跳過；`status: generated` 的區塊僅在作者明確要求時才重新生成；`status: failed` 的區塊預設不重跑，除非作者調整 prompt 後明確要求重試。
 
@@ -104,12 +107,19 @@ npx astro build
 對每個處理完且驗證通過的標記區塊，將其 `status: pending` 改為 `status: generated`，並確保該區塊正下方緊接著：
 
 ```mdx
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import <PascalCaseId> from '@/components/generated/<id>'
 
-<<PascalCaseId> client:visible />
+<GeneratedFrame id="<id>" type="<type>" caption="<選用說明，可省略整個屬性>">
+  <<PascalCaseId> client:visible />
+</GeneratedFrame>
 ```
 
-只有當元件含有 motion 或互動狀態時才加 `client:visible`；純靜態 SVG 請省略此 directive。已存在的 import 不要重複，原地更新即可。
+**統一外框（GeneratedFrame）**：每個 generated 元件一律以系統共用元件 `GeneratedFrame` 包住，它提供一致的外框卡片（左上角顯示視覺化類型、右上角顯示 `generated/<id>.tsx` 來源、底部選用 caption 說明）。`GeneratedFrame` 是純展示容器，`client:*` directive 仍掛在被包住的生成元件上、不掛在外框上，因此互動 / 動畫不受影響。
+
+- 只有當元件含有 motion 或互動狀態時才在「被包住的元件」上加 `client:visible`；純靜態 SVG 請省略此 directive（但外框照常包）。
+- `GeneratedFrame` 的 import 每個檔案只需一次；若已存在不要重複。`type` 帶入標記的 `type` 值；`caption` 為選用，無說明時整個屬性省略。
+- 已存在的元件 import 不要重複，原地更新即可。
 
 **重要：拆掉包住標記的 code fence。** 有些作者會把 `{/* @ai-visualize ... */}` 標記寫在 ```` ```mdx ```` ／ ```` ``` ```` 圍欄裡（當成草稿時的可見範例）。MDX 註解 `{/* ... */}` 本身渲染後是隱形的，但一旦被圍欄包住，整段 prompt 與 `status` 就會被當成「程式碼區塊」**原樣顯示給讀者**（包含 `status: generated` 這種雜訊）。因此 generated 寫回時，**必須一併刪除標記上下兩行的圍欄**，讓標記回到純註解狀態，再把 import／JSX 緊接在 `*/}` 之後。委派 mdx-writer 時，請明確要求它「拆掉圍欄」，不要叫它「插在收尾 ``` 之後」——後者會把圍欄留下、導致 prompt 外露。
 
@@ -119,7 +129,7 @@ import <PascalCaseId> from '@/components/generated/<id>'
 
 - 元件統一放在 `src/components/generated/`；`tsconfig.json` 已設定 import 別名 `@/components/generated/<id>`
 - `src/content/notes/` 下的 MDX 由 Astro 渲染。在 MDX 中嵌入的 React 元件，只有具備互動或動畫時才需要 `client:*` directive；純靜態 SVG 不加更快
-- 生成的元件不要加入頁面層級的版型、標題或外層包裝 —— 元件是嵌入於筆記之中，會繼承筆記本身的排版樣式
+- 生成的元件不要加入頁面層級的版型、標題或外層包裝 —— 元件是嵌入於筆記之中，會繼承筆記本身的排版樣式。統一的外框卡片由系統元件 `GeneratedFrame` 在寫回時（第 5 步）提供，元件本體只需專注內容，**不要自行畫卡片 / 標題 / 邊框**，以免與外框重複包裝
 - 生成元件不得 import 另一個生成元件（避免相互耦合）
 
 ## 預設樣式 —— 依循 trendlink-design

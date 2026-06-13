@@ -6,6 +6,7 @@ category: backend
 createdAt: '2026-05-28'
 updatedAt: '2026-06-12'
 ---
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import TokenBucket from "@/components/generated/token-bucket";
 
 限流（Rate Limiting）保護後端不被突發流量打垮。Token Bucket 是最常見的演算法之一，因為它同時能控制「平均速率」又允許一定程度的「突發」。
@@ -22,7 +23,9 @@ prompt: |
   以可互動的動畫呈現 token bucket 限流演算法：桶子定速補充 token、
   按鈕送出請求消耗 token、桶空時請求被拒。
 */}
-<TokenBucket client:visible />
+<GeneratedFrame id="token-bucket" type="motion">
+  <TokenBucket client:visible />
+</GeneratedFrame>
 
 ## 兩個關鍵參數
 
