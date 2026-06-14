@@ -10,7 +10,9 @@ import {
   FileText,
   ArrowUp,
   ArrowDown,
+  Star,
 } from "lucide-react";
+import { getFavorites, toggleFavorite, FAVORITES_EVENT } from "@/lib/favorites";
 
 export type NoteCardData = {
   slug: string;
@@ -19,18 +21,21 @@ export type NoteCardData = {
   tags: string[];
   updatedAt: string;
   createdAt: string;
+  series: string | null;
+  order: number | null;
   excerpt: string;
   markersTotal: number;
   markersGenerated: number;
 };
 
-type SortField = "updatedAt" | "createdAt" | "title";
+type SortField = "updatedAt" | "createdAt" | "title" | "series";
 type SortDir = "asc" | "desc";
 
 const SORT_FIELDS: { key: SortField; label: string }[] = [
   { key: "updatedAt", label: "更新時間" },
   { key: "createdAt", label: "建立時間" },
   { key: "title", label: "標題" },
+  { key: "series", label: "系列" },
 ];
 
 type Props = {
@@ -50,12 +55,44 @@ function daysAgo(s: string, today = "2026-06-12") {
   return `${Math.floor(d / 30)} 個月前`;
 }
 
+function compareField(a: NoteCardData, b: NoteCardData, field: "updatedAt" | "createdAt" | "title") {
+  return field === "title" ? a.title.localeCompare(b.title) : a[field].localeCompare(b[field]);
+}
+
+// 系列排序：有系列者依系列名分組、組內依 order（無 order 排後），無系列者整體置底。
+function compareSeries(a: NoteCardData, b: NoteCardData) {
+  if (a.series !== b.series) {
+    if (!a.series) return 1;
+    if (!b.series) return -1;
+    return a.series.localeCompare(b.series);
+  }
+  if (!a.series) return compareField(a, b, "createdAt") || a.title.localeCompare(b.title);
+  const oa = a.order ?? Number.POSITIVE_INFINITY;
+  const ob = b.order ?? Number.POSITIVE_INFINITY;
+  return oa - ob || compareField(a, b, "createdAt") || a.title.localeCompare(b.title);
+}
+
 export default function NotesList({ notes, tagStats, defaultLayout = "grid", initialTag = null }: Props) {
   const [q, setQ] = useState("");
   const [active, setActive] = useState<string[]>(initialTag ? [initialTag] : []);
   const [layout, setLayout] = useState<"grid" | "list">(defaultLayout);
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [favs, setFavs] = useState<string[]>([]);
+  const [onlyFav, setOnlyFav] = useState(false);
+
+  // 收藏狀態：SSR 視為空，hydration 後讀 localStorage；切換時透過事件即時同步
+  useEffect(() => {
+    const sync = () => setFavs(getFavorites());
+    sync();
+    window.addEventListener(FAVORITES_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(FAVORITES_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  const favSet = useMemo(() => new Set(favs), [favs]);
 
   useEffect(() => {
     const u = new URL(window.location.href);
@@ -70,6 +107,7 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
     const ql = q.trim().toLowerCase();
     return notes
       .filter((n) => {
+        if (onlyFav && !favSet.has(n.slug)) return false;
         if (active.length && !active.every((t) => n.tags.includes(t))) return false;
         if (!ql) return true;
         return (
@@ -77,13 +115,10 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
         );
       })
       .sort((a, b) => {
-        const cmp =
-          sortField === "title"
-            ? a.title.localeCompare(b.title)
-            : a[sortField].localeCompare(b[sortField]);
+        const cmp = sortField === "series" ? compareSeries(a, b) : compareField(a, b, sortField);
         return sortDir === "asc" ? cmp : -cmp;
       });
-  }, [q, active, notes, sortField, sortDir]);
+  }, [q, active, notes, sortField, sortDir, onlyFav, favSet]);
 
   return (
     <div>
@@ -132,7 +167,10 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
           {SORT_FIELDS.map((f) => (
             <button
               key={f.key}
-              onClick={() => setSortField(f.key)}
+              onClick={() => {
+                setSortField(f.key);
+                setSortDir(f.key === "series" || f.key === "title" ? "asc" : "desc");
+              }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -201,6 +239,29 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setOnlyFav((v) => !v)}
+          aria-pressed={onlyFav}
+          title="只看收藏"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            height: 46,
+            padding: "0 16px",
+            border: `1.5px solid ${onlyFav ? "var(--orange-400)" : "var(--neutral-200)"}`,
+            borderRadius: 999,
+            cursor: "pointer",
+            background: onlyFav ? "var(--orange-50)" : "#fff",
+            color: onlyFav ? "var(--orange-600)" : "var(--text-muted)",
+            fontFamily: "var(--font-sans)",
+            fontSize: 13,
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Star size={16} fill={onlyFav ? "currentColor" : "none"} /> 只看收藏
+        </button>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22, alignItems: "center" }}>
@@ -252,20 +313,22 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "70px 0", color: "var(--text-muted)" }}>
           <div style={{ display: "inline-flex", color: "var(--neutral-300)", marginBottom: 12 }}>
-            <Search size={40} />
+            {onlyFav ? <Star size={40} /> : <Search size={40} />}
           </div>
-          <p style={{ margin: 0, fontSize: 15 }}>找不到符合的筆記</p>
+          <p style={{ margin: 0, fontSize: 15 }}>
+            {onlyFav ? "尚無收藏，點卡片上的星號加入" : "找不到符合的筆記"}
+          </p>
         </div>
       ) : layout === "grid" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
           {filtered.map((n) => (
-            <NoteCardGrid key={n.slug} note={n} />
+            <NoteCardGrid key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} />
           ))}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {filtered.map((n) => (
-            <NoteCardList key={n.slug} note={n} />
+            <NoteCardList key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} />
           ))}
         </div>
       )}
@@ -320,7 +383,37 @@ function TagRow({ tags }: { tags: string[] }) {
   );
 }
 
-function NoteCardGrid({ note }: { note: NoteCardData }) {
+function FavStar({ fav, onToggle }: { fav: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle();
+      }}
+      aria-pressed={fav}
+      aria-label={fav ? "取消收藏" : "收藏"}
+      title={fav ? "取消收藏" : "收藏"}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 30,
+        height: 30,
+        border: "none",
+        borderRadius: 999,
+        cursor: "pointer",
+        background: "transparent",
+        color: fav ? "var(--orange-500)" : "var(--neutral-300)",
+        flex: "none",
+      }}
+    >
+      <Star size={18} fill={fav ? "currentColor" : "none"} />
+    </button>
+  );
+}
+
+function NoteCardGrid({ note, fav, onToggleFav }: { note: NoteCardData; fav: boolean; onToggleFav: () => void }) {
   const allGen = note.markersTotal > 0 && note.markersGenerated === note.markersTotal;
   return (
     <a
@@ -357,11 +450,12 @@ function NoteCardGrid({ note }: { note: NoteCardData }) {
         >
           <FileText size={20} />
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "var(--text-muted)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-muted)" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Clock size={14} /> {daysAgo(note.updatedAt)}
           </span>
           <MarkerBadge n={note} />
+          <FavStar fav={fav} onToggle={onToggleFav} />
         </div>
       </div>
       <div>
@@ -390,7 +484,7 @@ function NoteCardGrid({ note }: { note: NoteCardData }) {
   );
 }
 
-function NoteCardList({ note }: { note: NoteCardData }) {
+function NoteCardList({ note, fav, onToggleFav }: { note: NoteCardData; fav: boolean; onToggleFav: () => void }) {
   return (
     <a
       href={`/notes/${note.slug}`}
@@ -448,6 +542,7 @@ function NoteCardList({ note }: { note: NoteCardData }) {
           <Clock size={14} /> {daysAgo(note.updatedAt)}
         </span>
         <MarkerBadge n={note} />
+        <FavStar fav={fav} onToggle={onToggleFav} />
         <span style={{ color: "var(--neutral-300)", display: "flex" }}>
           <ChevronRight size={18} />
         </span>

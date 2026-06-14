@@ -19,6 +19,8 @@ const cards = notes.map((n) => {
     tags: n.data.tags,
     updatedAt: n.data.updatedAt,
     createdAt: n.data.createdAt,
+    series: n.data.series ?? null,
+    order: n.data.order ?? null,
     excerpt: excerpt(n.body, n.data.description),
     markersTotal: ms.length,
     markersGenerated: ms.filter((m) => m.status === "generated").length,

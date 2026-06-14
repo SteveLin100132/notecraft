@@ -5,6 +5,7 @@ import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
 import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
 import DeleteNoteButton from "@/components/islands/DeleteNoteButton.tsx";
+import FavoriteButton from "@/components/islands/FavoriteButton.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
 import SeriesNav from "@/components/SeriesNav.astro";
 import Icon from "@/components/Icon.astro";
@@ -40,8 +41,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     <Icon name="chevronLeft" size={16} /> 返回筆記列表
   </a>
 
-  <div style={`display:grid;grid-template-columns:${toc.length ? "1fr 220px" : "1fr"};gap:40px;align-items:start;`}>
-    <article style="min-width:0;max-width:760px;">
+  <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
+    <article class="nc-note-article" style="min-width:0;max-width:760px;">
       <div style="margin-bottom:14px;">
         <TagEditor
           client:load
@@ -52,7 +53,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         />
       </div>
 
-      <h1 style="font-size:var(--text-4xl);color:var(--text-strong);line-height:1.2;margin:0 0 14px;font-weight:900;">
+      <h1 class="nc-note-title" style="color:var(--text-strong);line-height:1.2;margin:0 0 14px;font-weight:900;">
         {note.data.title}
       </h1>
       <p style="font-size:var(--text-lg);color:var(--text-muted);line-height:1.7;margin:0 0 18px;">
@@ -71,25 +72,28 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
             {genCount}/{markers.length} 視覺化已生成
           </span>
         )}
-        {isDev && (
-          <span style="margin-left:auto;display:inline-flex;gap:8px;">
+        <span class="nc-note-actions" style="margin-left:auto;display:inline-flex;gap:8px;flex-wrap:wrap;">
+          <FavoriteButton client:idle slug={note.slug} />
+          {isDev && (
             <a
               href={vscodeHref}
-              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;"
+              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
             >
               <Icon name="edit" size={15} /> 以 VS Code 編輯
             </a>
-            {pendingIds.length > 0 && (
-              <RegenerateButton client:idle slug={note.slug} pendingIds={pendingIds} />
-            )}
+          )}
+          {isDev && pendingIds.length > 0 && (
+            <RegenerateButton client:idle slug={note.slug} pendingIds={pendingIds} />
+          )}
+          {isDev && (
             <DeleteNoteButton
               client:idle
               slug={note.slug}
               title={note.data.title}
               componentIds={markers.map((m) => m.id)}
             />
-          </span>
-        )}
+          )}
+        </span>
       </div>
 
       {markers.length > 0 && (
@@ -114,6 +118,100 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
       {(nav.prev || nav.next) && <SeriesNav prev={nav.prev} next={nav.next} />}
     </article>
 
-    {toc.length > 0 && <Toc client:visible items={toc} />}
+    {toc.length > 0 && (
+      <div class="nc-toc-col">
+        <Toc client:visible items={toc} />
+      </div>
+    )}
   </div>
 </BaseLayout>
+
+<style is:global>
+  .nc-note-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  .nc-note-title {
+    font-size: var(--text-4xl);
+  }
+  @media (max-width: 1024px) {
+    .nc-note-title {
+      font-size: var(--text-3xl);
+    }
+  }
+  @media (min-width: 1025px) {
+    .nc-note-grid.has-toc {
+      grid-template-columns: 1fr 220px;
+    }
+  }
+  /* 桌面：右側黏性目錄 */
+  .nc-toc {
+    position: sticky;
+    top: 8px;
+    align-self: start;
+  }
+  .nc-toc-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 12px;
+    border: none;
+    background: none;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: default;
+  }
+  /* 桌面不需要折疊箭頭 */
+  .nc-toc-chevron {
+    display: none;
+  }
+
+  /* 平板 / 手機：單欄 + 目錄改為可折疊面板置於內文上方 */
+  @media (max-width: 1024px) {
+    .nc-note-grid {
+      gap: 0;
+    }
+    .nc-toc-col {
+      order: -1;
+      margin-bottom: 18px;
+    }
+    .nc-toc {
+      position: static;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-lg);
+      background: #fff;
+      padding: 12px 16px;
+      box-shadow: var(--shadow-xs);
+    }
+    .nc-toc-head {
+      justify-content: space-between;
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+    .nc-toc-head[aria-expanded="true"] {
+      margin-bottom: 12px;
+    }
+    .nc-toc-chevron {
+      display: inline-flex;
+      transition: transform 200ms ease-out;
+    }
+    /* 頁首動作鈕：自成一行、靠左、可換行，不再被壓窄 */
+    .nc-note-actions {
+      margin-left: 0 !important;
+      flex-basis: 100%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nc-toc-chevron {
+      transition: none;
+    }
+  }
+</style>

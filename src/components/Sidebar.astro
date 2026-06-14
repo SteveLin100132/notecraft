@@ -14,23 +14,29 @@ const nav: { id: Props["current"]; zh: string; en: string; ic: "dashboard" | "no
   { id: "about", zh: "關於", en: "About", ic: "about", href: "/about" },
 ];
 ---
-<aside
-  style="width:248px;flex:none;background:var(--gradient-header);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;"
->
-  <div
-    style="height:72px;display:flex;align-items:center;padding:0 22px;border-bottom:1px solid rgba(255,255,255,0.12);"
-  >
-    <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+<aside id="nc-sidebar" class="nc-sidebar">
+  <div class="nc-sb-head">
+    <a href="/" class="nc-sb-brand">
       <span
         style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:5px;background:rgba(255,255,255,0.12);color:#fff;flex:none;"
       >
         <Icon name="notes" size={22} />
       </span>
-      <span style="line-height:1.1;">
+      <span class="nc-sb-brand-text" style="line-height:1.1;">
         <span style="display:block;font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.01em;">NoteCraft</span>
         <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.22em;color:var(--orange-300);">AI NOTES</span>
       </span>
     </a>
+    <button
+      id="nc-collapse"
+      class="nc-collapse-btn"
+      type="button"
+      aria-label="收合側邊欄"
+      aria-expanded="true"
+      style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;border-radius:6px;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;flex:none;"
+    >
+      <span class="nc-collapse-ic" style="display:flex;transition:transform 200ms ease-out;"><Icon name="chevronLeft" size={18} /></span>
+    </button>
   </div>
 
   <nav style="padding:16px 14px;display:flex;flex-direction:column;gap:4px;">
@@ -42,17 +48,20 @@ const nav: { id: Props["current"]; zh: string; en: string; ic: "dashboard" | "no
         <a
           href={item.href}
           data-nav={item.id}
+          title={item.zh}
+          class="nc-sb-link"
           style={`display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:5px;text-decoration:none;width:100%;background:${activeBg};color:${fg};font-weight:${on ? 700 : 500};font-size:14.5px;font-family:var(--font-sans);transition:background 140ms;`}
         >
-          <span style="display:flex;"><Icon name={item.ic} size={20} /></span>
-          <span style="flex:1;">{item.zh}</span>
-          <span style="font-size:11px;font-weight:600;letter-spacing:.05em;opacity:.55;">{item.en}</span>
+          <span style="display:flex;flex:none;"><Icon name={item.ic} size={20} /></span>
+          <span class="nc-sb-label" style="flex:1;">{item.zh}</span>
+          <span class="nc-sb-label" style="font-size:11px;font-weight:600;letter-spacing:.05em;opacity:.55;">{item.en}</span>
         </a>
       );
     })}
   </nav>
 
   <div
+    class="nc-sb-foot"
     style="margin:auto 14px 14px;padding:16px;border-radius:6px;background:rgba(255,255,255,0.1);color:#fff;"
   >
     <div style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff;">
@@ -71,10 +80,152 @@ const nav: { id: Props["current"]; zh: string; en: string; ic: "dashboard" | "no
   </div>
 </aside>
 
+<div id="nc-scrim" aria-hidden="true"></div>
+
+<style is:global>
+  .nc-sidebar {
+    width: 248px;
+    flex: none;
+    background: var(--gradient-header);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    transition: width 260ms ease-out, transform 260ms ease-out;
+  }
+  .nc-sb-head {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .nc-sb-brand {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    text-decoration: none;
+  }
+  #nc-scrim {
+    display: none;
+  }
+
+  /* 桌面：icon 細條 */
+  @media (min-width: 1025px) {
+    html[data-sidebar="collapsed"] .nc-sidebar {
+      width: 64px;
+    }
+    html[data-sidebar="collapsed"] .nc-sb-label,
+    html[data-sidebar="collapsed"] .nc-sb-brand,
+    html[data-sidebar="collapsed"] .nc-sb-foot {
+      display: none;
+    }
+    html[data-sidebar="collapsed"] .nc-sb-head {
+      padding: 0;
+      justify-content: center;
+    }
+    html[data-sidebar="collapsed"] .nc-sb-link {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+      gap: 0;
+    }
+    html[data-sidebar="collapsed"] .nc-collapse-ic {
+      transform: rotate(180deg);
+    }
+  }
+
+  /* 平板 / 手機：off-canvas 抽屜 */
+  @media (max-width: 1024px) {
+    .nc-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 500;
+      transform: translateX(-100%);
+    }
+    html[data-drawer="open"] .nc-sidebar {
+      transform: translateX(0);
+    }
+    .nc-collapse-btn {
+      display: none !important;
+    }
+    #nc-scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 31, 62, 0.45);
+      z-index: 490;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms ease-out;
+    }
+    html[data-drawer="open"] #nc-scrim {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nc-sidebar,
+    #nc-scrim,
+    .nc-collapse-ic {
+      transition: none;
+    }
+  }
+</style>
+
 <script>
-  // Light hover effect without React
-  const links = document.querySelectorAll<HTMLAnchorElement>("aside a[data-nav]");
-  links.forEach((a) => {
+  const root = document.documentElement;
+  const collapseBtn = document.getElementById("nc-collapse");
+  const hamburger = document.getElementById("nc-hamburger");
+  const scrim = document.getElementById("nc-scrim");
+
+  // 桌面：完整 ⇄ icon 細條（記憶於 localStorage）
+  collapseBtn?.addEventListener("click", () => {
+    const collapsed = root.getAttribute("data-sidebar") === "collapsed";
+    const next = collapsed ? "expanded" : "collapsed";
+    root.setAttribute("data-sidebar", next);
+    try {
+      localStorage.setItem("nc:sidebar", next);
+    } catch {
+      /* localStorage 不可用時略過記憶 */
+    }
+    collapseBtn.setAttribute("aria-expanded", String(next === "expanded"));
+  });
+
+  // 行動：off-canvas 抽屜
+  const openDrawer = () => {
+    root.setAttribute("data-drawer", "open");
+    document.body.style.overflow = "hidden";
+    hamburger?.setAttribute("aria-expanded", "true");
+  };
+  const closeDrawer = () => {
+    root.setAttribute("data-drawer", "closed");
+    document.body.style.overflow = "";
+    hamburger?.setAttribute("aria-expanded", "false");
+  };
+  hamburger?.addEventListener("click", () => {
+    root.getAttribute("data-drawer") === "open" ? closeDrawer() : openDrawer();
+  });
+  scrim?.addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDrawer();
+  });
+  document.querySelectorAll<HTMLAnchorElement>("aside a[data-nav]").forEach((a) =>
+    a.addEventListener("click", closeDrawer),
+  );
+  // 跨越斷點回桌面時，確保抽屜狀態被重置
+  window.matchMedia("(max-width: 1024px)").addEventListener("change", (e) => {
+    if (!e.matches) closeDrawer();
+  });
+
+  // 既有的輕量 hover 效果
+  document.querySelectorAll<HTMLAnchorElement>("aside a[data-nav]").forEach((a) => {
     const base = a.style.background;
     a.addEventListener("mouseenter", () => {
       if (!a.style.background.includes("0.16")) a.style.background = "rgba(255,255,255,0.08)";

@@ -1,6 +1,7 @@
 ---
 import "@/styles/global.css";
 import Sidebar from "@/components/Sidebar.astro";
+import Icon from "@/components/Icon.astro";
 import ToastHost from "@/components/islands/ToastHost.tsx";
 import { getAllNotes, parseMarkers } from "@/lib/notes";
 
@@ -21,6 +22,19 @@ const markersPending = notes
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script is:inline>
+      // 於首次繪製前套用側邊欄初始狀態，避免重整閃動（FOUC）。
+      // 桌面套用 localStorage 記憶的「完整 / 細條」偏好；抽屜一律以關閉起始（行動的隱藏由 CSS media query 處理）。
+      (function () {
+        try {
+          var collapsed = localStorage.getItem("nc:sidebar") === "collapsed";
+          document.documentElement.setAttribute("data-sidebar", collapsed ? "collapsed" : "expanded");
+        } catch (e) {
+          document.documentElement.setAttribute("data-sidebar", "expanded");
+        }
+        document.documentElement.setAttribute("data-drawer", "closed");
+      })();
+    </script>
     <title>{title} — NoteCraft</title>
     {description && <meta name="description" content={description} />}
     <link
@@ -37,11 +51,63 @@ const markersPending = notes
     <div id="nc-app" style="display:flex;min-height:100vh;background:var(--surface-page);">
       <Sidebar current={current} markersPending={markersPending} />
       <div id="nc-scroll" style="flex:1;min-width:0;height:100vh;overflow:auto;">
-        <div style="max-width:1120px;margin:0 auto;padding:34px 40px 80px;">
+        <div class="nc-mobilebar">
+          <button id="nc-hamburger" class="nc-hamburger" type="button" aria-label="開啟選單" aria-expanded="false">
+            <Icon name="menu" size={22} />
+          </button>
+          <a href="/" class="nc-mobilebar-brand">NoteCraft</a>
+        </div>
+        <div class="nc-page-wrap" style="max-width:1120px;margin:0 auto;">
           <slot />
         </div>
       </div>
       <ToastHost client:idle />
     </div>
+    <style is:global>
+      .nc-page-wrap {
+        padding: 34px 40px 80px;
+      }
+      @media (max-width: 1024px) {
+        .nc-page-wrap {
+          padding: 18px 16px 64px;
+        }
+      }
+      .nc-mobilebar {
+        display: none;
+      }
+      .nc-hamburger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: 1.5px solid var(--neutral-200);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text-strong);
+        cursor: pointer;
+        flex: none;
+      }
+      .nc-mobilebar-brand {
+        font-size: 16px;
+        font-weight: 900;
+        color: var(--text-strong);
+        text-decoration: none;
+        letter-spacing: -0.01em;
+      }
+      @media (max-width: 1024px) {
+        .nc-mobilebar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          position: sticky;
+          top: 0;
+          z-index: 400;
+          background: var(--surface-page);
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--neutral-200);
+        }
+      }
+    </style>
   </body>
 </html>

@@ -39,4 +39,5 @@ const btn: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 700,
   cursor: "pointer",
+  whiteSpace: "nowrap",
 };

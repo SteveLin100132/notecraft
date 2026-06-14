@@ -121,6 +121,7 @@ const triggerBtn: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 700,
   cursor: "pointer",
+  whiteSpace: "nowrap",
 };
 const overlay: React.CSSProperties = {
   position: "fixed",
