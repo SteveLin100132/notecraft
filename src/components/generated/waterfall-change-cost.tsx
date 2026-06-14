@@ -115,8 +115,8 @@ function WaterfallSVG({ changeStage, reducedMotion }: WaterfallSVGProps) {
   const boxW = 64;
   const boxH = 36;
   const stepX = (W - boxW) / 8; // horizontal step between boxes
-  const baseY = 40; // top of first box
-  const stepY = 16; // vertical drop per stage
+  const baseY = 82; // top of boxes (vertically centred)
+  const stepY = 0; // horizontal layout — no vertical drop
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" aria-hidden="true">
