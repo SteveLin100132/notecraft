@@ -8,15 +8,10 @@ import {
   Play,
   Pause,
   RotateCcw,
-  RefreshCw,
   Lock,
   Inbox,
   Zap,
-  Ruler,
-  Clock,
-  Wallet,
-  Star,
-  TrendingUp,
+  TriangleAlert,
 } from 'lucide-react';
 
 // -----------------------------------------------------------------------
@@ -24,10 +19,11 @@ import {
 // -----------------------------------------------------------------------
 type TabIndex = 0 | 1 | 2;
 
-interface MetricCard {
+interface Axis {
+  key: string;
   label: string;
-  baseValue: number;
-  unit: string;
+  angle: number; // 度，0 = 右、-90 = 上
+  consequence: string; // 當此軸被推到偏高時的白話後果
 }
 
 // -----------------------------------------------------------------------
@@ -52,19 +48,59 @@ const CR_PRODUCT_STEPS = [
   { label: '下個 Sprint 執行' },
 ];
 
-const FIXED_METRICS: { label: string; icon: React.ReactElement }[] = [
-  { label: '範疇', icon: <Ruler size={16} className="text-blue-700" /> },
-  { label: '時程', icon: <Clock size={16} className="text-blue-700" /> },
-  { label: '預算', icon: <Wallet size={16} className="text-blue-700" /> },
-  { label: '品質', icon: <Star size={16} className="text-blue-700" /> },
+// 衡量指標：可拖曳的「最佳化總量守恆」模型。
+// 每一軸代表「這項有多被最佳化」，總和固定 —— 拉高一項，其餘被迫下降，
+// 親手體驗「動一個就牽動其他、不可能同時最佳化」的取捨本質。
+const PROJECT_AXES: Axis[] = [
+  {
+    key: 'scope',
+    label: '範疇',
+    angle: -90,
+    consequence: '想完整交付所有功能（範疇↑）→ 時程被迫拉長、成本升高，或犧牲品質。',
+  },
+  {
+    key: 'time',
+    label: '時程',
+    angle: 30,
+    consequence: '想準時又快速交付（時程↑）→ 只能加人加錢，或縮減範疇。',
+  },
+  {
+    key: 'cost',
+    label: '成本',
+    angle: 150,
+    consequence: '想壓低成本（成本↑）→ 範疇得縮水，或時程被迫延長。',
+  },
 ];
 
-const FLOATING_METRICS: MetricCard[] = [
-  { label: '留存率', baseValue: 72, unit: '%' },
-  { label: 'DAU:MAU', baseValue: 18, unit: '%' },
-  { label: '轉換率', baseValue: 3.4, unit: '%' },
-  { label: '商業價值', baseValue: 85, unit: '%' },
+const PRODUCT_AXES: Axis[] = [
+  {
+    key: 'user',
+    label: '用戶價值',
+    angle: -90,
+    consequence: '想極大化用戶體驗（用戶價值↑）→ 短期商業變現與營收常被犧牲。',
+  },
+  {
+    key: 'biz',
+    label: '商業價值',
+    angle: 0,
+    consequence: '為衝營收強推付費牆／廣告（商業價值↑）→ 用戶價值、留存、黏著一起下滑。',
+  },
+  {
+    key: 'retain',
+    label: '留存率',
+    angle: 90,
+    consequence: '把資源全押在留存（留存率↑）→ 商業變現與新體驗的投入受到擠壓。',
+  },
+  {
+    key: 'sticky',
+    label: '黏著度',
+    angle: 180,
+    consequence: '一味追求高黏著／成癮機制（黏著度↑）→ 可能傷害用戶價值與長期信任。',
+  },
 ];
+
+const METRIC_FLOOR = 10; // 單一指標下限，避免形狀塌陷
+const METRIC_CEIL = 100; // 單一指標上限
 
 // Lifecycle simulation tuning + geometry
 const PROJECT_SECS = 5.2; // 專案約 5.2 秒抵達結案
@@ -774,115 +810,264 @@ function ChangeRequestPanel({ reducedMotion }: ChangeRequestPanelProps) {
   );
 }
 
-// --- Tab 3: Metrics ---
+// --- Tab 3: Metrics (constraint trade-off — drag one, the rest move) ---
 
-interface FloatingValue {
-  value: number;
+const clampMetric = (v: number): number =>
+  Math.max(METRIC_FLOOR, Math.min(METRIC_CEIL, v));
+
+// 把第 idx 軸設為 raw，其餘軸依目前比例重新分配剩餘額度，使總和守恆。
+function redistribute(values: number[], idx: number, raw: number): number[] {
+  const total = values.reduce((a, b) => a + b, 0);
+  const next = clampMetric(raw);
+  const remaining = total - next;
+  const othersSum = values.reduce((a, b, i) => (i === idx ? a : a + b), 0) || 1;
+  // 先依比例分配（並夾住下限），再正規化讓其餘軸的和精確等於 remaining
+  const draft = values.map((v, i) =>
+    i === idx ? next : Math.max(METRIC_FLOOR, (v / othersSum) * remaining)
+  );
+  const draftOthers = draft.reduce((a, v, i) => (i === idx ? a : a + v), 0) || 1;
+  return draft.map((v, i) => (i === idx ? v : (v * remaining) / draftOthers));
 }
 
-function MetricsPanel({ reducedMotion }: { reducedMotion: boolean }) {
-  const [floatingValues, setFloatingValues] = useState<FloatingValue[]>(
-    FLOATING_METRICS.map((m) => ({ value: m.baseValue }))
-  );
+// 多邊形雷達圖：頂點到中心的距離 = 該軸數值，會隨拖曳即時形變。
+function MetricRadar({
+  axes,
+  values,
+  tone,
+  soft,
+}: {
+  axes: Axis[];
+  values: number[];
+  tone: string;
+  soft: string;
+}): React.ReactElement {
+  const cx = 120;
+  const cy = 100;
+  const R = 64;
+  const at = (angle: number, val: number): [number, number] => {
+    const r = (val / METRIC_CEIL) * R;
+    const a = (angle * Math.PI) / 180;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  const toStr = (pts: [number, number][]): string =>
+    pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
 
-  useEffect(() => {
-    if (reducedMotion) return;
-
-    const interval = setInterval(() => {
-      setFloatingValues((prev) =>
-        prev.map((fv, i) => {
-          const delta = (Math.random() - 0.5) * 6; // +-3%
-          const base = FLOATING_METRICS[i].baseValue;
-          const next = Math.min(Math.max(base + delta, base - 3), base + 3);
-          return { value: Math.round(next * 10) / 10 };
-        })
-      );
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [reducedMotion]);
+  const outer = axes.map((ax) => at(ax.angle, METRIC_CEIL));
+  const mid = axes.map((ax) => at(ax.angle, METRIC_CEIL / 2));
+  const shape = axes.map((ax, i) => at(ax.angle, values[i]));
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* Fixed metrics */}
-      <div className="flex flex-col gap-2">
-        <div
-          className="text-xs font-semibold mb-1"
-          style={{ color: 'var(--blue-700)' }}
-        >
-          專案：固定指標
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {FIXED_METRICS.map((m, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs text-center"
+    <svg
+      viewBox="0 0 240 200"
+      width="100%"
+      style={{ overflow: 'visible', maxWidth: 240, margin: '0 auto', display: 'block' }}
+    >
+      <polygon points={toStr(outer)} fill="none" stroke="var(--neutral-200)" strokeWidth={1.5} />
+      <polygon points={toStr(mid)} fill="none" stroke="var(--neutral-100)" strokeWidth={1} />
+      {axes.map((ax, i) => {
+        const [x, y] = at(ax.angle, METRIC_CEIL);
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--neutral-200)" strokeWidth={1} />;
+      })}
+      <polygon points={toStr(shape)} fill={soft} stroke={tone} strokeWidth={2} />
+      {shape.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={4} fill={tone} stroke="var(--surface-card)" strokeWidth={1.5} />
+      ))}
+      {axes.map((ax, i) => {
+        const [lx, ly] = at(ax.angle, METRIC_CEIL + 34);
+        return (
+          <text
+            key={i}
+            x={lx}
+            y={ly + 4}
+            textAnchor="middle"
+            fontSize={11.5}
+            fontWeight={700}
+            fill="var(--neutral-700)"
+          >
+            {ax.label}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
+function MetricColumn({
+  en,
+  zh,
+  sub,
+  tone,
+  soft,
+  axes,
+  values,
+  onChange,
+}: {
+  en: string;
+  zh: string;
+  sub: string;
+  tone: string;
+  soft: string;
+  axes: Axis[];
+  values: number[];
+  onChange: (idx: number, raw: number) => void;
+}): React.ReactElement {
+  // 找出目前最突出的軸；若各軸相近則視為均衡
+  const maxIdx = values.reduce((m, v, i) => (v > values[m] ? i : m), 0);
+  const spread = Math.max(...values) - Math.min(...values);
+  const balanced = spread < 16;
+
+  return (
+    <div className="flex flex-col" style={{ gap: 14 }}>
+      <ColHead en={en} zh={zh} sub={sub} tone={tone} />
+
+      <div style={{ height: 178, display: 'flex', alignItems: 'center' }}>
+        <MetricRadar axes={axes} values={values} tone={tone} soft={soft} />
+      </div>
+
+      <div className="flex flex-col" style={{ gap: 9 }}>
+        {axes.map((ax, i) => (
+          <div key={ax.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span
               style={{
-                backgroundColor: 'var(--surface-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-xs)',
-                color: 'var(--text-body)',
+                width: 56,
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: 'var(--neutral-700)',
+                flexShrink: 0,
               }}
             >
-              {m.icon}
-              <span className="font-medium">{m.label}</span>
-            </div>
-          ))}
+              {ax.label}
+            </span>
+            <input
+              type="range"
+              min={METRIC_FLOOR}
+              max={METRIC_CEIL}
+              value={Math.round(values[i])}
+              onChange={(e) => onChange(i, Number(e.target.value))}
+              aria-label={`調整${ax.label}`}
+              style={{ flex: 1, accentColor: tone, cursor: 'pointer' }}
+            />
+            <span
+              style={{
+                width: 30,
+                textAlign: 'right',
+                fontSize: 12.5,
+                fontWeight: 800,
+                color: tone,
+                fontVariantNumeric: 'tabular-nums',
+                flexShrink: 0,
+              }}
+            >
+              {Math.round(values[i])}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          padding: '10px 12px',
+          borderRadius: 'var(--radius-md)',
+          background: soft,
+          fontSize: 12.5,
+          lineHeight: 1.6,
+          color: 'var(--neutral-700)',
+          minHeight: 62,
+        }}
+      >
+        <TriangleAlert size={15} style={{ color: tone, flexShrink: 0, marginTop: 2 }} />
+        <span>
+          {balanced
+            ? '目前相對均衡 —— 但每往一項傾斜，就得從其他項挪走資源。'
+            : axes[maxIdx].consequence}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function MetricsPanel(): React.ReactElement {
+  const [projValues, setProjValues] = useState<number[]>(PROJECT_AXES.map(() => 50));
+  const [prodValues, setProdValues] = useState<number[]>(PRODUCT_AXES.map(() => 50));
+
+  const reset = () => {
+    setProjValues(PROJECT_AXES.map(() => 50));
+    setProdValues(PRODUCT_AXES.map(() => 50));
+  };
+
+  const touched =
+    projValues.some((v) => Math.abs(v - 50) > 0.5) ||
+    prodValues.some((v) => Math.abs(v - 50) > 0.5);
+
+  return (
+    <div className="flex flex-col">
+      <p
+        className="text-xs text-center mb-4"
+        style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}
+      >
+        拖動任一指標，看其他指標如何被牽動 —— 總量固定，不可能同時都最佳化。
+      </p>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(258px, 1fr))',
+          gap: 0,
+          alignItems: 'start',
+        }}
+      >
+        <div style={{ padding: '0 24px 0 0', borderRight: '2px dashed var(--neutral-200)' }}>
+          <MetricColumn
+            en="PROJECT"
+            zh="專案 · 管理鐵三角"
+            sub="範疇 / 時程 / 成本"
+            tone="var(--blue-700)"
+            soft="var(--blue-50)"
+            axes={PROJECT_AXES}
+            values={projValues}
+            onChange={(idx, raw) => setProjValues((vs) => redistribute(vs, idx, raw))}
+          />
         </div>
-        <div
-          className="flex items-center justify-center gap-1.5 mt-1 text-xs py-1.5"
-          style={{
-            borderTop: '1px dashed var(--blue-200)',
-            color: 'var(--text-muted)',
-          }}
-        >
-          基準固定
+        <div style={{ padding: '0 0 0 24px' }}>
+          <MetricColumn
+            en="PRODUCT"
+            zh="產品 · 價值四要素"
+            sub="用戶 / 商業 / 留存 / 黏著"
+            tone="var(--orange-500)"
+            soft="var(--orange-50)"
+            axes={PRODUCT_AXES}
+            values={prodValues}
+            onChange={(idx, raw) => setProdValues((vs) => redistribute(vs, idx, raw))}
+          />
         </div>
       </div>
 
-      {/* Floating metrics */}
-      <div className="flex flex-col gap-2">
-        <div
-          className="text-xs font-semibold mb-1"
-          style={{ color: 'var(--orange-500)' }}
-        >
-          產品：浮動指標
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {FLOATING_METRICS.map((m, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs text-center"
-              style={{
-                backgroundColor: 'var(--surface-accent-soft)',
-                border: '1px solid var(--orange-200)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-xs)',
-                color: 'var(--text-body)',
-              }}
-            >
-              <TrendingUp size={16} style={{ color: 'var(--orange-500)' }} />
-              <span className="font-medium">{m.label}</span>
-              <span
-                className="font-bold text-sm tabular-nums"
-                style={{ color: 'var(--orange-500)' }}
-              >
-                {floatingValues[i].value.toFixed(1)}{m.unit}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div
-          className="flex items-center justify-center gap-1.5 mt-1 text-xs py-1.5"
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
+        <button
+          onClick={reset}
+          disabled={!touched}
+          aria-label="重置指標"
           style={{
-            borderTop: '1px dashed var(--orange-200)',
-            color: 'var(--text-muted)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            height: 36,
+            padding: '0 16px',
+            borderRadius: 'var(--radius-pill)',
+            border: '1.5px solid var(--neutral-300)',
+            background: 'var(--surface-card)',
+            color: 'var(--neutral-700)',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: touched ? 'pointer' : 'default',
+            opacity: touched ? 1 : 0.5,
           }}
         >
-          <RefreshCw size={12} style={{ color: 'var(--orange-500)' }} />
-          指標隨驗證假設更新（示意數值）
-        </div>
+          <RotateCcw size={14} />
+          重置
+        </button>
       </div>
     </div>
   );
@@ -969,7 +1154,7 @@ export default function PmProjectVsProduct(): React.ReactElement {
         >
           {activeTab === 0 && <LifecyclePanel />}
           {activeTab === 1 && <ChangeRequestPanel reducedMotion={reducedMotion} />}
-          {activeTab === 2 && <MetricsPanel reducedMotion={reducedMotion} />}
+          {activeTab === 2 && <MetricsPanel />}
         </motion.div>
       </AnimatePresence>
     </figure>
