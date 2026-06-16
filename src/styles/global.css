@@ -245,13 +245,15 @@ img { max-width: 100%; display: block; }
   border-bottom: 1px dashed var(--border-strong);
   cursor: help;
 }
+/* 氣泡採 position:fixed + JS 定位（見 notes/[slug].astro 的 nc-tip 腳本）：
+   以 fixed 跳脫 table / tabs 的 overflow 裁切，並夾在內容區內、避免被 sidebar 遮蔽或溢出視窗。
+   JS 會寫入 inline 的 left / top 與 --nc-tip-arrow（箭頭水平位置）。 */
 .nc-prose .nc-tip__bubble {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 9px);
-  transform: translateX(-50%) translateY(4px);
-  z-index: 50;
-  max-width: 260px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  max-width: min(300px, calc(100vw - 32px));
   width: max-content;
   padding: 8px 12px;
   border-radius: var(--radius-md);
@@ -264,24 +266,29 @@ img { max-width: 100%; display: block; }
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity var(--duration-normal) var(--ease-out),
-    transform var(--duration-normal) var(--ease-out);
+  transition: opacity var(--duration-normal) var(--ease-out);
 }
 .nc-prose .nc-tip__bubble::after {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
+  left: var(--nc-tip-arrow, 50%);
   transform: translateX(-50%);
   border: 6px solid transparent;
   border-top-color: var(--surface-inverse, var(--neutral-900));
+}
+/* 氣泡置於觸發詞下方時，箭頭改朝上 */
+.nc-prose .nc-tip__bubble--below::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--surface-inverse, var(--neutral-900));
 }
 .nc-prose .nc-tip:hover .nc-tip__bubble,
 .nc-prose .nc-tip:focus .nc-tip__bubble,
 .nc-prose .nc-tip:focus-visible .nc-tip__bubble {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
 }
 
 /* ── unstyled button reset for ghost buttons ── */
