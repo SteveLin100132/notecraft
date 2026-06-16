@@ -25,7 +25,8 @@ type Name =
   | "trash"
   | "external"
   | "menu"
-  | "star";
+  | "star"
+  | "download";
 
 export interface Props {
   name: Name;
@@ -103,6 +104,7 @@ const paths: Record<Name, string[]> = {
   external: ['<path d="M15 3h6v6"/>', '<path d="M10 14 21 3"/>', '<path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>'],
   menu: ['<path d="M4 6h16"/>', '<path d="M4 12h16"/>', '<path d="M4 18h16"/>'],
   star: ['<path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.9l-5.2 2.62.99-5.8-4.21-4.1 5.82-.85Z"/>'],
+  download: ['<path d="M12 3v12"/>', '<path d="m7 11 5 5 5-5"/>', '<path d="M4 21h16"/>'],
 };
 
 const body = paths[name].join("");

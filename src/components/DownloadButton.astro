@@ -1,0 +1,66 @@
+---
+import Icon from "@/components/Icon.astro";
+
+type IconName = "download" | "external" | "folder" | "clipboard" | "sparkle" | "arrowRight";
+
+export interface Props {
+  /** 按鈕標題文字 */
+  title: string;
+  /** 檔案連結 */
+  href: string;
+  /** icon 設定：圖示名稱、位置（前/後）、大小；icon 設為 false 可隱藏 */
+  icon?: IconName | false;
+  iconPosition?: "start" | "end";
+  iconSize?: number;
+  variant?: "solid" | "outline";
+  /** 色系：follow trendlink-design 色票 */
+  color?: "gold" | "blue" | "sky" | "success" | "danger" | "neutral";
+  size?: "sm" | "md" | "lg";
+  class?: string;
+}
+
+const {
+  title,
+  href,
+  icon = "download",
+  iconPosition = "start",
+  iconSize = 18,
+  variant = "solid",
+  color = "gold",
+  size = "md",
+  class: cls,
+} = Astro.props;
+
+const sizeMap = {
+  sm: "height:34px;padding:0 14px;font-size:13px;",
+  md: "height:42px;padding:0 20px;font-size:14px;",
+  lg: "height:48px;padding:0 24px;font-size:15px;",
+}[size];
+
+// 每個色系：填色背景、邊框/文字主色、陰影色（RGB）
+const palette: Record<string, { fill: string; main: string; shadow: string }> = {
+  gold:    { fill: "var(--gradient-accent)", main: "var(--orange-500)", shadow: "227,123,36" },
+  blue:    { fill: "var(--gradient-header)", main: "var(--blue-700)",   shadow: "27,79,156" },
+  sky:     { fill: "var(--sky-500)",         main: "var(--sky-600)",    shadow: "52,139,201" },
+  success: { fill: "var(--success-500)",     main: "var(--success-500)", shadow: "46,158,107" },
+  danger:  { fill: "var(--danger-500)",      main: "var(--danger-500)", shadow: "214,69,69" },
+  neutral: { fill: "var(--neutral-700)",     main: "var(--neutral-700)", shadow: "58,68,86" },
+}[color] ?? { fill: "var(--gradient-accent)", main: "var(--orange-500)", shadow: "227,123,36" };
+
+const variantStyle =
+  variant === "outline"
+    ? `background:#fff;color:${palette.main};border:1.5px solid ${palette.main};`
+    : `background:${palette.fill};color:#fff;border:none;box-shadow:0 2px 8px rgba(${palette.shadow},0.28);`;
+
+const base = `display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;font-family:var(--font-sans);font-weight:700;cursor:pointer;transition:transform 120ms var(--ease-out), filter 140ms;text-decoration:none;white-space:nowrap;${sizeMap}${variantStyle}`;
+---
+<a href={href} download class={`nc-download-btn ${cls ?? ""}`} style={base}>
+  {icon && iconPosition === "start" && <Icon name={icon} size={iconSize} />}
+  <span>{title}</span>
+  {icon && iconPosition === "end" && <Icon name={icon} size={iconSize} />}
+</a>
+
+<style>
+  .nc-download-btn:hover { filter: brightness(1.05); }
+  .nc-download-btn:active { transform: scale(0.97); }
+</style>
