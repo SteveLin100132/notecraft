@@ -8,7 +8,7 @@ updatedAt: "2026-06-14"
 
 # Mgmt. Tool（管理工具）
 
-專案管理常用的工具，彼此分工如下：
+下面是專案管理常用的工具，實際上當然不只這些，下面幾項工具只是根據之前的經驗統整出來，且可以按層級區分使用情境的部分：
 
 | 工具 | 回答的問題 | 層級 |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ updatedAt: "2026-06-14"
 
 ## WBS（Work Breakdown Structure）
 
-> 工作分解結構：把專案的最終交付物，**由上而下層層拆解**成可被管理、估時、指派的工作單元；最末端的單元稱為 **Work Package（任務）**。
+> 工作分解結構：把專案的最終交付物，**由上而下層層拆解**成可被管理、估時、指派的工作單元；最末端的單元稱為 **Task（任務）**。
 
 ### 結構特性
 
@@ -41,10 +41,10 @@ updatedAt: "2026-06-14"
 
 ### 為什麼 PM 需要 WBS
 
-- **確認範圍（Scope）**：未列入 WBS 的東西，預設就不在這次專案內 → 有效對抗 Scope Creep
+- **確認範圍（Scope）**：未列入 WBS 的東西，預設就不在這次專案內
 - **估算的基礎**：沒有拆解就沒有估時與成本估算
 - **風險識別**：拆解過程會浮現原本沒想到的依賴與盲點
-- **指派責任**：每個任務都應有明確負責人（RACI 中的 **R**）
+- **指派責任**：每個任務都應有明確負責人（呼應 [專案管理系列：第三章 - Role & Responsibility (R&R)](./role-responsibility-rr) RACI 中的 **R**）
 - **承接後續工具**：Gantt、Kanban、Task 都是以末端任務為基礎再展開
 
 ### 範例：電商網站
@@ -78,13 +78,6 @@ updatedAt: "2026-06-14"
 
 我個人習慣在 WBS 上直接加上**負責人（PIC）**欄位，還有**進度**欄位。這樣在排程與指派時就能一併完成。下面的示意圖就是結合 WBS 與 Gantt 的樣子，
 但礙於版面限制，只留工作項目、PIC、工時和開始日期的欄位：
-
-這邊也提供了一個用 Excel 建立的 WBS 模板，已經套用好一些基礎欄位，如果以後用到也可以下載了使用，
-另外 Excel 官網也提供了其他的範本可以參考，[Free Gantt charts customizable templates online](https://excel.cloud.microsoft/create/en/gantt-charts/)
-
-import DownloadButton from '@/components/DownloadButton.astro'
-
-<DownloadButton title="下載 WBS 範本" href="/downloads/20260616 WBS-template.xlsx" color="blue" variant="outline" icon="download" />
 
 {/* @ai-visualize
 id: wbs-simulator
@@ -122,6 +115,16 @@ import WbsSimulator from '@/components/generated/wbs-simulator'
   <WbsSimulator client:visible />
 </GeneratedFrame>
 
+這邊也提供了一個用 Excel 建立的 WBS 模板，已經套用好基礎欄位，未來有機會使用到也可以下載
+
+import DownloadButton from '@/components/DownloadButton.astro'
+
+<DownloadButton title="下載 WBS 範本" href="/downloads/20260616 WBS-template.xlsx" color="blue" variant="outline" icon="download" />
+
+<div class="mt-3">
+  另外 Excel 官網也提供了其他的範本可以參考，可以訪問 [Free Gantt charts customizable templates online](https://excel.cloud.microsoft/create/en/gantt-charts/)
+</div>
+
 ---
 
 ## Kanban（看板）
@@ -142,9 +145,12 @@ import WbsSimulator from '@/components/generated/wbs-simulator'
 
 - **視覺化（Visualize）**：所有人一眼看到目前狀態與卡關處
 - **限制 WIP**：強迫團隊「先完成、再開始」，避免同時推太多卻沒一件結案
-- **管理流動（Manage Flow）**：關注 **Lead Time**（建立 → 完成）與 **Cycle Time**（開始 → 完成）
-- **明確的流程政策**：每個欄位的「進入條件」與「完成定義（DoD）」要寫清楚
+- **管理流動（Manage Flow）**：關注 **Lead Time**（建立 → 完成）與 **Cycle Time**（開始 → 完成），後面的章節會專門講指標，這裡只先提一下它們是 Kanban 的核心指標，用來反推流程上的瓶頸與改善效果
+- **明確的流程政策**：每個欄位的**進入條件**與**完成的定義**要寫清楚，例如說，推進到 Done 的條件是開發團隊完成功能開發與交付技術文件，與 PM 通過功能測試，而不是「我覺得我做完了」
 - **持續改善（Kaizen）**：定期檢視瓶頸、調整欄位與 WIP 上限
+
+> 我自己的習慣不會特別去限制 WIP，因為可以透過 Kanban 看目前大部分的任務**堆積**在哪個階段，
+> 另外也可以透過 Lead Time / Cycle Time 的數據來反推流程上的瓶頸在哪裡；如果一開始就把 WIP 卡死，反而會失去這些訊號。
 
 ### 為什麼 PM 適合用 Kanban
 
@@ -153,21 +159,12 @@ import WbsSimulator from '@/components/generated/wbs-simulator'
 - **適合需求持續進來的情境**：相較 Scrum 的固定 Sprint，Kanban 沒有迭代邊界，較適合維運型、客服型或需求變動快的專案
 - **與 WBS 搭配**：WBS 拆出的任務，可一張張變成卡片直接進入流動
 
-### Kanban vs Scrum
-
-| 面向 | Kanban | Scrum |
-| --- | --- | --- |
-| 時間框 | 無固定週期 | 固定 Sprint |
-| 變更彈性 | 隨時可加入新卡片 | Sprint 中原則上不變動 |
-| 角色 | 無強制規範 | 明確角色（PO、SM、Dev Team） |
-| 指標 | Lead Time / Cycle Time / Throughput | Velocity |
-
 ### 實務小提醒
 
 - **WIP Limit** 一開始設寬一點，再依實際狀況收斂，比一開始就卡死好
 - **Done** 一定要有明確驗收標準，否則會變成「我覺得我做完了」
 - 卡片**一定要有負責人**，沒人負責的卡片等於沒人在推進
-- 定期清理 **Backlog**，長期沒被動到的卡片要嘛刪掉、要嘛降級成想法清單，否則看板會失去信號
+- 定期清理卡片，長期沒被動到的卡片要嘛刪掉、要嘛降級成想法清單，否則看板會失去信號
 
 ### 我的欄位設計
 
@@ -219,22 +216,36 @@ import KanbanSimulator from '@/components/generated/kanban-simulator'
 
 一個任務需要包含足夠資訊，才有助於追蹤管理。
 
-### 時間欄位
 
-- 預計完成起訖時間
-- 實際完成起訖時間
-- 驗收起訖時間
-- 上線時間
+<div className="w-full h-fit grid grid-cols-2 grid-rows-1 gap-4">
+  <div>
+    ### 時間欄位
 
-### 人員欄位
+    - 預計完成起訖時間
+    - 實際完成起訖時間
+    - 驗收起訖時間
+    - 上線時間
+  </div>
+  <div>
+    ### 人員欄位
 
-- 需求提案人
-- 需求審核人
-- 執行人
-- 驗收人
-- 上線審核人
+    - 需求提案人
+    - 需求審核人
+    - 執行人
+    - 驗收人
+    - 上線審核人
+  </div>
+</div>
 
-### 狀態：我的習慣
+### 狀態：一般作法
+
+| 狀態 | 說明 |
+| --- | --- |
+| **To Do** | 已建立，但還沒開始 |
+| **In Progress** | 正在進行中，尚未完成 |
+| **Done** | 已完成，等待驗收 |
+
+### 狀態：我自己的習慣
 
 | 狀態 | 說明 |
 | --- | --- |
@@ -246,19 +257,11 @@ import KanbanSimulator from '@/components/generated/kanban-simulator'
 | **Pending** | 暫停（有問題待解，或優先級調整） |
 | **Cancelled** | 取消（有更好方案，或資源不足） |
 
-### 狀態：常見的 Scrum 作法
-
-| 狀態 | 說明 |
-| --- | --- |
-| **To Do** | 已建立，但還沒開始 |
-| **In Progress** | 正在進行中，尚未完成 |
-| **Done** | 已完成，等待驗收 |
-
 ### 兩套狀態的對照
 
-這兩套其實是**同一條流程**，差別在後段的細緻度。Scrum 的三段把任務推到「開發完成、待驗收」就結束，因為驗收與結案被收斂進 **Sprint Review** 與 **DoD（Definition of Done）** 裡處理。
+這兩套其實是**同一條流程**，差別在後段的細緻度。一般的狀態是任務推到「開發完成、待驗收」就結束，因為驗收與結案被收斂進 **Sprint Review** 與 **DoD（Definition of Done）** 裡處理。
 
-| 我的習慣 | Scrum 作法 | 說明 |
+| 我的習慣 | 一般作法 | 說明 |
 | --- | --- | --- |
 | Open | To Do | 已建立、尚未開始，完全對應 |
 | On Going | In Progress | 進行中，完全對應 |
@@ -266,24 +269,27 @@ import KanbanSimulator from '@/components/generated/kanban-simulator'
 | Verified | *（收斂進 DoD / Review）* | 驗收通過，Scrum 不另立狀態 |
 | Closed | *（收斂進 DoD / Review）* | 正式結案，Scrum 不另立狀態 |
 
-換句話說，我多出來的 **Verified** 與 **Closed**，是把 Scrum 壓在「Done」裡的「驗收」與「結案」獨立拉出來成為可追蹤的狀態。代價是流程看起來變長，好處是「完成 → 驗收」「驗收 → 上線」這兩段耗時能被量化，瓶頸才看得見。
+換句話說，我多出來的 **Verified** 與 **Closed**，是把壓在「Done」裡的「驗收」與「結案」獨立拉出來成為可追蹤的狀態。
+代價是流程看起來變長，好處是「完成 → 驗收」「驗收 → 上線」這兩段耗時能被量化，瓶頸才看得見。
 
 > Pending 與 Cancelled 兩套作法都不算正常往前的流程節點，而是「暫時離開」或「退出」流動的旁支狀態。
 
 ### 為什麼要這麼多時間欄位
 
-對使用者而言，最關心的一定是**上線時間**；但對 PM 來說，光是把完成時間分成「**預計**」與「**實際**」，就是為了在長期推進時，讓團隊慢慢縮小兩者的差距，使未來的規劃更準確。
+對使用者而言，最關心的一定是**上線時間**；但對 PM 來說，時間內上限只是一個要素，若以產品的角度來看，會是一個長期的規劃，
+因此除了準上線外，光是把完成時間分成「**預計**」與「**實際**」，
+就是為了在長期推進時，讓團隊慢慢縮小兩者的差距，使未來的規劃更準確。
 
 把時間欄位攤開後，真正的價值在於**反推每一段的耗時，找出流程瓶頸**：
 
 | 區間 | 反映的問題 |
 | --- | --- |
-| **建立 → 開始**（Open → On Going） | 任務排隊、資源不足或優先級不清；等待越久代表前置壅塞越嚴重 |
+| **建立 → 開始**（Open → On Going） | 問題還在釐清、資源不足或優先級不清；等待越久代表前置壅塞越嚴重 |
 | **開始 → 完成**（實際完成起訖） | 執行的工作量與估時準確度；與「預計」對照即估時誤差來源 |
 | **完成 → 驗收**（Done → Verified） | 驗收方的負荷；常被忽略卻最容易卡關（驗收人沒空、標準不清） |
-| **驗收 → 上線**（Verified → 上線） | 上線審核、部署排程與發布窗口的限制 |
+| **驗收 → 上線**（Verified → 上線） | 上線審核或部署排程卡關 |
 
-當你能看出「卡的不是開發、而是驗收」或「估時總是低估」這類**模式**時，這些時間欄位才從單純的紀錄，變成可以拿來**改善流程與校正估時**的依據。
+當能看出「卡的不是開發、而是驗收」或「估時總是低估」這類**模式**時，這些時間欄位才從單純的紀錄，變成可以拿來**改善流程與校正估時**的依據。
 
 {/* @ai-visualize
 id: time-fields-bottleneck
