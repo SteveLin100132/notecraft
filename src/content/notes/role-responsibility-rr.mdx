@@ -5,7 +5,7 @@ tags:
   - AI 陪跑筆記
   - 專案管理
 createdAt: '2026-06-12'
-updatedAt: '2026-06-13'
+updatedAt: '2026-06-16'
 ---
 
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
@@ -13,25 +13,27 @@ import RrStructure from "@/components/generated/rr-structure";
 import RrDerivedRoles from "@/components/generated/rr-derived-roles";
 import RrRaci from "@/components/generated/rr-raci";
 
-# Role & Responsibility(R&R)
+# Role & Responsibility（R&R）
 
-> R&R(角色與職責)要回答的不是「團隊有哪些頭銜」,而是「每件事**誰拍板、誰動手、誰該被問、誰只是被通知**」。
+:::note
+R&R（角色與職責）要回答的不是「團隊有哪些頭銜」，而是「每件事**誰拍板、誰動手、誰該被問、誰只是被通知**」。
+:::
 
-同一群人,在不同的開發方法論底下,權力與責任的流向其實天差地遠 —— 這也是 Waterfall 與 Agile 最深的分野。R&R 釐清的,正是「決策」與「執行」如何在團隊裡分配。
+同一群人，在不同的開發方法論底下，權力與責任的流向其實天差地遠 —— 這也是 Waterfall 與 Agile 最大的差別。R&R 釐清的，正是「決策」與「執行」如何在團隊裡分配。
 
 ## Waterfall vs Agile：兩種權責結構
 
-同樣是「帶團隊的人」,Waterfall 的 PM 站在指揮鏈頂端、由上而下指派;Agile 的 PO / SM 卻是站在外圍、服務一個自組織團隊。把這兩種結構並排,差異會比讀清單更有感 —— 點選任一角色查看完整職責:
+同樣是「帶團隊的人」，Waterfall 的 PM 站在指揮鏈頂端、由上而下指派；Agile 的 PO / SM 卻是站在外圍、服務一個自組織團隊。把這兩種結構並排，差異會比讀清單更有感 —— 點選任一角色查看完整職責:
 
 {/* @ai-visualize
 id: rr-structure
 type: motion
 prompt: |
-  把 Waterfall 與 Agile 的角色結構並排成可互動對照圖,核心洞察是「同樣是帶團隊的人,
+  把 Waterfall 與 Agile 的角色結構並排成可互動對照圖，核心洞察是「同樣是帶團隊的人，
   兩種方法論的權責流向完全相反」:Waterfall 由上而下「指派」、Agile 由外圍「服務」。
-  - 左欄:由上而下的指揮鏈(PM → System Architect → Development Team / QA Team),箭頭一律向下。
-  - 右欄:自組織圈(Development Team 在中央,PO 與 SM 在外圍以箭頭向內服務)。
-  - 底層幾何用手寫 SVG(viewBox + width="100%" 可縮放),以 react state 驅動。
+  - 左欄:由上而下的指揮鏈(PM → System Architect → Development Team / QA Team)，箭頭一律向下。
+  - 右欄:自組織圈(Development Team 在中央，PO 與 SM 在外圍以箭頭向內服務)。
+  - 底層幾何用手寫 SVG(viewBox + width="100%" 可縮放)，以 react state 驅動。
   - 可切換「權責流向」虛線動畫(可暫停 / 恢復);點選任一角色於下方面板顯示完整職責。
   - 用 lucide-react icon、尊重 prefers-reduced-motion;色票 / 字級 / 圓角取自 trendlink-design。
 status: generated
@@ -40,50 +42,50 @@ status: generated
 <GeneratedFrame
   id="rr-structure"
   type="motion"
-  caption="同樣是「帶團隊的人」,Waterfall 的 PM 由上而下指派、站在指揮鏈頂端;Agile 的 PO / SM 卻是由外圍服務一個自組織的中央團隊 —— 這是兩種方法論最深的權責分野。"
-  prompt={"把 Waterfall 與 Agile 的角色結構並排成可互動對照圖:左欄畫成由上而下的指揮鏈(PM → System Architect → Development Team / QA Team),右欄畫成自組織圈(Development Team 在中央,PO 與 SM 在外圍以箭頭向內服務)。可切換權責流向動畫,點選任一角色於下方顯示完整職責。"}
+  caption="同樣是「帶團隊的人」，Waterfall 的 PM 由上而下指派、站在指揮鏈頂端;Agile 的 PO / SM 卻是由外圍服務一個自組織的中央團隊 —— 這是兩種方法論最深的權責分野。"
+  prompt={"把 Waterfall 與 Agile 的角色結構並排成可互動對照圖:左欄畫成由上而下的指揮鏈(PM → System Architect → Development Team / QA Team)，右欄畫成自組織圈(Development Team 在中央，PO 與 SM 在外圍以箭頭向內服務)。可切換權責流向動畫，點選任一角色於下方顯示完整職責。"}
 >
   <RrStructure client:visible />
 </GeneratedFrame>
 
 ## 常見的衍生角色
 
-不一定每個團隊都會有,但中大型專案常會看到這些角色。點開每張卡片,看它在團隊裡補上的那塊專業:
+不一定每個團隊都會有，但中大型專案常會看到這些角色。點開每張卡片，看它在團隊裡補上的那塊專業:
 
 {/* @ai-visualize
 id: rr-derived-roles
 type: free
 prompt: |
   把 Stakeholder、Tech Lead、UI/UX Designer、Domain Expert、QA Engineer、Data Engineer
-  六個衍生角色做成可展開的互動卡片(手風琴,一次只展開一張):
-  - 每張卡頂部 3px 主色色條(依領域),含 lucide-react icon、中文 / 英文名與領域膠囊標籤。
-  - 點擊卡片以 max-height + opacity 過渡(約 280ms ease)展開,顯示該角色職責段落。
-  - 色票 / 字級 / 圓角取自 trendlink-design,不要硬編碼色碼。
+  六個衍生角色做成可展開的互動卡片(手風琴，一次只展開一張):
+  - 每張卡頂部 3px 主色色條(依領域)，含 lucide-react icon、中文 / 英文名與領域膠囊標籤。
+  - 點擊卡片以 max-height + opacity 過渡(約 280ms ease)展開，顯示該角色職責段落。
+  - 色票 / 字級 / 圓角取自 trendlink-design，不要硬編碼色碼。
 status: generated
 */}
 
 <GeneratedFrame
   id="rr-derived-roles"
   type="free"
-  caption="不一定每個團隊都有,但中大型專案常會看到這些角色。點開卡片即展開該角色的職責。"
-  prompt={"把 Stakeholder、Tech Lead、UI/UX Designer、Domain Expert、QA Engineer、Data Engineer 六個衍生角色做成可展開的互動卡片,每張卡有領域標籤與 icon,點擊展開顯示職責。"}
+  caption="不一定每個團隊都有，但中大型專案常會看到這些角色。點開卡片即展開該角色的職責。"
+  prompt={"把 Stakeholder、Tech Lead、UI/UX Designer、Domain Expert、QA Engineer、Data Engineer 六個衍生角色做成可展開的互動卡片，每張卡有領域標籤與 icon，點擊展開顯示職責。"}
 >
   <RrDerivedRoles client:visible />
 </GeneratedFrame>
 
 ## RACI Matrix
 
-中大型專案常用 RACI Matrix 來明確每項任務「誰執行、誰負責、誰諮詢、誰知會」,避免責任歸屬不清。點選 R / A / C / I 聚焦同類角色,或點任一列拆解該任務的權責分工:
+中大型專案常用 :tip[RACI]{content="Responsible(執行)、Accountable(最終負責)、Consulted(諮詢)、Informed(知會)：用來標明每項任務由誰執行、誰負責、誰諮詢、誰知會。"} Matrix 來明確每項任務「誰執行、誰負責、誰諮詢、誰知會」，避免責任歸屬不清。點選 R / A / C / I 聚焦同類角色，或點任一列拆解該任務的權責分工:
 
 {/* @ai-visualize
 id: rr-raci
 type: table
 prompt: |
   把 PRD 撰寫、架構設計、UAT 驗收、上線核准 四項任務對 PM / PO / Tech Lead / QA 的 RACI
-  矩陣做成互動表,核心洞察是「每項任務 A 只能有一個」:
+  矩陣做成互動表，核心洞察是「每項任務 A 只能有一個」:
   - 以 Tailwind 樣式化格狀表呈現(非 SVG)。R / A / C / I 以四種可區分色票顯示。
   - legend 膠囊:點字母聚焦同類格(其餘淡出);點任一列高亮並組出該任務的權責分工句。
-  - 最右「A 唯一性」欄:每列以綠色徽章(lucide-react Check)顯示恰好 1 位 A,把鐵律可視化。
+  - 最右「A 唯一性」欄:每列以綠色徽章(lucide-react Check)顯示恰好 1 位 A，把鐵律可視化。
   - 色票 / 字級 / 圓角取自 trendlink-design;尊重 prefers-reduced-motion。
 status: generated
 */}
@@ -91,10 +93,12 @@ status: generated
 <GeneratedFrame
   id="rr-raci"
   type="table"
-  caption="RACI = Responsible(執行)、Accountable(最終負責)、Consulted(諮詢)、Informed(知會)。最容易出錯的鐵律:每項任務「A 只能有一個」,否則責任稀釋、出事互踢皮球。"
-  prompt={"把 PRD 撰寫、架構設計、UAT 驗收、上線核准 四項任務對 PM / PO / Tech Lead / QA 的 RACI 矩陣做成互動表:R/A/C/I 以顏色區分並可點擊聚焦,點列顯示權責分工句,並在每列標注「恰好 1 位 A」凸顯 A 的唯一性。"}
+  caption="RACI = Responsible(執行)、Accountable(最終負責)、Consulted(諮詢)、Informed(知會)。最容易出錯的鐵律:每項任務「A 只能有一個」，否則責任稀釋、出事互踢皮球。"
+  prompt={"把 PRD 撰寫、架構設計、UAT 驗收、上線核准 四項任務對 PM / PO / Tech Lead / QA 的 RACI 矩陣做成互動表:R/A/C/I 以顏色區分並可點擊聚焦，點列顯示權責分工句，並在每列標注「恰好 1 位 A」凸顯 A 的唯一性。"}
 >
   <RrRaci client:visible />
 </GeneratedFrame>
 
-> 實務上要特別注意:**A(最終負責人)只能有一個**,否則責任會被稀釋,出事時容易互踢皮球。
+:::warning
+實務上要特別注意：**A(最終負責人)只能有一個**，否則責任會被稀釋，出事時容易互踢皮球。
+:::

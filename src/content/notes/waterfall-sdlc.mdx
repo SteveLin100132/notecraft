@@ -5,12 +5,12 @@ tags:
   - AI 陪跑筆記
   - 專案管理
 createdAt: '2026-06-12'
-updatedAt: '2026-06-12'
+updatedAt: '2026-06-16'
 ---
 
 ## Waterfall SDLC
 
-Waterfall 的 SDLC 階段相對固定，流程、對應的會議與交付物如下:
+Waterfall 的 :tip[SDLC]{content="Software Development Life Cycle，軟體開發生命週期：把專案從構思到退役拆解成數個明確階段。"} 階段相對固定，流程、對應的會議與交付物如下:
 
 {/* @ai-visualize
 id: waterfall-lifecycle
@@ -38,9 +38,9 @@ import WaterfallLifecycle from '@/components/generated/waterfall-lifecycle'
 
 之所以叫「瀑布」，是因為流程像水一樣**單向往下流**:每個階段都有閘門(交付物驗收 / 里程碑審查)，通過了水才往下一級，回頭重做的成本很高。下面這張互動圖把「階段說明 / 對應會議 / 交付物鏈」三個面向收進同一條瀑布骨幹，點任一階段即可展開細節。
 
-### 變更成本:瀑布最大的風險
-
+:::danger{title="變更成本：瀑布最大的風險"}
 Waterfall 的單向特性帶來一個結構性風險:需求若到後期才改動，變更必須沿著「設計 ⭢ 開發 ⭢ 測試 ⭢ 文件」一路回頭重做，成本隨階段往後呈近似指數的放大。這正是各階段閘門、需求凍結與里程碑審查存在的理由——**盡早凍結、盡早驗收**，把問題擋在便宜的前期。
+:::
 
 {/* @ai-visualize
 id: waterfall-change-cost

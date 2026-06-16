@@ -216,6 +216,39 @@ function buildTooltip(node: MdNode, uid: number, file: VFileLike): void {
   node.children = [...visible, bubble];
 }
 
+const DIRECTIVE_TYPES = new Set([
+  "containerDirective",
+  "leafDirective",
+  "textDirective",
+]);
+
+/**
+ * 安全網：把「未被本 transform 處理」的 directive 節點還原成字面文字。
+ *
+ * remark-directive 一旦啟用，任何 `:`／`::`／`:::` 後面接字元（含中文，如 `風險:需求`）
+ * 都會被解析成 directive 節點；若沒人處理，remark-rehype 會直接丟棄該節點、造成內文「掉字」。
+ * 這裡將未知 directive 還原為其原始字面（marker + name + 既有子節點），確保任何筆記都不會掉字。
+ */
+function revertDirective(node: MdNode): void {
+  const marker =
+    node.type === "containerDirective"
+      ? ":::"
+      : node.type === "leafDirective"
+        ? "::"
+        : ":";
+  const orig = node.children || [];
+  node.data = { hName: node.type === "containerDirective" ? "div" : "span" };
+  if (node.type === "containerDirective") {
+    // 容器（區塊）：在前面補上 marker+name，保留原本的區塊子節點。
+    node.children = [text(marker + (node.name || "")), ...orig];
+  } else if (orig.length) {
+    // 行內且帶 [label]：還原成 :name[label]
+    node.children = [text(`${marker}${node.name || ""}[`), ...orig, text("]")];
+  } else {
+    node.children = [text(marker + (node.name || ""))];
+  }
+}
+
 export default function remarkNotecraftDirectives() {
   return (tree: MdNode, file: VFileLike) => {
     let counter = 0;
@@ -237,6 +270,12 @@ export default function remarkNotecraftDirectives() {
         }
         if (child.type === "textDirective" && child.name === "tip") {
           buildTooltip(child, counter++, file);
+          continue;
+        }
+        if (DIRECTIVE_TYPES.has(child.type)) {
+          // 未處理的 directive（誤判的 `:中文`、未知類型、孤立的 :::tab 等）→ 還原為字面文字，避免掉字。
+          revertDirective(child);
+          walk(child);
           continue;
         }
         walk(child);
