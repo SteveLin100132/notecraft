@@ -1,0 +1,59 @@
+---
+title: Markdown 擴充語法示範
+description: NoteCraft 支援的 Admonitions、Content tabs 與 Tooltips 寫法與效果示範。
+tags:
+  - 基本操作
+category: 系統說明
+createdAt: '2026-06-16'
+updatedAt: '2026-06-16'
+---
+
+NoteCraft 在標準 Markdown / MDX 之外，提供三種類 Material for MkDocs 的內容增強語法，皆以 `remark-directive` 於 build 階段渲染、樣式遵循 trendlink-design，正式環境同樣可用。
+
+## Admonitions（提示框）
+
+用 `:::類型` 容器標記，支援 `note` / `info` / `tip` / `success` / `warning` / `danger`。
+
+:::note
+這是 **note** 提示框，內含 [連結](/notes) 與 `行內程式碼` 都正常渲染。
+:::
+
+:::warning{title="自訂標題"}
+帶 `{title="…"}` 可自訂標題列文字。
+:::
+
+:::tip{collapsible}
+帶 `{collapsible}` 會渲染為預設收起的 `<details>`，不需任何 JavaScript 即可展開 / 收合。
+:::
+
+:::danger
+危險 / 注意事項用 `danger`。
+:::
+
+## Content tabs（內容分頁）
+
+用 `::::tabs` 包住多個 `:::tab{label="…"}`；切換以框架無關的 vanilla JS 實作，停用 JS 時會展開所有面板、不遺失內容。
+
+> 巢狀容器規則：外層 `tabs` 要比內層 `tab` **多一個冒號**（`::::tabs` 包 `:::tab`），remark-directive 才能正確區分巢狀層級。
+
+::::tabs
+:::tab{label="npm"}
+```bash
+npm install notecraft
+```
+:::
+:::tab{label="pnpm"}
+```bash
+pnpm add notecraft
+```
+:::
+:::tab{label="yarn"}
+```bash
+yarn add notecraft
+```
+:::
+::::
+
+## Tooltips（行內提示）
+
+用 `:tip[可見文字]{content="說明"}` 標記，滑鼠移上或鍵盤聚焦即顯示：像 :tip[OAuth]{content="一種授權框架，讓第三方應用在不取得密碼的情況下存取資源。"} 這樣。

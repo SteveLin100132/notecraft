@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.5.0
+文件版本: v1.6.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -78,6 +78,7 @@ Project Name: NoteCraft
 16. \* 提供筆記收藏（[筆記收藏](#筆記收藏favorites)）：筆記卡片與檢視頁可用星號收藏 / 取消，收藏狀態存於瀏覽器 localStorage（正式環境亦可用），並在 [筆記列表頁面](#筆記列表頁面) 提供「只看收藏」篩選
 17. \* 提供「系列」功能：以集中式 [系列登錄](#系列資料模型series-data-model) 把相關筆記串成有順序的閱讀路徑，於 [系列總覽頁面](#系列總覽頁面series-overview)（`/series`）瀏覽 / 模糊查詢 / 篩選排序、於 [系列詳情頁面](#系列詳情頁面series-detail)（`/series/[id]`）檢視逐章清單與整體進度
 18. \* 提供個人化「閱讀進度」（待開始 / 閱讀中 / 已完成，存於瀏覽器 localStorage、正式環境亦可用）：筆記檢視頁可手動切換並於開啟時輕量自動轉為「閱讀中」，列表卡與 Dashboard 顯示進度，未發佈筆記不可追蹤且不計入系列進度（詳見 [閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress)）
+19. \* 提供類 Material for MkDocs 的 [Markdown 擴充語法](#markdown-擴充語法admonitions--content-tabs--tooltips)：[Admonitions](#admonitions)（提示 / 警告框、可收合）、[Content tabs](#content-tabs)（內容分頁）、[Tooltips](#tooltips)（行內提示），以 `remark-directive` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
 
 ### 4.2 非目標（Out of Scope）
 
@@ -1702,6 +1703,137 @@ model: haiku
 
 ---
 
+#### Markdown 擴充語法：Admonitions / Content tabs / Tooltips（\*）
+
+## 目標
+
+為 [筆記用戶](#筆記用戶) 在 MDX 筆記中提供類似 **Material for MkDocs** 的內容增強語法 —— [Admonitions](#admonitions)（提示框 / 警告框）、[Content tabs](#content-tabs)（內容分頁）、[Tooltips](#tooltips)（提示文字），讓作者用輕量、可讀的標記就能寫出結構化的提示、可切換的對照內容與名詞解釋，補足純文字與 [AI 標記區塊](#ai-標記區塊)（重型視覺化）之間的「中量級排版」空缺。
+
+本節為**可行性分析與規格定義**，本期不含實作（依〈待釐清〉收斂後再排入 Phase）。
+
+## 可行性分析
+
+### 與現有技術棧的契合度
+
+- 專案已用 `@astrojs/mdx` + Astro 5，`astro.config.mjs` 的 `markdown` 區塊可掛載 **remark / rehype 外掛**；三項功能皆可在 **build 階段**完成，符合 `output: 'static'`、無執行時 API 的限制。
+- 三者本質都是「作者手寫的靜態排版」，與「AI 依 prompt 生成的視覺化元件」是**不同機制**：前者走 Markdown/remark pipeline、不進 `src/components/generated/`、不經四個 Subagent；兩者並存、互不干擾。
+- Material for MkDocs 的語法源自 Python-Markdown（`pymdownx`），**無法直接移植**；需在 MDX 生態挑選等效方案。最自然的共通底座是 **`remark-directive`**（`:::name` 容器指令 / `:name[文字]` 行內指令），語法統一、可一次涵蓋三項需求，且為社群廣用、低風險。
+
+### 各功能可行性
+
+| 功能 | MkDocs 原生語法 | 本專案建議方案 | 互動性 | 風險 |
+| --- | --- | --- | --- | --- |
+| [Admonitions](#admonitions) | `!!! note` / `??? note`（可收合） | `remark-directive` 容器 `:::note` … `:::`；收合版用 `:::note{collapsible}` 渲染為原生 `<details>` | 收合用原生 `<details>`，**零 JS** | 低 |
+| [Content tabs](#content-tabs) | `=== "Tab A"` | `remark-directive` 容器 `:::tabs` 內含多個 `:::tab{label="…"}`（或直接用 MDX `<Tabs>` 元件） | 需切換 → **框架無關 vanilla JS**（同 [側邊欄收合](#側邊欄收合sidebar-collapse) 模式），不必引入 React island | 中（需 a11y / 鍵盤） |
+| [Tooltips](#tooltips) | `abbr` + `attr_list` | 行內指令 `:tip[文字]{content="說明"}` 渲染為 `<abbr title>` 或自訂 span + CSS tooltip；全域縮寫可選配 `remark-abbr` 自動標註 | 純 CSS / 原生 title，**零 JS** | 低 |
+
+### 待新增的依賴（白名單外，需作者同意）
+
+- `remark-directive`（必要，三項共用底座）；可選 `remark-abbr`（縮寫自動標註）。
+- 兩者皆為 **build-time 的 remark 外掛**（掛在 `astro.config.mjs`），屬建構工具鏈、**非元件 import**，不在「元件白名單」的約束範圍內；但仍依專案慣例於對話中**先徵詢作者同意**才加入。
+- 不需任何執行時相依；正式環境（Netlify 靜態站）完全支援。
+
+## 規格
+
+- **統一語法底座**：以 `remark-directive` 解析容器（`:::`）與行內（`:`）指令，並用一支自訂 remark transform 將指令節點對映到對應的 Astro/HTML 結構與 class，class 命名與樣式遵循 [trendlink-design](#skills) token，**不硬編色碼**。
+- <a name="admonitions"></a>**Admonitions（提示框）**
+  - 容器語法：
+
+    ```mdx
+    :::note
+    這是一段提示內容，支援 **行內 Markdown** 與連結。
+    :::
+
+    :::warning{title="自訂標題"}
+    可自訂標題列文字。
+    :::
+
+    :::tip{collapsible}
+    帶 collapsible 旗標者渲染為可收合的 <details>，預設收起。
+    :::
+    ```
+
+  - 類型列舉（提示而非強制）：`note` / `tip` / `info` / `warning` / `danger` / `success`，各對應一組語意色與 icon（lucide-react 已在依賴中，或以 inline SVG）。未知類型回退為 `note`。
+  - 收合：`{collapsible}` → 原生 `<details>/<summary>`，`{collapsible open}` 預設展開；不收合者為一般區塊。**收合不需 JS。**
+- <a name="content-tabs"></a>**Content tabs（內容分頁）**
+  - 容器語法：
+
+    ```mdx
+    ::::tabs
+    :::tab{label="npm"}
+    `npm install`
+    :::
+    :::tab{label="pnpm"}
+    `pnpm add`
+    :::
+    ::::
+    ```
+
+  - **巢狀容器規則**：外層 `tabs` 的 `:` 數要比內層 `tab` 多一個（`::::tabs` 包 `:::tab`），`remark-directive` 才能正確分辨巢狀層級。
+  - 渲染為一組 tab 按鈕 + 對應面板；切換以 **框架無關的 vanilla JS（class 切換）** 實作，與 [側邊欄收合](#側邊欄收合sidebar-collapse) 同模式，不引入 React island。
+  - 無障礙：採 `role="tablist"`/`tab`/`tabpanel`、`aria-selected`、左右方向鍵切換；JS 未載入時退化為「全部面板依序顯示」（漸進增強，不致內容遺失）。
+  - 動畫（若有）200–400ms ease-out，並尊重 `prefers-reduced-motion`。
+- <a name="tooltips"></a>**Tooltips（提示文字）**
+  - 行內語法：`:tip[滑鼠移上看說明]{content="這裡是補充說明"}`。
+  - 渲染為帶 `aria-describedby` 的 `<span>`（或 `<abbr title>`），桌面 hover / focus 顯示氣泡，鍵盤可聚焦、可被螢幕報讀；以**純 CSS**呈現，零 JS。
+  - 可選配（待釐清）：以 `remark-abbr` 支援 MkDocs 風格的全域縮寫定義（`*[HTML]: HyperText Markup Language`），自動為全文出現的縮寫加上 `<abbr>`。
+- **設定接入**：於 `astro.config.mjs` 的 `markdown.remarkPlugins` 掛載 `remark-directive` 與自訂 transform；樣式以全域 CSS / Tailwind class 提供，套用於筆記檢視頁的 prose 容器。
+- **視覺樣式（一律遵循 [trendlink-design](#skills)）**：渲染結果的色票、字級、間距、圓角、陰影、動效一律取自 trendlink-design 的設計 token（連結其 `styles.css` 取得 token + webfonts），**不硬編色碼**：
+  - 色系：navy 結構色（`--blue-700`）+ 金色強調（`--orange-400`），白 / 淡藍底。語意色（note/info/warning/danger/success）對應其 token，缺對應時以最接近的品牌語意色（如 warning→`--orange-*`、danger→品牌紅、success→品牌綠）。
+  - Admonition 框、tab pill / 按鈕、tooltip 氣泡的圓角優先用簽名 `--radius-pill`（按鈕 / tag）與卡片圓角 token；陰影用 token 陰影；字體 Noto Sans TC。
+  - 可直接對照 trendlink-design `components/` 既有 primitives 的視覺（`Alert` ≈ Admonition、`Tabs` ≈ Content tabs、`Badge`/`Tag` ≈ tab pill），對齊其配色與間距語彙；本功能以 remark→HTML + 全域 CSS 實作（非引入該 React 元件），但**外觀須與這些 primitives 一致**。
+  - 動效遵循 token 的 motion 設定，200–400ms ease-out，並尊重 `prefers-reduced-motion`。
+- **與 [AI 標記區塊](#ai-標記區塊) 的關係**：兩者正交。Admonition/Tabs/Tooltip 為作者手寫、輕量、無生成流程；AI 標記區塊仍負責重型視覺化。文件與 Skill 不需改動既有 Subagent 行為。
+- **環境**：純內容渲染，dev 與正式環境**行為一致**（非 dev-only 功能）。
+
+## 卡控機制
+
+- 指令解析失敗（未知類型 / 缺必要屬性如 tab 的 `label`）→ build 階段以 log 警示並**優雅回退**（未知 admonition 類型 → `note`；缺 `label` 的 tab → 以序號命名），**不中斷 build**。
+- Content tabs 在 JS 不可用時必須仍能讀到全部內容（漸進增強）；不得因切換失效而隱藏面板內容。
+- 所有互動 / 提示元素需可鍵盤操作並具適當 ARIA，符合既有無障礙慣例。
+- 新依賴需作者明確同意後才加入（見〈可行性分析〉）。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| Admonition 正常渲染 | 筆記含 `:::warning` 區塊 | build 後檢視該筆記 | 顯示帶語意色與 icon 的警告框，內含行內 Markdown 正確渲染 |
+| 可收合 Admonition | 筆記含 `:::tip{collapsible}` | 載入頁面 | 渲染為預設收起的 `<details>`，點擊標題展開／收合，無需 JS |
+| Content tabs 切換 | 筆記含 `:::tabs` 兩個 `:::tab` | 點第二個 tab 按鈕 | 顯示第二個面板、隱藏第一個；`aria-selected` 正確；方向鍵可切換 |
+| Tabs 漸進增強 | 停用 JS | 載入含 tabs 的筆記 | 所有面板內容仍可讀（依序顯示），不遺失內容 |
+| Tooltip 顯示 | 筆記含 `:tip[term]{content="…"}` | hover／focus 該詞 | 顯示提示氣泡，且可鍵盤聚焦、可被螢幕報讀 |
+| 未知類型回退 | 筆記含 `:::unknown` | build | log 警示且回退為 `note` 樣式，build 不中斷 |
+| 正式環境一致 | Netlify 靜態站 | 檢視含上述語法的筆記 | 三項功能皆正常，無需任何執行時 API |
+
+## 待釐清
+
+### Q1. 採用哪種作者語法風格？
+
+- [x] **directive 風格**（`:::note` / `:::tabs` / `:tip[…]`）—— 三項共用 `remark-directive` 一套底座，語法統一、貼近 MkDocs，純 Markdown 可讀
+- [ ] **MDX 元件風格**（`<Admonition>` / `<Tabs><Tab>` / `<Tip>`）—— 不需額外 remark 外掛，型別更明確，但語法較重、與純 Markdown 體驗不同
+- [ ] 混合（Admonition/Tooltip 用 directive、Tabs 用元件）
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-16）：採 directive 風格。最貼合 MkDocs 既有習慣、三項共用同一底座、保持 Markdown 純淨；引入 `remark-directive`（已同意新增，低風險、社群廣用）。
+
+### Q2. Content tabs 的互動如何實作？
+
+- [x] **框架無關 vanilla JS**（同 [側邊欄收合](#側邊欄收合sidebar-collapse)）—— 零 island、輕量
+- [ ] React island（`client:visible`）—— 與生成元件一致的技術，但為靜態排版引入 island 偏重
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-16）：採 vanilla JS。tabs 互動單純（class 切換），不值得為此 hydrate React。
+
+### Q3. 是否納入 MkDocs 風格的全域縮寫（abbreviations）？
+
+- [ ] 納入：加 `remark-abbr`，支援 `*[HTML]: …` 全文自動標註 `<abbr>`
+- [x] 不納入（v1）：僅提供行內 `:tip[…]{content="…"}`，需要時再補
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-16）：不納入全域縮寫，先求三項核心功能落地；待有實際需求再加 `remark-abbr`。
+
+---
+
 ## 8. Schedule（時間表）
 
 根據 PRD 的功能依賴關係，建議按**依賴順序**分為 5 個 Phase。
@@ -1799,6 +1931,19 @@ model: haiku
 - 詳見 `docs/tasks/` 下實作 Task（task-09 ~ task-13）
 
 **理由：** 閱讀進度為純前端 localStorage（同收藏性質、正式環境可用、零 API）；系列登錄於 build 階段預計算，無新執行時依賴。升級版 `SeriesNav` 取代既有上一篇/下一篇導覽（待 §7.1 Q1 收斂）。
+
+#### Phase 4.9 — Markdown 擴充語法（v1.6.0 追加）
+
+**目標：為筆記提供類 Material for MkDocs 的中量級內容排版（Admonitions / Content tabs / Tooltips）**
+
+- 新增依賴 `remark-directive`（build-time，作者已同意）+ 自訂 remark transform（`src/lib/remark-notecraft-directives.ts`），掛載於 `astro.config.mjs`
+- Admonitions：`:::note` / `:::warning` … 類型框，`{collapsible}` 以原生 `<details>` 收合（零 JS）
+- Content tabs：`:::tabs` / `:::tab{label}`，切換以框架無關 vanilla JS（同側邊欄收合），漸進增強 + ARIA
+- Tooltips：行內 `:tip[…]{content="…"}`，純 CSS、零 JS、鍵盤可達；全域縮寫（abbreviations）不做
+- 渲染外觀一律遵循 [trendlink-design](#skills) token（對齊其 `Alert` / `Tabs` / `Badge` primitives，不硬編色碼）
+- 詳見 `docs/tasks/` 下實作 Task（task-14 ~ task-16，task-14 為底座先做）
+
+**理由：** 純內容渲染、build 階段完成、無執行時 API，正式環境一致；與 AI 標記區塊機制正交（不進 `generated/`、不經 Subagent）。`remark-directive` 為 build-time 工具鏈、非元件 import，已徵得作者同意。
 
 #### Phase 5 — 部署與收尾
 
@@ -1949,6 +2094,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.6.0] - 2026-06-16
+- **Added**: 新增 Markdown 擴充語法規格（Admonitions / Content tabs / Tooltips）
 
 ### [1.5.0] - 2026-06-16
 

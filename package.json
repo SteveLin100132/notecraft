@@ -25,6 +25,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.15.0",
+    "remark-directive": "^4.0.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss": "^3.4.17"
   },
