@@ -21,7 +21,8 @@ const { note } = Astro.props;
 const { Content, headings } = await note.render();
 const markers = parseMarkers(note.body);
 const genCount = markers.filter((m) => m.status === "generated").length;
-const pendingIds = markers.filter((m) => m.status !== "generated").map((m) => m.id);
+const pendingMarkers = markers.filter((m) => m.status !== "generated");
+const pendingIds = pendingMarkers.map((m) => m.id);
 const isDev = import.meta.env.DEV;
 const noteAbsPath = `${process.cwd()}/src/content/notes/${note.id}`;
 // vscode:// 需要正斜線路徑；Windows 的 process.cwd() 會帶反斜線，且磁碟機代號前要補一個斜線
@@ -96,9 +97,11 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         </span>
       </div>
 
-      {markers.length > 0 && (
+      {/* 已生成的標記，其提示詞已由下方 GeneratedFrame 卡片（含複製按鈕）呈現，
+          這裡只保留尚未生成（pending / failed / locked）的標記提示，避免重複。 */}
+      {pendingMarkers.length > 0 && (
         <div style="margin:18px 0 6px;">
-          {markers.map((m) => (
+          {pendingMarkers.map((m) => (
             <AiMarkerCard id={m.id} type={m.type} status={m.status} prompt={m.prompt} />
           ))}
         </div>
