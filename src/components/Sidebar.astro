@@ -2,14 +2,15 @@
 import Icon from "./Icon.astro";
 
 export interface Props {
-  current: "dashboard" | "notes" | "tags" | "about";
+  current: "dashboard" | "notes" | "series" | "tags" | "about";
   markersPending: number;
 }
 const { current, markersPending } = Astro.props;
 
-const nav: { id: Props["current"]; zh: string; en: string; ic: "dashboard" | "notes" | "tag" | "about"; href: string }[] = [
+const nav: { id: Props["current"]; zh: string; en: string; ic: "dashboard" | "notes" | "layers" | "tag" | "about"; href: string }[] = [
   { id: "dashboard", zh: "總覽", en: "Dashboard", ic: "dashboard", href: "/" },
   { id: "notes", zh: "筆記", en: "Notes", ic: "notes", href: "/notes" },
+  { id: "series", zh: "系列", en: "Series", ic: "layers", href: "/series" },
   { id: "tags", zh: "標籤", en: "Tags", ic: "tag", href: "/tags" },
   { id: "about", zh: "關於", en: "About", ic: "about", href: "/about" },
 ];

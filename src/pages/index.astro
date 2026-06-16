@@ -6,7 +6,10 @@ import Badge from "@/components/Badge.astro";
 import Button from "@/components/Button.astro";
 import Icon from "@/components/Icon.astro";
 import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
+import ContinueReading from "@/components/islands/ContinueReading.tsx";
+import type { ContinueSeries } from "@/components/islands/ContinueReading.tsx";
 import { getAllNotes, buildDashboardStats } from "@/lib/notes";
+import { SERIES, getSeriesChapters } from "@/lib/series";
 import { daysAgo } from "@/lib/dates";
 
 const TODAY = "2026-06-12";
@@ -14,6 +17,13 @@ const isDev = import.meta.env.DEV;
 
 const notes = await getAllNotes();
 const s = buildDashboardStats(notes, TODAY);
+
+const continueSeries: ContinueSeries[] = SERIES.map((sr) => ({
+  id: sr.id,
+  title: sr.title,
+  accent: sr.accent,
+  chapters: getSeriesChapters(notes, sr).map((c) => ({ slug: c.slug, title: c.title })),
+}));
 const tagMax = s.tags[0]?.count ?? 1;
 
 const kpis = [
@@ -105,6 +115,8 @@ const genPct = s.markersTotal > 0 ? Math.round((s.markersGenerated / s.markersTo
 
     <!-- right column -->
     <div style="display:flex;flex-direction:column;gap:20px;">
+      <ContinueReading client:idle series={continueSeries} />
+
       <Card accent="orange" padding={22}>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <span style="display:flex;color:var(--orange-500);"><Icon name="sparkle" size={18} /></span>

@@ -6,10 +6,13 @@ import Toc from "@/components/islands/Toc.tsx";
 import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
 import DeleteNoteButton from "@/components/islands/DeleteNoteButton.tsx";
 import FavoriteButton from "@/components/islands/FavoriteButton.tsx";
+import ReadingControl from "@/components/islands/ReadingControl.tsx";
+import DonePrompt from "@/components/islands/DonePrompt.tsx";
+import SeriesNav from "@/components/islands/SeriesNav.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
-import SeriesNav from "@/components/SeriesNav.astro";
 import Icon from "@/components/Icon.astro";
-import { getAllNotes, parseMarkers, seriesNav, tagStats } from "@/lib/notes";
+import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
+import { seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 
 export async function getStaticPaths() {
@@ -30,7 +33,18 @@ const vscodeHref = `vscode://file/${noteAbsPath.replace(/\\/g, "/").replace(/^\/
 
 const allNotes = await getAllNotes();
 const stats = tagStats(allNotes).map((t) => ({ name: t.name, count: t.count }));
-const nav = seriesNav(allNotes, note);
+const series = seriesOf(allNotes, note.slug);
+const seriesNavData = series
+  ? {
+      id: series.series.id,
+      title: series.series.title,
+      eyebrow: series.series.eyebrow,
+      accent: series.series.accent,
+      icon: series.series.icon,
+      chapters: series.chapters.map((c) => ({ slug: c.slug, title: c.title })),
+      currentIndex: series.index,
+    }
+  : null;
 
 const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text }));
 ---
@@ -73,6 +87,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
             {genCount}/{markers.length} 視覺化已生成
           </span>
         )}
+        <ReadingControl client:idle slug={note.slug} />
         <span class="nc-note-actions" style="margin-left:auto;display:inline-flex;gap:8px;flex-wrap:wrap;">
           <FavoriteButton client:idle slug={note.slug} />
           {isDev && (
@@ -111,6 +126,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         <Content />
       </div>
 
+      <DonePrompt client:visible slug={note.slug} />
+
       <div
         style="margin-top:44px;padding-top:22px;border-top:1px solid var(--neutral-200);display:flex;justify-content:space-between;color:var(--text-muted);font-size:13px;"
       >
@@ -118,7 +135,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         <span style="font-family:var(--font-mono);">src/content/notes/{note.id}</span>
       </div>
 
-      {(nav.prev || nav.next) && <SeriesNav prev={nav.prev} next={nav.next} />}
+      {seriesNavData && <SeriesNav client:visible series={seriesNavData} />}
     </article>
 
     {toc.length > 0 && (

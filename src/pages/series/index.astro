@@ -1,0 +1,43 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PageHead from "@/components/PageHead.astro";
+import SeriesOverview from "@/components/islands/SeriesOverview.tsx";
+import type { SeriesCardData } from "@/components/islands/SeriesOverview.tsx";
+import { getAllNotes } from "@/lib/notes";
+import { SERIES, getSeriesChapters } from "@/lib/series";
+
+const notes = await getAllNotes();
+
+const cards: SeriesCardData[] = SERIES.map((s) => {
+  const chapters = getSeriesChapters(notes, s);
+  return {
+    id: s.id,
+    title: s.title,
+    eyebrow: s.eyebrow,
+    description: s.description,
+    accent: s.accent,
+    icon: s.icon,
+    chapters: chapters.map((c) => {
+      const note = notes.find((n) => n.slug === c.slug);
+      return { slug: c.slug, title: c.title, tags: note?.data.tags ?? [] };
+    }),
+  };
+});
+
+const totalNotes = cards.reduce((acc, c) => acc + c.chapters.length, 0);
+---
+<BaseLayout title="系列" current="series" description="把相關筆記串成有順序的閱讀路徑">
+  <PageHead
+    eyebrow="SERIES"
+    title="系列"
+    sub={`把相關筆記串成有順序的閱讀路徑 · 共 ${cards.length} 個系列、${totalNotes} 篇筆記`}
+  />
+
+  {cards.length === 0 ? (
+    <div style="text-align:center;padding:80px 0;color:var(--text-muted);">
+      <p style="margin:0;font-size:15px;">尚未建立任何系列</p>
+    </div>
+  ) : (
+    <SeriesOverview client:load series={cards} />
+  )}
+</BaseLayout>

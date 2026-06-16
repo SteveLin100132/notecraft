@@ -8,7 +8,7 @@ import { getAllNotes, parseMarkers } from "@/lib/notes";
 export interface Props {
   title: string;
   description?: string;
-  current: "dashboard" | "notes" | "tags" | "about";
+  current: "dashboard" | "notes" | "series" | "tags" | "about";
 }
 const { title, description, current } = Astro.props;
 

@@ -61,25 +61,9 @@ export async function getAllNotes(): Promise<Note[]> {
   return notes.sort((a, b) => b.data.updatedAt.localeCompare(a.data.updatedAt));
 }
 
-export type SeriesLink = { slug: string; title: string };
-export type SeriesNav = { prev: SeriesLink | null; next: SeriesLink | null };
-
-export function seriesNav(notes: Note[], current: Note): SeriesNav {
-  const series = current.data.series;
-  if (!series) return { prev: null, next: null };
-  const group = notes
-    .filter((n) => n.data.series === series)
-    .sort(
-      (a, b) =>
-        (a.data.order ?? 0) - (b.data.order ?? 0) ||
-        a.data.createdAt.localeCompare(b.data.createdAt) ||
-        a.data.title.localeCompare(b.data.title),
-    );
-  if (group.length < 2) return { prev: null, next: null };
-  const i = group.findIndex((n) => n.slug === current.slug);
-  const toLink = (n?: Note): SeriesLink | null => (n ? { slug: n.slug, title: n.data.title } : null);
-  return { prev: toLink(group[i - 1]), next: toLink(group[i + 1]) };
-}
+// 系列章節順序權威已移至集中式 registry（src/data/series.ts）；
+// 上一章 / 下一章導覽改由 src/lib/series.ts 的 seriesOf() 推導。
+// 既有 frontmatter series / order 仍保留供筆記列表「系列」排序使用。
 
 export type TagStat = { name: string; count: number; lastUsed: string };
 

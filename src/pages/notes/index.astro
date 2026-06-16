@@ -7,11 +7,18 @@ import NotesList from "@/components/islands/NotesList.tsx";
 import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import PagefindSearch from "@/components/islands/PagefindSearch.tsx";
 import { getAllNotes, parseMarkers, tagStats, excerpt } from "@/lib/notes";
+import { SERIES } from "@/lib/series";
 
 const isDev = import.meta.env.DEV;
 const notes = await getAllNotes();
+
+// 列表「系列」排序的依據改由集中式 registry 推導（不再讀筆記 frontmatter）。
+const seriesBySlug = new Map<string, { title: string; index: number }>();
+for (const s of SERIES) s.slugs.forEach((slug, i) => seriesBySlug.set(slug, { title: s.title, index: i }));
+
 const cards = notes.map((n) => {
   const ms = parseMarkers(n.body);
+  const sr = seriesBySlug.get(n.slug) ?? null;
   return {
     slug: n.slug,
     title: n.data.title,
@@ -19,8 +26,8 @@ const cards = notes.map((n) => {
     tags: n.data.tags,
     updatedAt: n.data.updatedAt,
     createdAt: n.data.createdAt,
-    series: n.data.series ?? null,
-    order: n.data.order ?? null,
+    series: sr?.title ?? null,
+    order: sr?.index ?? null,
     excerpt: excerpt(n.body, n.data.description),
     markersTotal: ms.length,
     markersGenerated: ms.filter((m) => m.status === "generated").length,

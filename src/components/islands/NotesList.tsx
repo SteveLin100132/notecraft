@@ -13,6 +13,8 @@ import {
   Star,
 } from "lucide-react";
 import { getFavorites, toggleFavorite, FAVORITES_EVENT } from "@/lib/favorites";
+import { readingStatus, READING_EVENT, type ReadingStatus } from "@/lib/reading-progress";
+import { ReadingBadge } from "./seriesShared";
 
 export type NoteCardData = {
   slug: string;
@@ -80,6 +82,19 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [favs, setFavs] = useState<string[]>([]);
   const [onlyFav, setOnlyFav] = useState(false);
+  // 閱讀進度：SSR 視為空，hydration 後讀 localStorage、監聽變更事件即時同步
+  const [reading, setReading] = useState<Record<string, ReadingStatus>>({});
+
+  useEffect(() => {
+    const sync = () => setReading(Object.fromEntries(notes.map((n) => [n.slug, readingStatus(n.slug)])));
+    sync();
+    window.addEventListener(READING_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(READING_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [notes]);
 
   // 收藏狀態：SSR 視為空，hydration 後讀 localStorage；切換時透過事件即時同步
   useEffect(() => {
@@ -322,13 +337,13 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
       ) : layout === "grid" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
           {filtered.map((n) => (
-            <NoteCardGrid key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} />
+            <NoteCardGrid key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} reading={reading[n.slug] ?? "not-started"} />
           ))}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {filtered.map((n) => (
-            <NoteCardList key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} />
+            <NoteCardList key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} reading={reading[n.slug] ?? "not-started"} />
           ))}
         </div>
       )}
@@ -359,13 +374,31 @@ function MarkerBadge({ n }: { n: NoteCardData }) {
 }
 
 function TagRow({ tags }: { tags: string[] }) {
+  // 卡片本身是 <a>，標籤不可再用 <a>（巢狀 <a> 不合法）。
+  // 改用 role="link" 的 <span> + 點擊 / 鍵盤導頁，並擋住卡片的冒泡。
+  const goTag = (tg: string) => {
+    window.location.href = `/notes?tag=${encodeURIComponent(tg)}`;
+  };
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
       {tags.map((tg) => (
-        <a
+        <span
           key={tg}
-          href={`/notes?tag=${encodeURIComponent(tg)}`}
-          onClick={(e) => e.stopPropagation()}
+          role="link"
+          tabIndex={0}
+          aria-label={`篩選標籤 ${tg}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            goTag(tg);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              goTag(tg);
+            }
+          }}
           style={{
             fontSize: 12,
             fontWeight: 600,
@@ -373,11 +406,11 @@ function TagRow({ tags }: { tags: string[] }) {
             background: "var(--blue-50)",
             padding: "3px 9px",
             borderRadius: 999,
-            textDecoration: "none",
+            cursor: "pointer",
           }}
         >
           {tg}
-        </a>
+        </span>
       ))}
     </div>
   );
@@ -413,7 +446,7 @@ function FavStar({ fav, onToggle }: { fav: boolean; onToggle: () => void }) {
   );
 }
 
-function NoteCardGrid({ note, fav, onToggleFav }: { note: NoteCardData; fav: boolean; onToggleFav: () => void }) {
+function NoteCardGrid({ note, fav, onToggleFav, reading }: { note: NoteCardData; fav: boolean; onToggleFav: () => void; reading: ReadingStatus }) {
   const allGen = note.markersTotal > 0 && note.markersGenerated === note.markersTotal;
   return (
     <a
@@ -454,6 +487,7 @@ function NoteCardGrid({ note, fav, onToggleFav }: { note: NoteCardData; fav: boo
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Clock size={14} /> {daysAgo(note.updatedAt)}
           </span>
+          {reading !== "not-started" && <ReadingBadge status={reading} />}
           <MarkerBadge n={note} />
           <FavStar fav={fav} onToggle={onToggleFav} />
         </div>
@@ -484,7 +518,7 @@ function NoteCardGrid({ note, fav, onToggleFav }: { note: NoteCardData; fav: boo
   );
 }
 
-function NoteCardList({ note, fav, onToggleFav }: { note: NoteCardData; fav: boolean; onToggleFav: () => void }) {
+function NoteCardList({ note, fav, onToggleFav, reading }: { note: NoteCardData; fav: boolean; onToggleFav: () => void; reading: ReadingStatus }) {
   return (
     <a
       href={`/notes/${note.slug}`}
@@ -541,6 +575,7 @@ function NoteCardList({ note, fav, onToggleFav }: { note: NoteCardData; fav: boo
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, color: "var(--text-muted)" }}>
           <Clock size={14} /> {daysAgo(note.updatedAt)}
         </span>
+        {reading !== "not-started" && <ReadingBadge status={reading} />}
         <MarkerBadge n={note} />
         <FavStar fav={fav} onToggle={onToggleFav} />
         <span style={{ color: "var(--neutral-300)", display: "flex" }}>

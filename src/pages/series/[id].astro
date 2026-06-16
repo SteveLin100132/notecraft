@@ -1,0 +1,49 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Icon from "@/components/Icon.astro";
+import SeriesDetail from "@/components/islands/SeriesDetail.tsx";
+import type { SeriesDetailData } from "@/components/islands/SeriesDetail.tsx";
+import { getAllNotes } from "@/lib/notes";
+import { SERIES, getSeriesChapters } from "@/lib/series";
+
+export async function getStaticPaths() {
+  const notes = await getAllNotes();
+  return SERIES.map((s) => {
+    const chapters = getSeriesChapters(notes, s);
+    const data: SeriesDetailData = {
+      id: s.id,
+      title: s.title,
+      eyebrow: s.eyebrow,
+      description: s.description,
+      accent: s.accent,
+      icon: s.icon,
+      chapters: chapters.map((c) => ({
+        slug: c.slug,
+        title: c.title,
+        description: c.description,
+        markersTotal: c.markersTotal,
+        markersGenerated: c.markersGenerated,
+      })),
+    };
+    return { params: { id: s.id }, props: { data } };
+  });
+}
+
+const { data } = Astro.props;
+---
+<BaseLayout title={data.title} current="series" description={data.description}>
+  <a
+    href="/series"
+    style="display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:18px;"
+  >
+    <Icon name="chevronLeft" size={16} /> 返回系列
+  </a>
+
+  <SeriesDetail client:load series={data} />
+</BaseLayout>
+
+<style is:global>
+  .nc-chapter-row:hover {
+    background: var(--neutral-50);
+  }
+</style>

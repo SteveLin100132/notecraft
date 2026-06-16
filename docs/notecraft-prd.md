@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.4.0
+文件版本: v1.5.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-06-13
+更新日期: 2026-06-16
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -76,6 +76,8 @@ Project Name: NoteCraft
 14. \* 為 [AI 生成內容外框卡片](#ai-生成內容外框卡片) 增加「複製提示詞」功能，讀者 / 作者可一鍵複製生成該元件的 `prompt`；對應 Skill 與 Subagent 在寫回時將 `prompt` 帶入 `GeneratedFrame`
 15. \* 提供可收合的側邊欄（[側邊欄收合](#側邊欄收合sidebar-collapse)）：桌面可在「完整 / icon 細條」間切換並記住偏好；平板與手機預設收合為 off-canvas 抽屜，靠漢堡鈕開啟
 16. \* 提供筆記收藏（[筆記收藏](#筆記收藏favorites)）：筆記卡片與檢視頁可用星號收藏 / 取消，收藏狀態存於瀏覽器 localStorage（正式環境亦可用），並在 [筆記列表頁面](#筆記列表頁面) 提供「只看收藏」篩選
+17. \* 提供「系列」功能：以集中式 [系列登錄](#系列資料模型series-data-model) 把相關筆記串成有順序的閱讀路徑，於 [系列總覽頁面](#系列總覽頁面series-overview)（`/series`）瀏覽 / 模糊查詢 / 篩選排序、於 [系列詳情頁面](#系列詳情頁面series-detail)（`/series/[id]`）檢視逐章清單與整體進度
+18. \* 提供個人化「閱讀進度」（待開始 / 閱讀中 / 已完成，存於瀏覽器 localStorage、正式環境亦可用）：筆記檢視頁可手動切換並於開啟時輕量自動轉為「閱讀中」，列表卡與 Dashboard 顯示進度，未發佈筆記不可追蹤且不計入系列進度（詳見 [閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress)）
 
 ### 4.2 非目標（Out of Scope）
 
@@ -93,6 +95,8 @@ NoteCraft
 ├── /                       Dashboard（首頁，功能選單 + 統計）
 ├── /notes                  筆記列表頁面
 ├── /notes/[slug]           筆記檢視頁面（含「以 VS Code 編輯」按鈕）
+├── /series                 系列總覽頁（所有系列 + 模糊查詢 + 篩選排序 + 進度）
+├── /series/[id]            系列詳情頁（Hero + 整體進度 + 逐章清單）
 ├── /tags                   標籤索引頁
 └── /about                  系統說明（簡單靜態頁，內容為一個 MDX，不需獨立 Spec）
 ```
@@ -448,6 +452,198 @@ flowchart TD
 - [ ] 其他
 
 > 建議：不提供後援。手動序列的價值在「明確的關聯」，自動相鄰反而可能連到不相關的筆記造成誤解。
+
+#### 系列資料模型（Series data model）（\*）
+
+## 目標
+
+為 [筆記用戶](#筆記用戶) 提供把相關筆記串成「**有順序的閱讀路徑**」的能力，並作為 [系列總覽頁面](#系列總覽頁面series-overview)、[系列詳情頁面](#系列詳情頁面series-detail)、[閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress) 三者共用的資料基礎。此節定義資料結構與衍生計算，不含 UI。
+
+## 規格
+
+- **單系列歸屬**：一篇筆記至多屬於一個系列；系列為**有序章節清單**，章節順序即閱讀順序。
+- **集中式系列登錄（registry）**：因系列帶有「系列層級」的中繼資料（標題、eyebrow、描述、封面色系、icon、章節順序），無法只靠單篇筆記的 frontmatter 表達，故以**集中登錄檔**定義系列。建議實作為新的 Content Collection `series`（每個系列一個 `.json` / `.yaml`，或單一 `src/content/series.ts` data 檔），於 `astro build` 階段被 Content Collections 解析、預計算，**無執行時 API**。系列結構（權威來源：`docs/prototype/001-series/source_reference/data.jsx`）：
+
+  ```ts
+  {
+    id: string;            // 唯一 id，路由用（/series/[id]）
+    title: string;         // 系列標題
+    eyebrow: string;       // 英文 overline（大寫、寬字距）
+    description: string;   // 系列簡述
+    accent: "blue" | "orange" | "navy";  // 封面漸層色系
+    icon: string;          // 線性 icon 名稱（對應既有 icon set）
+    slugs: string[];       // 章節 slug 陣列，順序 = 章節順序（第 1 章、第 2 章…）
+  }
+  ```
+
+  - `slugs` 的順序即章節序；以 `noteBySlug(slug)` 對應回筆記物件。
+  - 與既有 `series` / `order` frontmatter（[筆記關聯導覽](#筆記關聯導覽上一篇--下一篇)）的關係見〈待釐清 Q1〉——本功能以 registry 的 `slugs` 為章節順序的權威來源。
+- **閱讀進度（個人狀態）**：三種狀態，**屬於每篇筆記**（非系列）：`not-started`（待開始）｜ `reading`（閱讀中）｜ `done`（已完成）。
+  - **儲存**：瀏覽器 `localStorage`，key 建議 `nc-reading-progress-v1`，值為 `{ [slug]: "reading" | "done" }`（`not-started` 不寫入、以「無紀錄」表示）。此為**個人狀態、每裝置獨立、不進 git、正式環境亦可用**，與 [筆記收藏](#筆記收藏favorites) 同一性質。
+  - **所有筆記皆可追蹤**（見〈待釐清 Q2〉收斂）：不引入「未發佈不可追蹤」概念。
+  - 核心 API（client 端，建議抽 `src/lib/reading-progress.ts`）：
+
+    | API | 語意 |
+    | --- | --- |
+    | `readingStatus(slug)` | → `not-started` \| `reading` \| `done` |
+    | `setReadingStatus(slug, status)` | 寫入 + 持久化 + 派發變更事件 |
+    | `markReading(slug)` | 輕量自動轉換：`not-started → reading`（**永不降級**） |
+    | `readingMeta(status)` | → `{ key, label, tone, icon }`，供徽章 / 圖示對照 |
+
+  - `readingMeta` 對照：`not-started`→待開始 / neutral / 空心圓；`reading`→閱讀中 / blue / bookOpen；`done`→已完成 / success 綠 / circleCheck。
+- **系列進度彙總 `seriesProgress(series)`**：回傳卡片 / 詳情頁 / 導覽所需的衍生值，**分母 `tracked` = `total`（全部章節）**：
+  - `chapters`（章節筆記陣列）、`statuses`（依序的 `{ note, status }`）、`total`（章節總數，亦為進度分母 `tracked`）、`done`、`reading`、`notStarted`、`pct`（`round(done/total*100)`，`total` 為 0 時 0）、`completed`（`total>0 && done===total`）、`started`（`done+reading>0`）、`next`（下一篇：優先 `reading`，其次第一篇 `not-started`，全完成則回首章供重讀）。
+  - `resetSeriesProgress(series)`：清掉該系列所有章節進度（詳情頁「重設進度」用）。
+- **即時彙總**：任一處改 `setReadingStatus` 後，所有顯示進度的畫面（系列卡、詳情頁、Dashboard、SeriesNav、筆記卡徽章）即時更新；以瀏覽器自訂事件（如 `nc-reading-changed`）或既有狀態機制達成，跨分頁可另聽 `storage` 事件（加分）。
+
+## 卡控機制
+
+- registry 中某 `slug` 找不到對應筆記 → build log 提示、該章節跳過，不中斷 build、不產死連結。
+- 同一 `slug` 出現在多個系列 → build log 警示（違反單系列歸屬）；以首次出現者為準。
+- `localStorage` 不可用（隱私模式）→ try/catch 降級，僅當前 session 有效，不報錯中斷。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 進度分母為全部章節 | 系列含 4 章 | 計算 `seriesProgress` | `tracked` = `total` = 4 |
+| 自動轉換不降級 | 某章已是 `done` | 開啟該章呼叫 `markReading` | 狀態維持 `done`，不被降為 `reading` |
+| next 指向正確 | 系列首章 `done`、次章 `not-started` | 取 `seriesProgress().next` | 回傳次章 |
+| 重設清空進度 | 系列數章已 `done`/`reading` | 呼叫 `resetSeriesProgress` | 該系列所有章節回 `not-started`、`pct` = 0 |
+
+## 待釐清
+
+### Q1. 系列章節順序的權威來源（與既有 `series`/`order` frontmatter 的關係）？
+
+- [x] 採集中式 registry 的 `slugs` 陣列為章節順序權威；既有筆記 frontmatter `series`/`order`（[筆記關聯導覽](#筆記關聯導覽上一篇--下一篇)）**改由 registry 推導 / 逐步停用**，[筆記關聯導覽] 的上一篇 / 下一篇升級為由 `seriesOf(slug)` 從 registry 計算
+- [ ] 維持雙軌：registry 只放系列中繼資料（標題 / 色系 / icon / 描述），章節成員與順序仍讀筆記的 `series`+`order`
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-16）：採 registry `slugs` 單一權威。registry 同時承載中繼資料與順序，最貼合 prototype 的 `SERIES` 結構；既有 [筆記關聯導覽] 的 prev/next 改接 `seriesOf()`。原筆記 frontmatter `series`/`order` 欄位**不再驅動 UI**（可保留為相容，或於實作時一併清掉 schema 與 `notes.ts` 的 `seriesNav`，由作者於 Task 09 定奪）。
+
+### Q2.「已發佈 / 可追蹤」如何判定？
+
+- [ ] 為筆記 frontmatter 新增 `status: published | empty | coming-soon` 欄位（對齊 prototype `data.jsx`），非 `published` 即不可追蹤
+- [ ] 沿用既有概念判定（如：有實際內文者視為已發佈）
+- [x] **不引入「可追蹤 / 未發佈」判定，所有筆記皆可追蹤、皆計入系列進度**
+
+> 已收斂（作者拍板 2026-06-16）：暫不做「未發佈不可追蹤」功能。`readingStatus` 不回傳 `unpublished`；`seriesProgress` 的 **`tracked` = `total`**（分母為全部章節）；本節與後續各節凡提及「未發佈 / unpublished / 不計入分母」者一律不適用，狀態圓點 / 章節 Badge 不再有「未發佈」樣式。`readingMeta` 僅保留 `not-started` / `reading` / `done` 三態。日後若要區分可追蹤性，再回此擴充。
+
+#### 系列總覽頁面（Series overview）（\*）
+
+## 目標
+
+提供 `/series` 路由，讓 [筆記用戶](#筆記用戶) 瀏覽所有系列、以模糊查詢與篩選 / 排序找到想讀的閱讀路徑，並一眼看出各系列的閱讀進度。對應側邊欄新增「系列」導覽項。
+
+## 規格
+
+- **路由**：`/series`；側邊欄新增「系列 / Series」項（置於既有導覽序列中，建議列為第 3 項）。
+- **版面**：置中內容區（max-width 1120、左右 padding 40，與其他頁一致）。
+  1. **頁首**：eyebrow `SERIES`（橘、寬字距）／標題「系列」／副標「把相關筆記串成有順序的閱讀路徑 · 共 N 個系列、M 篇筆記」。
+  2. **搜尋列 + 排序**：
+     - 搜尋框（pill、左 search icon、右清除 x）；**模糊查詢**比對系列 `title` + `eyebrow` + `description` + 各章 `title` + 各章 `tags`（小寫 includes）。
+     - 排序下拉：`進度`（`pct` 高→低，預設）／`章節數`（`total` 多→少）／`名稱`（`localeCompare(zh-Hant)`）。
+  3. **篩選 pills**：`全部 / 進行中 / 已完成 / 未開始`；判定：完成 `completed`／進行中 `started && !completed`／未開始 `!started`。
+  4. **系列卡網格**：`repeat(auto-fill, minmax(320px, 1fr))`、gap 20；空結果置中 search icon +「找不到符合的系列」。
+- **系列卡（整卡可點 → 詳情頁）**：
+  - **封面**（高 132）：`accent` 漸層、半透明白光暈裝飾、icon 徽章、「N 篇」chip、eyebrow + 系列標題。
+  - **內文**：描述（2 行截斷）；**各章狀態圓點列**（已完成實心綠／閱讀中白底藍圈／待開始空心灰圈）；**進度列**（左狀態統計「N 已完成 · N 閱讀中 · N 待開始」、右百分比）+ **分段進度條**（done 段 success 綠寬 `done/total`、緊接 reading 段 accent 透明 0.45 寬 `reading/total`）。
+  - **CTA 按鈕**（pill、sm）：未開始 `開始閱讀`／進行中 `繼續閱讀`／全完成 `重新閱讀`，文字接「：{next.title}」（超 12 字截斷）；**點擊 `stopPropagation` 後直接開 `next` 章節筆記，不進詳情頁**。
+- UI 樣式一律遵循 [trendlink-design](#skills) 設計系統 token（色票 / 圓角 / 陰影 / 字級見 prototype README〈Design Tokens〉），**不硬編色碼**。
+- 與 dev / 正式環境無關，**正式環境同樣顯示**（屬讀者導覽功能）。
+
+## 卡控機制
+
+- 無任何系列 → 顯示空狀態（不渲染空網格）。
+- 系列尚未有任何進度（`started` 為 false）→ 進度條為空、`pct` 顯示 0，CTA 為「開始閱讀：{首章}」。
+- 搜尋 / 篩選無結果 → 置中空狀態文案。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 進度排序預設 | 多個系列 pct 不同 | 進入 `/series` | 預設依 pct 由高到低排列 |
+| 模糊查詢命中章節 | 某章標題含關鍵字 | 於搜尋框輸入該關鍵字 | 該章所屬系列卡仍出現在結果中 |
+| 篩選進行中 | 一系列 started 且未完成 | 點「進行中」pill | 僅顯示進行中系列 |
+| CTA 跳過詳情頁 | 系列卡顯示「繼續閱讀」 | 點 CTA | 直接導向 `next` 章節筆記，不進詳情頁 |
+| 整卡進詳情 | 系列卡 | 點卡片非 CTA 區 | 導向 `/series/[id]` |
+
+#### 系列詳情頁面（Series detail）（\*）
+
+## 目標
+
+提供 `/series/[id]` 路由，呈現單一系列的 Hero、整體進度與逐章清單，讓讀者掌握系列全貌、從任一章節進入閱讀、並可重設進度。
+
+## 規格
+
+- **路由**：`/series/[id]`，由總覽卡或筆記頁系列導覽進入；提供「← 返回系列」回 `/series`。
+- **Hero 卡**：上半 `accent` 漸層（icon 徽章 + eyebrow + 標題 + 描述）；下半「進度帶」（左大百分比 + 「已完成」、中 `ProgressBar` + 狀態統計、右 CTA 群：主 CTA 繼續/開始/重新閱讀 → 開 `next`；已開始時另有 `重設進度`，二次確認後 `resetSeriesProgress` + toast）。
+- **章節區**：標題「章節 · 共 N 章」；逐列章節列表卡。
+- **章節列（整列可點 → 開該章筆記）**：
+  - 左序號徽章：已完成顯示 check（success 底/綠字），否則顯示兩位數章節序號（`01`、`02`…，accent 底/字）。
+  - 中：標題 + 描述（單行截斷）。
+  - 右：AI 視覺化計數（若該章有 marker，sparkle + `已生成數/總數`）→ 閱讀狀態 `Badge`（`readingMeta` 對照）→ chevronRight。
+- 進度條動畫 `width 500ms cubic-bezier(0.16,1,0.3,1)`；尊重 `prefers-reduced-motion`。樣式遵循 [trendlink-design](#skills)。
+- 正式環境同樣顯示。
+
+## 卡控機制
+
+- `id` 不存在 → 404 / 導回 `/series`（依 Astro 靜態路由：僅為 registry 中的 id 產生頁面）。
+- 系列未開始時不顯示「重設進度」。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 逐章狀態正確 | 系列各章狀態不一 | 進入詳情頁 | 各列 Badge 與序號徽章（含 done 打勾）對應實際狀態 |
+| 章節列開筆記 | 任一章節列 | 點該列 | 導向對應 `/notes/[slug]` |
+| 重設進度二次確認 | 系列已開始 | 點「重設進度」並確認 | 該系列全章回未開始、進度帶歸零、出現 toast |
+| 主 CTA 開 next | 詳情頁 | 點主 CTA | 開 `seriesProgress().next` 章節 |
+| 未開始不顯示重設 | 系列全章 not-started | 進入詳情頁 | 不顯示「重設進度」 |
+
+#### 閱讀進度與系列彙總（Reading progress）（\*）
+
+## 目標
+
+在既有頁面接入閱讀進度與系列彙總：筆記頁可手動切換閱讀狀態並升級系列導覽；筆記列表卡、Dashboard 顯示進度資訊，讓「閱讀路徑」貫穿全站。
+
+## 規格
+
+- **筆記檢視頁面（[筆記檢視頁面](#筆記檢視頁面)）**：
+  - **頂部 meta 列**新增「閱讀進度」分段控制 `ReadingControl`（pill 容器內三段 `待開始 / 閱讀中 / 已完成`，選中段白底 + 語意色字）；點擊即 `setReadingStatus`。**手動為主**。
+  - **開啟筆記時**呼叫一次 `markReading(slug)`（`not-started → reading`，永不降級）。
+  - **文末 `DonePrompt`**：未完成 → 橘色「讀完這篇了嗎？」+「標記為已完成」；已完成 → 綠色「已標記為完成」+「標記為未完成」還原連結。
+  - **升級版系列導覽 `SeriesNav`**（取代 [筆記關聯導覽](#筆記關聯導覽上一篇--下一篇) 僅有上一章/下一章的版本）：系列 eyebrow/標題（→ 詳情頁）+「查看系列」+「第 i 章 · 共 N 章」+ 整體進度條 + 百分比 + **逐章縮覽列**（目前章節高亮並標「閱讀中的章節」）+ 上一章/下一章卡片。
+- **筆記列表卡（[筆記列表頁面](#筆記列表頁面) 的 NoteCard）**：meta 區新增閱讀狀態 `Badge`，**僅當狀態非 `not-started`（即 `reading` / `done`）時顯示**（避免雜訊）。
+- **Dashboard（[Dashboard 頁面](#dashboard-頁面)）**：右欄頂部新增「繼續閱讀」卡 — 列出進行中（`started && !completed`）系列（最多 2 個，按 pct 排序；若無則顯示尚未開始的系列、標題改「開始一個系列」）。每項：系列名 + pct + 迷你分段進度條 +「繼續/開始：{next.title}」連結（→ 開 `next`）；「全部」→ `/series`。
+- 所有進度顯示在 `setReadingStatus` 後即時更新（同〈系列資料模型〉的即時彙總機制）。
+- hydration 注意：SSR 無 `localStorage`，初次 render 一律以「空進度」呈現，`useEffect` 後再依 `localStorage` 修正，避免 hydration mismatch（同 [筆記收藏](#筆記收藏favorites) 處理）。
+- 正式環境同樣顯示。
+
+## 卡控機制
+
+- 筆記不屬於任何系列 → 不顯示 `SeriesNav`（亦無上一篇/下一篇導覽，與既有 [筆記關聯導覽] 行為一致）。
+- Dashboard 無任何系列時不顯示「繼續閱讀」卡。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 開啟自動轉閱讀中 | 某筆記為 `not-started` | 開啟該筆記 | 狀態自動轉 `reading`，ReadingControl 反映 |
+| 文末標記完成即時彙總 | 筆記屬某系列 | 點「標記為已完成」 | 該筆記 done，且系列卡 / 詳情頁 / SeriesNav 進度即時 +1 |
+| 列表卡徽章僅在有進度時 | 一篇 `not-started`、一篇 `reading` | 進入列表頁 | 僅 `reading` 那篇顯示閱讀 Badge |
+| Dashboard 繼續閱讀 | 有進行中系列 | 進入 Dashboard | 「繼續閱讀」卡列出該系列 + 迷你進度條 + 連結直開 next |
+| 不屬系列不顯示導覽 | 一篇未設系列的筆記 | 進入該筆記頁 | 不顯示 `SeriesNav`（含上一篇/下一篇） |
+
+## 待釐清
+
+### Q1. 升級版 `SeriesNav` 與既有 [筆記關聯導覽] 的取代關係？
+
+- [x] 升級版 `SeriesNav` 取代既有上一篇/下一篇導覽（屬於同一塊筆記底部導覽，避免重複）
+- [ ] 兩者並存（上方系列彙總 + 下方原 prev/next 卡）
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-16）：取代。升級版已含上一章/下一章卡片與更完整的系列脈絡；保留兩套會重複且容易不一致。實作上即把 [筆記關聯導覽] 的 `SeriesNav.astro` 擴充為含進度的版本，與〈系列資料模型〉Q1 一併處理。上一篇/下一篇導覽不會消失，而是內嵌於升級版導覽中。
 
 #### 新增筆記功能（按鈕）
 
@@ -1592,6 +1788,18 @@ model: haiku
 
 **理由：** 皆為純前端 UI / 偏好強化，無後端、無新依賴，正式環境可用。
 
+#### Phase 4.8 — 系列與閱讀進度（v1.5.0 追加）
+
+**目標：把相關筆記串成有順序的閱讀路徑，並貫穿全站的個人閱讀進度**
+
+- 系列資料模型：集中式系列登錄（Content Collection `series` 或 `src/data/series.ts`）+ build 階段預計算；閱讀進度 client 端 lib（`localStorage`，`readingStatus` / `setReadingStatus` / `markReading` / `seriesProgress` / `resetSeriesProgress`）
+- 系列總覽頁 `/series`：模糊查詢、進度/章節數/名稱排序、全部/進行中/已完成/未開始篩選、系列卡（封面 + 狀態圓點 + 分段進度條 + CTA 直開 next）
+- 系列詳情頁 `/series/[id]`：Hero 進度帶、逐章清單、重設進度（二次確認）
+- 既有頁面串接：筆記頁 `ReadingControl` + `DonePrompt` + 升級版 `SeriesNav`、列表卡閱讀 Badge、Dashboard「繼續閱讀」卡、側邊欄「系列」項
+- 詳見 `docs/tasks/` 下實作 Task（task-09 ~ task-13）
+
+**理由：** 閱讀進度為純前端 localStorage（同收藏性質、正式環境可用、零 API）；系列登錄於 build 階段預計算，無新執行時依賴。升級版 `SeriesNav` 取代既有上一篇/下一篇導覽（待 §7.1 Q1 收斂）。
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -1741,6 +1949,14 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.5.0] - 2026-06-16
+
+- **Added (系列功能)**: §7.1 新增「系列資料模型」「系列總覽頁面」「系列詳情頁面」「閱讀進度與系列彙總」四節；以集中式系列登錄（Content Collection `series` 或 `src/data/series.ts`）於 build 階段預計算章節順序與系列中繼資料，提供 `/series` 總覽（模糊查詢 / 篩選 / 排序）與 `/series/[id]` 詳情；Site Map 新增兩條路由
+- **Added (閱讀進度)**: 個人閱讀進度（待開始 / 閱讀中 / 已完成）存於瀏覽器 `localStorage`、正式環境亦可用、零 API；筆記頁 `ReadingControl` 手動切換 + 開啟時輕量自動轉「閱讀中」（永不降級）+ 文末 `DonePrompt`；列表卡閱讀 Badge、Dashboard「繼續閱讀」卡、升級版 `SeriesNav`；未發佈筆記不可追蹤、不計入系列進度分母
+- **Updated**: §4.1 核心目標新增第 17～18 項；§8.1 新增 Phase 4.8；對應實作 Task（task-09 ~ task-13）置於 `docs/tasks/`
+- **Decided**: 閱讀進度採 localStorage（同 [筆記收藏] 性質，每裝置獨立、不進 git、不納入 build-time 統計）；系列登錄為集中式 registry、`slugs` 陣列即章節順序權威
+- **Decided（2026-06-16 作者拍板三項待釐清）**: ① **registry `slugs` 為章節順序唯一權威**，既有 `series`/`order` frontmatter 不再驅動 UI（[筆記關聯導覽] prev/next 改接 `seriesOf()`）；② **不引入「可追蹤 / 未發佈」判定**，所有筆記皆可追蹤、`tracked` = `total`，`readingMeta` 僅 `not-started`/`reading`/`done` 三態；③ **升級版 `SeriesNav` 取代既有上一篇/下一篇導覽**（prev/next 內嵌其中、不消失）
 
 ### [1.4.0] - 2026-06-13
 
