@@ -5,7 +5,7 @@ tags:
   - 專案管理
   - AI 陪跑筆記
 createdAt: '2026-06-12'
-updatedAt: '2026-06-16'
+updatedAt: '2026-06-17'
 ---
 
 # 專案 V.S 產品
@@ -121,7 +121,13 @@ import PmChangeRequest from '@/components/generated/pm-change-request'
 - 使用者不再回訪（留存率 ↓）
 - 回訪頻率降低（黏著度 ↓）
 
-四者不可能同時最佳化，PM 的工作就是在這之間做取捨。
+四者不一定能同時最佳化，PM 的工作就是在這之間做取捨。
+
+:::warning{title="先講在前面：四要素是我自己湊的 😅"}
+怕誤會，專案的**管理鐵三角**是業界公認、有明確約束的模型沒錯；但右邊這個「產品四要素」**不是什麼正式框架啦**，就只是我從一堆產品指標裡，挑幾個自己比較有感的（用戶價值、商業價值、留存率、黏著度）來跟鐵三角對照而已。
+
+而且老實說，這四個**也不是真的此消彼長**——產品做得好的時候，用戶價值、留存、黏著常常是一起往上的。寫「動一個影響其他三個」是想借鐵三角的形狀，提醒自己「資源有限、別想全都要」，這不是什麼嚴謹定律。真的要衡量產品，還是研究一些框架比較準，可以看一下延伸閱讀。
+:::
 
 :::note{collapsible title="延伸閱讀：其他產品衡量框架"}
 我自己其實也還在摸索，產品品質的衡量方式很多，我在撰寫筆記時，也查了一下，有像是 [Google HEART 框架](https://vocus.cc/article/646587c9fd89780001623574)、[AARRR 模型](https://www.growthmarketer.academy/zh-tw/blog/aarrr-marketing-funnel-growth-hackers-marketing-model)、[北極星指標 (North Star Metric)](https://haosquare.com/north-star-metric-framework/) 等等，不同公司、不同產品會有不同的衡量指標，有興趣在根據狀況瞭解就好 😅。
@@ -132,15 +138,16 @@ id: pm-metrics
 type: interactive
 status: generated
 prompt: |
-  雙欄「最佳化總量守恆」拖曳互動：左欄「專案 · 管理鐵三角」三軸（範疇／時程／成本），
+  雙欄「取捨示意」拖曳互動：左欄「專案 · 管理鐵三角」三軸（範疇／時程／成本），
   右欄「產品 · 價值四要素」四軸（用戶／商業／留存／黏著），各以多邊形雷達圖呈現。
-  拖動任一指標，其餘指標依比例被牽動、總量固定，下方即時顯示該傾斜的取捨後果，附重置按鈕。
+  拖動任一指標，其餘指標依比例被牽動（以固定總和模擬資源有限下的此消彼長），下方即時顯示該傾斜的取捨後果，附重置按鈕。
+  下方加一行但書：左側鐵三角為公認模型；右側產品四要素僅為示意、非既有框架，實務上常一起上升。
   左欄藍色系、右欄橘色系，兩欄之間用垂直 dashed 分隔線。
 */}
 
 import PmMetrics from '@/components/generated/pm-metrics'
 
-<GeneratedFrame id="pm-metrics" type="interactive" prompt={"雙欄最佳化總量守恆拖曳互動：左欄專案鐵三角三軸、右欄產品價值四要素，拖動任一指標其餘依比例被牽動、總量固定，並顯示取捨後果。"}>
+<GeneratedFrame id="pm-metrics" type="interactive" prompt={"雙欄「取捨示意」拖曳互動：左欄專案鐵三角三軸、右欄產品價值四要素，拖動任一指標其餘依比例被牽動（以固定總和模擬資源有限下的此消彼長），並顯示取捨後果；下方但書註明右側四要素僅為示意、非既有框架。"}>
   <PmMetrics client:visible />
 </GeneratedFrame>
 

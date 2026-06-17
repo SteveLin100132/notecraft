@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { RotateCcw, TriangleAlert } from 'lucide-react';
 
 // -----------------------------------------------------------------------
-// 衡量標準：可拖曳的「最佳化總量守恆」模型。
-// 每一軸代表「這項有多被最佳化」，總和固定 —— 拉高一項，其餘被迫下降，
+// 衡量標準：可拖曳的「取捨示意」模型（以固定總和模擬資源有限下的此消彼長）。
+// 每一軸代表「這項有多被最佳化」，拉高一項、其餘被迫下降，
 // 親手體驗「動一個就牽動其他、不可能同時最佳化」的取捨本質。
+// 註：左側鐵三角為公認模型；右側產品四要素僅為示意，非既有框架、實務上常一起上升。
 // -----------------------------------------------------------------------
 
 interface Axis {
@@ -291,7 +292,7 @@ export default function PmMetrics(): React.ReactElement {
         className="text-xs text-center mb-4"
         style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}
       >
-        拖動任一指標，看其他指標如何被牽動 —— 總量固定，不可能同時都最佳化。
+        拖動任一指標，看資源有限下其他指標如何被牽動 —— 這是「取捨示意」，凸顯不可能同時都最佳化。
       </p>
 
       <div
@@ -353,6 +354,14 @@ export default function PmMetrics(): React.ReactElement {
           重置
         </button>
       </div>
+
+      <p
+        className="text-xs text-center"
+        style={{ color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 16 }}
+      >
+        左側鐵三角是業界公認、有明確約束的模型；右側「價值四要素」只是挑出的幾個代表指標，
+        並非既有框架，實務上也常一起上升，這裡的守恆僅為凸顯取捨精神的示意。
+      </p>
     </figure>
   );
 }
