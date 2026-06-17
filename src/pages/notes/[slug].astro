@@ -76,19 +76,23 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
       </p>
 
       <div
-        style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding-bottom:18px;margin-bottom:8px;border-bottom:1px solid var(--neutral-200);font-size:13px;color:var(--text-muted);"
+        style="display:flex;flex-direction:column;gap:14px;padding-bottom:18px;margin-bottom:8px;border-bottom:1px solid var(--neutral-200);"
       >
-        <span style="display:inline-flex;align-items:center;gap:5px;">
-          <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
-        </span>
-        {markers.length > 0 && (
+        <div
+          style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-size:13px;color:var(--text-muted);"
+        >
           <span style="display:inline-flex;align-items:center;gap:5px;">
-            <Icon name="sparkle" size={15} style="color:var(--orange-500);" />
-            {genCount}/{markers.length} 視覺化已生成
+            <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
           </span>
-        )}
-        <ReadingControl client:idle slug={note.slug} />
-        <span class="nc-note-actions" style="margin-left:auto;display:inline-flex;gap:8px;flex-wrap:wrap;">
+          {markers.length > 0 && (
+            <span style="display:inline-flex;align-items:center;gap:5px;">
+              <Icon name="sparkle" size={15} style="color:var(--orange-500);" />
+              {genCount}/{markers.length} 視覺化已生成
+            </span>
+          )}
+          <ReadingControl client:idle slug={note.slug} />
+        </div>
+        <span class="nc-note-actions" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
           <FavoriteButton client:idle slug={note.slug} />
           {isDev && (
             <a

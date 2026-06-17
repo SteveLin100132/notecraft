@@ -22,7 +22,7 @@ export default defineConfig({
     // 同時套用於 .md 與 .mdx（@astrojs/mdx 預設 extendMarkdownConfig）。
     remarkPlugins: [remarkDirective, remarkNotecraftDirectives],
     shikiConfig: {
-      theme: "github-dark",
+      theme: "github-light",
       wrap: true,
     },
   },
