@@ -36,52 +36,59 @@ interface VisibleRow {
 }
 
 // ---------------------------------------------------------------------------
-// Default data — e-commerce website WBS
+// Default data — DutyMate 值日生排班系統 WBS
 // ---------------------------------------------------------------------------
 
 const DEFAULT_TREE: WBSNode[] = [
   {
     id: "root",
-    label: "電商網站專案",
+    label: "DutyMate 值日生排班系統",
     children: [
       {
         id: "req",
         label: "需求與規劃",
         children: [
-          { id: "req-interview", label: "需求訪談", hours: 4 },
-          { id: "req-spec", label: "功能規格書", hours: 24 },
+          { id: "req-interview", label: "痛點訪談與需求確認", hours: 8 },
+          { id: "req-prd", label: "PRD 定稿與待釐清項確認", hours: 16 },
+          { id: "req-scope", label: "範圍與里程碑確認", hours: 8 },
         ],
       },
       {
         id: "design",
         label: "設計",
         children: [
-          { id: "design-wireframe", label: "UX 線框稿", hours: 40 },
-          { id: "design-visual", label: "UI 視覺稿", hours: 48 },
+          { id: "design-flow", label: "業務流程與 Use Case", hours: 16 },
+          { id: "design-db", label: "資料庫 Schema 設計", hours: 16 },
+          { id: "design-api", label: "API 規格設計", hours: 24 },
+          { id: "design-ui", label: "UI Mockup", hours: 32 },
         ],
       },
       {
         id: "dev",
         label: "開發",
         children: [
-          { id: "dev-frontend", label: "前端開發", hours: 80 },
-          { id: "dev-backend", label: "後端 API", hours: 72 },
-          { id: "dev-db", label: "資料庫設計", hours: 100 },
+          { id: "dev-foundation", label: "基礎建設與權限", hours: 40 },
+          { id: "dev-activity", label: "活動設定與排除時段", hours: 32 },
+          { id: "dev-draft", label: "草稿班表與推薦演算法", hours: 96 },
+          { id: "dev-official", label: "正式班表與檢視", hours: 48 },
+          { id: "dev-stats", label: "出勤統計與過往匯入", hours: 40 },
         ],
       },
       {
         id: "test",
         label: "測試",
         children: [
-          { id: "test-func", label: "功能測試", hours: 32 },
-          { id: "test-uat", label: "UAT 驗收", hours: 16 },
+          { id: "test-unit", label: "單元測試（Jest）", hours: 24 },
+          { id: "test-sit", label: "系統整合測試（SIT）", hours: 16 },
+          { id: "test-uat", label: "使用者驗收測試（UAT）", hours: 16 },
         ],
       },
       {
         id: "launch",
         label: "上線",
         children: [
-          { id: "launch-deploy", label: "環境部署", hours: 16 },
+          { id: "launch-docker", label: "Docker 部署設定", hours: 8 },
+          { id: "launch-golive", label: "Cutover 與 Go-Live", hours: 4 },
           { id: "launch-monitor", label: "上線後監控", hours: 8 },
         ],
       },
@@ -382,7 +389,7 @@ function HourCell({ id, value, onChange }: HourCellProps) {
 
 function tooltipText(status: HourStatus, h: number): string {
   if (status === "short") {
-    return `工時 ${h} h 低於 8 小時：拆得太細，管理成本可能超過產出價值，建議與相鄰任務合併。`;
+    return `工時 ${h} h 低於 8 小時：拆得太細，管理成本可能超過產出價值，建議與相鄰工作包合併。`;
   }
   if (status === "long") {
     return `工時 ${h} h 高於 80 小時：顆粒太大，風險被掩蓋、難估時追蹤，建議再向下拆解。`;
@@ -522,13 +529,13 @@ export default function WbsSimulator() {
           <span className="inline-block w-3 h-3 rounded-sm bg-blue-100 border border-blue-300" />
           <span>
             <span className="font-medium text-blue-700">彙總節點</span>
-            ：唯讀，顯示子任務工時加總
+            ：唯讀，顯示子工作包工時加總
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm bg-neutral-100 border border-neutral-300" />
           <span>
-            <span className="font-medium text-neutral-700">任務</span>
+            <span className="font-medium text-neutral-700">工作包</span>
             ：可估時、可刪除（刪除即移出範圍）
           </span>
         </span>
@@ -561,7 +568,7 @@ export default function WbsSimulator() {
                 style={{ height: `${ROW_H * 3}px` }}
               >
                 <CalendarDays size={24} />
-                <span className="text-sm">尚無未刪除的任務</span>
+                <span className="text-sm">尚無未刪除的工作包</span>
               </div>
             ) : (
               <AnimatePresence initial={false}>
@@ -873,7 +880,7 @@ export default function WbsSimulator() {
       {/* Summary footer */}
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span className="text-neutral-600">
-          全部未刪除任務合計：
+          全部未刪除工作包合計：
           <span className="ml-1 font-semibold text-blue-700">
             {totalHours} h
           </span>
