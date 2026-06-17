@@ -27,7 +27,7 @@ export type SeriesDef = {
 export const SERIES: SeriesDef[] = [
   {
     id: "pm-basics",
-    title: "專案管理基礎",
+    title: "專案管理筆記",
     eyebrow: "PROJECT MANAGEMENT",
     description:
       "從「在管什麼」到「怎麼做、誰來做、如何落地」—— 一條從核心觀念到團隊權責與落地工具的專案管理入門路徑。",
@@ -40,6 +40,7 @@ export const SERIES: SeriesDef[] = [
       "role-responsibility-rr",
       "waterfall-sdlc",
       "project-mgmt-tool-專案管理工具",
+      "專案管理系列第六章-需求分析",
     ],
   },
   {

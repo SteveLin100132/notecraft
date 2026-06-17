@@ -72,7 +72,7 @@ export default function TimeFieldsBottleneck() {
   const duration = prefersReduced ? 0 : 0.3;
 
   const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [mode, setMode] = useState<'merged' | 'split'>('split');
+  const [mode, setMode] = useState<'merged' | 'split'>('merged');
 
   const scenario = SCENARIOS[scenarioIndex];
   const total = (Object.values(scenario.days) as number[]).reduce((a, b) => a + b, 0);
