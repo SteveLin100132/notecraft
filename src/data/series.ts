@@ -62,7 +62,7 @@ export const SERIES: SeriesDef[] = [
       "AI 顧問陪跑 Workshop 會議紀錄：紀錄與 AI 顧問 Danny Workshop 會議中的 AI 技術交流與專案討論，包含對 AI 技術的理解、實驗過程、專案規劃與管理等面向的內容，作為未來 AI 專案參考與學習的資源。",
     accent: "navy",
     icon: "bolt",
-    slugs: ["ai-顧問陪跑-workshop-20260611"],
+    slugs: ["ai-顧問陪跑-workshop-20260611", "ai-顧問陪跑-workshop-20260618"],
   },
 ];
 

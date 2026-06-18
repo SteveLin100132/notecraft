@@ -10,16 +10,31 @@ export default {
       colors: {
         blue: {
           50: "var(--blue-50)",
+          100: "var(--blue-100)",
+          200: "var(--blue-200)",
+          300: "var(--blue-300)",
+          400: "var(--blue-400)",
           500: "var(--blue-500)",
           600: "var(--blue-600)",
           700: "var(--blue-700)",
           800: "var(--blue-800)",
           900: "var(--blue-900)",
+          950: "var(--blue-950)",
         },
         orange: {
           50: "var(--orange-50)",
+          100: "var(--orange-100)",
+          200: "var(--orange-200)",
+          300: "var(--orange-300)",
           400: "var(--orange-400)",
           500: "var(--orange-500)",
+          600: "var(--orange-600)",
+          700: "var(--orange-700)",
+        },
+        sky: {
+          400: "var(--sky-400)",
+          500: "var(--sky-500)",
+          600: "var(--sky-600)",
         },
         neutral: {
           50: "var(--neutral-50)",

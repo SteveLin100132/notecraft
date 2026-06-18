@@ -1,0 +1,153 @@
+---
+title: "AI 顧問陪跑 Workshop - 20260618"
+description: ""
+tags: ["AI 陪跑筆記", "會議紀錄"]
+createdAt: "2026-06-18"
+updatedAt: "2026-06-18"
+---
+
+# **軟體開發流程與 QA 討論**
+
+**日期／時間：** 2026 年 6 月 18 日上午 10:05（台北時間）
+
+## **整體摘要**
+
+團隊討論了軟體開發流程，重點包含任務分派、多 Session 處理、QA 與測試策略、Code Review，以及衝突解決。也討論到 API 版本管理、文件管理，以及建立明確規格與最佳實務的重要性，以維持開發與測試流程的一致性。
+
+團隊討論了專案文件、圖片託管需要公開存取所帶來的問題，以及如何整合 AI 工具來協助工作流程與 issue 管理。大家強調需要明確的任務負責人、簡化 issue 追蹤流程，並透過自動化提升效率。同時也提到安全性、版本控制與系統擴展性的考量。
+
+{/* @ai-visualize
+id: workshop-theme-constellation
+type: motion
+prompt: |
+  把這場 workshop 的整體摘要做成一張可互動的「主題星座圖 / topic map」。中央是「軟體開發流程與 QA」這個核心節點，向外輻射出本次會議涵蓋的幾大主題節點：任務分派與多 Session、QA 與測試策略、Code Review 與衝突解決、API 版本管理、文件與規格、AI 工具自動化、安全性與圖片公開存取、系統擴展性（K8s/AWS/GCP）。
+  用手寫 SVG 畫出 hub-and-spoke 的節點與連線，節點以 motion 依序浮現（stagger）。點擊任一主題節點時，旁邊（或節點下方）展開該主題的一行摘要說明，並高亮其連線；再點一次或點別的則收合。核心洞察：這場會議的本質是「如何讓多角色 / 多 Session 的開發協作，在效率與穩定之間取得平衡」，讓中央節點點出這句話。
+  節點依屬性分色（流程協作類用 blue、品質驗證類用 orange、基礎建設類用 sky / neutral），尊重 prefers-reduced-motion。
+caption: 本次 workshop 的主題星座圖 —— 點擊節點展開摘要
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import WorkshopThemeConstellation from '@/components/generated/workshop-theme-constellation'
+
+<GeneratedFrame id="workshop-theme-constellation" type="motion" prompt={"把這場 workshop 的整體摘要做成一張可互動的「主題星座圖 / topic map」。中央是「軟體開發流程與 QA」這個核心節點，向外輻射出本次會議涵蓋的幾大主題節點：任務分派與多 Session、QA 與測試策略、Code Review 與衝突解決、API 版本管理、文件與規格、AI 工具自動化、安全性與圖片公開存取、系統擴展性（K8s/AWS/GCP）。\n  用手寫 SVG 畫出 hub-and-spoke 的節點與連線，節點以 motion 依序浮現（stagger）。點擊任一主題節點時，旁邊（或節點下方）展開該主題的一行摘要說明，並高亮其連線；再點一次或點別的則收合。核心洞察：這場會議的本質是「如何讓多角色 / 多 Session 的開發協作，在效率與穩定之間取得平衡」，讓中央節點點出這句話。\n  節點依屬性分色（流程協作類用 blue、品質驗證類用 orange、基礎建設類用 sky / neutral），尊重 prefers-reduced-motion。"} caption="本次 workshop 的主題星座圖 —— 點擊節點展開摘要">
+  <WorkshopThemeConstellation client:visible />
+</GeneratedFrame>
+
+## **重點整理**
+
+- 任務分派與多 Session 管理很重要，團隊討論如何透過 sub-agent 與主 Session 控制，改善平行處理並降低任務之間的干擾。
+- QA 被視為需要獨立出來的必要流程，用來驗證任務是否完成，包含 Unit Test、End-to-End Test 與 Code Review；也建議建立檢查清單，甚至由專門的 QA sub-agent 負責。
+- PR 與衝突處理流程中，團隊提到可先在本地端解決衝突，再推上 GitHub；同時也注意到多分支與合併管理上的挑戰。
+- API 版本策略上，新 API 可採用 V2，同時保留 V1 以維持相容性，特別是 App 或舊版使用者仍可能依賴舊版本。
+- 文件與規格管理很重要，團隊討論了 template、共用文件，以及統一 coding style、interface 與 best practice 的必要性。
+- 專案文件中的圖片若要正常存取，可能需要公開連結，但這會帶來安全疑慮。
+- 團隊正在使用 AI 助理自動化 issue 建立、標籤分類與工作流程管理，以提升效率。
+- 團隊計畫使用 GitHub milestones 與 labels 來改善任務追蹤與優先順序管理。
+- 需要釐清文件產出與 issue 拆分的負責人，避免多人同時處理造成混亂。
+- 討論到系統擴展性與分散式架構，包括 Kubernetes、AWS、GCP 等雲端服務。
+
+{/* @ai-visualize
+id: key-points-clusters
+type: motion
+prompt: |
+  把這 10 個重點整理成一個可互動的「主題分群卡片牆」。先把這些 bullet 歸類成 4 大群組：
+  (1) 協作與流程 —— 任務分派與多 Session、PR 與衝突處理、釐清文件 / issue 負責人；
+  (2) 品質與驗證 —— QA 獨立流程 / Unit / E2E / Code Review / 檢查清單 / QA sub-agent；
+  (3) 版本與文件 —— API V1/V2 相容策略、文件與規格 template / coding style / best practice、圖片公開存取的安全疑慮；
+  (4) AI 自動化與擴展 —— AI 自動建立 issue / 標籤、GitHub milestones & labels、系統擴展性與分散式架構（K8s/AWS/GCP）。
+  上方做一排可點選的群組篩選 chip（pill 樣式，含 全部 / 四群），點選後下方卡片以 motion 過濾與重新排版（layout animation），未選群組淡出。每張卡片顯示該重點的精煉一句話 + 所屬群組色票標籤，並可用 lucide icon 點綴語意。核心洞察：十個零散的重點其實收斂成「協作、品質、版本文件、AI 與擴展」四條主線。尊重 prefers-reduced-motion。
+caption: 十個重點，四條主線 —— 點選群組篩選卡片
+status: generated
+*/}
+
+import KeyPointsClusters from '@/components/generated/key-points-clusters'
+
+<GeneratedFrame id="key-points-clusters" type="motion" prompt={"把這 10 個重點整理成一個可互動的「主題分群卡片牆」。先把這些 bullet 歸類成 4 大群組：\n  (1) 協作與流程 —— 任務分派與多 Session、PR 與衝突處理、釐清文件 / issue 負責人；\n  (2) 品質與驗證 —— QA 獨立流程 / Unit / E2E / Code Review / 檢查清單 / QA sub-agent；\n  (3) 版本與文件 —— API V1/V2 相容策略、文件與規格 template / coding style / best practice、圖片公開存取的安全疑慮；\n  (4) AI 自動化與擴展 —— AI 自動建立 issue / 標籤、GitHub milestones & labels、系統擴展性與分散式架構（K8s/AWS/GCP）。\n  上方做一排可點選的群組篩選 chip（pill 樣式，含 全部 / 四群），點選後下方卡片以 motion 過濾與重新排版（layout animation），未選群組淡出。每張卡片顯示該重點的精煉一句話 + 所屬群組色票標籤，並可用 lucide icon 點綴語意。核心洞察：十個零散的重點其實收斂成「協作、品質、版本文件、AI 與擴展」四條主線。尊重 prefers-reduced-motion。"} caption="十個重點，四條主線 —— 點選群組篩選卡片">
+  <KeyPointsClusters client:visible />
+</GeneratedFrame>
+
+## **行動項目**
+
+- 整合並優化任務分派與 Session 管理流程，支援平行開發並減少衝突。
+- 建立獨立 QA 流程，明確定義檢查清單與負責範圍，並評估是否由專門 sub-agent 執行。
+- 制定標準化 PR 與 Code Review 流程，包含本地端衝突解決與 AI 輔助建立 PR。
+- 維護並更新 API 版本策略，確保新舊版本能平順過渡並保有向後相容性。
+- 建立統一文件與 coding standards，提升團隊實作一致性。
+- 指派特定成員負責文件產出與 issue 管理。
+- 整合 AI 工具，自動化 issue 標籤與工作流程。
+- 建立標籤與 milestone 的標準。
+- 先規劃簡化版 MVP 工作流程，避免一開始過度複雜化。
+
+{/* @ai-visualize
+id: action-roadmap
+type: motion
+prompt: |
+  把這 9 個行動項目做成一個可互動的「MVP-first 落地路線圖 / 看板」，呼應最後一條「先規劃簡化版 MVP，避免一開始過度複雜化」的精神。把行動項目沿三個推進階段排列：
+  Phase 1 先做 MVP（建立獨立 QA 流程與檢查清單、標準化 PR 與 Code Review 流程、指派文件與 issue 負責人）、
+  Phase 2 標準化（建立統一文件與 coding standards、維護 API 版本策略、建立標籤與 milestone 標準）、
+  Phase 3 自動化與規模化（整合並優化任務分派與 Session 管理、整合 AI 工具自動化 issue 標籤與工作流程）。
+  做成水平三欄看板卡片，上方用 motion 的 stepper / 進度條呈現「從簡化到擴張」的推進；點擊某個階段時高亮該欄、其餘淡化，卡片以 stagger 浮現。每張卡片是一個行動項目的精煉句，附 lucide icon 與負責感（可放一個狀態 pill）。核心洞察：不要一次到位，先 MVP 再標準化再自動化。尊重 prefers-reduced-motion。
+caption: 從簡化到擴張的三階段落地路線 —— 點擊階段聚焦
+status: generated
+*/}
+
+import ActionRoadmap from '@/components/generated/action-roadmap'
+
+<GeneratedFrame id="action-roadmap" type="motion" prompt={"把這 9 個行動項目做成一個可互動的「MVP-first 落地路線圖 / 看板」，呼應最後一條「先規劃簡化版 MVP，避免一開始過度複雜化」的精神。把行動項目沿三個推進階段排列：\n  Phase 1 先做 MVP（建立獨立 QA 流程與檢查清單、標準化 PR 與 Code Review 流程、指派文件與 issue 負責人）、\n  Phase 2 標準化（建立統一文件與 coding standards、維護 API 版本策略、建立標籤與 milestone 標準）、\n  Phase 3 自動化與規模化（整合並優化任務分派與 Session 管理、整合 AI 工具自動化 issue 標籤與工作流程）。\n  做成水平三欄看板卡片，上方用 motion 的 stepper / 進度條呈現「從簡化到擴張」的推進；點擊某個階段時高亮該欄、其餘淡化，卡片以 stagger 浮現。每張卡片是一個行動項目的精煉句，附 lucide icon 與負責感（可放一個狀態 pill）。核心洞察：不要一次到位，先 MVP 再標準化再自動化。尊重 prefers-reduced-motion。"} caption="從簡化到擴張的三階段落地路線 —— 點擊階段聚焦">
+  <ActionRoadmap client:visible />
+</GeneratedFrame>
+
+## **待釐清問題**
+
+- 如何設計多角色、多 Session 的任務分派，才能兼顧效率與穩定性？
+- QA 與測試要自動化到什麼程度，特別是複雜的 End-to-End 測試情境？
+- 文件應該如何存放、版本控管與維護，尤其在涉及外部服務或雲端工具時？
+- API 版本淘汰與遷移策略應如何規劃？
+- 在 commit、review、衝突解決等流程中，AI 自動化與人工把關之間應如何取捨？
+
+{/* @ai-visualize
+id: clarify-tension-dials
+type: motion
+prompt: |
+  把這 5 個「待釐清問題」做成一組可互動的「決策光譜 / tension dial」卡片，每個問題其實是在一條光譜上找平衡點，讓讀者親身感受張力而非只是讀問句。五個問題與其兩極：
+  (1) 多角色 / 多 Session 任務分派 → 極致效率 ↔ 穩定可控；
+  (2) QA 與測試自動化程度（尤其 E2E）→ 全自動 ↔ 人工把關；
+  (3) 文件存放與版本控管（涉及外部 / 雲端）→ 集中統一 ↔ 分散靈活；
+  (4) API 版本淘汰與遷移 → 積極淘汰舊版 ↔ 長期相容；
+  (5) commit / review / 衝突解決的 AI 自動化 → AI 主導 ↔ 人工把關。
+  每張卡片是一條可拖動的 slider（手寫 SVG 軌道 + motion 滑塊），兩端各有標籤，中間顯示問題標題；拖動滑塊時即時顯示「偏向某一端的取捨提示文字」（例如偏自動化→速度快但風險升高；偏人工→可靠但慢）。預設停在中間並有「待團隊決定」的標記。核心洞察：這些都不是是非題，而是要團隊共同選定的平衡點。尊重 prefers-reduced-motion，並可鍵盤操作。
+caption: 五個待釐清問題 —— 拖動滑桿感受每個決策的取捨光譜
+status: generated
+*/}
+
+import ClarifyTensionDials from '@/components/generated/clarify-tension-dials'
+
+<GeneratedFrame id="clarify-tension-dials" type="motion" prompt={"把這 5 個「待釐清問題」做成一組可互動的「決策光譜 / tension dial」卡片，每個問題其實是在一條光譜上找平衡點，讓讀者親身感受張力而非只是讀問句。五個問題與其兩極：\n  (1) 多角色 / 多 Session 任務分派 → 極致效率 ↔ 穩定可控；\n  (2) QA 與測試自動化程度（尤其 E2E）→ 全自動 ↔ 人工把關；\n  (3) 文件存放與版本控管（涉及外部 / 雲端）→ 集中統一 ↔ 分散靈活；\n  (4) API 版本淘汰與遷移 → 積極淘汰舊版 ↔ 長期相容；\n  (5) commit / review / 衝突解決的 AI 自動化 → AI 主導 ↔ 人工把關。\n  每張卡片是一條可拖動的 slider（手寫 SVG 軌道 + motion 滑塊），兩端各有標籤，中間顯示問題標題；拖動滑塊時即時顯示「偏向某一端的取捨提示文字」（例如偏自動化→速度快但風險升高；偏人工→可靠但慢）。預設停在中間並有「待團隊決定」的標記。核心洞察：這些都不是是非題，而是要團隊共同選定的平衡點。尊重 prefers-reduced-motion，並可鍵盤操作。"} caption="五個待釐清問題 —— 拖動滑桿感受每個決策的取捨光譜">
+  <ClarifyTensionDials client:visible />
+</GeneratedFrame>
+
+## **開放問題**
+
+- 如何在圖片公開存取與安全需求之間取得平衡？
+- 如何有效使用 AI 來拆分與追蹤 issue？
+- 如何在維持易用性的同時，確保系統具備可擴展性？
+
+{/* @ai-visualize
+id: open-tradeoff-scales
+type: motion
+prompt: |
+  把這 3 個「開放問題」做成可互動的「天秤 / trade-off balance」元件，每個開放問題都是一組難以兼得的兩難，用會傾斜的天秤放大張力。三組兩難：
+  (1) 圖片公開存取 ↔ 安全需求；
+  (2) AI 拆分 / 追蹤 issue 的效率 ↔ 拆分品質與正確性（有效使用 AI）；
+  (3) 系統易用性 ↔ 可擴展性。
+  做法：用手寫 SVG 畫一座天秤（橫樑 + 兩個秤盤），讀者可用 slider 或左右按鈕調整偏好，天秤以 motion 即時傾斜，並在兩盤顯示對應代價文字（例如偏公開存取→方便引用但暴露風險；偏安全→受控但取用麻煩）。可用 tab 或左右切換在三組兩難間切換。核心洞察：這些是沒有標準答案的開放取捨，重點是讓團隊意識到天秤兩端都有代價。尊重 prefers-reduced-motion。
+caption: 三組沒有標準答案的兩難 —— 撥動天秤，兩端都有代價
+status: generated
+*/}
+
+import OpenTradeoffScales from '@/components/generated/open-tradeoff-scales'
+
+<GeneratedFrame id="open-tradeoff-scales" type="motion" prompt={"把這 3 個「開放問題」做成可互動的「天秤 / trade-off balance」元件，每個開放問題都是一組難以兼得的兩難，用會傾斜的天秤放大張力。三組兩難：\n  (1) 圖片公開存取 ↔ 安全需求；\n  (2) AI 拆分 / 追蹤 issue 的效率 ↔ 拆分品質與正確性（有效使用 AI）；\n  (3) 系統易用性 ↔ 可擴展性。\n  做法：用手寫 SVG 畫一座天秤（橫樑 + 兩個秤盤），讀者可用 slider 或左右按鈕調整偏好，天秤以 motion 即時傾斜，並在兩盤顯示對應代價文字（例如偏公開存取→方便引用但暴露風險；偏安全→受控但取用麻煩）。可用 tab 或左右切換在三組兩難間切換。核心洞察：這些是沒有標準答案的開放取捨，重點是讓團隊意識到天秤兩端都有代價。尊重 prefers-reduced-motion。"} caption="三組沒有標準答案的兩難 —— 撥動天秤，兩端都有代價">
+  <OpenTradeoffScales client:visible />
+</GeneratedFrame>
