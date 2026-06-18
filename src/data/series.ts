@@ -64,6 +64,16 @@ export const SERIES: SeriesDef[] = [
     icon: "bolt",
     slugs: ["ai-顧問陪跑-workshop-20260611", "ai-顧問陪跑-workshop-20260618"],
   },
+  {
+    id: "ai-content-generation-demo",
+    title: "AI 內容生成演示系列",
+    eyebrow: "AI CONTENT GENERATION DEMO",
+    description:
+      "AI 內容生成演示系列：展示 AI 在內容生成方面的應用與實驗，包含文本、圖像、音頻等多種媒介的生成技術，作為未來 AI 內容生成參考與學習的資源。",
+    accent: "navy",
+    icon: "layers",
+    slugs: ["ai-內容生成演示系列-訂單狀態機"],
+  },
 ];
 
 // ── accent → 視覺 token（CSS 變數字串，astro 與 island 共用）──
