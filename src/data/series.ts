@@ -41,6 +41,7 @@ export const SERIES: SeriesDef[] = [
       "waterfall-sdlc",
       "project-mgmt-tool-專案管理工具",
       "專案管理系列第六章-需求分析",
+      "專案管理系列第七章-規格撰寫",
     ],
   },
   {
