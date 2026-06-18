@@ -3,7 +3,7 @@ title: "AI 顧問陪跑 Workshop - 20260611"
 description: ""
 tags: ["AI 陪跑筆記", "會議紀錄"]
 createdAt: "2026-06-17"
-updatedAt: "2026-06-17"
+updatedAt: "2026-06-18"
 ---
 
 # **AI 導入與專案／產品管理討論紀錄**
@@ -16,6 +16,26 @@ updatedAt: "2026-06-17"
 本次討論聚焦在如何把 AI 導入既有工程與產品開發流程中，包含 PRD／規格文件撰寫方式、AI 產出 Prototype 的可靠性、Git Flow 與版本控管、AI Agent／Skill／Sub-agent 的使用邊界，以及新 HR 系統的技術架構選型。
 
 整體共識是：AI 可以大幅加速規格整理、Prototype 產出、測試腳本撰寫與初步開發，但不能把需求判斷、驗收與架構決策完全交給 AI。AI 容易根據常見模式「猜」出看似合理的結果，也容易過度設計，因此規格、驗收標準、Git 紀錄與人工驗證會變得更重要。
+
+{/* @ai-visualize
+id: bottleneck-shift
+type: motion
+prompt: |
+  互動式「瓶頸轉移」槓桿。核心洞察：AI 導入不是把工程師/PM 的判斷拿掉，而是把產出速度提高，因此真正的瓶頸會從「寫不寫得出來」轉移到「規格是否清楚、測試是否完整、驗收是否可信、Git 紀錄是否可追溯」。
+  讀者拖動一根「AI 投入程度」滑桿（從 0% 純手工 到 100% 高度依賴 AI）。隨著滑桿往右：
+  - 左側「寫程式/產出」這個傳統瓶頸的壓力條快速縮小、淡出，標註「不再是瓶頸」。
+  - 右側四個新瓶頸（規格清晰度、測試完整度、驗收可信度、Git 可追溯性）的壓力條逐漸升高、變紅，成為新的關鍵路徑。
+  用 motion 平滑過渡長條高度與顏色，滑桿到右端時右側四項閃一下強調。底部一句動態結語呼應目前狀態。
+caption: 拖動滑桿感受瓶頸如何從「寫得出來」轉移到「規格・測試・驗收・追溯」
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import BottleneckShift from '@/components/generated/bottleneck-shift'
+
+<GeneratedFrame id="bottleneck-shift" type="motion" prompt={"互動式「瓶頸轉移」槓桿。核心洞察：AI 導入不是把工程師/PM 的判斷拿掉，而是把產出速度提高，因此真正的瓶頸會從「寫不寫得出來」轉移到「規格是否清楚、測試是否完整、驗收是否可信、Git 紀錄是否可追溯」。\n  讀者拖動一根「AI 投入程度」滑桿（從 0% 純手工 到 100% 高度依賴 AI）。隨著滑桿往右：\n  - 左側「寫程式/產出」這個傳統瓶頸的壓力條快速縮小、淡出，標註「不再是瓶頸」。\n  - 右側四個新瓶頸（規格清晰度、測試完整度、驗收可信度、Git 可追溯性）的壓力條逐漸升高、變紅，成為新的關鍵路徑。\n  用 motion 平滑過渡長條高度與顏色，滑桿到右端時右側四項閃一下強調。底部一句動態結語呼應目前狀態。"} caption="拖動滑桿感受瓶頸如何從「寫得出來」轉移到「規格・測試・驗收・追溯」">
+  <BottleneckShift client:visible />
+</GeneratedFrame>
 
 ## **二、重點整理**
 
@@ -33,6 +53,25 @@ updatedAt: "2026-06-17"
 - 初版自動推薦排班邏輯，讓人員分配盡量平均
 
 初步測試結果顯示，完整 PRD 丟給 AI 後，可以產出約九成符合預期的設計；若只用一句較模糊的需求，AI 也能產出約八成可用的功能。但這不代表詳細規格沒有價值，因為這類排班系統屬於常見模式，AI 可以靠通用知識猜出大致結構。若換成薪資、多國法規、台灣在地勞動規則等複雜情境，模糊需求會更容易偏離預期。
+
+{/* @ai-visualize
+id: prd-accuracy-matrix
+type: chart
+prompt: |
+  互動式「規格清晰度 × 領域複雜度 → AI 準確度」矩陣。核心洞察：詳細規格的價值，要看領域是否常見——常見模式（如排班）AI 靠通用知識就能猜得很準，模糊需求也有約八成；但複雜在地情境（薪資、多國法規、台灣勞動規則）模糊需求會大幅偏離。
+  讓讀者用兩個切換鈕互動：
+  - 規格清晰度：「完整 PRD」 vs 「一句模糊需求」
+  - 領域複雜度：「常見模式（排班）」 vs 「複雜在地（薪資/多國法規）」
+  四種組合各對應一個 AI 準確度數值，用一個大型百分比 + 一條動畫填充的進度環/長條呈現。已知錨點：完整PRD×常見≈90%、模糊×常見≈80%、完整PRD×複雜≈中高、模糊×複雜≈明顯偏低（標紅，附「容易偏離預期」警語）。切換時數值與顏色用 motion 平滑過渡。可同時用一個 2×2 小網格顯示四格落點，目前選中的格子高亮。
+caption: 切換兩個維度，看詳細規格在不同領域的真正價值
+status: generated
+*/}
+
+import PrdAccuracyMatrix from '@/components/generated/prd-accuracy-matrix'
+
+<GeneratedFrame id="prd-accuracy-matrix" type="chart" prompt={"互動式「規格清晰度 × 領域複雜度 → AI 準確度」矩陣。核心洞察：詳細規格的價值，要看領域是否常見——常見模式（如排班）AI 靠通用知識就能猜得很準，模糊需求也有約八成；但複雜在地情境（薪資、多國法規、台灣勞動規則）模糊需求會大幅偏離。\n  讓讀者用兩個切換鈕互動：\n  - 規格清晰度：「完整 PRD」 vs 「一句模糊需求」\n  - 領域複雜度：「常見模式（排班）」 vs 「複雜在地（薪資/多國法規）」\n  四種組合各對應一個 AI 準確度數值，用一個大型百分比 + 一條動畫填充的進度環/長條呈現。已知錨點：完整PRD×常見≈90%、模糊×常見≈80%、完整PRD×複雜≈中高、模糊×複雜≈明顯偏低（標紅，附「容易偏離預期」警語）。切換時數值與顏色用 motion 平滑過渡。可同時用一個 2×2 小網格顯示四格落點，目前選中的格子高亮。"} caption="切換兩個維度，看詳細規格在不同領域的真正價值">
+  <PrdAccuracyMatrix client:visible />
+</GeneratedFrame>
 
 ### **2. AI 產出的風險：猜測、偏歐美資料、過度設計**
 
@@ -71,6 +110,26 @@ updatedAt: "2026-06-17"
 
 原因是 Agent loop 成本難預估，正式營運後如果每個流程都靠 Agent 自己查資料、推理、重試，API 成本與穩定性都會失控。比較合理的方式是：Prototype 階段可以先用 Agent 快速驗證；正式產品則要逐步拆成可程式化節點，或縮小成單次 LLM call 可以完成的明確任務。
 
+{/* @ai-visualize
+id: agent-boundary
+type: free
+prompt: |
+  互動式「Skill / Sub-agent / Agent loop 角色分工與適用邊界」走查。核心洞察：三者定位不同，而 Agent loop 雖適合 MVP/Prototype 快速驗證，卻因成本難預估、穩定性差，不適合直接當正式產品的核心執行方式——正式產品要逐步拆成可程式化節點或單次 LLM call。
+  用 tab 或並排卡片呈現三個角色，每個附定位、適用任務、邊界：
+  - Skill：定義固定流程、檢查規則、工作方法
+  - Sub-agent：預先設定好的角色，處理特定類型任務（資料蒐集、局部任務、獨立檢查，避免污染主 Session context）
+  - Agent loop：適合 MVP/Prototype 快速驗證，不適合正式產品核心
+  另外用一條「成本 vs 階段」的示意：左邊 Prototype 階段 Agent loop 成本可接受（綠），往右到 Production 階段成本曲線陡升、失控（紅），並標出「逐步拆成可程式化節點 / 單次 LLM call」作為收斂方向。切換 tab 或 hover 時用 motion 帶出對應說明。
+caption: 三種角色各司其職，Agent loop 適合驗證、不適合當正式核心
+status: generated
+*/}
+
+import AgentBoundary from '@/components/generated/agent-boundary'
+
+<GeneratedFrame id="agent-boundary" type="free" prompt={"互動式「Skill / Sub-agent / Agent loop 角色分工與適用邊界」走查。核心洞察：三者定位不同，而 Agent loop 雖適合 MVP/Prototype 快速驗證，卻因成本難預估、穩定性差，不適合直接當正式產品的核心執行方式——正式產品要逐步拆成可程式化節點或單次 LLM call。\n  用 tab 或並排卡片呈現三個角色，每個附定位、適用任務、邊界：\n  - Skill：定義固定流程、檢查規則、工作方法\n  - Sub-agent：預先設定好的角色，處理特定類型任務（資料蒐集、局部任務、獨立檢查，避免污染主 Session context）\n  - Agent loop：適合 MVP/Prototype 快速驗證，不適合正式產品核心\n  另外用一條「成本 vs 階段」的示意：左邊 Prototype 階段 Agent loop 成本可接受（綠），往右到 Production 階段成本曲線陡升、失控（紅），並標出「逐步拆成可程式化節點 / 單次 LLM call」作為收斂方向。切換 tab 或 hover 時用 motion 帶出對應說明。"} caption="三種角色各司其職，Agent loop 適合驗證、不適合當正式核心">
+  <AgentBoundary client:visible />
+</GeneratedFrame>
+
 ### **5. Hook 與版本控管**
 
 有討論到用 Hook 自動處理版本號、文件更新時間與更新日誌。
@@ -101,6 +160,29 @@ updatedAt: "2026-06-17"
 
 網頁或介面流程可以考慮用 Playwright 撰寫自動化測試腳本，後續整合到 CI/CD。AI 可以協助產生腳本，但最後結果仍需人工確認。
 
+{/* @ai-visualize
+id: test-verify-flow
+type: timeline
+prompt: |
+  互動式「測試與驗證流程」逐步走查。核心洞察：AI 可以加速開發，但驗證責任不能消失——尤其要警惕「看起來有測、其實沒涵蓋核心情境」的假測試，因此測試通過不等於需求正確，驗收情境必須從規格階段就先定義清楚。
+  做成一條可點擊推進 / stepper 的 6 步流程（用 motion 逐步揭露，不要一次全畫出）：
+  1. 需求與規格先明確化
+  2. AI 協助產生開發文件或 Issue
+  3. AI 開發功能
+  4. 單元測試與整合測試先跑
+  5. 用另一個 Session / Agent 做交叉檢查
+  6. 人工 End-to-End 驗證
+  在步驟 4 附近放一個醒目的警示徽章（用 lucide-react 的 TriangleAlert）標註「測試通過 ≠ 需求正確：當心看起來有測、其實沒涵蓋核心情境」。用一條從「規格」拉到「驗收」的虛線回扣，強調驗收情境要從規格階段就定義。每步有「人工把關」或「AI 可協助」的標記區分責任歸屬。
+caption: 逐步點開六步驗證流程——AI 加速開發，但驗證責任不能消失
+status: generated
+*/}
+
+import TestVerifyFlow from '@/components/generated/test-verify-flow'
+
+<GeneratedFrame id="test-verify-flow" type="timeline" prompt={"互動式「測試與驗證流程」逐步走查。核心洞察：AI 可以加速開發，但驗證責任不能消失——尤其要警惕「看起來有測、其實沒涵蓋核心情境」的假測試，因此測試通過不等於需求正確，驗收情境必須從規格階段就先定義清楚。\n  做成一條可點擊推進 / stepper 的 6 步流程（用 motion 逐步揭露，不要一次全畫出）：\n  1. 需求與規格先明確化\n  2. AI 協助產生開發文件或 Issue\n  3. AI 開發功能\n  4. 單元測試與整合測試先跑\n  5. 用另一個 Session / Agent 做交叉檢查\n  6. 人工 End-to-End 驗證\n  在步驟 4 附近放一個醒目的警示徽章（用 lucide-react 的 TriangleAlert）標註「測試通過 ≠ 需求正確：當心看起來有測、其實沒涵蓋核心情境」。用一條從「規格」拉到「驗收」的虛線回扣，強調驗收情境要從規格階段就定義。每步有「人工把關」或「AI 可協助」的標記區分責任歸屬。"} caption="逐步點開六步驗證流程——AI 加速開發，但驗證責任不能消失">
+  <TestVerifyFlow client:visible />
+</GeneratedFrame>
+
 ### **7. Issue、Git Flow 與文件關聯**
 
 討論中認為，在 AI 開發時代，Git Flow 反而更重要。
@@ -114,6 +196,26 @@ updatedAt: "2026-06-17"
 - Commit message 可以讓 AI 協助寫清楚
 - Spec 文件偏向人看的依據；Issue、PR、Commit 則是 AI 與工程流程追溯的重要資料
 - 文件內可建立詞彙表與超連結，降低名詞歧義
+
+{/* @ai-visualize
+id: gitflow-trace
+type: diagram
+prompt: |
+  互動式「AI 時代為何 Git Flow 更重要」追溯路徑對照。核心洞察：AI 不一定會主動翻過往 Spec 文件，但比較可能讀 Codebase、Commit、PR 與 Issue——所以把需求、修改原因、技術決策留在 Issue 與 Commit message 裡，未來 AI 要追查「這段程式為什麼被改」會更容易找到脈絡。
+  畫一個「AI 想理解某段程式的脈絡」的追溯圖：中央是一段程式碼，往外連到幾個可能的資料來源節點：Spec 文件、Codebase、Commit message、PR、Issue。
+  用兩種視覺狀態對照 AI 的取用傾向：
+  - Spec 文件：畫成虛線/灰階、低不透明、標「AI 不一定會主動翻」（不太走的路徑）
+  - Codebase / Commit / PR / Issue：實線、品牌色高亮、有動畫流動的連線，標「AI 比較會讀」
+  可讓讀者點某個來源節點，高亮它通往程式碼的路徑並顯示一句說明（例如 Issue：背景/需求/技術規格/驗收標準）。底部一句結語：把脈絡留在 Git，而不是只留在 Spec。用手寫 SVG 畫節點與連線，motion 驅動連線流動。
+caption: AI 較會讀 Commit／PR／Issue 而非翻 Spec——把脈絡留在 Git 裡
+status: generated
+*/}
+
+import GitflowTrace from '@/components/generated/gitflow-trace'
+
+<GeneratedFrame id="gitflow-trace" type="diagram" prompt={"互動式「AI 時代為何 Git Flow 更重要」追溯路徑對照。核心洞察：AI 不一定會主動翻過往 Spec 文件，但比較可能讀 Codebase、Commit、PR 與 Issue——所以把需求、修改原因、技術決策留在 Issue 與 Commit message 裡，未來 AI 要追查「這段程式為什麼被改」會更容易找到脈絡。\n  畫一個「AI 想理解某段程式的脈絡」的追溯圖：中央是一段程式碼，往外連到幾個可能的資料來源節點：Spec 文件、Codebase、Commit message、PR、Issue。\n  用兩種視覺狀態對照 AI 的取用傾向：\n  - Spec 文件：畫成虛線/灰階、低不透明、標「AI 不一定會主動翻」（不太走的路徑）\n  - Codebase / Commit / PR / Issue：實線、品牌色高亮、有動畫流動的連線，標「AI 比較會讀」\n  可讓讀者點某個來源節點，高亮它通往程式碼的路徑並顯示一句說明（例如 Issue：背景/需求/技術規格/驗收標準）。底部一句結語：把脈絡留在 Git，而不是只留在 Spec。用手寫 SVG 畫節點與連線，motion 驅動連線流動。"} caption="AI 較會讀 Commit／PR／Issue 而非翻 Spec——把脈絡留在 Git 裡">
+  <GitflowTrace client:visible />
+</GeneratedFrame>
 
 ### **8. 專案管理模式：Waterfall、Agile 與混合模式**
 
@@ -193,6 +295,26 @@ updatedAt: "2026-06-17"
 - LLM 任務或耗時任務應使用 Queue 控制，例如 BullMQ
 - 環境至少應有兩套，理想是 dev／staging／production 三套
 - 部署目前可依既有 GCP 或 VPS／Docker 流程評估
+
+{/* @ai-visualize
+id: hr-architecture
+type: diagram
+prompt: |
+  互動式「新 HR 系統技術架構分層圖」。核心洞察：先採單體架構、依 Domain 劃分模組，未來再視情況拆微服務；每一層都已有初步選型傾向。
+  畫一個由上而下的分層架構圖（手寫 SVG 方塊），讀者點擊或 hover 每一層可展開該層的技術選型清單：
+  - 前端層：React 生態系、TypeScript、Tailwind CSS、shadcn/ui、Zod（前後端一致驗證）、Vitest、Playwright(E2E)。附註：API 存取抽象成一層、不要把 API call 與狀態更新混在同一層；TanStack Query 處理 loading/success/error/cache 但有學習成本；AI 產 React 易亂加 hook，需規範。Storybook 視情況。
+  - 後端層：NestJS、TypeScript、Zod 驗證、Pino(logging)、JWT/OIDC(認證)、ABAC(授權，非只 RBAC)、Helmet(安全 header)。
+  - 資料 / 基礎設施層：PostgreSQL（主候選，未來可評估 pgvector）、ORM 待評估(Prisma / Knex / 原生 SQL)、Redis(快取/Queue)、BullMQ(Queue 控耗時/LLM 任務)、dev/staging/production 三套環境、GCP 或 VPS/Docker 部署。
+  整體用「單體 + Domain 模組化」當外框，旁邊用一個小標示「未來再拆微服務」的延伸箭頭。展開/收合用 motion，選中層用品牌色高亮、其餘淡化。每層左側放一個 lucide-react icon（前端、後端、資料庫）。
+caption: 點開每一層看技術選型——單體起步、依 Domain 模組化、未來再拆微服務
+status: generated
+*/}
+
+import HrArchitecture from '@/components/generated/hr-architecture'
+
+<GeneratedFrame id="hr-architecture" type="diagram" prompt={"互動式「新 HR 系統技術架構分層圖」。核心洞察：先採單體架構、依 Domain 劃分模組，未來再視情況拆微服務；每一層都已有初步選型傾向。\n  畫一個由上而下的分層架構圖（手寫 SVG 方塊），讀者點擊或 hover 每一層可展開該層的技術選型清單：\n  - 前端層：React 生態系、TypeScript、Tailwind CSS、shadcn/ui、Zod（前後端一致驗證）、Vitest、Playwright(E2E)。附註：API 存取抽象成一層、不要把 API call 與狀態更新混在同一層；TanStack Query 處理 loading/success/error/cache 但有學習成本；AI 產 React 易亂加 hook，需規範。Storybook 視情況。\n  - 後端層：NestJS、TypeScript、Zod 驗證、Pino(logging)、JWT/OIDC(認證)、ABAC(授權，非只 RBAC)、Helmet(安全 header)。\n  - 資料 / 基礎設施層：PostgreSQL（主候選，未來可評估 pgvector）、ORM 待評估(Prisma / Knex / 原生 SQL)、Redis(快取/Queue)、BullMQ(Queue 控耗時/LLM 任務)、dev/staging/production 三套環境、GCP 或 VPS/Docker 部署。\n  整體用「單體 + Domain 模組化」當外框，旁邊用一個小標示「未來再拆微服務」的延伸箭頭。展開/收合用 motion，選中層用品牌色高亮、其餘淡化。每層左側放一個 lucide-react icon（前端、後端、資料庫）。"} caption="點開每一層看技術選型——單體起步、依 Domain 模組化、未來再拆微服務">
+  <HrArchitecture client:visible />
+</GeneratedFrame>
 
 ### **11. 監控、錯誤處理與資安**
 
