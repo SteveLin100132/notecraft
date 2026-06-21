@@ -187,6 +187,64 @@ function buildTabs(node: MdNode, uid: number, file: VFileLike): void {
   node.children = [tablist, ...panels];
 }
 
+/**
+ * Code annotations（PRD §7.1 / task-20）：`:::annotate` 容器顯式配對「程式碼區塊 + 緊接的編號清單」。
+ *
+ * 程式碼中的 `(n)!` sentinel 由 EC 外掛（ec-plugin-annotations）轉為標記節點；本處只負責：
+ *  - 把容器標成 `.nc-annotate`（帶 uid）
+ *  - 把其中的有序清單標成 `.nc-anno-list`，每個項目給 `id` / `data-anno`，供標記以 aria-controls 對應
+ * 互動（點擊標記展開對應說明、Esc 關閉）由筆記頁 vanilla JS 完成；JS 未載入時清單照常依序顯示（漸進增強）。
+ */
+function buildAnnotate(node: MdNode, uid: number, file: VFileLike): void {
+  const children = node.children || [];
+  const code = children.find((c) => c.type === "code");
+  const list = children.find((c) => c.type === "list");
+
+  node.data = node.data || {};
+  node.data.hName = "div";
+
+  if (!code || !list) {
+    // 缺程式碼或缺清單 → 退化為一般容器（不破壞內容），並於 build log 警示。
+    console.warn(
+      `[notecraft-directives] :::annotate 需同時含一個程式碼區塊與一個編號清單，已退化為一般區塊${file.path ? `（${file.path}）` : ""}`,
+    );
+    node.data.hProperties = { className: ["nc-annotate", "nc-annotate--degraded"] };
+    return;
+  }
+
+  node.data.hProperties = {
+    className: ["nc-annotate"],
+    "data-nc-annotate": String(uid),
+  };
+
+  // 標記數（程式碼中的 `(n)!` sentinel）與清單項數不一致時警示（不中斷 build）。
+  const markerCount = ((code.value || "").match(/\(\d+\)!/g) || []).length;
+  const itemCount = (list.children || []).length;
+  if (markerCount !== itemCount) {
+    console.warn(
+      `[notecraft-directives] :::annotate 標記數（${markerCount}）與說明清單項數（${itemCount}）不一致${file.path ? `（${file.path}）` : ""}`,
+    );
+  }
+
+  // 標註清單與各項目；n 為 1-based，對應程式碼中的 `(n)!`。
+  list.data = list.data || {};
+  list.data.hName = "ol";
+  list.data.hProperties = {
+    ...(list.data.hProperties || {}),
+    className: ["nc-anno-list"],
+  };
+  (list.children || []).forEach((item, i) => {
+    const n = i + 1;
+    item.data = item.data || {};
+    item.data.hProperties = {
+      ...(item.data.hProperties || {}),
+      id: `nc-anno-${uid}-${n}`,
+      className: ["nc-anno-item"],
+      "data-anno": String(n),
+    };
+  });
+}
+
 function buildTooltip(node: MdNode, uid: number, file: VFileLike): void {
   const attrs = node.attributes || {};
   const content = (attrs.content || "").trim();
@@ -266,6 +324,11 @@ export default function remarkNotecraftDirectives() {
         if (child.type === "containerDirective" && ADMONITION_TYPES.has(child.name || "")) {
           walk(child); // 先處理內層巢狀指令
           buildAdmonition(child);
+          continue;
+        }
+        if (child.type === "containerDirective" && child.name === "annotate") {
+          walk(child); // 處理清單項目內可能的巢狀指令（程式碼節點不受影響）
+          buildAnnotate(child, counter++, file);
           continue;
         }
         if (child.type === "textDirective" && child.name === "tip") {

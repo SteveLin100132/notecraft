@@ -83,18 +83,118 @@ img { max-width: 100%; display: block; }
   font-size: var(--text-md); color: var(--blue-900); font-weight: 500; line-height: 1.8;
 }
 .nc-prose blockquote p { margin: 0; font-size: inherit; color: inherit; }
-.nc-prose pre {
+/* 裸 <pre>（極少數：MDX 原生 HTML，未走圍欄程式碼塊）沿用簡潔淺色樣式；
+   圍欄程式碼一律由 .nc-cb 程式碼塊接管（見下方 Code blocks 區）。 */
+.nc-prose pre:not(.nc-cb__pre) {
   margin: 20px 0; padding: 16px 18px; overflow: auto;
   font-family: var(--font-mono); font-size: 13px; line-height: 1.75;
-  color: #d6e4f5; background: #0b1f3e;
+  color: var(--neutral-800); background: var(--neutral-50);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-lg);
 }
-.nc-prose pre code { font-family: var(--font-mono); color: inherit; background: none; }
+.nc-prose pre:not(.nc-cb__pre) code { font-family: var(--font-mono); color: inherit; background: none; }
 .nc-prose :not(pre) > code {
   font-family: var(--font-mono); font-size: 0.9em; padding: 2px 6px;
   background: var(--neutral-100); color: var(--blue-800); border-radius: var(--radius-xs);
 }
+
+/* ── Code blocks（design_handoff_mdx_codeblock）──────────────────
+   白底 + 固定行號欄 + 整行高亮 + 複製鈕。色彩全部對應 design-system token，不硬編色碼。
+   行高關鍵：行號欄與程式碼兩欄共用 line-height/height，確保逐行對齊。 */
+.nc-prose .nc-cb {
+  margin: 22px 0;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-0);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+/* 標題列 */
+.nc-prose .nc-cb__header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px 9px 14px;
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+}
+.nc-prose .nc-cb__lang {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--orange-500);
+}
+.nc-prose .nc-cb__lang-text {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--orange-600);
+}
+/* 選填檔名（與語言標籤並存，以 hairline 分隔） */
+.nc-prose .nc-cb__file {
+  padding-left: 10px; border-left: 1px solid var(--neutral-200);
+  font-family: var(--font-mono); font-size: 12px; color: var(--neutral-500);
+}
+.nc-prose .nc-cb__ico { flex: none; }
+/* 複製鈕（pill） */
+.nc-prose .nc-cb__copy {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+  padding: 5px 11px; border-radius: var(--radius-pill);
+  border: 1px solid var(--neutral-300);
+  background: var(--neutral-0); color: var(--neutral-600);
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+.nc-prose .nc-cb__copy:hover { background: var(--neutral-100); }
+.nc-prose .nc-cb__copy:focus-visible { outline: 2px solid var(--blue-300); outline-offset: 2px; }
+.nc-prose .nc-cb__copy .nc-cb__ico--check { display: none; }
+.nc-prose .nc-cb__copy.is-copied {
+  border-color: rgba(46, 158, 107, 0.45);
+  background: var(--success-50); color: var(--success-500);
+}
+.nc-prose .nc-cb__copy.is-copied:hover { background: var(--success-50); }
+.nc-prose .nc-cb__copy.is-copied .nc-cb__ico--copy { display: none; }
+.nc-prose .nc-cb__copy.is-copied .nc-cb__ico--check { display: inline-flex; }
+/* 主體：固定行號欄 + 可橫捲程式碼 */
+.nc-prose .nc-cb__body {
+  display: flex; align-items: stretch;
+  font-family: var(--font-mono); font-size: 13.5px;
+}
+.nc-prose .nc-cb__gutter {
+  flex: none; text-align: right; user-select: none;
+  padding: 14px 0;
+  color: var(--neutral-400); background: var(--neutral-50);
+  border-right: 1px solid var(--neutral-200);
+}
+.nc-prose .nc-cb__ln {
+  line-height: 1.85; height: 1.85em;
+  padding: 0 14px 0 16px;
+}
+.nc-prose .nc-cb__ln.is-hl {
+  background: var(--orange-50);
+  box-shadow: inset 3px 0 0 var(--orange-400);
+  color: var(--orange-600); font-weight: 700;
+}
+.nc-prose .nc-cb__pre {
+  margin: 0; padding: 14px 0; overflow-x: auto;
+  flex: 1 1 auto; min-width: 0;
+  background: var(--neutral-0); border: 0; border-radius: 0;
+}
+.nc-prose .nc-cb__code { color: var(--neutral-800); background: none; font-family: var(--font-mono); }
+.nc-prose .nc-cb__line {
+  line-height: 1.85; height: 1.85em;
+  padding: 0 18px; white-space: pre;
+}
+.nc-prose .nc-cb__line.is-hl { background: var(--orange-50); }
+/* 語法 token 配色（CODE_TC）—— 全部對應 design-system token */
+.nc-prose .nc-cb__t--comment { color: var(--neutral-400); font-style: italic; }
+.nc-prose .nc-cb__t--string  { color: var(--success-500); }
+.nc-prose .nc-cb__t--number  { color: var(--orange-700); }
+.nc-prose .nc-cb__t--keyword { color: var(--blue-700); font-weight: 600; }
+.nc-prose .nc-cb__t--func    { color: var(--blue-500); }
+.nc-prose .nc-cb__t--type    { color: var(--orange-600); }
+.nc-prose .nc-cb__t--attr    { color: var(--sky-600); }
+.nc-prose .nc-cb__t--punct   { color: var(--neutral-400); }
+.nc-prose .nc-cb__t--plain   { color: var(--neutral-800); }
+@media (prefers-reduced-motion: reduce) {
+  .nc-prose .nc-cb__copy { transition: none; }
+}
+
 .nc-prose a { color: var(--action-link); text-decoration: underline; text-underline-offset: 3px; }
 .nc-prose hr { margin: 32px 0; border: 0; border-top: 1px solid var(--neutral-200); }
 .nc-prose table {
@@ -289,6 +389,59 @@ img { max-width: 100%; display: block; }
 .nc-prose .nc-tip:focus-visible .nc-tip__bubble {
   opacity: 1;
   visibility: visible;
+}
+
+/* Code annotations（PRD §7.1 / task-20）────────────────────────
+   標記由 EC 外掛把 `(n)!` 轉為 .nc-anno-marker；說明清單 .nc-anno-list 由 remark transform 標註。
+   漸進增強：未加 data-enhanced（JS 未載入）時，清單以一般有序清單依序顯示，內容不遺失。
+   樣式取自設計 token，不硬編色碼。 */
+.nc-prose .nc-anno-marker {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.3em; height: 1.3em; padding: 0 0.32em;
+  margin: 0 0.12em; vertical-align: middle;
+  border: none; border-radius: var(--radius-pill);
+  background: var(--orange-400); color: #fff;
+  font-family: var(--font-sans); font-size: 0.78em; font-weight: var(--weight-bold);
+  line-height: 1; cursor: pointer;
+  transition: background var(--duration-fast, 120ms) var(--ease-out);
+}
+.nc-prose .nc-anno-marker:hover { background: var(--orange-500); }
+.nc-prose .nc-anno-marker:focus-visible { outline: 2px solid var(--blue-300); outline-offset: 2px; }
+.nc-prose .nc-anno-marker[aria-expanded="true"] { background: var(--blue-700); }
+
+.nc-prose .nc-anno-list { margin: 12px 0 20px; }
+.nc-prose .nc-anno-item > :first-child { margin-top: 0; }
+.nc-prose .nc-anno-item > :last-child { margin-bottom: 0; }
+
+/* JS 接管後：清單項目改為點擊標記才浮現的氣泡（fixed 定位由 [slug].astro 腳本寫入） */
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-list {
+  list-style: none; margin: 0; padding: 0;
+}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item {
+  position: fixed; left: 0; top: 0; z-index: 1000;
+  max-width: min(340px, calc(100vw - 32px)); width: max-content;
+  margin: 0; padding: 10px 14px 10px 12px;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+  background: var(--surface-card, #fff); color: var(--text-body);
+  font-size: var(--text-sm); line-height: 1.6;
+  box-shadow: var(--shadow-md);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item::before {
+  content: attr(data-anno);
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.3em; height: 1.3em; margin-right: 7px; padding: 0 0.32em;
+  border-radius: var(--radius-pill); background: var(--blue-700); color: #fff;
+  font-size: 0.78em; font-weight: var(--weight-bold); line-height: 1; vertical-align: middle;
+}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item.is-open {
+  opacity: 1; visibility: visible; pointer-events: auto;
+}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item::marker { content: none; }
+@media (prefers-reduced-motion: reduce) {
+  .nc-prose .nc-anno-marker,
+  .nc-prose .nc-annotate[data-enhanced] .nc-anno-item { transition: none; }
 }
 
 /* ── unstyled button reset for ghost buttons ── */

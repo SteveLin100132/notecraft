@@ -319,4 +319,121 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     tip.addEventListener("mouseenter", () => positionTip(tip));
     tip.addEventListener("focusin", () => positionTip(tip));
   });
+
+  // Code annotations（PRD §7.1 / task-20）漸進增強：點擊程式碼中的 (n) 標記，浮現對應說明氣泡。
+  // 標記由 EC 外掛產生（.nc-anno-marker[data-anno]）；說明為 .nc-anno-item（id=nc-anno-{uid}-{n}）。
+  // 未載入此 script 時，CSS 讓說明清單以一般有序清單依序顯示（不遺失內容）。
+  function initAnnotate(root: HTMLElement) {
+    const markers = Array.from(root.querySelectorAll<HTMLElement>(".nc-anno-marker"));
+    const items = Array.from(root.querySelectorAll<HTMLElement>(".nc-anno-item"));
+    if (!markers.length || !items.length) return;
+    root.setAttribute("data-enhanced", "");
+
+    const byN = new Map<string, HTMLElement>();
+    items.forEach((it) => {
+      const n = it.getAttribute("data-anno");
+      if (n) byN.set(n, it);
+    });
+
+    let openItem: HTMLElement | null = null;
+    let openMarker: HTMLElement | null = null;
+
+    const close = () => {
+      if (openItem) openItem.classList.remove("is-open");
+      if (openMarker) openMarker.setAttribute("aria-expanded", "false");
+      openItem = null;
+      openMarker = null;
+    };
+
+    const position = (item: HTMLElement, marker: HTMLElement) => {
+      item.style.left = "0px";
+      item.style.top = "0px";
+      const tr = marker.getBoundingClientRect();
+      const bw = item.offsetWidth;
+      const bh = item.offsetHeight;
+      const scroll = document.getElementById("nc-scroll");
+      const sr = scroll
+        ? scroll.getBoundingClientRect()
+        : ({ left: 8, right: window.innerWidth - 8 } as DOMRect);
+      const minX = Math.max(8, sr.left + 8);
+      const maxX = Math.min(window.innerWidth - 8, sr.right - 8);
+      let left = tr.left + tr.width / 2 - bw / 2;
+      left = Math.max(minX, Math.min(left, maxX - bw));
+      let top = tr.bottom + 8;
+      if (top + bh > window.innerHeight - 8) top = Math.max(8, tr.top - bh - 8);
+      item.style.left = `${Math.round(left)}px`;
+      item.style.top = `${Math.round(top)}px`;
+    };
+
+    const open = (marker: HTMLElement) => {
+      const n = marker.getAttribute("data-anno");
+      const item = n ? byN.get(n) : null;
+      if (!item) return;
+      close();
+      item.classList.add("is-open");
+      marker.setAttribute("aria-expanded", "true");
+      openItem = item;
+      openMarker = marker;
+      position(item, marker);
+    };
+
+    markers.forEach((marker) => {
+      const n = marker.getAttribute("data-anno");
+      const item = n ? byN.get(n) : null;
+      if (item) marker.setAttribute("aria-controls", item.id);
+      marker.setAttribute("aria-expanded", "false");
+      const toggle = () => (openMarker === marker ? close() : open(marker));
+      marker.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggle();
+      });
+      marker.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    });
+
+    document.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Escape" && openMarker) {
+        const m = openMarker;
+        close();
+        m.focus();
+      }
+    });
+    document.addEventListener("click", (e) => {
+      if (openItem && !openItem.contains(e.target as Node)) close();
+    });
+    window.addEventListener("resize", () => {
+      if (openItem && openMarker) position(openItem, openMarker);
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-nc-annotate]").forEach(initAnnotate);
+
+  // 程式碼塊複製鈕（design_handoff_mdx_codeblock）：複製原始碼，1.6s 內顯示「已複製」綠勾。
+  document.querySelectorAll<HTMLButtonElement>(".nc-cb__copy").forEach((btn) => {
+    const label = btn.querySelector<HTMLElement>(".nc-cb__copy-label");
+    const textCopy = label?.dataset.copy ?? "複製";
+    const textCopied = label?.dataset.copied ?? "已複製";
+    let timer: number | undefined;
+    btn.addEventListener("click", () => {
+      const code = btn.getAttribute("data-code") ?? "";
+      // 觸發複製（成敗不影響視覺回饋；某些情境 clipboard 會 pending）。
+      try {
+        navigator.clipboard?.writeText(code).catch(() => {});
+      } catch {
+        /* noop */
+      }
+      // 樂觀回饋：立即顯示「已複製」綠勾，1.6s 後還原。
+      btn.classList.add("is-copied");
+      if (label) label.textContent = textCopied;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        btn.classList.remove("is-copied");
+        if (label) label.textContent = textCopy;
+      }, 1600);
+    });
+  });
 </script>

@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.6.0
+文件版本: v1.7.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -79,6 +79,7 @@ Project Name: NoteCraft
 17. \* 提供「系列」功能：以集中式 [系列登錄](#系列資料模型series-data-model) 把相關筆記串成有順序的閱讀路徑，於 [系列總覽頁面](#系列總覽頁面series-overview)（`/series`）瀏覽 / 模糊查詢 / 篩選排序、於 [系列詳情頁面](#系列詳情頁面series-detail)（`/series/[id]`）檢視逐章清單與整體進度
 18. \* 提供個人化「閱讀進度」（待開始 / 閱讀中 / 已完成，存於瀏覽器 localStorage、正式環境亦可用）：筆記檢視頁可手動切換並於開啟時輕量自動轉為「閱讀中」，列表卡與 Dashboard 顯示進度，未發佈筆記不可追蹤且不計入系列進度（詳見 [閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress)）
 19. \* 提供類 Material for MkDocs 的 [Markdown 擴充語法](#markdown-擴充語法admonitions--content-tabs--tooltips)：[Admonitions](#admonitions)（提示 / 警告框、可收合）、[Content tabs](#content-tabs)（內容分頁）、[Tooltips](#tooltips)（行內提示），以 `remark-directive` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
+20. \* 提供類 Material for MkDocs 的 [程式碼區塊增強](#程式碼區塊增強code-block-enhancements)：行號、檔名標題、一鍵複製、行 highlight、可展開的 [Code annotations](#code-annotations)（行內編號標記 → 點擊展開說明），以 `astro-expressive-code` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
 
 ### 4.2 非目標（Out of Scope）
 
@@ -1834,6 +1835,135 @@ model: haiku
 
 ---
 
+#### 程式碼區塊增強（Code block enhancements）（\*）
+
+<a name="程式碼區塊增強code-block-enhancements"></a>
+
+## 目標
+
+為 [筆記用戶](#筆記用戶) 在 MDX 筆記中提供類似 **Material for MkDocs** 的程式碼區塊呈現能力，讓技術筆記的範例碼更易讀、易複製、可標註重點：
+
+1. **行號（line numbers）** —— 可為單一區塊開關
+2. **檔名標題（file name）** —— 在區塊頂端顯示來源檔名 / 標題
+3. **複製程式碼按鈕（copy button）** —— 一鍵複製整段原始碼
+4. **行 highlight** —— 標記特定行 / 範圍（與 diff 標記）以強調重點
+5. **[Code annotations](#code-annotations)** —— 在程式碼中嵌入編號標記（`(1)`），點擊後展開對應說明（互動式）
+
+與 [Markdown 擴充語法](#markdown-擴充語法admonitions--content-tabs--tooltips) 同屬「作者手寫、build 階段渲染、正式環境一致」的內容增強，與 [AI 標記區塊](#ai-標記區塊)（重型視覺化）正交：走 Markdown / Shiki pipeline、不進 `src/components/generated/`、不經四個 Subagent。
+
+## 可行性分析
+
+### 與現有技術棧的契合度
+
+- 專案目前以 Astro 5 內建 **Shiki**（`markdown.shikiConfig`，`github-light` + `wrap`）渲染程式碼，僅有語法高亮，**無**行號 / 檔名 / 複製 / highlight / annotation。
+- 上述 1～4 項皆為 **build 階段**可完成的靜態增強（複製按鈕的點擊行為與 annotation 展開為極輕量、框架無關的 vanilla JS / 原生 Clipboard API），符合 `output: 'static'`、無執行時 API、Netlify 純靜態的限制。
+- Astro 生態中最成熟、為此目的而生的方案是 **`astro-expressive-code`（EC）**：以單一整合即內建「frame 檔名標題 + 複製按鈕」、行 / 文字標記（highlight、ins/del diff）、並可加掛 `@expressive-code/plugin-line-numbers` 提供行號；主題可對齊設計 token、零執行時相依、SSG 友善。**EC 取代現有 Shiki 設定**（EC 底層即 Shiki，語法高亮不退化）。
+- Code annotations（MkDocs 風格的可展開編號標記）**兩種引擎皆無原生支援**，需自訂處理：以一支 EC plugin 或 build 後的 rehype，將程式碼中的 `(n)` 標記轉為可聚焦按鈕，並與緊接其後的編號清單配對為彈出說明，互動 / a11y 以**框架無關 vanilla JS**（同 [Content tabs](#content-tabs) / [側邊欄收合](#側邊欄收合sidebar-collapse) 模式）實作，不引入 React island。
+
+### 各功能可行性
+
+| 功能 | MkDocs 原生語法 | 本專案建議方案 | 互動性 | 風險 |
+| --- | --- | --- | --- | --- |
+| 行號 | `linenums="1"` | EC `@expressive-code/plugin-line-numbers`，以 fence meta `showLineNumbers`（可設起始行）開關 | 純靜態 | 低 |
+| 檔名標題 | `title="…"` | EC frame：fence meta `title="src/app.ts"`，或由首行檔名註解自動推斷 | 純靜態 | 低 |
+| 複製按鈕 | 內建 | EC frame 內建複製鈕（原生 Clipboard API） | 極輕量 JS（EC 自帶） | 低 |
+| 行 highlight | `hl_lines="1 3-5"` | EC 行標記 fence meta `{1,3-5}`；文字標記 `"keyword"`；diff 用 `ins`/`del` | 純靜態 | 低 |
+| Code annotations | `# (1)!` + 後續清單 | 自訂：`(n)` 標記 → 可點按鈕；緊接的編號清單 → 彈出說明；vanilla JS 切換 | **互動（需 a11y / 鍵盤）** | 中高 |
+
+### 待新增的依賴（白名單外，需作者同意）
+
+- `astro-expressive-code`（必要，取代現有 Shiki 設定）、`@expressive-code/plugin-line-numbers`（行號）。
+- 皆為 **build-time 的 Astro 整合 / 外掛**（掛在 `astro.config.mjs`），屬建構工具鏈、**非元件 import**，不在「元件白名單」約束範圍；仍依專案慣例**先徵詢作者同意**才加入（作者已於本期同意）。
+- 不需任何執行時相依；正式環境（Netlify 靜態站）完全支援。
+
+## 規格
+
+- **引擎遷移**：以 `astro-expressive-code` 整合取代現有 `markdown.shikiConfig`。沿用等效設定（亮色主題、長行 `wordWrap`），主題色票對齊 [trendlink-design](#skills) token（連結其 `styles.css`），**不硬編色碼**；既有筆記中未加任何 meta 的程式碼區塊外觀需維持「乾淨的高亮 + 複製鈕 + 檔名 frame」，不破壞既有內容。
+- **作者語法（fence meta，標準 EC 語法）**：
+
+  ````mdx
+  ```ts title="src/lib/auth.ts" showLineNumbers {3,7-9} "TODO"
+  // 程式碼…
+  ```
+  ````
+
+  - `title="…"`：檔名 / 標題列；省略時不顯示標題（仍有複製鈕）。
+  - `showLineNumbers`（可選 `=N` 設定起始行號）：開啟行號；預設**關閉**，逐區塊選用。
+  - `{3,7-9}`：行 highlight；`"text"`：文字標記；`ins`/`del`：diff 標記。
+  - 全站預設行為（是否預設顯示複製鈕、是否預設行號）於 EC 設定集中定義。
+- <a name="code-annotations"></a>**Code annotations（互動式編號標記）**
+  - 作者語法（**重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 已引入的 `remark-directive` 底座**，以容器配對程式碼與說明清單）：
+
+    ````mdx
+    :::annotate
+    ```py
+    def handler(req):  # (1)
+        return ok(req)  # (2)
+    ```
+
+    1. 進入點，校驗請求格式。
+    2. 回傳標準成功包裝。
+    :::
+    ````
+
+  - 渲染：程式碼中的 `(1)`、`(2)` 轉為可聚焦的圓形按鈕標記；緊接的編號清單第 n 項即標記 n 的說明，渲染為點擊 / focus 展開的彈出泡泡（或行內展開），**漸進增強**：JS 未載入時，標記與其後的編號清單仍可依序閱讀，內容不遺失。
+  - 互動以**框架無關 vanilla JS**（class 切換 / `popovertarget` 或自訂切換）實作，不引入 React island；採適當 ARIA（`aria-expanded` / `aria-controls`）、可鍵盤操作（Enter/Space 開、Esc 關）。
+  - 動效（若有）200–400ms ease-out，並尊重 `prefers-reduced-motion`。
+- **視覺樣式（一律遵循 [trendlink-design](#skills)）**：frame、標題列、複製鈕、行號槽、highlight 底色、annotation 標記與彈出泡泡的色票、圓角、陰影、字級一律取自設計 token，**不硬編色碼**；frame / 按鈕圓角優先用簽名 `--radius-pill` 與卡片圓角 token，等寬字採設計系統 mono（無則沿用 EC 預設等寬字），中文說明字採 Noto Sans TC。
+- **與 [AI 標記區塊](#ai-標記區塊) 的關係**：正交。本功能為作者手寫、輕量、無生成流程；AI 標記區塊仍負責重型視覺化。Skill 與 Subagent 行為不需改動。
+- **環境**：純內容渲染，dev 與正式環境**行為一致**（非 dev-only 功能）。
+
+## 卡控機制
+
+- meta 解析失敗（未知旗標、行號範圍越界、`title` 為空）→ build 階段以 log 警示並**優雅回退**（忽略該旗標、照常渲染高亮），**不中斷 build**。
+- Code annotation 標記數與其後編號清單項數**不一致**時 → build log 警示；多餘標記無對應說明則不可點（或回退為純文字），缺對應標記的清單項照常顯示，**不中斷 build**。
+- annotation 在 JS 不可用時必須仍能讀到全部說明（漸進增強），不得因互動失效而隱藏內容。
+- 複製鈕、annotation 標記需可鍵盤操作並具適當 ARIA，符合既有無障礙慣例。
+- 新依賴需作者明確同意後才加入（見〈可行性分析〉）。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 既有區塊不破壞 | 既有筆記中無 meta 的程式碼區塊 | 遷移至 EC 後 build | 維持語法高亮，外觀對齊 token，附複製鈕，內容不變 |
+| 檔名標題 | fence 帶 `title="src/app.ts"` | 檢視該筆記 | 區塊頂端顯示檔名標題列 |
+| 複製按鈕 | 任一程式碼區塊 | 點複製鈕 | 整段原始碼複製到剪貼簿，給出已複製回饋 |
+| 行號 | fence 帶 `showLineNumbers` | 檢視該筆記 | 區塊左側顯示行號；起始行號可設定 |
+| 行 highlight | fence 帶 `{3,7-9}` | 檢視該筆記 | 第 3 與 7–9 行以強調底色標記 |
+| Annotation 展開 | `:::annotate` 內程式碼含 `(1)`、後接編號清單 | 點擊 / focus 標記 (1) | 展開第 1 項說明泡泡；`aria-expanded` 正確；Esc 可關 |
+| Annotation 漸進增強 | 停用 JS | 載入含 annotation 的筆記 | 標記與編號清單仍可依序閱讀，內容不遺失 |
+| meta 異常回退 | fence 帶未知旗標 / 越界行號 | build | log 警示且照常渲染高亮，build 不中斷 |
+| 正式環境一致 | Netlify 靜態站 | 檢視含上述語法的筆記 | 五項功能皆正常，無需任何執行時 API |
+
+## 待釐清
+
+### Q1. 程式碼渲染引擎採哪個方案？
+
+- [x] **astro-expressive-code（EC）** —— 檔名 / 複製 / 行號 / highlight / diff 一次到位、build 階段、零執行時 API、可主題化對齊 token；取代現有 Shiki 設定（底層仍 Shiki，高亮不退化）
+- [ ] Shiki transformers（`@shikijs/transformers`）+ 自訂 rehype + vanilla JS —— 保留現有 Shiki、改動小、掌控度高，但四項功能多為手刻、維護成本較高
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-21）：採 astro-expressive-code。為此目的而生、社群廣用、低風險；新增 `astro-expressive-code` 與 `@expressive-code/plugin-line-numbers`（作者已同意）。
+
+### Q2. Code annotations 做到什麼程度？
+
+- [x] **完整互動式編號標記（vanilla JS）** —— `(n)` 標記 → 可點按鈕、點擊展開對應說明，重用 `remark-directive` 底座配對程式碼與清單，框架無關 vanilla JS + a11y
+- [ ] 先以行 highlight + 框外說明文字替代，互動標記列為後續
+- [ ] 僅用 EC 既有行 / 標籤標記能力，不做可展開編號標記
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-21）：採完整互動式標記。兩引擎皆無原生支援，需自訂 transform/rehype + 框架無關 vanilla JS；互動模式對齊 [Content tabs](#content-tabs)。
+
+### Q3. annotation 的「程式碼 ↔ 說明清單」如何配對？
+
+- [x] **`:::annotate` 容器**（重用 Task 14 的 `remark-directive` 底座）包住「程式碼區塊 + 緊接的編號清單」，由自訂 transform 配對 —— 邊界明確、解析穩定
+- [ ] 隱式配對：程式碼區塊後緊跟的編號清單自動視為其 annotation（語法更輕，但邊界模糊、易誤配）
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-21）：採顯式 `:::annotate` 容器；與既有 directive 機制一致、解析邊界清楚，避免與一般有序清單混淆。
+
+---
+
 ## 8. Schedule（時間表）
 
 根據 PRD 的功能依賴關係，建議按**依賴順序**分為 5 個 Phase。
@@ -1944,6 +2074,17 @@ model: haiku
 - 詳見 `docs/tasks/` 下實作 Task（task-14 ~ task-16，task-14 為底座先做）
 
 **理由：** 純內容渲染、build 階段完成、無執行時 API，正式環境一致；與 AI 標記區塊機制正交（不進 `generated/`、不經 Subagent）。`remark-directive` 為 build-time 工具鏈、非元件 import，已徵得作者同意。
+
+#### Phase 4.10 — 程式碼區塊增強（v1.7.0 追加）
+
+**目標：為技術筆記提供類 Material for MkDocs 的程式碼區塊呈現（行號 / 檔名 / 複製 / highlight / annotations）**
+
+- 以 `astro-expressive-code` 取代現有 `markdown.shikiConfig`（作者已同意），主題對齊 [trendlink-design](#skills) token；既有無 meta 區塊外觀不破壞
+- 檔名標題 `title="…"` + 內建複製鈕（EC frame）；行號 `showLineNumbers`（`@expressive-code/plugin-line-numbers`）；行 / 文字 / diff highlight（fence meta `{1,3-5}` / `"text"` / ins/del）
+- Code annotations：`:::annotate` 容器（重用 Phase 4.9 的 `remark-directive` 底座）配對程式碼 `(n)` 標記與後續編號清單，互動以框架無關 vanilla JS（同 Content tabs）+ ARIA + 漸進增強
+- 詳見 `docs/tasks/` 下實作 Task（task-17 ~ task-20，task-17 為引擎底座先做；task-20 另依賴 task-14 的 directive 底座）
+
+**理由：** build 階段完成、無執行時 API、正式環境一致；與 AI 標記區塊正交。`astro-expressive-code` / `@expressive-code/plugin-line-numbers` 為 build-time 整合、非元件 import，已徵得作者同意。
 
 #### Phase 5 — 部署與收尾
 
@@ -2094,6 +2235,11 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.7.0] - 2026-06-21
+- **Added**: §7.1 新增「程式碼區塊增強（Code block enhancements）」規格 —— 類 Material for MkDocs 的行號 / 檔名標題 / 複製按鈕 / 行 highlight / 互動式 Code annotations，以 `astro-expressive-code` 於 build 階段渲染、樣式遵循 `trendlink-design`、正式環境一致；與 AI 標記區塊正交
+- **Updated**: §4.1 核心目標新增第 20 項；§8.1 新增 Phase 4.10；對應實作 Task（task-17 ~ task-20）置於 `docs/tasks/`
+- **Decided (2026-06-21 作者拍板)**: ① 渲染引擎採 **`astro-expressive-code`**（取代現有 Shiki 設定，底層仍 Shiki、高亮不退化），新增 `astro-expressive-code` + `@expressive-code/plugin-line-numbers`（作者同意）；② Code annotations 採**完整互動式編號標記**（框架無關 vanilla JS）；③ annotation 以 **`:::annotate` 容器**（重用 Task 14 的 `remark-directive` 底座）顯式配對程式碼與編號清單
 
 ### [1.6.0] - 2026-06-16
 - **Added**: 新增 Markdown 擴充語法規格（Admonitions / Content tabs / Tooltips）

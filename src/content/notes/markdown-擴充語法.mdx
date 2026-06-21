@@ -5,7 +5,7 @@ tags:
   - 基本操作
 category: 系統說明
 createdAt: '2026-06-16'
-updatedAt: '2026-06-16'
+updatedAt: '2026-06-21'
 ---
 
 NoteCraft 在標準 Markdown / MDX 之外，提供三種類 Material for MkDocs 的內容增強語法，皆以 `remark-directive` 於 build 階段渲染、樣式遵循 trendlink-design，正式環境同樣可用。
@@ -57,3 +57,48 @@ yarn add notecraft
 ## Tooltips（行內提示）
 
 用 `:tip[可見文字]{content="說明"}` 標記，滑鼠移上或鍵盤聚焦即顯示：像 :tip[OAuth]{content="一種授權框架，讓第三方應用在不取得密碼的情況下存取資源。"} 這樣。
+
+## 程式碼區塊增強（Code blocks）
+
+圍欄程式碼於 build 階段渲染為白底程式碼塊：語言標籤、複製按鈕、固定行號欄、整行高亮與可展開的程式碼註解。
+
+### 行號 + 整行高亮
+
+每個程式碼塊都有固定行號欄；在 fence 的語言後加 `{行號}`（如 `{3,6-7}`、1-indexed）即可標出重點行：
+
+```ts {3,6-7}
+export function signIn(user: string, token: string) {
+  if (!token) {
+    throw new Error("missing token"); // 第 3 行被 highlight
+  }
+  const session = createSession(user);
+  session.token = token; // 第 6–7 行被 highlight
+  return session;
+}
+```
+
+### 檔名標題
+
+加上 `title="路徑/檔名"` 會在標題列的語言標籤旁顯示檔名（可與 `{行號}` 並用）：
+
+```ts title="src/lib/auth.ts" {2}
+import { createSession } from "./session";
+const token = readToken(); // 第 2 行被 highlight
+export const session = createSession(token);
+```
+
+### Code annotations（可展開註解）
+
+用 `:::annotate` 容器包住「程式碼 + 編號清單」，程式碼中以 `(n)!` 標記，點擊標記即浮現對應說明（停用 JS 時清單依序顯示、不遺失內容）：
+
+:::annotate
+```ts
+function handler(req: Request) { // (1)!
+  validate(req);
+  return ok(req); // (2)!
+}
+```
+
+1. 進入點，先校驗請求格式是否合法。
+2. 回傳標準化的成功包裝物件。
+:::
