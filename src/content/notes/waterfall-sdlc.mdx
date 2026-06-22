@@ -27,7 +27,7 @@ updatedAt: '2026-06-21'
 6. User Acceptance Testing｜使用者驗收測試（UAT）
 由用戶端依驗收標準實際操作，確認系統符合業務需求；UAT 通過代表業務方認可系統可上線。
 7. Cutover｜切換（視情況）
-正式上線前的切換作業，包含資料移轉、停機計畫、舊系統下線、回退機制等。若是全新系統或無歷史資料的場景，可略過。
+正式上線前的切換作業，包含資料移轉、停機計畫、舊系統下線、進退版機制等。若是全新系統或無歷史資料的場景，可略過。
 8. Go-Live｜上線
 系統正式對外運作。此刻起任何修改都是 Production 修改，成本最高。
 9. Maintenance｜維運
@@ -35,49 +35,29 @@ updatedAt: '2026-06-21'
 
 ### Waterfall 五場管控會議
 
-會議在 Waterfall 中扮演守門人的角色——不是討論「要不要往下」，而是確認「上一階段是否真的完成」。
+會議在 Waterfall 中扮演守門人的角色 —— 確認「上一階段是否真的完成」。
 
-1. Kickoff Meeting｜啟動會議
-    - 位置：Blueprint。
-    - 讓所有參與者對齊目標、範疇、角色責任與初步計畫，是整段瀑布唯一不審查交付物、而是建立共識的會議。
-2. Milestone Review Meeting｜里程碑審查會議
-    - 位置：System Analysis ～ SIT 各關鍵節點。
-    - 在每道閘門評估進度與成果、決定是否放行下一階段，必要時調整計畫與資源。是 Waterfall 的「節拍器」。
-3. UAT Meeting｜使用者驗收會議
-    - 位置：UAT 階段。
-    - 讓用戶或利益相關者實際參與驗收、收集回饋並簽署驗收文件，是業務側對系統的正式背書。
-4. Go-Live Meeting｜上線會議
-    - 位置：Cutover ～ Go-Live 之間。
-    - 確認部署計畫、步驟、責任分工、回退機制與支援資源，目標是讓上線當天「沒有意外」。
-5. Handover Meeting｜交接會議
-    - 位置：Maintenance。
-    - 專案結束時將成果與文件交接給維運團隊，內容包含專案總結、知識轉移、未結項目與已知風險。
+| #  | 會議                                   | 位置                     | 用途說明                                                                 |
+|----|----------------------------------------|--------------------------|--------------------------------------------------------------------------|
+| 1  | Kickoff Meeting｜啟動會議              | Blueprint                | 對齊目標、範疇、角色責任與初步計畫；唯一不審查交付物、而是建立共識的會議。 |
+| 2  | Milestone Review Meeting｜里程碑審查會議 | System Analysis ～ SIT 各關鍵節點 | 於每道閘門評估進度與成果、決定是否放行下一階段，是 Waterfall 的「節拍器」。 |
+| 3  | UAT Meeting｜使用者驗收會議            | UAT                      | 讓用戶／利益相關者實際參與驗收、簽署驗收文件，是業務側對系統的正式背書。 |
+| 4  | Go-Live Meeting｜上線會議              | Cutover ～ Go-Live 之間  | 確認部署計畫、步驟、責任分工、回退機制與支援資源，讓上線當天「沒有意外」。 |
+| 5  | Handover Meeting｜交接會議             | Maintenance              | 將成果與文件交接給維運團隊，含專案總結、知識轉移、未結項目與已知風險。   |
 
 ### Waterfall 七份交付物
 
 Waterfall 的另一個特徵是文件即合約：前一份文件是後一份的輸入，文件鏈跑通了，專案才算真的跑完。
 
-1. PRD（Product Requirement Document）
-    - Blueprint 階段產出
-    - 定義「為什麼要做」與「成功長什麼樣」。
-2. SRS（System Requirement Spec）
-    - System Analysis 階段產出
-    - 把 PRD 轉成可驗證的系統需求。
-3. SDD（System Design Document）
-    - System Design 階段產出
-    - 承接 SRS 給出架構與細部設計。
-4. Test Plan / Test Case
-    - SIT 階段產出的測試計畫與測試案例
-    - 對應 SRS 與 SDD 中的可驗證項。
-5. UAT Checklist
-    - UAT 階段的驗收清單
-    - 是業務方簽收的依據。
-6. Cutover Plan
-    - Cutover 階段的切換計畫
-    - 含資料移轉、停機窗口、回退策略。
-7. Maintenance Manual
-    - Go-Live 後的維運手冊
-    - 是 Handover 會議的核心交付，把專案知識封裝給維運。
+| #  | 交付物                              | 產出階段          | 用途說明                                            |
+|----|-------------------------------------|-------------------|-----------------------------------------------------|
+| 1  | PRD（Product Requirement Document） | Blueprint         | 定義「為什麼要做」與「成功長什麼樣」。              |
+| 2  | SRS（System Requirement Spec）      | System Analysis   | 把 PRD 轉成可驗證的系統需求。                       |
+| 3  | SDD（System Design Document）       | System Design     | 承接 SRS 給出架構與細部設計。                       |
+| 4  | Test Plan / Test Case               | SIT               | 測試計畫與案例，對應 SRS 與 SDD 中的可驗證項。      |
+| 5  | UAT Checklist                       | UAT               | 驗收清單，是業務方簽收的依據。                      |
+| 6  | Cutover Plan                        | Cutover           | 切換計畫，含資料移轉、停機計畫、進退版策略。        |
+| 7  | Maintenance Manual                  | Go-Live / Handover | 維運手冊，是 Handover 會議的核心交付，封裝專案知識。 |
 
 ### Waterfall 總體對照表
 
