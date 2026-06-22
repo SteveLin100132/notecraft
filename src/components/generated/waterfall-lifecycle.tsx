@@ -18,6 +18,7 @@ type Stage = {
   id: number;
   key: string;
   label: string;
+  abbr?: string;
   desc: string;
   optional?: boolean;
 };
@@ -38,11 +39,11 @@ type Deliverable = {
 
 const STAGES: Stage[] = [
   { id: 0, key: 'blueprint',   label: 'Blueprint',       desc: '確認專案目標、範疇、預期成果，通常會產出 Project Charter 或藍圖文件。' },
-  { id: 1, key: 'analysis',    label: 'System Analysis', desc: '訪談需求、釐清業務流程，產出需求規格 (SRS)、業務流程圖等。' },
-  { id: 2, key: 'design',      label: 'System Design',   desc: '依需求設計系統架構、資料模型、介面、API 規格等。' },
+  { id: 1, key: 'analysis',    label: 'System Analysis', abbr: 'SA', desc: '系統分析（SA，System Analysis）：訪談需求、釐清業務流程，產出需求規格 (SRS)、業務流程圖等。' },
+  { id: 2, key: 'design',      label: 'System Design',   abbr: 'SD', desc: '系統設計（SD，System Design）：依需求設計系統架構、資料模型、介面、API 規格等。' },
   { id: 3, key: 'coding',      label: 'Coding',          desc: '依設計文件實作系統。' },
-  { id: 4, key: 'sit',         label: 'SIT',             desc: '由 QA 進行模組整合測試，驗證系統各部分能正確協作。' },
-  { id: 5, key: 'uat',         label: 'UAT',             desc: '由用戶端依驗收標準實際操作，確認系統符合需求。' },
+  { id: 4, key: 'sit',         label: 'System Integration Testing', abbr: 'SIT', desc: '系統整合測試（SIT，System Integration Testing）：由 QA 進行模組整合測試，驗證系統各部分能正確協作。' },
+  { id: 5, key: 'uat',         label: 'User Acceptance Testing',    abbr: 'UAT', desc: '使用者驗收測試（UAT，User Acceptance Testing）：由用戶端依驗收標準實際操作，確認系統符合需求。' },
   { id: 6, key: 'cutover',     label: 'Cutover',         desc: '正式上線前的切換作業，包含資料移轉、停機作業、舊系統下線等。', optional: true },
   { id: 7, key: 'golive',      label: 'Go-Live',         desc: '系統正式上線。' },
   { id: 8, key: 'maintenance', label: 'Maintenance',     desc: '上線後的維護、修補、優化。' },
@@ -84,6 +85,22 @@ const OY     = GAP_Y / 2;            // first box y origin
 
 function boxY(i: number): number { return OY + i * UNIT_H; }
 function boxCY(i: number): number { return boxY(i) + BOX_H / 2; }
+
+// Wrap a long stage label into (at most) two balanced lines so it still fits
+// the narrow waterfall box. Short single-word / short labels stay on one line.
+function wrapLabel(label: string): string[] {
+  if (label.length <= 15) return [label];
+  const words = label.split(' ');
+  if (words.length === 1) return [label];
+  const half = label.length / 2;
+  let best = 1;
+  let bestDiff = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const diff = Math.abs(words.slice(0, i).join(' ').length - half);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  }
+  return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+}
 
 interface WaterfallSVGProps {
   current: number;
@@ -231,19 +248,43 @@ function WaterfallSVG({ current, onSelect, reduced, gradId }: WaterfallSVGProps)
             >
               {s.id + 1}
             </text>
-            {/* Stage label */}
-            <text
-              x={bx + BOX_W / 2}
-              y={by + BOX_H / 2 + 1}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={11}
-              fontWeight={600}
-              fill={textColor}
-              style={{ pointerEvents: 'none', userSelect: 'none' }}
-            >
-              {s.label}
-            </text>
+            {/* Stage label (wraps to two lines when long) */}
+            {(() => {
+              const lines = wrapLabel(s.label);
+              const cx = bx + BOX_W / 2;
+              const cy = by + BOX_H / 2 + 1;
+              if (lines.length === 1) {
+                return (
+                  <text
+                    x={cx}
+                    y={cy}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={11}
+                    fontWeight={600}
+                    fill={textColor}
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    {lines[0]}
+                  </text>
+                );
+              }
+              return (
+                <text
+                  x={cx}
+                  y={cy}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={9.5}
+                  fontWeight={600}
+                  fill={textColor}
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                >
+                  <tspan x={cx} dy="-0.55em">{lines[0]}</tspan>
+                  <tspan x={cx} dy="1.1em">{lines[1]}</tspan>
+                </text>
+              );
+            })()}
             {/* Deliverable dot */}
             {hasDel && (
               <circle
@@ -282,48 +323,115 @@ interface DeliverableChainProps {
 }
 
 function DeliverableChain({ current, reduced }: DeliverableChainProps) {
-  const reached = DELIVERABLES.filter((d) => d.stage <= current);
-
-  if (reached.length === 0) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-neutral-400 py-2">
-        <File size={13} className="shrink-0" />
-        <span>通過各階段後，交付物將在此串連</span>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-wrap items-center gap-1" aria-label="交付物接力鏈">
       {DELIVERABLES.map((d, idx) => {
+        const isActive  = d.stage === current;
         const isReached = d.stage <= current;
-        const isNew     = d.stage === current;
-        const prevReached = idx > 0 ? DELIVERABLES[idx - 1].stage <= current : false;
 
         return (
           <React.Fragment key={d.id}>
             {/* Connector arrow */}
-            {idx > 0 && (isReached || prevReached) && (
+            {idx > 0 && (
               <span className="text-neutral-300 select-none" aria-hidden="true">
                 <ArrowRight size={10} />
               </span>
             )}
-            {isReached && (
-              <motion.span
-                initial={reduced || !isNew ? false : { opacity: 0, y: -8, scale: 0.85 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: reduced ? 0 : 0.3, ease: 'easeOut' }}
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                style={{
-                  background: 'var(--blue-700, #1b4f9c)',
-                  color: '#ffffff',
-                }}
-                title={d.desc}
-              >
-                <File size={10} />
-                {d.label}
-              </motion.span>
+            <motion.span
+              initial={false}
+              animate={
+                isActive && !reduced
+                  ? { opacity: 1, scale: [1, 1.06, 1] }
+                  : { opacity: 1, scale: 1 }
+              }
+              transition={{ duration: reduced ? 0 : 0.3, ease: 'easeOut' }}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              style={{
+                background: isActive
+                  ? 'var(--blue-700, #1b4f9c)'
+                  : isReached
+                  ? 'var(--blue-50, #eff6ff)'
+                  : 'var(--neutral-100, #f1f5f9)',
+                color: isActive
+                  ? '#ffffff'
+                  : isReached
+                  ? 'var(--blue-700, #1b4f9c)'
+                  : 'var(--neutral-400, #94a3b8)',
+                border: isActive
+                  ? '1px solid var(--blue-700, #1b4f9c)'
+                  : isReached
+                  ? '1px solid var(--blue-200, #bfdbfe)'
+                  : '1px solid var(--neutral-200, #e2e8f0)',
+              }}
+              title={d.desc}
+              aria-current={isActive ? 'step' : undefined}
+            >
+              <File size={10} />
+              {d.label}
+            </motion.span>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Meeting Rail ────────────────────────────────────────────────────────────────
+// Mirrors the deliverable chain: lays the 5 meetings out as a left-to-right rail
+// and highlights the one(s) whose stage range covers the current stage.
+
+interface MeetingRailProps {
+  current: number;
+  reduced: boolean;
+}
+
+function MeetingRail({ current, reduced }: MeetingRailProps) {
+  return (
+    <div className="flex flex-wrap items-center gap-1" aria-label="會議時間軸">
+      {MEETINGS.map((m, idx) => {
+        const isActive = current >= m.stageRange[0] && current <= m.stageRange[1];
+        const isPast   = current > m.stageRange[1];
+
+        return (
+          <React.Fragment key={m.id}>
+            {/* Connector arrow */}
+            {idx > 0 && (
+              <span className="text-neutral-300 select-none" aria-hidden="true">
+                <ArrowRight size={10} />
+              </span>
             )}
+            <motion.span
+              initial={false}
+              animate={
+                isActive && !reduced
+                  ? { opacity: 1, scale: [1, 1.06, 1] }
+                  : { opacity: 1, scale: 1 }
+              }
+              transition={{ duration: reduced ? 0 : 0.3, ease: 'easeOut' }}
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              style={{
+                background: isActive
+                  ? 'var(--orange-400, #ed9b26)'
+                  : isPast
+                  ? 'var(--orange-50, #fffbeb)'
+                  : 'var(--neutral-100, #f1f5f9)',
+                color: isActive
+                  ? '#ffffff'
+                  : isPast
+                  ? 'var(--orange-700, #b45309)'
+                  : 'var(--neutral-400, #94a3b8)',
+                border: isActive
+                  ? '1px solid var(--orange-400, #ed9b26)'
+                  : isPast
+                  ? '1px solid var(--orange-200, #fde68a)'
+                  : '1px solid var(--neutral-200, #e2e8f0)',
+              }}
+              title={m.desc}
+              aria-current={isActive ? 'step' : undefined}
+            >
+              <Calendar size={10} />
+              {m.label}
+            </motion.span>
           </React.Fragment>
         );
       })}
@@ -684,6 +792,23 @@ export default function WaterfallLifecycle() {
         <div style={{ flex: '1 1 240px', minWidth: 0 }}>
           <HudPanel current={current} reduced={reduced} />
         </div>
+      </div>
+
+      {/* ── Meeting Rail ───────────────────────────────────────────────────── */}
+      <div
+        className="mt-4 rounded-lg px-3 py-2.5"
+        style={{
+          background: 'var(--neutral-50)',
+          border: '1px solid var(--neutral-200)',
+        }}
+      >
+        <div className="flex items-center gap-1.5 mb-2">
+          <Calendar size={12} style={{ color: 'var(--orange-500, #e37b24)' }} />
+          <span className="text-xs font-semibold" style={{ color: 'var(--neutral-600)' }}>
+            會議時間軸
+          </span>
+        </div>
+        <MeetingRail current={current} reduced={reduced} />
       </div>
 
       {/* ── Deliverable Chain ──────────────────────────────────────────────── */}

@@ -8,11 +8,92 @@ createdAt: '2026-06-12'
 updatedAt: '2026-06-21'
 ---
 
-## Waterfall SDLC
+## Waterfall :tip[SDLC]{content="Software Development Life Cycle，軟體開發生命週期：把專案從構思到退役拆解成數個明確階段。"}
 
 前面幾章我們分清了專案與產品、比較了方法論、也釐清了團隊的角色與職責；這一章我們在往下鑽研，深入專案管理中最經典的 Waterfall，看它的階段、會議與交付物如何環環相扣。
 
-Waterfall 的 :tip[SDLC]{content="Software Development Life Cycle，軟體開發生命週期：把專案從構思到退役拆解成數個明確階段。"} 階段相對固定，流程、對應的會議與交付物如下:
+### Waterfall 的九個階段（流程）
+
+1. Blueprint｜藍圖
+確認專案目標、範疇與預期成果，把模糊的想法收斂成可被估算的輪廓。這是整段瀑布最便宜的修改點，凍結後再動就會逐級放大成本。
+2. System Analysis｜系統分析（SA）
+把藍圖翻譯成「系統做什麼」：訪談需求、釐清業務流程、定義使用者情境，產出需求規格（SRS）與業務流程圖。
+3. System Design｜系統設計（SD）
+把「做什麼」轉成「怎麼做」：系統架構、資料模型、介面、API 規格、權限與整合點都在這裡決定。
+4. Coding｜開發
+依設計文件實作系統。理論上開發者不必再重新「想」需求，只需把 :tip[SDD]{content="Software Design Document，軟體設計文件：描述系統架構、模組設計、介面規格等的文件"} 變成程式。
+5. System Integration Testing｜系統整合測試（SIT）
+由 QA 進行模組／系統間整合測試，驗證各部分能正確協作，重點在「整體會不會壞」，而非「功能對不對」。
+6. User Acceptance Testing｜使用者驗收測試（UAT）
+由用戶端依驗收標準實際操作，確認系統符合業務需求；UAT 通過代表業務方認可系統可上線。
+7. Cutover｜切換（視情況）
+正式上線前的切換作業，包含資料移轉、停機計畫、舊系統下線、回退機制等。若是全新系統或無歷史資料的場景，可略過。
+8. Go-Live｜上線
+系統正式對外運作。此刻起任何修改都是 Production 修改，成本最高。
+9. Maintenance｜維運
+上線後的維護、修補與優化；也是知識回流到下次專案藍圖的階段。
+
+### Waterfall 五場管控會議
+
+會議在 Waterfall 中扮演守門人的角色——不是討論「要不要往下」，而是確認「上一階段是否真的完成」。
+
+1. Kickoff Meeting｜啟動會議
+    - 位置：Blueprint。
+    - 讓所有參與者對齊目標、範疇、角色責任與初步計畫，是整段瀑布唯一不審查交付物、而是建立共識的會議。
+2. Milestone Review Meeting｜里程碑審查會議
+    - 位置：System Analysis ～ SIT 各關鍵節點。
+    - 在每道閘門評估進度與成果、決定是否放行下一階段，必要時調整計畫與資源。是 Waterfall 的「節拍器」。
+3. UAT Meeting｜使用者驗收會議
+    - 位置：UAT 階段。
+    - 讓用戶或利益相關者實際參與驗收、收集回饋並簽署驗收文件，是業務側對系統的正式背書。
+4. Go-Live Meeting｜上線會議
+    - 位置：Cutover ～ Go-Live 之間。
+    - 確認部署計畫、步驟、責任分工、回退機制與支援資源，目標是讓上線當天「沒有意外」。
+5. Handover Meeting｜交接會議
+    - 位置：Maintenance。
+    - 專案結束時將成果與文件交接給維運團隊，內容包含專案總結、知識轉移、未結項目與已知風險。
+
+### Waterfall 七份交付物
+
+Waterfall 的另一個特徵是文件即合約：前一份文件是後一份的輸入，文件鏈跑通了，專案才算真的跑完。
+
+1. PRD（Product Requirement Document）
+    - Blueprint 階段產出
+    - 定義「為什麼要做」與「成功長什麼樣」。
+2. SRS（System Requirement Spec）
+    - System Analysis 階段產出
+    - 把 PRD 轉成可驗證的系統需求。
+3. SDD（System Design Document）
+    - System Design 階段產出
+    - 承接 SRS 給出架構與細部設計。
+4. Test Plan / Test Case
+    - SIT 階段產出的測試計畫與測試案例
+    - 對應 SRS 與 SDD 中的可驗證項。
+5. UAT Checklist
+    - UAT 階段的驗收清單
+    - 是業務方簽收的依據。
+6. Cutover Plan
+    - Cutover 階段的切換計畫
+    - 含資料移轉、停機窗口、回退策略。
+7. Maintenance Manual
+    - Go-Live 後的維運手冊
+    - 是 Handover 會議的核心交付，把專案知識封裝給維運。
+
+### Waterfall 總體對照表
+
+| # 	| 階段                  	| 對應會議         	| 該階段交付物       	|
+|---	|-----------------------	|------------------	|--------------------	|
+| 1 	| Blueprint             	| Kickoff Meeting  	| PRD                	|
+| 2 	| System Analysis（SA） 	| Milestone Review 	| SRS                	|
+| 3 	| System Design（SD）   	| Milestone Review 	| SDD                	|
+| 4 	| Coding                	| Milestone Review 	| —（程式碼本身）    	|
+| 5 	| SIT                   	| Milestone Review 	| Test Plan / Case   	|
+| 6 	| UAT                   	| UAT Meeting      	| UAT Checklist      	|
+| 7 	| Cutover（視情況）     	| Go-Live Meeting  	| Cutover Plan       	|
+| 8 	| Go-Live               	| Go-Live Meeting  	| —（上線本身）      	|
+| 9 	| Maintenance           	| Handover Meeting 	| Maintenance Manual 	|
+
+之所以叫「瀑布」，是因為流程像水一樣**單向往下流**:每個階段都有閘門(交付物驗收 / 里程碑審查)，通過了水才往下一級，回頭重做的成本很高。下面這張互動圖把「階段說明 / 對應會議 / 交付物鏈」三個面向收進同一條瀑布骨幹，點任一階段即可展開細節。
 
 {/* @ai-visualize
 id: waterfall-lifecycle
@@ -38,7 +119,7 @@ import WaterfallLifecycle from '@/components/generated/waterfall-lifecycle'
   <WaterfallLifecycle client:visible />
 </GeneratedFrame>
 
-之所以叫「瀑布」，是因為流程像水一樣**單向往下流**:每個階段都有閘門(交付物驗收 / 里程碑審查)，通過了水才往下一級，回頭重做的成本很高。下面這張互動圖把「階段說明 / 對應會議 / 交付物鏈」三個面向收進同一條瀑布骨幹，點任一階段即可展開細節。
+## Waterfall 的風險：需求變更的成本
 
 :::danger{title="變更成本：瀑布最大的風險"}
 Waterfall 的單向特性帶來一個結構性風險:需求若到後期才改動，變更必須沿著「設計 ⭢ 開發 ⭢ 測試 ⭢ 文件」一路回頭重做，成本隨階段往後呈近似指數的放大。這正是各階段閘門、需求凍結與里程碑審查存在的理由——**盡早凍結、盡早驗收**，把問題擋在便宜的前期。
