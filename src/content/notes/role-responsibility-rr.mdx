@@ -15,17 +15,19 @@ import RrRaci from "@/components/generated/rr-raci";
 
 # Role & Responsibility（R&R）
 
-前面的筆記我們比較了 Waterfall 與 Agile 兩種方法論，這一章接著要看：同一群人換到不同方法論底下，角色與職責（R&R）會如何隨之改變。
+前面的筆記我們比較了 Waterfall 與 Agile 兩種模式，這一章接著要看：同一群人換到不同模式底下，角色與職責（R&R）會如何隨之改變。
 
-同一群人，在不同的開發方法論底下，權力與責任的流向其實天差地遠 —— 這也是 Waterfall 與 Agile 最大的差別。R&R 釐清的，正是「決策」與「執行」如何在團隊裡分配。
+同一群人，在不同的開發模式底下，權力與責任的流向其實天差地遠。R&R 釐清的，正是「決策」與「執行」如何在團隊裡分配。
+
+接下來會用實踐 Agile 的框架 :tip[Scrum]{content='迭代式敏捷框架，工作分為固定長度的「衝刺」（Sprint，通常 1–4 週）。有明確角色（Product Owner、Scrum Master、開發團隊）與儀式（每日站立會、衝刺規劃、回顧、檢視會議）。透過 Product Backlog 管理需求優先順序，強調定期交付可用成果'} 來說明，因為它是目前最常見的敏捷框架，且有明確的角色與職責定義。
 
 :::note
 R&R（角色與職責）要回答的不是「團隊有哪些頭銜」，而是「每件事**誰拍板、誰動手、誰該被問、誰只是被通知**」。
 :::
 
-## Waterfall vs Agile：兩種權責結構
+## Waterfall vs Scrum：兩種權責結構
 
-同樣是「帶團隊的人」，Waterfall 的 PM 站在指揮鏈頂端、由上而下指派；Agile 的 PO / SM 卻是站在外圍、服務一個自組織團隊。把這兩種結構並排，差異會比讀清單更有感 —— 點選任一角色查看完整職責:
+同樣是「帶團隊的人」，Waterfall 的 PM 站在指揮鏈頂端、由上而下指派；Scrum 的 PO / SM 卻是站在外圍、服務一個自組織團隊。把這兩種結構並排，差異會比讀清單更有感 —— 點選任一角色查看完整職責:
 
 {/* @ai-visualize
 id: rr-structure
@@ -44,8 +46,8 @@ status: generated
 <GeneratedFrame
   id="rr-structure"
   type="motion"
-  caption="同樣是「帶團隊的人」，Waterfall 的 PM 由上而下指派、站在指揮鏈頂端;Agile 的 PO / SM 卻是由外圍服務一個自組織的中央團隊 —— 這是兩種方法論最深的權責分野。"
-  prompt={"把 Waterfall 與 Agile 的角色結構並排成可互動對照圖:左欄畫成由上而下的指揮鏈(PM → System Architect → Development Team / QA Team)，右欄畫成自組織圈(Development Team 在中央，PO 與 SM 在外圍以箭頭向內服務)。可切換權責流向動畫，點選任一角色於下方顯示完整職責。"}
+  caption="同樣是「帶團隊的人」，Waterfall 的 PM 由上而下指派、站在指揮鏈頂端;Scrum 的 PO / SM 卻是由外圍服務一個自組織的中央團隊 —— 這是兩種方法論最深的權責分野。"
+  prompt={"把 Waterfall 與 Scrum 的角色結構並排成可互動對照圖:左欄畫成由上而下的指揮鏈(PM → System Architect → Development Team / QA Team)，右欄畫成自組織圈(Development Team 在中央，PO 與 SM 在外圍以箭頭向內服務)。可切換權責流向動畫，點選任一角色於下方顯示完整職責。"}
 >
   <RrStructure client:visible />
 </GeneratedFrame>
