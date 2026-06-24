@@ -5,7 +5,7 @@ tags:
   - 基本操作
 category: 系統說明
 createdAt: '2026-06-16'
-updatedAt: '2026-06-21'
+updatedAt: '2026-06-22'
 ---
 
 NoteCraft 在標準 Markdown / MDX 之外，提供三種類 Material for MkDocs 的內容增強語法，皆以 `remark-directive` 於 build 階段渲染、樣式遵循 trendlink-design，正式環境同樣可用。
@@ -57,6 +57,68 @@ yarn add notecraft
 ## Tooltips（行內提示）
 
 用 `:tip[可見文字]{content="說明"}` 標記，滑鼠移上或鍵盤聚焦即顯示：像 :tip[OAuth]{content="一種授權框架，讓第三方應用在不取得密碼的情況下存取資源。"} 這樣。
+
+## Badge（行內標籤）
+
+用 `:badge[文字]{variant outline size icon href}` 行內 directive 標記。`variant` 與 Admonitions 共用同一套語意色（`note` / `info` / `tip` / `success` / `warning` / `danger` / `neutral`）。
+
+- 預設 solid：:badge[新]{variant="success"} :badge[Beta]{variant="warning"} :badge[必填]{variant="danger"} :badge[v1.8.0]
+- 加 `outline` 旗標：:badge[note]{variant="note" outline} :badge[info]{variant="info" outline} :badge[neutral]{variant="neutral" outline}
+- 帶 icon：:badge[新功能]{variant="success" icon="sparkle"} :badge[已完成]{variant="success" icon="check"} :badge[警告]{variant="warning" icon="warning"}
+- `size="sm"`（適合表格 cell 內）：:badge[必填]{variant="danger" size="sm"} :badge[選用]{variant="neutral" size="sm" outline}
+- 可點擊（有 `href`）：:badge[查看 Admonitions]{variant="info" href="#admonitions"} :badge[GitHub]{variant="neutral" icon="star" href="https://github.com/"}
+
+## Steps（步驟）
+
+用 `::::steps{layout}` 容器包多個 `:::step{title status}`，預設 `vertical`。`status` 三態：`done` / `current` / `todo`（預設 `todo`）。
+
+### Vertical（預設）
+
+:::::steps
+::::step{title="安裝依賴" status="done"}
+執行 `npm install`，等待依賴下載完成。
+::::
+::::step{title="設定環境變數" status="current"}
+複製 `.env.example` 為 `.env`，填入 :badge[必填]{variant="danger" size="sm"} 欄位。
+
+:::tip
+記得把 `.env` 加入 `.gitignore`，避免外洩金鑰。
+:::
+::::
+::::step{title="啟動 Dev Server"}
+`npm run dev` 後開啟 `http://localhost:4321`。
+::::
+:::::
+
+### Horizontal
+
+`layout="horizontal"`；視窗 < 640px 時自動降級為 vertical（內建、作者無法關閉）。
+
+::::steps{layout="horizontal"}
+:::step{title="計劃" status="done"}
+釐清需求與待釐清項。
+:::
+:::step{title="設計" status="done"}
+產出規格與 task。
+:::
+:::step{title="實作" status="current"}
+依 task 撰寫元件與樣式。
+:::
+:::step{title="驗收"}
+跑 `astro build` 確認通過。
+:::
+::::
+
+### 自訂起始序號
+
+::::steps{start=3}
+:::step{title="第三步"}
+從 `03` 開始計數。
+:::
+:::step{title="第四步"}
+接著是 `04`。
+:::
+::::
 
 ## 程式碼區塊增強（Code blocks）
 

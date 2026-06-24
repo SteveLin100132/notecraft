@@ -229,10 +229,22 @@ img { max-width: 100%; display: block; }
    Admonitions / Content tabs / Tooltips。色票 / 圓角 / 陰影 / 動效一律取自
    設計 token，不硬編色碼。外觀對齊 trendlink-design 的 Alert / Tabs / Badge。 */
 
+/* 共用 tone tokens — Admonitions / Badge / Steps 共用同一套色票（PRD §1.8.0 Decided）。
+   新增 variant 時務必同步擴充 BADGE_VARIANTS / ADMONITION_TYPES 與本區。 */
+.nc-prose {
+  --nc-tone-note-fg:    var(--blue-700);    --nc-tone-note-bg:    var(--blue-50);
+  --nc-tone-info-fg:    var(--info-500);    --nc-tone-info-bg:    var(--info-50);
+  --nc-tone-tip-fg:     var(--success-500); --nc-tone-tip-bg:     var(--success-50);
+  --nc-tone-success-fg: var(--success-500); --nc-tone-success-bg: var(--success-50);
+  --nc-tone-warning-fg: var(--orange-600);  --nc-tone-warning-bg: var(--warning-50);
+  --nc-tone-danger-fg:  var(--danger-500);  --nc-tone-danger-bg:  var(--danger-50);
+  --nc-tone-neutral-fg: var(--neutral-700); --nc-tone-neutral-bg: var(--neutral-100);
+}
+
 /* Admonitions ─────────────────────────────────────────────── */
 .nc-prose .nc-adm {
-  --nc-adm-accent: var(--blue-700);
-  --nc-adm-tint: var(--blue-50);
+  --nc-adm-accent: var(--nc-tone-note-fg);
+  --nc-adm-tint: var(--nc-tone-note-bg);
   margin: 22px 0;
   border: 1px solid var(--border-subtle);
   border-left: 4px solid var(--nc-adm-accent);
@@ -240,12 +252,12 @@ img { max-width: 100%; display: block; }
   background: var(--surface-card, #fff);
   overflow: hidden;
 }
-.nc-prose .nc-adm--note    { --nc-adm-accent: var(--blue-700);    --nc-adm-tint: var(--blue-50); }
-.nc-prose .nc-adm--info    { --nc-adm-accent: var(--info-500);    --nc-adm-tint: var(--info-50); }
-.nc-prose .nc-adm--tip     { --nc-adm-accent: var(--success-500); --nc-adm-tint: var(--success-50); }
-.nc-prose .nc-adm--success { --nc-adm-accent: var(--success-500); --nc-adm-tint: var(--success-50); }
-.nc-prose .nc-adm--warning { --nc-adm-accent: var(--orange-600);  --nc-adm-tint: var(--warning-50); }
-.nc-prose .nc-adm--danger  { --nc-adm-accent: var(--danger-500);  --nc-adm-tint: var(--danger-50); }
+.nc-prose .nc-adm--note    { --nc-adm-accent: var(--nc-tone-note-fg);    --nc-adm-tint: var(--nc-tone-note-bg); }
+.nc-prose .nc-adm--info    { --nc-adm-accent: var(--nc-tone-info-fg);    --nc-adm-tint: var(--nc-tone-info-bg); }
+.nc-prose .nc-adm--tip     { --nc-adm-accent: var(--nc-tone-tip-fg);     --nc-adm-tint: var(--nc-tone-tip-bg); }
+.nc-prose .nc-adm--success { --nc-adm-accent: var(--nc-tone-success-fg); --nc-adm-tint: var(--nc-tone-success-bg); }
+.nc-prose .nc-adm--warning { --nc-adm-accent: var(--nc-tone-warning-fg); --nc-adm-tint: var(--nc-tone-warning-bg); }
+.nc-prose .nc-adm--danger  { --nc-adm-accent: var(--nc-tone-danger-fg);  --nc-adm-tint: var(--nc-tone-danger-bg); }
 .nc-prose .nc-adm__title {
   display: flex;
   align-items: center;
@@ -442,6 +454,203 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) {
   .nc-prose .nc-anno-marker,
   .nc-prose .nc-annotate[data-enhanced] .nc-anno-item { transition: none; }
+}
+
+/* Badge（PRD §1.8.0 / task-21）─────────────────────────────
+   variant 共用 --nc-tone-* 與 Admonitions 對齊；solid 為預設、outline 為旗標切換。 */
+.nc-prose .nc-badge {
+  --nc-badge-fg: var(--nc-tone-neutral-fg);
+  --nc-badge-bg: var(--nc-tone-neutral-bg);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: baseline;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.nc-prose a.nc-badge:hover { filter: brightness(0.95); text-decoration: none; }
+.nc-prose .nc-badge--md { padding: 3px 9px; font-size: var(--text-xs, 0.75rem); }
+.nc-prose .nc-badge--sm { padding: 1px 7px; font-size: 0.6875rem; }
+.nc-prose .nc-badge--note    { --nc-badge-fg: var(--nc-tone-note-fg);    --nc-badge-bg: var(--nc-tone-note-bg); }
+.nc-prose .nc-badge--info    { --nc-badge-fg: var(--nc-tone-info-fg);    --nc-badge-bg: var(--nc-tone-info-bg); }
+.nc-prose .nc-badge--tip     { --nc-badge-fg: var(--nc-tone-tip-fg);     --nc-badge-bg: var(--nc-tone-tip-bg); }
+.nc-prose .nc-badge--success { --nc-badge-fg: var(--nc-tone-success-fg); --nc-badge-bg: var(--nc-tone-success-bg); }
+.nc-prose .nc-badge--warning { --nc-badge-fg: var(--nc-tone-warning-fg); --nc-badge-bg: var(--nc-tone-warning-bg); }
+.nc-prose .nc-badge--danger  { --nc-badge-fg: var(--nc-tone-danger-fg);  --nc-badge-bg: var(--nc-tone-danger-bg); }
+.nc-prose .nc-badge--neutral { --nc-badge-fg: var(--nc-tone-neutral-fg); --nc-badge-bg: var(--nc-tone-neutral-bg); }
+.nc-prose .nc-badge--solid {
+  background: var(--nc-badge-bg);
+  color: var(--nc-badge-fg);
+  border: 1px solid transparent;
+}
+.nc-prose .nc-badge--outline {
+  background: transparent;
+  color: var(--nc-badge-fg);
+  border: 1px solid currentColor;
+}
+.nc-prose .nc-badge__icon { flex: none; }
+
+/* Steps（PRD §1.8.0 / task-22）─────────────────────────────
+   vertical（預設）/ horizontal 兩版型；< 640px 強制降級為 vertical。 */
+.nc-prose .nc-steps {
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: nc-step;
+}
+.nc-prose .nc-step {
+  position: relative;
+  padding: 0;
+  margin: 0;
+}
+.nc-prose .nc-step::marker { content: none; }
+
+/* 序號徽章共用樣式 */
+.nc-prose .nc-step__badge {
+  --nc-step-fg: var(--nc-tone-neutral-fg);
+  --nc-step-bg: var(--neutral-0, #fff);
+  --nc-step-border: var(--border-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--nc-step-border);
+  background: var(--nc-step-bg);
+  color: var(--nc-step-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  flex: none;
+}
+.nc-prose .nc-step--todo .nc-step__badge {
+  --nc-step-fg: var(--text-muted);
+  --nc-step-bg: var(--surface-card, #fff);
+  --nc-step-border: var(--border-subtle);
+}
+.nc-prose .nc-step--current .nc-step__badge {
+  --nc-step-fg: #fff;
+  --nc-step-bg: var(--blue-700);
+  --nc-step-border: var(--blue-700);
+}
+.nc-prose .nc-step--done .nc-step__badge {
+  --nc-step-fg: #fff;
+  --nc-step-bg: var(--success-500);
+  --nc-step-border: var(--success-500);
+}
+.nc-prose .nc-step__check { display: block; }
+
+.nc-prose .nc-step__title {
+  margin: 0 0 6px;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+  line-height: 1.4;
+}
+.nc-prose .nc-step__body > :first-child:not(.nc-step__title) { margin-top: 0; }
+.nc-prose .nc-step__body > :last-child { margin-bottom: 0; }
+
+/* Vertical 版型：左徽章 + 連接線、右內容 */
+.nc-prose .nc-steps--vertical {
+  display: grid;
+  row-gap: 20px;
+}
+.nc-prose .nc-steps--vertical .nc-step {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: 14px;
+  align-items: start;
+}
+.nc-prose .nc-steps--vertical .nc-step::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: center;
+  width: 2px;
+  height: 100%;
+  min-height: 16px;
+  margin-top: -6px;
+  margin-bottom: -14px;
+  background: var(--border-subtle);
+}
+.nc-prose .nc-steps--vertical .nc-step:last-child::before { display: none; }
+.nc-prose .nc-steps--vertical .nc-step__badge { grid-column: 1; grid-row: 1; }
+.nc-prose .nc-steps--vertical .nc-step__body { grid-column: 2; grid-row: 1 / span 2; padding-bottom: 4px; }
+
+/* Horizontal 版型：橫向排列；窄螢幕（< 640px）強制降級為 vertical */
+.nc-prose .nc-steps--horizontal {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: start;
+}
+.nc-prose .nc-steps--horizontal .nc-step {
+  display: grid;
+  grid-template-rows: 32px 1fr;
+  row-gap: 10px;
+  position: relative;
+}
+.nc-prose .nc-steps--horizontal .nc-step::after {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
+  height: 2px;
+  background: var(--border-subtle);
+}
+.nc-prose .nc-steps--horizontal .nc-step:last-child::after { display: none; }
+.nc-prose .nc-steps--horizontal .nc-step__badge { justify-self: start; }
+.nc-prose .nc-steps--horizontal .nc-step__body { padding-right: 8px; }
+
+@media (max-width: 640px) {
+  .nc-prose .nc-steps--horizontal {
+    display: grid;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    row-gap: 20px;
+    column-gap: 0;
+  }
+  .nc-prose .nc-steps--horizontal .nc-step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 14px;
+    row-gap: 0;
+  }
+  .nc-prose .nc-steps--horizontal .nc-step::after { display: none; }
+  .nc-prose .nc-steps--horizontal .nc-step::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+    width: 2px;
+    min-height: 16px;
+    margin-top: -6px;
+    margin-bottom: -14px;
+    background: var(--border-subtle);
+  }
+  .nc-prose .nc-steps--horizontal .nc-step:last-child::before { display: none; }
+  .nc-prose .nc-steps--horizontal .nc-step__badge { grid-column: 1; grid-row: 1; }
+  .nc-prose .nc-steps--horizontal .nc-step__body { grid-column: 2; grid-row: 1 / span 2; padding-right: 0; }
+}
+
+/* :::steps 容器內非 :::step 子節點的安全網 */
+.nc-prose .nc-steps__stray {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 
 /* ── unstyled button reset for ghost buttons ── */

@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.7.0
+文件版本: v1.8.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-06-16
+更新日期: 2026-06-22
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -80,6 +80,8 @@ Project Name: NoteCraft
 18. \* 提供個人化「閱讀進度」（待開始 / 閱讀中 / 已完成，存於瀏覽器 localStorage、正式環境亦可用）：筆記檢視頁可手動切換並於開啟時輕量自動轉為「閱讀中」，列表卡與 Dashboard 顯示進度，未發佈筆記不可追蹤且不計入系列進度（詳見 [閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress)）
 19. \* 提供類 Material for MkDocs 的 [Markdown 擴充語法](#markdown-擴充語法admonitions--content-tabs--tooltips)：[Admonitions](#admonitions)（提示 / 警告框、可收合）、[Content tabs](#content-tabs)（內容分頁）、[Tooltips](#tooltips)（行內提示），以 `remark-directive` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
 20. \* 提供類 Material for MkDocs 的 [程式碼區塊增強](#程式碼區塊增強code-block-enhancements)：行號、檔名標題、一鍵複製、行 highlight、可展開的 [Code annotations](#code-annotations)（行內編號標記 → 點擊展開說明），以 `astro-expressive-code` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
+21. \* 提供 [Markdown 擴充語法 — Badge](#markdown-擴充語法badge)：行內標籤元件，支援多種 variant（語意色 × `outline` / `solid` 樣式），重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 的 `remark-directive` 底座，純 CSS、零 JS，正式環境同樣可用
+22. \* 提供 [Markdown 擴充語法 — Steps](#markdown-擴充語法steps)：條列「步驟」內容，支援 `horizontal` 與 `vertical`（預設）兩種版型，重用 `remark-directive` 底座，純 CSS / 漸進增強，正式環境同樣可用
 
 ### 4.2 非目標（Out of Scope）
 
@@ -1964,6 +1966,185 @@ model: haiku
 
 ---
 
+#### Markdown 擴充語法：Badge（\*）
+
+<a name="markdown-擴充語法badge"></a>
+
+## 目標
+
+為 [筆記用戶](#筆記用戶) 提供輕量的「行內標籤」元件 —— 可在段落、清單、表格中插入帶語意色的小色塊（如「新」「Beta」「必填」「v1.8.0」），補足 Markdown 純文字在「狀態 / 分類 / 版本」這類短標的表達力。屬「作者手寫、build 階段渲染、正式環境一致」的內容增強，與 [AI 標記區塊](#ai-標記區塊) 正交。
+
+## 規格
+
+- **語法（重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 的 `remark-directive` 底座 — 行內 directive）**：
+
+  ```mdx
+  這是新功能 :badge[新]{variant="success"}。
+  支援 :badge[Beta]{variant="warning" outline} 與 :badge[v1.8.0]{variant="neutral"} 等樣式。
+  ```
+
+  - 內容（`[...]`）：標籤文字，支援行內 Markdown（粗體 / 連結 / 行內程式碼），但建議短而精煉（≤ 12 字）。
+  - 屬性：
+    - `variant`：語意色，列舉 `note` / `info` / `tip` / `success` / `warning` / `danger` / `neutral`。**預設 `neutral`**。對應色票與 [Admonitions](#admonitions) 一致（取自 [trendlink-design](#skills) token，不硬編色碼）。
+    - `outline`（boolean 旗標）：加上即採 outline 樣式（透明底 + 同色邊框 + 同色字）；不加則為 **solid**（淡色底 + 同色字，預設）。
+    - `size`（選用）：`sm` / `md`，預設 `md`；用於需要更小密度的場景（如表格內）。
+- **渲染**：產出 `<span class="nc-badge nc-badge--{variant} nc-badge--{solid|outline} nc-badge--{size}">…</span>`，內聯於父段落。
+  - 圓角採簽名 `--radius-pill`；字級 `xs`～`sm`、字距略寬；行高與相鄰文字對齊（垂直置中、不撐高行高）。
+  - 樣式對齊 trendlink-design `components/Badge`（或最近的 primitive），solid 用淡色底 + 同色字、outline 用透明底 + 邊框；色票完全取自設計 token。
+- **互動 / a11y**：純展示，無互動、零 JS；屬性 `role` 可選 `note`（讓螢幕報讀器讀出標籤文字即可）。若內含連結則允許連結語意正常運作。
+- **未知 variant**：回退 `neutral` 並 `console.warn`，**不中斷 build**。
+- **環境**：純內容渲染，dev 與正式環境**行為一致**。
+
+## 卡控機制
+
+- `variant` 不在列舉內 → 回退 `neutral` + build log 警示，不中斷 build。
+- 內容為空字串 → build log 警示並略過該節點，不產出空 `<span>`。
+- 不得透過 `outline` 以外的方式硬編配色；所有色票走設計 token。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| solid badge 渲染 | 段落含 `:badge[新]{variant="success"}` | build 後檢視 | 行內顯示淡綠底 + 綠字的圓角 pill，內容為「新」 |
+| outline badge 渲染 | `:badge[Beta]{variant="warning" outline}` | 檢視 | 透明底 + 橘邊框 + 橘字 |
+| 預設 variant | `:badge[v1]` 未帶 variant | 檢視 | 渲染為 `neutral` solid |
+| 未知 variant 回退 | `:badge[X]{variant="purple"}` | build | log 警示且回退 neutral，build 不中斷 |
+| 表格內小尺寸 | `:badge[必填]{variant="danger" size="sm"}` 置於表格 cell | 檢視 | 顯示 sm 版本、不撐高該列行高 |
+| 正式環境一致 | Netlify 靜態站 | 檢視含 badge 的筆記 | 樣式與互動皆正常，無執行時 API |
+
+## 待釐清
+
+### Q1. variant 列舉採語意色還是品牌色？
+
+- [x] **沿用 [Admonitions](#admonitions) 的語意色列舉**（`note` / `info` / `tip` / `success` / `warning` / `danger` / `neutral`）—— 與既有 directive 風格一致、語意明確，**並與 Admonitions 共用同一套 token**（避免日後分歧）
+- [ ] 採品牌色（`blue` / `orange` / `navy` / `neutral`）對齊 [trendlink-design](#skills) accent
+- [ ] 兩者皆可，由屬性 `tone` / `accent` 分開承載
+
+> 已收斂（作者拍板 2026-06-22）：採語意色 + **強制與 Admonitions 對齊**，共用同一套 token；新增 variant 時兩處同時擴充，避免分歧。
+
+### Q2. 預設樣式是 solid 還是 outline？
+
+- [x] **solid**（淡色底 + 同色字）—— 視覺較柔和，密度高時不喧賓奪主
+- [ ] outline（透明底 + 邊框）
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：採 solid 為預設；需要更輕的視覺時以 `outline` 旗標切換。
+
+### Q3. 是否支援 icon prefix（如 `:badge[新]{variant="success" icon="sparkle"}`）？
+
+- [x] **v1 支援**：以 lucide-react / inline SVG 提供常用 icon；屬性 `icon="name"` 對應 icon map，未知 icon 名稱回退「不顯示 icon」+ build log
+- [ ] v1 不支援
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：v1 即支援 `icon` 屬性；icon 渲染為 `<span class="nc-badge__icon" aria-hidden="true">…</span>` 置於文字前，size 隨 badge size 調整。
+
+### Q4. 是否支援可點擊（連結）的 badge？
+
+- [x] **v1 支援 `href` 屬性** → 有 `href` 時渲染為 `<a class="nc-badge ...">`，否則為 `<span>`
+- [ ] v1 不支援（純展示）
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：支援 `href`；外部連結（非站內）自動加 `target="_blank" rel="noopener"`。
+
+---
+
+#### Markdown 擴充語法：Steps（\*）
+
+<a name="markdown-擴充語法steps"></a>
+
+## 目標
+
+為 [筆記用戶](#筆記用戶) 提供「條列式步驟」呈現語法 —— 自帶序號徽章、可選標題與描述，支援 `vertical`（預設、直式時間線樣）與 `horizontal`（橫向流程）兩種版型，讓教學型筆記能在「純編號清單」與「重型流程 SVG（[AI 標記區塊](#ai-標記區塊)）」之間有一個中量級選擇。
+
+## 規格
+
+- **語法（重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 的 `remark-directive` 底座 — 容器 directive）**：
+
+  ```mdx
+  ::::steps{layout="vertical"}
+  :::step{title="安裝依賴"}
+  執行 `npm install`，等待完成。
+  :::
+  :::step{title="設定環境變數"}
+  複製 `.env.example` 為 `.env` 並填入金鑰。
+  :::
+  :::step{title="啟動"}
+  `npm run dev` 後開啟 `http://localhost:4321`。
+  :::
+  ::::
+  ```
+
+  - **巢狀容器規則**：外層 `steps` 的 `:` 數比內層 `step` 多一個（`::::steps` 包 `:::step`），與 [Content tabs](#content-tabs) 相同。
+  - 外層屬性：
+    - `layout`：`vertical`（預設）／`horizontal`。
+    - `start`（選用）：起始序號，預設 `1`。
+  - 內層 `step` 屬性：
+    - `title`（選用）：步驟標題；省略時僅顯示序號 + 內文。
+    - `status`（選用）：`done` / `current` / `todo`，預設 `todo`；對應徽章樣式（done 打勾 + 綠、current 實心 accent、todo 空心灰）。對齊 [trendlink-design](#skills) 既有狀態圓點語彙（同 [系列總覽頁面](#系列總覽頁面series-overview) 章節狀態圓點）。
+- **渲染**：
+  - **vertical**：左側序號徽章 + 一條淡色連接線（最後一步無下半線）；右側為標題 + 內文（支援行內 Markdown 與區塊內容如連結、`code`、清單、admonition）。
+  - **horizontal**：以 `display: grid; grid-auto-flow: column;` 等橫向排列；徽章在上、標題與內文在下；步驟之間以連接線 / 箭頭分隔。在 viewport < 640px 時自動降級為 vertical（避免擠壓），不需作者另設。
+  - 序號顯示兩位數（`01`、`02`…），徽章圓角 `--radius-pill`，色票取自設計 token（**不硬編色碼**），對齊系列詳情頁章節序號徽章的語彙。
+- **互動 / a11y**：純展示、零 JS。語意上以 `<ol class="nc-steps nc-steps--{layout}">` 包 `<li class="nc-step nc-step--{status}">`，原生有序清單即可被螢幕報讀器辨識；徽章為純視覺、加 `aria-hidden="true"`，序號靠 `<ol>` 自身語意承載。
+- **未知屬性**：未知 `layout` 回退 `vertical`、未知 `status` 回退 `todo`，皆 `console.warn`，**不中斷 build**。
+- **環境**：純內容渲染，dev 與正式環境**行為一致**。
+
+## 卡控機制
+
+- `:::steps` 容器內非 `:::step` 的子節點（例如作者誤寫一般段落）→ build log 警示並照原樣置於容器底部（不被當成步驟，避免錯位）。
+- `horizontal` 在窄螢幕自動降級為 vertical，作者無需另設媒體查詢；該規則為 CSS 內建，不可被作者關閉（避免破版）。
+- 序號徽章不可被作者透過屬性硬編配色；狀態色完全走設計 token。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 預設 vertical 渲染 | 筆記含 `::::steps` 三個 `:::step` | build 後檢視 | 依序顯示三步驟，左側序號徽章 + 連接線，最後一步無下半線 |
+| horizontal 渲染 | `::::steps{layout="horizontal"}` 三步 | 桌面寬度檢視 | 三步驟橫向排列，徽章在上、內文在下 |
+| 窄螢幕自動降級 | 同上，viewport < 640px | 縮窄視窗 | horizontal 自動切回 vertical 排列，無水平捲動 |
+| status 狀態徽章 | 三步驟分別為 `done` / `current` / `todo` | 檢視 | 第一步顯示打勾綠徽章、第二步實心 accent、第三步空心灰 |
+| 自訂起始序號 | `::::steps{start=3}` 兩步 | 檢視 | 兩步序號為 `03` / `04` |
+| 步驟內含區塊 | 某 `:::step` 內含 `:::note` admonition | 檢視 | admonition 正確渲染於該步驟內文區 |
+| 未知 layout 回退 | `::::steps{layout="spiral"}` | build | log 警示且回退 vertical，build 不中斷 |
+| 正式環境一致 | Netlify 靜態站 | 檢視含 steps 的筆記 | 兩種版型皆正常，無執行時 API |
+
+## 待釐清
+
+### Q1. 預設 layout 為何？
+
+- [x] **vertical**（直式時間線）—— 適合教學筆記主流情境、不受螢幕寬度限制
+- [ ] horizontal
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：預設 vertical。
+
+### Q2. 是否支援 `status`（done / current / todo）？
+
+- [x] **v1 支援三態**，與系列章節狀態圓點語彙一致（done 打勾綠 / current 實心 accent / todo 空心灰）
+- [ ] v1 僅做序號徽章
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：v1 即支援 `status` 三態；預設 `todo`。
+
+### Q3. `horizontal` 在窄螢幕的行為？
+
+- [x] **自動降級為 vertical**（內建 CSS 媒體查詢、作者無法關閉）—— 不破版
+- [ ] 保留 horizontal，允許水平捲動
+- [ ] 由作者以屬性決定
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：強制在 `< 640px` 自動切回 vertical，作者無法關閉。
+
+### Q4. 步驟內容支援哪些 Markdown 結構？
+
+- [x] **全支援**（段落 / 清單 / `code` 區塊 / admonition / badge / 行內 Markdown）—— 與其他 `:::container` 一致
+- [ ] 僅單段純文字 + 行內 Markdown
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-06-22）：全支援巢狀；step 內可含 admonition / badge / code block / 清單 等任意 Markdown。
+
+---
+
 ## 8. Schedule（時間表）
 
 根據 PRD 的功能依賴關係，建議按**依賴順序**分為 5 個 Phase。
@@ -2085,6 +2266,17 @@ model: haiku
 - 詳見 `docs/tasks/` 下實作 Task（task-17 ~ task-20，task-17 為引擎底座先做；task-20 另依賴 task-14 的 directive 底座）
 
 **理由：** build 階段完成、無執行時 API、正式環境一致；與 AI 標記區塊正交。`astro-expressive-code` / `@expressive-code/plugin-line-numbers` 為 build-time 整合、非元件 import，已徵得作者同意。
+
+#### Phase 4.11 — Badge / Steps Markdown 擴充（v1.8.0 追加）
+
+**目標：補齊「行內標籤」與「步驟條列」兩個中量級排版語法**
+
+- Badge：行內 directive `:badge[文字]{variant outline size}`，重用 Phase 4.9 的 `remark-directive` 底座；solid / outline 樣式、語意色 variant、純 CSS 零 JS
+- Steps：容器 directive `::::steps{layout}` + `:::step{title status}`，vertical（預設）/ horizontal 兩版型；horizontal 在窄螢幕自動降級為 vertical
+- 樣式遵循 [trendlink-design](#skills) token（對齊 `Badge` 與章節序號徽章語彙，不硬編色碼）
+- 詳見 `docs/tasks/` 下實作 Task（task-21 ~ task-22）
+
+**理由：** 純內容渲染、build 階段完成、無執行時 API、正式環境一致；與 AI 標記區塊機制正交。依賴 Phase 4.9 的 `remark-directive` 底座，無新外部依賴。
 
 #### Phase 5 — 部署與收尾
 
@@ -2235,6 +2427,15 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.8.0] - 2026-06-22
+- **Added**: §7.1 新增「Markdown 擴充語法：Badge」與「Markdown 擴充語法：Steps」兩節
+  - Badge：行內 directive `:badge[…]{variant outline size}`，支援語意色 variant（note/info/tip/success/warning/danger/neutral）× solid（預設）/ outline 樣式、可選 `size=sm|md`，純 CSS 零 JS
+  - Steps：容器 directive `::::steps{layout}` + `:::step{title status}`，`vertical`（預設）/ `horizontal` 兩版型，可選 `start` 自訂起始序號、`status=done|current|todo` 對應狀態徽章；`horizontal` 在窄螢幕自動降級為 vertical
+- **Updated**: §4.1 核心目標新增第 21、22 項；§8.1 新增 Phase 4.11；對應實作 Task（task-21、task-22）置於 `docs/tasks/`
+- **Reused**: 重用 v1.6.0 引入的 `remark-directive` 底座，無新外部依賴；樣式對齊 [trendlink-design](#skills) `Badge` 與章節序號徽章語彙、不硬編色碼
+- **Decided（2026-06-22 作者拍板 Badge 四項）**: ① variant 採語意色列舉（`note`/`info`/`tip`/`success`/`warning`/`danger`/`neutral`），**強制與 [Admonitions](#admonitions) 共用同一套 token**（避免日後分歧）；② 預設樣式 `solid`，`outline` 為旗標切換；③ **v1 即支援 `icon` 屬性**（lucide / inline SVG icon map，未知 icon 回退不顯示 + warn）；④ **v1 即支援 `href` 屬性**，有 `href` 時渲染為 `<a>`、外部連結自動加 `target="_blank" rel="noopener"`
+- **Decided（2026-06-22 作者拍板 Steps 四項）**: ① 預設 `layout="vertical"`；② **v1 即支援 `status` 三態**（`done` / `current` / `todo`，預設 `todo`，徽章樣式對齊系列章節狀態語彙）；③ `horizontal` 在 `< 640px` **強制自動降級為 vertical**（作者無法關閉）；④ `:::step` 內容**全支援巢狀 Markdown**（段落 / 清單 / code / admonition / badge）
 
 ### [1.7.0] - 2026-06-21
 - **Added**: §7.1 新增「程式碼區塊增強（Code block enhancements）」規格 —— 類 Material for MkDocs 的行號 / 檔名標題 / 複製按鈕 / 行 highlight / 互動式 Code annotations，以 `astro-expressive-code` 於 build 階段渲染、樣式遵循 `trendlink-design`、正式環境一致；與 AI 標記區塊正交

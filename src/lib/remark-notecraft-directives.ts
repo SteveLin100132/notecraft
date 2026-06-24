@@ -58,6 +58,48 @@ const DEFAULT_LABEL: Record<string, string> = {
   danger: "注意",
 };
 
+// Badge / Step 共用：variant 列舉與 Admonitions 對齊（PRD §1.8.0 Decided），多 "neutral"。
+const BADGE_VARIANTS = new Set([
+  "note",
+  "info",
+  "tip",
+  "success",
+  "warning",
+  "danger",
+  "neutral",
+]);
+const BADGE_SIZES = new Set(["sm", "md"]);
+const STEP_STATUSES = new Set(["done", "current", "todo"]);
+const STEPS_LAYOUTS = new Set(["vertical", "horizontal"]);
+
+/** Badge / Step 可用的 icon 名稱集合 — lucide 風格、以 path 描述。 */
+const BADGE_ICONS: Record<string, SvgChild[]> = {
+  sparkle: [
+    { tag: "path", props: { d: "M12 3v4M12 17v4M3 12h4M17 12h4" } },
+    { tag: "path", props: { d: "M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" } },
+  ],
+  check: [{ tag: "path", props: { d: "M20 6 9 17l-5-5" } }],
+  star: [
+    {
+      tag: "path",
+      props: {
+        d: "M12 2 14.6 8.6 22 9.3l-5.7 4.9 1.8 7.3L12 17.8 5.9 21.5l1.8-7.3L2 9.3l7.4-.7Z",
+      },
+    },
+  ],
+  bolt: [{ tag: "path", props: { d: "M13 2 4 14h7l-1 8 9-12h-7l1-8Z" } }],
+  flag: [
+    { tag: "path", props: { d: "M4 22V4" } },
+    { tag: "path", props: { d: "M4 4h13l-2 4 2 4H4" } },
+  ],
+  // 語意 icon — 與 admonition 同一組路徑、字級隨 badge 縮放
+  info: ICONS.info,
+  warning: ICONS.warning,
+  danger: ICONS.danger,
+  note: ICONS.note,
+  success: ICONS.success,
+};
+
 function el(hName: string, hProperties: Record<string, unknown>, children: MdNode[] = []): MdNode {
   return { type: "ncElement", data: { hName, hProperties }, children };
 }
@@ -245,6 +287,199 @@ function buildAnnotate(node: MdNode, uid: number, file: VFileLike): void {
   });
 }
 
+/** Badge（PRD §1.8.0）：行內 directive `:badge[文字]{variant outline size icon href}`。 */
+function buildBadge(node: MdNode, file: VFileLike): void {
+  const attrs = node.attributes || {};
+  let variant = (attrs.variant || "neutral").trim();
+  if (!BADGE_VARIANTS.has(variant)) {
+    console.warn(
+      `[notecraft-directives] :badge 未知 variant=${variant}，回退 neutral${file.path ? `（${file.path}）` : ""}`,
+    );
+    variant = "neutral";
+  }
+  const outline = attrs.outline !== undefined && attrs.outline !== null;
+  let size = (attrs.size || "md").trim();
+  if (!BADGE_SIZES.has(size)) size = "md";
+  const iconName = (attrs.icon || "").trim();
+  const href = (attrs.href || "").trim();
+
+  const children = node.children || [];
+  const hasContent = children.some(
+    (c) => (c.value || "").trim() !== "" || (c.children && c.children.length),
+  );
+  if (!hasContent) {
+    console.warn(
+      `[notecraft-directives] :badge 內容為空，已移除${file.path ? `（${file.path}）` : ""}`,
+    );
+    node.data = { hName: "span", hProperties: {} };
+    node.children = [];
+    return;
+  }
+
+  let iconNode: MdNode | null = null;
+  if (iconName) {
+    const paths = BADGE_ICONS[iconName];
+    if (paths) {
+      const px = size === "sm" ? 11 : 13;
+      iconNode = el(
+        "svg",
+        {
+          className: ["nc-badge__icon"],
+          viewBox: "0 0 24 24",
+          width: px,
+          height: px,
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": 2,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          "aria-hidden": "true",
+        },
+        paths.map((p) => el(p.tag, { ...p.props })),
+      );
+    } else {
+      console.warn(
+        `[notecraft-directives] :badge 未知 icon=${iconName}，不顯示 icon${file.path ? `（${file.path}）` : ""}`,
+      );
+    }
+  }
+
+  const className = [
+    "nc-badge",
+    `nc-badge--${variant}`,
+    outline ? "nc-badge--outline" : "nc-badge--solid",
+    `nc-badge--${size}`,
+  ];
+
+  node.data = node.data || {};
+  const hProperties: Record<string, unknown> = { className };
+  if (href) {
+    node.data.hName = "a";
+    hProperties.href = href;
+    // 外部連結（含 scheme）→ 自動帶 target / rel；站內相對路徑不加。
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(href)) {
+      hProperties.target = "_blank";
+      hProperties.rel = "noopener";
+    }
+  } else {
+    node.data.hName = "span";
+  }
+  node.data.hProperties = hProperties;
+  node.children = iconNode ? [iconNode, ...children] : children;
+}
+
+/** Steps（PRD §1.8.0）：`::::steps{layout start}` 內含 `:::step{title status}`。 */
+function buildSteps(node: MdNode, file: VFileLike): void {
+  const attrs = node.attributes || {};
+  let layout = (attrs.layout || "vertical").trim();
+  if (!STEPS_LAYOUTS.has(layout)) {
+    console.warn(
+      `[notecraft-directives] :::steps 未知 layout=${layout}，回退 vertical${file.path ? `（${file.path}）` : ""}`,
+    );
+    layout = "vertical";
+  }
+  const startNum = parseInt((attrs.start || "1").trim(), 10);
+  const start = Number.isFinite(startNum) && startNum > 0 ? startNum : 1;
+
+  const allChildren = node.children || [];
+  const stepNodes = allChildren.filter(
+    (c) => c.type === "containerDirective" && c.name === "step",
+  );
+  const strayNodes = allChildren.filter(
+    (c) => !(c.type === "containerDirective" && c.name === "step"),
+  );
+  if (strayNodes.length) {
+    console.warn(
+      `[notecraft-directives] :::steps 含 ${strayNodes.length} 個非 :::step 子節點，已置於容器底部${file.path ? `（${file.path}）` : ""}`,
+    );
+  }
+
+  const items: MdNode[] = stepNodes.map((step, i) => {
+    const stepAttrs = step.attributes || {};
+    let status = (stepAttrs.status || "todo").trim();
+    if (!STEP_STATUSES.has(status)) {
+      console.warn(
+        `[notecraft-directives] :::step 未知 status=${status}，回退 todo${file.path ? `（${file.path}）` : ""}`,
+      );
+      status = "todo";
+    }
+    const titleAttr = (stepAttrs.title || "").trim();
+    const titleInline = takeDirectiveLabel(step);
+    const title = titleAttr || titleInline || "";
+    const n = start + i;
+    const num = String(n).padStart(2, "0");
+
+    const badge =
+      status === "done"
+        ? el(
+            "span",
+            { className: ["nc-step__badge"], "aria-hidden": "true" },
+            [
+              el(
+                "svg",
+                {
+                  className: ["nc-step__check"],
+                  viewBox: "0 0 24 24",
+                  width: 14,
+                  height: 14,
+                  fill: "none",
+                  stroke: "currentColor",
+                  "stroke-width": 3,
+                  "stroke-linecap": "round",
+                  "stroke-linejoin": "round",
+                  "aria-hidden": "true",
+                },
+                [el("path", { d: "M5 12.5 10 17.5 19 7" })],
+              ),
+            ],
+          )
+        : el(
+            "span",
+            { className: ["nc-step__badge"], "aria-hidden": "true" },
+            [text(num)],
+          );
+
+    const bodyChildren: MdNode[] = [];
+    if (title) {
+      bodyChildren.push(
+        el("p", { className: ["nc-step__title"] }, [text(title)]),
+      );
+    }
+    bodyChildren.push(...(step.children || []));
+    const body = el("div", { className: ["nc-step__body"] }, bodyChildren);
+
+    return {
+      type: "ncElement",
+      data: {
+        hName: "li",
+        hProperties: {
+          className: ["nc-step", `nc-step--${status}`],
+          "data-step": String(n),
+        },
+      },
+      children: [badge, body],
+    };
+  });
+
+  const strayWrap = strayNodes.length
+    ? [
+        el(
+          "div",
+          { className: ["nc-steps__stray"], "data-nc-stray": "true" },
+          strayNodes,
+        ),
+      ]
+    : [];
+
+  node.data = node.data || {};
+  node.data.hName = "ol";
+  node.data.hProperties = {
+    className: ["nc-steps", `nc-steps--${layout}`],
+    start,
+  };
+  node.children = [...items, ...strayWrap];
+}
+
 function buildTooltip(node: MdNode, uid: number, file: VFileLike): void {
   const attrs = node.attributes || {};
   const content = (attrs.content || "").trim();
@@ -331,8 +566,23 @@ export default function remarkNotecraftDirectives() {
           buildAnnotate(child, counter++, file);
           continue;
         }
+        if (child.type === "containerDirective" && child.name === "steps") {
+          // 先處理每個 :::step 子節點內可能的巢狀指令（admonition / badge / tabs 等）
+          for (const step of child.children || []) {
+            if (step.type === "containerDirective" && step.name === "step") {
+              walk(step);
+            }
+          }
+          buildSteps(child, file);
+          continue;
+        }
         if (child.type === "textDirective" && child.name === "tip") {
           buildTooltip(child, counter++, file);
+          continue;
+        }
+        if (child.type === "textDirective" && child.name === "badge") {
+          walk(child); // 容許 badge 文字中含其他行內 directive（如 :tip）
+          buildBadge(child, file);
           continue;
         }
         if (DIRECTIVE_TYPES.has(child.type)) {
