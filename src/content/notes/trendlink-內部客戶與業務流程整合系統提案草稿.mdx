@@ -1,0 +1,428 @@
+---
+title: "Trendlink 內部客戶與業務流程整合系統提案草稿"
+description: ""
+tags: ["提案"]
+createdAt: "2026-06-23"
+updatedAt: "2026-06-23"
+---
+
+# Trendlink 內部客戶與業務流程整合系統提案
+
+## 背景
+
+客服人員與顧問師在日常工作中，必須針對各自負責的客戶合約進行管理與追蹤。
+現行的作業方式為：每當與客戶洽談或更新合約內容時，皆需手動將合約相關資訊維護至 Excel 檔案中。透過 Excel 進行合約資料的登錄、更新與追蹤。
+
+現階段使用 Notion 作為業務管理的過渡期工具，根據 [合約與客戶管理系統企劃](https://www.notion.so/trendlink-workspace/31b43e6601e28023a65fc7d3c41341c8?source=copy_link)，
+以 Notion 作為 PoC 的期間，同步搜集使用者需求，並記錄相關規格與流程，作為未來系統開發的參考。
+
+:::info
+針對**合約**與**客戶**管理的部分，相關規格已趨於成熟，並可作為未來系統開發的參考。
+:::
+
+---
+
+## 痛點
+
+在使用 Notion 進行客戶與合約管理時，面臨以下問題，可能長期使用會出現難以克服的情境：
+
+- **資料分散**：客戶與合約資訊分散在不同的 Notion 資料庫中，雖可以透過關聯進行整合，但無法像傳統 RDB 一樣進行複雜查詢與分析。
+- **權限設定**：目前 Notion 雖可以按照人員顯示特定的合約資料，但沒有辦法做到 Column Level 的權限設定，導致部分敏感資訊無法被保護。
+- **欄位驗證**：Notion 的資料填寫，無法鎖定必填與格式驗證，導致資料品質不佳。
+- **效能貧頸**：Notion 的資料量增加時，查詢與操作效能可能下降，影響使用者體驗。
+- **版本迭代**：Notion 的功能更新與變動，目前在權限的設定上就因為表單權限的變動，導致相關功能無法使用。
+
+---
+
+## 系統模組 & 服務整合
+
+### 業務流程管理（需具有流程追蹤與交付文件管理能力）
+
+- 對應系統：BPM
+- 服務選型：自建系統
+
+### 合約管理（需具有電子簽章與法律效力）
+
+- 對應系統：CLM
+- 服務選型：點點簽、BizForm
+
+:::note
+目前僅有點點簽提供電子簽章服務，BizForm 目前僅提供表單簽核服務，因此在合約管理，選用點點簽最為妥當。
+:::
+
+### 客戶管理與商機追蹤
+
+- 對應系統：CRM
+- 服務選型：Vital CRM
+
+::::tabs
+:::tab{label="Vital CRM 功能特色"}
+- 功能可以按權限劃分
+- 支援手機 App 方便業務在外也能夠使用
+- 商機狀態可以自訂
+- 客戶備忘錄可以通過記事填寫，記事也可以設定範本
+- 有 Lead Time 與 Cycle Time 的概念，能夠追蹤各商機階段停留幾天
+- 具有簽核流程，包含會簽、擇簽、加簽等等
+- 知識庫 KM，支援文件管理、自訂欄位、先關文件關聯、可以模糊查詢（包含附件也行）
+:::
+:::tab{label="Vital CRM 問題釐清"}
+   
+> ✅ 表示能夠滿足需求、⚠️ 表示能夠滿足需求，但需要結合其他服務才有機會實現或者客制化、❌ 表示無法滿足需求
+
+1. **客戶資料的權限劃分？能客制不同的人只能看到特定的客戶資料嗎？**
+   <br/> *Ans：✅ 可按組織或個人設定權限，同時也能夠分享權限（滿足目前多個顧問共同執案的部分）*
+2. **客戶資料的欄位能夠自訂嗎？例如說客戶來源的種類（看起來可以用標籤實現）、公司員工人數等。**
+   <br/> *Ans：✅ 可以自訂*
+3. **商機的狀態可以自訂，那該狀態裡面有辦法提供自訂表單嗎？我們的業務流程有包含派案 -> 諮詢 -> 報價 -> 執案等業務節點，每個業務節點都有要交付的文件（看起來是用人員記事，可以提供範本，但好像不是表單，所以如果要確認能不能進行統計，有看到 BizForm 可能可以透過這個部分實現）**
+   <br/> *Ans：⚠️ 參考 Q4，但結論是需要客制*
+4. **BizForm 目前綁定對應客戶，那可以綁定對應的商機階段嗎？**
+   <br/> *Ans：⚠️ 目前沒辦法，但可以走客制化的流程，或參照 Q5 使用 KM 實現*
+5. **另外也有合約管理的需求，目前有哪個服務或模組可以提供？用訂單的方式來實現嗎？**
+   <br/> *Ans：⚠️ 使用 KM 知識管理系統，屬於文件管理系統，可以自訂欄位*
+6. **KM 與 CRM 的交互，如何知道該客戶底下有哪些文件（合約）？**
+   <br/> *Ans：⚠️ CRM 增加網址欄位，加入 KM 文件連結，但需要兩邊同時設定權限*
+7. **簽核流程能不能有訪客（渠道人員）？**
+   <br/> *Ans：❌ 不可以，需要有系統帳號*
+8. **儀表板能否結合 KM？**
+   <br/> *Ans：⚠️ 目前僅針對 CRM 本身的資料，如果硬要弄，也可以透過 API，不過透過網址來做資產的關聯，其實偏弱*
+:::
+::::
+
+### 表單簽核
+
+- 對應系統：BPM、CLM
+- 服務選型：BizForm
+
+::::tabs
+:::tab{label="BizForm 功能特色"}
+- 提供線上表單建構器
+- 線上表單
+- 表單標籤分類
+- 自訂篩選器
+- 表單支援公式計算
+- 支援點點簽 Integration
+- 內建簽核流程，簽核關卡數不設限
+:::
+::::
+
+:::warning{title="注意事項"}
+目前公司內部對於出去的合約、報價單、文件等，皆沒有簽核流程，但不代表未來不會有這樣的需求，因此先將表單簽核列為待觀察的項目，
+未來如果有相關需求再評估是否介接外部服務或是自建系統。
+:::
+
+:::info{title="補充說明"}
+使用 BizForm 進行表單簽核，主要是為了讓 Vital CRM 可以實現 BPM 整合，讓相關的業務流程（如：派案、諮詢、報價、執案）能夠填寫相應的表單，交付該業務節點所需的文件。
+:::
+
+### 知識庫管理
+
+- 對應系統：KM、CLM
+- 服務選型：Vital KM
+
+:::info{title="補充說明"}
+使用 Vital KM 進行知識庫管理，主要是為了讓 Vital CRM 可以實現 CLM 整合，讓相關的合約與文件能夠集中管理，並提供搜尋與關聯功能。
+:::
+
+---
+
+## 解決方案
+
+因聯和趨動的業務流程與客戶管理需求，除傳統 CRM 外，甚至跨足 BPM（業務流程管理）、Finance（發票開立與收款）與 CLM（合約生命週期管理），
+因此除了自建系統外，也會朝向整合現有平台或服務的方向發展。
+
+### 綜合評估
+
+:::info{title="補充說明"}
+✅ 表示能夠滿足需求、⚠️ 表示能夠滿足需求，但需要結合其他服務才有機會實現或者客制化、❌ 表示無法滿足需求
+:::
+
+|           	| 主系統 	| 客戶管理 	| 派案管理                   	| 諮詢管理                   	| 報價管理                   	| 合約管理                                                                   	| 執案管理                   	| 看板                       	|
+|-----------	|--------	|----------	|----------------------------	|----------------------------	|----------------------------	|----------------------------------------------------------------------------	|----------------------------	|----------------------------	|
+| 自建系統  	| ✅      	| ✅        	| ✅                          	| ✅                          	| ✅                          	| :tip[⚠️]{content="可以進行合約資料管理，但無法取代實體合約，解決電子法律效力的問題"}         	| ✅                          	| ✅                          	|
+| Vital CRM 	| ❌      	| ✅        	| :tip[⚠️]{content="須整合 BizForm"}            	| :tip[⚠️]{content="須整合 BizForm"}           	| :tip[⚠️]{content="須整合 BizForm"}           	| :tip[⚠️]{content="須整合 BizForm"}                                                           	| :tip[⚠️]{content="須整合 BizForm"}           	| :tip[⚠️]{content="範圍僅包含 CRM 的資料"}    	|
+| BizForm   	| ❌      	| ❌        	| :tip[⚠️]{content="無法自主實現業務流程控管"} 	| :tip[⚠️]{content="無法自主實現業務流程控管"} 	| :tip[⚠️]{content="無法自主實現業務流程控管"} 	| :tip[⚠️]{content="無法自主實現業務流程控管"}                                                 	| :tip[⚠️]{content="無法自主實現業務流程控管"} 	| :tip[⚠️]{content="無法自主實現業務流程控管"} 	|
+| Vital KM  	| ❌      	| ❌        	| ❌                          	| ❌                          	| ❌                          	| :tip[⚠️]{content="偏向文件管理與表單整合，若要實現合約管理須整合 Vital CRM"}                 	| ❌                          	| ❌                          	|
+| 點點簽    	| ❌      	| ❌        	| ❌                          	| ❌                          	| ❌                          	| :tip[⚠️]{content="可以取代實體合約，解決電子簽章的法律效力問題，但無法單獨實現合約資料管理"} 	| ❌                          	| ❌                          	|
+
+### 方案 A
+
+- 主系統：自建系統，整合客戶管理與業務流程管理，作為系統中控
+- 客戶管理：自建系統
+- 派案管理：整合 BizForm，BizForm 建置表單，交付表單後的資料需與主系統進行資料串接
+- 諮詢管理：整合 BizForm，BizForm 建置表單，交付表單後的資料需與主系統進行資料串接
+- 報價管理：整合 BizForm，BizForm 建置表單，交付表單後的資料需與主系統進行資料串接
+- 合約管理：整合點點簽，電子合約由點點簽管理，相關合約資料需與主系統進行資料同步
+- 執案管理：整合 BizForm，BizForm 建置表單，交付表單後的資料需與主系統進行資料串接
+- 分析看板：自建系統，提供業務流程的看板視圖，並與 BizForm 進行資料串接，顯示各業務節點的狀態與相關資訊
+
+::::tabs
+:::tab{label="優勢"}
+- 不用架設相關服務，有人運維
+- BizForm 內建簽核流程，不需要搭建（現階段沒有簽核，不代表這是正常流程）
+:::
+:::tab{label="劣勢"}
+- 串接成本要考量，串接 BizForm 需要 Follow 點點簽試用的模式，串接對應 API，需要額外估算所需的資源與時間
+- BizForm API 交互需要額外收費
+:::
+::::
+
+### 方案 B
+
+- 主系統：自建系統，整合客戶管理與業務流程管理，作為系統中控
+- 客戶管理：自建系統
+- 派案管理：自建系統
+- 諮詢管理：自建系統
+- 報價管理：自建系統
+- 合約管理：整合點點簽，電子合約由點點簽管理，相關合約資料需與主系統進行資料同步
+- 執案管理：自建系統
+- 分析看板：自建系統，提供業務流程的看板視圖，顯示各業務節點的狀態與相關資訊
+
+::::tabs
+:::tab{label="優勢"}
+- 高度彈性，可以根據公司的業務流程與需求來設計與實現功能，不受限於第三方服務的限制
+- 不需要考慮第三方服務的串接成本與維護成本（使用點點簽的 API 不需要額外收費）
+:::
+:::tab{label="劣勢"}
+- 開發成本較高，需要投入更多的資源與時間來開發與維護系統，並用內部資源來管理 Infrastructure 等基建
+:::
+::::
+
+### 建議方案
+
+> 方案 A 與方案 B 各有優劣，但整體而言，考量當前內部流程未有簽核流程、BizForm 服務若要串接 API 需另外收費，且業務流程與客戶管理需求尚未完全明確，建議先採用方案 B。
+
+---
+
+## 系統架構
+
+{/* @ai-visualize
+id: solution-architecture-a
+type: diagram
+prompt: |
+  繪製方案 A、方案 B 合併的 Solution Architecture 圖（頂端切換按鈕對照）。
+
+  ## 視覺風格
+
+  採用「雲端架構圖」常見的**巢狀分組卡片**版型（類似 AWS / GCP 官方架構圖）：
+
+  - **最外層分組**：用淡灰底（var(--neutral-50)）圓角大卡，標頭置中、含一個 GCP 風格 icon + 分組名稱（例如「Deployment (GCP)」、「CI/CD」、「External SaaS」）
+  - **內層子分組**：用**藍色虛線框 + 白底**圓角中卡，左上角貼一顆 GCP 服務徽章（小藍底圓 + 白字 icon）+ 子分組名稱（例如「GCP Compute Engine」、「GCP Cloud SQL」、「GCP Cloud Storage」）
+  - **服務節點卡**：白底、細邊框、輕陰影的圓角小卡，水平排版：左邊是品牌 / 服務 logo 色塊（例如 React 藍綠、NestJS 紅、n8n 粉、PostgreSQL 藍、n8n 等），右邊上方粗體服務名稱、下方一行小灰字描述
+  - **配色**：自建走 trendlink-design 主藍系；GCP 子分組統一用 GCP 藍色標頭徽章；外部 SaaS（BizForm、點點簽）用單獨的中性 / 暖色分組
+  - **頂部**：兩顆 pill 切換按鈕「方案 A / 方案 B」，active 為 var(--blue-700) 底白字
+
+  ## 分組結構
+
+  ### 上方：CI/CD 區塊（最外層淡灰大卡）
+  - GitHub Repo — 前後端各一個 Repo
+  - GitHub Actions — 自動測試 / 打包 / 部署
+
+  ### 中段：Deployment (GCP)（最外層淡灰大卡，內含多個藍色虛線子分組）
+
+  **Compute Engine（子分組）**
+  - Web UI — React.js + Vite（前端）
+  - API Server — NestJS + TypeScript（後端）
+  - n8n — 資料同步 / 自動化排程
+  - 方案 B 時：派案管理、諮詢管理、報價管理、執案管理（自建模組以小卡列出在 API Server 下方）
+
+  **Cloud SQL（子分組）**
+  - PostgreSQL — 主資料庫（客戶、合約、業務流程資料）
+
+  **Cloud Storage（子分組）**
+  - 系統附件、合約 PDF、表單上傳檔（例：.xlsx、.png、.pdf）
+
+  ### 下方：External SaaS（最外層淡灰大卡）
+
+  - 方案 A 才有：**BizForm** — 派案 / 諮詢 / 報價 / 執案表單（Webhook 回寫主系統）
+  - **點點簽** — 電子簽章服務（兩方案都有，唯一外部依賴）
+
+  ### 最上方：User（單獨一條，User icon + 文字）
+  - 客服人員 / 顧問師（內部）
+  - 客戶 / 渠道人員（外部簽署）
+
+  ## 互動
+
+  - 頂端方案 A / B 切換按鈕：切換時 Compute Engine 子分組內的「派案 / 諮詢 / 報價 / 執案」自建模組會出現（B）或隱藏（A），且 External SaaS 區塊內 BizForm 卡片會出現（A）或隱藏（B）
+  - 點擊任一節點顯示說明卡片（職責、技術細節、與其他模組的關聯）
+  - 為避免 SSR/CSR hydration 不一致，**不要使用 motion 的 layout / AnimatePresence / useReducedMotion，也不要做 DOM measurement**；切換動畫用純 CSS transition（opacity / transform）即可
+  - 排版以巢狀分組為主，但**這次需要補上元件間的交互折線**（見下方「連線」）
+
+  ## 分組結構修訂版（取代上方分組結構，由上至下）
+
+  1. **User（單獨一條，不在大卡內）**：客服 / 顧問師（內部）、客戶 / 渠道人員（外部）
+  2. **Deployment (GCP) 大卡**，內含三個藍虛線子分組：
+     - **GCP Compute Engine** 內**再嵌一層 Docker** 虛線框（左上 Docker 徽章）；Docker 框內含：
+       - Web UI（React.js + Vite） — 副標兩行：「主系統後台（客服 / 顧問師作業）」「數據分析 Dashboard（看板視圖）」
+       - API Server（NestJS + TypeScript） — 副標列出自建業務模組：共同 = 客戶管理(CRM) / 合約管理 / 分析看板資料服務；[B] 派案 / 諮詢 / 報價 / 執案管理；[A] 業務流程資料對接（接 BizForm Webhook）
+     - **GCP Cloud SQL** — PostgreSQL 主資料庫
+     - **GCP Cloud Storage** — 附件 / 合約 PDF / 表單上傳檔
+  3. **External SaaS 大卡**（標頭副標「訂閱服務」）
+     - **n8n（官方訂閱）** — 副標三條：主系統透過 API 觸發 workflow / Webhook 回寫主系統 / 整合通知（Email、Slack 等）
+     - **點點簽** — 副標：API（合約建立 / 查詢）/ Webhook（簽署完成事件回寫）
+     - **[A] BizForm**（方案 A 才出現） — 副標：Webhook（表單交付資料回寫）
+  4. **CI/CD 大卡（最底層）**
+     - GitHub Repo — 前後端各一個 Repo
+     - GitHub Actions — 自動測試 / 打包 / 部署
+     - 流程：GitHub Repo --push--> GitHub Actions --SSH / Docker pull--> GCP Compute Engine
+
+  ## 連線（折線、含協定標籤）
+
+  使用一層 absolute 覆蓋的 SVG 畫 orthogonal polyline（只走水平 / 垂直），每條線中段加白底細邊框的小 pill 標籤標註協定：
+
+  - User → Web UI：HTTPS
+  - Web UI → API Server：HTTPS / REST API
+  - API Server → Cloud SQL：TCP
+  - API Server → Cloud Storage：HTTPS（GCS SDK）
+  - API Server ↔ n8n：API + Webhook（資料同步 / 通知）
+  - 合約管理（API Server 內的子標籤）↔ 點點簽：API + Webhook
+  - [A] 業務流程資料對接 ↔ BizForm：Webhook
+  - GitHub Repo → GitHub Actions：push
+  - GitHub Actions → GCP Compute Engine：SSH / Docker pull
+
+  **線條樣式**：內部資料流 = 實線 var(--blue-300)；外部 SaaS 串接 = 虛線 var(--orange-400)；CI/CD 流程 = 實線 var(--neutral-400)。箭頭用 SVG `<marker>`，雙向關係兩端都有箭頭。
+  座標**靜態寫死**，不要 DOM measurement。
+
+  ## 圓弧
+
+  整體圓角收斂：大卡 rounded-xl（12px），子分組 rounded-lg（8px），節點卡 rounded-md（6px），切換按鈕 pill。
+
+  ## 互動 & 技術限制
+
+  - 方案 A / B 切換：純 React state + CSS opacity / max-height transition 控制差異節點顯隱
+  - 點擊任一節點顯示說明卡片（職責、技術、上下游關聯）
+  - **嚴格禁止**：motion / AnimatePresence / motion 的 layout prop / useLayoutEffect / useReducedMotion / DOM measurement（getBoundingClientRect / ResizeObserver） / window / navigator / matchMedia
+  - 禁 emoji、any、required props；根元素不加外框
+caption: 方案 A / 方案 B：Solution Architecture 對照（互動切換）
+status: generated
+*/}
+
+{/* @ai-visualize
+id: solution-architecture-b
+type: diagram
+prompt: |
+  與 solution-architecture-a 合併為單一切換元件 solution-architecture-comparison。
+
+  方案 B 差異（相對方案 A）：API Server 內的自建業務模組除共同的 客戶管理(CRM) / 合約管理 / 分析看板資料服務 外，再加上 派案 / 諮詢 / 報價 / 執案 四個模組（取代方案 A 的「業務流程資料對接」）；External SaaS 大卡內 BizForm 卡片消失（n8n、點點簽兩者方案 A/B 都有）。其他巢狀分組視覺風格、Compute Engine 內 Docker 子框、Cloud SQL / Cloud Storage 子分組、CI/CD 區塊、連線（含協定標籤）、配色與互動規範皆與 solution-architecture-a 一致。
+caption: 方案 B：除點點簽、n8n、CI/CD 訂閱外全部自建，部署於 GCP
+status: generated
+merged-into: solution-architecture-comparison
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import SolutionArchitectureComparison from '@/components/generated/solution-architecture-comparison'
+
+<GeneratedFrame id="solution-architecture-comparison" type="diagram" prompt={"繪製方案 A、方案 B 合併的 Solution Architecture 圖（頂端切換按鈕對照）。\n\n## 視覺風格\n\n採用「雲端架構圖」常見的**巢狀分組卡片**版型（類似 AWS / GCP 官方架構圖）：\n\n- **最外層分組**：用淡灰底（var(--neutral-50)）圓角大卡，標頭置中、含一個 GCP 風格 icon + 分組名稱（例如「Deployment (GCP)」、「CI/CD」、「External SaaS」）\n- **內層子分組**：用**藍色虛線框 + 白底**圓角中卡，左上角貼一顆 GCP 服務徽章（小藍底圓 + 白字 icon）+ 子分組名稱（例如「GCP Compute Engine」、「GCP Cloud SQL」、「GCP Cloud Storage」）\n- **服務節點卡**：白底、細邊框、輕陰影的圓角小卡，水平排版：左邊是品牌 / 服務 logo 色塊（例如 React 藍綠、NestJS 紅、n8n 粉、PostgreSQL 藍、n8n 等），右邊上方粗體服務名稱、下方一行小灰字描述\n- **配色**：自建走 trendlink-design 主藍系；GCP 子分組統一用 GCP 藍色標頭徽章；外部 SaaS（BizForm、點點簽）用單獨的中性 / 暖色分組\n- **頂部**：兩顆 pill 切換按鈕「方案 A / 方案 B」，active 為 var(--blue-700) 底白字\n\n## 分組結構\n\n### 上方：CI/CD 區塊（最外層淡灰大卡）\n- GitHub Repo — 前後端各一個 Repo\n- GitHub Actions — 自動測試 / 打包 / 部署\n\n### 中段：Deployment (GCP)（最外層淡灰大卡，內含多個藍色虛線子分組）\n\n**Compute Engine（子分組）**\n- Web UI — React.js + Vite（前端）\n- API Server — NestJS + TypeScript（後端）\n- n8n — 資料同步 / 自動化排程\n- 方案 B 時：派案管理、諮詢管理、報價管理、執案管理（自建模組以小卡列出在 API Server 下方）\n\n**Cloud SQL（子分組）**\n- PostgreSQL — 主資料庫（客戶、合約、業務流程資料）\n\n**Cloud Storage（子分組）**\n- 系統附件、合約 PDF、表單上傳檔（例：.xlsx、.png、.pdf）\n\n### 下方：External SaaS（最外層淡灰大卡）\n\n- 方案 A 才有：**BizForm** — 派案 / 諮詢 / 報價 / 執案表單（Webhook 回寫主系統）\n- **點點簽** — 電子簽章服務（兩方案都有，唯一外部依賴）\n\n### 最上方：User（單獨一條，User icon + 文字）\n- 客服人員 / 顧問師（內部）\n- 客戶 / 渠道人員（外部簽署）\n\n## 互動\n\n- 頂端方案 A / B 切換按鈕：切換時 Compute Engine 子分組內的「派案 / 諮詢 / 報價 / 執案」自建模組會出現（B）或隱藏（A），且 External SaaS 區塊內 BizForm 卡片會出現（A）或隱藏（B）\n- 點擊任一節點顯示說明卡片（職責、技術細節、與其他模組的關聯）\n- 為避免 SSR/CSR hydration 不一致，**不要使用 motion 的 layout / AnimatePresence / useReducedMotion，也不要做 DOM measurement**；切換動畫用純 CSS transition（opacity / transform）即可\n- 排版以巢狀分組為主，但**這次需要補上元件間的交互折線**（見下方「連線」）\n\n## 分組結構修訂版（取代上方分組結構，由上至下）\n\n1. **User（單獨一條，不在大卡內）**：客服 / 顧問師（內部）、客戶 / 渠道人員（外部）\n2. **Deployment (GCP) 大卡**，內含三個藍虛線子分組：\n   - **GCP Compute Engine** 內**再嵌一層 Docker** 虛線框（左上 Docker 徽章）；Docker 框內含：\n     - Web UI（React.js + Vite） — 副標兩行：「主系統後台（客服 / 顧問師作業）」「數據分析 Dashboard（看板視圖）」\n     - API Server（NestJS + TypeScript） — 副標列出自建業務模組：共同 = 客戶管理(CRM) / 合約管理 / 分析看板資料服務；[B] 派案 / 諮詢 / 報價 / 執案管理；[A] 業務流程資料對接（接 BizForm Webhook）\n   - **GCP Cloud SQL** — PostgreSQL 主資料庫\n   - **GCP Cloud Storage** — 附件 / 合約 PDF / 表單上傳檔\n3. **External SaaS 大卡**（標頭副標「訂閱服務」）\n   - **n8n（官方訂閱）** — 副標三條：主系統透過 API 觸發 workflow / Webhook 回寫主系統 / 整合通知（Email、Slack 等）\n   - **點點簽** — 副標：API（合約建立 / 查詢）/ Webhook（簽署完成事件回寫）\n   - **[A] BizForm**（方案 A 才出現） — 副標：Webhook（表單交付資料回寫）\n4. **CI/CD 大卡（最底層）**\n   - GitHub Repo — 前後端各一個 Repo\n   - GitHub Actions — 自動測試 / 打包 / 部署\n   - 流程：GitHub Repo --push--> GitHub Actions --SSH / Docker pull--> GCP Compute Engine\n\n## 連線（折線、含協定標籤）\n\n使用一層 absolute 覆蓋的 SVG 畫 orthogonal polyline（只走水平 / 垂直），每條線中段加白底細邊框的小 pill 標籤標註協定：\n\n- User → Web UI：HTTPS\n- Web UI → API Server：HTTPS / REST API\n- API Server → Cloud SQL：TCP\n- API Server → Cloud Storage：HTTPS（GCS SDK）\n- API Server ↔ n8n：API + Webhook（資料同步 / 通知）\n- 合約管理（API Server 內的子標籤）↔ 點點簽：API + Webhook\n- [A] 業務流程資料對接 ↔ BizForm：Webhook\n- GitHub Repo → GitHub Actions：push\n- GitHub Actions → GCP Compute Engine：SSH / Docker pull\n\n**線條樣式**：內部資料流 = 實線 var(--blue-300)；外部 SaaS 串接 = 虛線 var(--orange-400)；CI/CD 流程 = 實線 var(--neutral-400)。箭頭用 SVG `<marker>`，雙向關係兩端都有箭頭。\n座標**靜態寫死**，不要 DOM measurement。\n\n## 圓弧\n\n整體圓角收斂：大卡 rounded-xl（12px），子分組 rounded-lg（8px），節點卡 rounded-md（6px），切換按鈕 pill。\n\n## 互動 & 技術限制\n\n- 方案 A / B 切換：純 React state + CSS opacity / max-height transition 控制差異節點顯隱\n- 點擊任一節點顯示說明卡片（職責、技術、上下游關聯）\n- **嚴格禁止**：motion / AnimatePresence / motion 的 layout prop / useLayoutEffect / useReducedMotion / DOM measurement（getBoundingClientRect / ResizeObserver） / window / navigator / matchMedia\n- 禁 emoji、any、required props；根元素不加外框"} caption="方案 A / 方案 B：Solution Architecture 對照（互動切換）">
+  <SolutionArchitectureComparison client:visible />
+</GeneratedFrame>
+
+---
+
+## 成本評估
+
+:::warning{title="注意事項"}
+⚠️ 表示有額度、數量限制，若超過額度或數量，需額外付費
+:::
+
+### 點點簽
+
+- 方案：商務方案
+- 方案費用：$USD 200/年
+- 選擇原因：使用 API 串接需要此方案
+- 方案特色：
+  - API 串接
+  - 無限制的可重複範本數量
+  - 管理者控制台
+  - ⚠️ 包含 100 份簽署任務（API 發起的簽署任務也包含在內）
+  - ⚠️ 3 支 API 應用程式
+- 價格方案：
+  - [點點簽價格方案](https://www.dottedsign.com/zh-tw/pricing/?utm_adgroup={adgroup_name}&utm_source=google&utm_medium=cpc&utm_campaign={campaign_name}&utm_term=dottedsign&hsa_acc=3313514743&hsa_cam=14897787240&hsa_grp=129910807322&hsa_ad=748017904313&hsa_src=g&hsa_tgt=kwd-872141980043&hsa_kw=dottedsign&hsa_mt=b&hsa_net=adwords&hsa_ver=3&gad_source=1&gad_campaignid=14897787240&gbraid=0AAAAACZeT1sbX5k-0HegnecEerge3OEQb&gclid=CjwKCAjw3ejRBhAdEiwADkqPn_tT_MzSkCS7sfSbsdRaYhLN5X1W3mZnIW4pF8sQ89-gnMMhISADhhoCndUQAvD_BwE)
+  - [點點簽 API 價格方案](https://developers.dottedsign.com/zh-tw/pricing/)
+
+### BizForm
+
+- 方案：年繳方案
+- 方案費用：$NTD 11,100/年
+- 選擇原因：目前僅有該方案
+- 方案特色：
+   - 帳號數：⚠️ 5 個帳號
+   - 儲存空間：⚠️ 100 GB
+   - 每增加一個帳號，帳號費用增加 $NTD 2,100
+   - 每增加 100 GB 儲存空間，費用增加 $NTD 6,600
+- 價格方案：[BizForm 價格方案](https://www.gsscloud.com/tw/vital-bizform/pricing)
+
+### GCP
+
+::::tabs
+:::tab{label="DEV 開發環境"}
+- Compute Engine
+  - 方案：`n4d-highcpu-2`，vCPUs: 2、RAM: 4 GiB
+  - 方案費用：USD $63.18/月，[估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVEzT0RKbVlURTVPUzFtWWpRMExUUXpPRGN0WWprd01TMHpNbUV4WVRka09UazFabUVRQVE9PRAIGiQ3QTQ0RDJBQi0zMTYzLTRDODUtQkZFNi03QUE0MDdFRjkwMEY)
+  - 選擇原因：選擇非共用資源方案的最低規格，滿足 DEV 環境的需求
+  - 備註：
+    - 年費預繳可節省至 USD $40.84/月 [估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVJqTkRWbE5tWTJOQzAxTUdZeUxUUmhaV010WWpSalpTMWpaRGs1TVdVME5HSmtPRElRQVE9PRAIGiQ3QTQ0RDJBQi0zMTYzLTRDODUtQkZFNi03QUE0MDdFRjkwMEY)
+- Cloud SQL
+  - 方案：`db-standard-1`，vCPU: 1、RAM: 3.75 GiB、Storage: 50 GB
+  - 方案費用：USD $57.23/月，[估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVJsTmpZeE1qWm1NUzAzWVdOaUxUUmtObVF0T1RRNE1pMWxNalk1TldSaU5XTTNPR1lRQVE9PRAHGiQ5MkNERDMwNS01OEM4LTQ4RjgtOTI0Qy1CNzQ0MDQ1MkRGOUU)
+  - 選擇原因：選擇非共用資源方案的最低規格，滿足 DEV 環境的需求
+  - 備註：
+    - 年費預繳可節省至 USD $44.90/月 [估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVEyTmpjd1ltWTRNUzB5T0dVeUxUUmxNekF0WWpRME5TMDBNekJpT0dRNE1qRXlPREVRQVE9PRAHGiRENDMwREYxNi00NzlDLTRCMzgtQTI0RS03OTYyN0NEN0IzNDI)
+- Cloud Storage
+  - 方案：Standard
+  - 方案費用：按使用量計價，預留 250 GiB，USD $5.00/月，[估價計算機](https://cloud.google.com/products/calculator?utm_source=google&utm_medium=cpc&utm_campaign=Cloud-SS-DR-GCP-1713664-GCP-DR-APAC-TW-zh-Google-BKWS-BRO-Others&utm_content=c-Hybrid%20%7C%20BKWS%20-%20BRO%20%7C%20Txt%20-%20AppMod-GKE-Kubernetes%20Engine-TW_en-299298609301&utm_term=gce%20cloud&gclsrc=aw.ds&gad_source=1&gad_campaignid=18344535282&gclid=CjwKCAjw3ejRBhAdEiwADkqPn8_10JS-wMtpuQkJt7c3r6XD4PuFvAGjO7TU7ezT93mHGbidJMFKwBoCmjoQAvD_BwE&dl=CjhDaVExWW1Fd09UVmlNUzB6WTJKbUxUUXlZek10WVRKbFppMHhZekpoTkRSbFpUQTNaR0lRQVE9PRAJGiRGMjU2QjJDNS1ENkM3LTQ3RjUtQkI5QS1ENThBRjdGRjRFM0U)
+  - 選擇原因：選擇 Standard 類型，滿足 DEV 環境的需求
+:::
+:::tab{label="PRD 正式環境"}
+- Compute Engine
+  - 方案：`n4d-highcpu-4`，vCPUs: 4、RAM: 8 GiB
+  - 方案費用：USD $121.72/月，[估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVF3T1dKak5qTXdZUzAzWWpRNUxUUTFZall0T0dJeE9DMHdZVFF5TjJSaU1UYzVZbVFRQVE9PRAIGiRDQTFDNzg1NS0yQ0U1LTQ1NkQtQTI3MS02QjZGMjlGNzZDMTU)
+  - 選擇原因：選擇非共用資源方案的適中規格，滿足 PRD 環境的需求
+  - 備註：
+    - 年費預繳可節省至 USD $77.03/月 [估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVEwWWpZeE4yRmhNQzFoTnpkaUxUUXdaamt0WW1ZMU5TMDBNamRtTm1GaFkyWmhNVE1RQVE9PRAIGiRDNTA1RkU0QS00N0M1LTQ2ODAtOUJBNi04MzkxRDhFOUM4REE)
+- Cloud SQL
+  - 方案：`db-standard-2`，vCPU: 2、RAM: 7.5 GiB、Storage: 100 GB
+  - 方案費用：USD $115.62/月，[估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVJoT1RJek9UQTVNeTAxT1dRMUxUUTROelV0WVRJeU1DMHpOMkZoTVRVd1lqUmtPR01RQVE9PRAHGiREQkVFRTc5RC1GOTlELTQyRTQtQUUyMi00RDZBMTBFNjdDRkY)
+  - 選擇原因：選擇非共用資源方案的最低規格，滿足 PRD 環境的需求
+  - 備註：
+    - 年費預繳可節省至 USD $90.97/月 [估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVEyTUdWaU5EZ3lPQzB6WTJFeExUUmlZMkV0T1dKaU15MHlOMlUzT1dSalpXTTRZemtRQVE9PRAHGiQwRDIzRTIxMy03RjAxLTRDQ0UtQjA3Qy0zQkRCNTUzQjgwRkY)
+- Cloud Storage
+  - 方案：Standard
+  - 方案費用：按使用量計價，預留 500 GiB，USD $10.00/月，[估價計算機](https://cloud.google.com/products/calculator?hl=zh_tw&dl=CjhDaVJqTVdNNU9EZ3dZeTB4TTJRNUxUUmtabVV0T1Raa01TMWpZelZsTlRReE16ZzNaVFlRQVE9PRAJGiRERUU3NDNBOS02NTY1LTQ5RTgtQjdBMS03NjYzNDQyMEJCRTM)
+  - 選擇原因：選擇 Standard 類型，滿足 PRD 環境的需求
+:::
+::::
+
+### 費用總結（點點簽 + GCP）
+
+:::info{title="換算說明"}
+- 匯率：1 USD = 30 NTD（統一換算基準）
+- 點點簽：USD 200/年 ≈ NTD 6,000/年（約 NTD 500/月）
+- GCP 費用以「月繳（隨用即付）」為基準；若採年費預繳可再下調，括號內標示預繳後金額
+:::
+
+| 項目 | 月費（USD） | 月費（NTD） | 年費（NTD） |
+| --- | ---: | ---: | ---: |
+| 點點簽（商務方案） | $16.67 | $500 | $6,000 |
+| GCP DEV — Compute Engine `n4d-highcpu-2` | $63.18（預繳 $40.84） | $1,895（預繳 $1,225） | $22,745（預繳 $14,702） |
+| GCP DEV — Cloud SQL `db-standard-1` | $57.23（預繳 $44.90） | $1,717（預繳 $1,347） | $20,603（預繳 $16,164） |
+| GCP DEV — Cloud Storage Standard（250 GiB） | $5.00 | $150 | $1,800 |
+| **GCP DEV 小計** | **$125.41（預繳 $90.74）** | **$3,762（預繳 $2,722）** | **$45,148（預繳 $32,666）** |
+| GCP PRD — Compute Engine `n4d-highcpu-4` | $121.72（預繳 $77.03） | $3,652（預繳 $2,311） | $43,819（預繳 $27,731） |
+| GCP PRD — Cloud SQL `db-standard-2` | $115.62（預繳 $90.97） | $3,469（預繳 $2,729） | $41,623（預繳 $32,749） |
+| GCP PRD — Cloud Storage Standard（500 GiB） | $10.00 | $300 | $3,600 |
+| **GCP PRD 小計** | **$247.34（預繳 $178.00）** | **$7,420（預繳 $5,340）** | **$89,042（預繳 $64,080）** |
+| BizForm（年繳方案，方案 A 才需要） | $30.83 | $925 | $11,100 |
+| **方案 B｜DEV + PRD + 點點簽（合計）** | $389.42（預繳 $284.74） | $11,683（預繳 $8,542） | **$140,190（預繳 $102,746）** |
+| **方案 A｜DEV + PRD + 點點簽 + BizForm（合計）** | $420.25（預繳 $315.57） | $12,608（預繳 $9,467） | **$151,290（預繳 $113,846）** |
+
+:::tip{title="重點摘要"}
+- **方案 B（不含 BizForm）**：
+  - 月繳約 **NTD 11,683/月**，一年總花費為 **NTD 140,190/年**
+  - GCP 年費預繳可降至 **NTD 8,542/月**，一年總花費為 **NTD 102,746/年**
+- **方案 A（含 BizForm）**：
+  - 月繳約 **NTD 12,608/月**，一年總花費為 **NTD 151,290/年**
+  - GCP 年費預繳可降至 **NTD 9,467/月**，一年總花費為 **NTD 113,846/年**
+- **方案 A 比方案 B 多支出**：固定為 BizForm 年費 **NTD 11,100/年**（約 NTD 925/月）；若需擴增帳號（每位 +NTD 2,100/年）或儲存空間（每 100 GB +NTD 6,600/年），費用會再上升
+- GCP 採年費預繳，相較月繳每年約可省 **NTD 37,444**
+- 上述未含 BizForm API 串接費（方案 A 若走 API 整合需另外估算）、Cloud Storage 超用與對外流量費
+:::
+
