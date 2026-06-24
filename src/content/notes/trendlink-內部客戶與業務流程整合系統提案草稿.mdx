@@ -16,7 +16,7 @@ updatedAt: "2026-06-23"
 現階段使用 Notion 作為業務管理的過渡期工具，根據 [合約與客戶管理系統企劃](https://www.notion.so/trendlink-workspace/31b43e6601e28023a65fc7d3c41341c8?source=copy_link)，
 以 Notion 作為 PoC 的期間，同步搜集使用者需求，並記錄相關規格與流程，作為未來系統開發的參考。
 
-:::info
+:::info{title="目前進度"}
 針對**合約**與**客戶**管理的部分，相關規格已趨於成熟，並可作為未來系統開發的參考。
 :::
 
@@ -26,11 +26,11 @@ updatedAt: "2026-06-23"
 
 在使用 Notion 進行客戶與合約管理時，面臨以下問題，可能長期使用會出現難以克服的情境：
 
-- **資料分散**：客戶與合約資訊分散在不同的 Notion 資料庫中，雖可以透過關聯進行整合，但無法像傳統 RDB 一樣進行複雜查詢與分析。
-- **權限設定**：目前 Notion 雖可以按照人員顯示特定的合約資料，但沒有辦法做到 Column Level 的權限設定，導致部分敏感資訊無法被保護。
-- **欄位驗證**：Notion 的資料填寫，無法鎖定必填與格式驗證，導致資料品質不佳。
-- **效能貧頸**：Notion 的資料量增加時，查詢與操作效能可能下降，影響使用者體驗。
-- **版本迭代**：Notion 的功能更新與變動，目前在權限的設定上就因為表單權限的變動，導致相關功能無法使用。
+- :badge[資料分散]{variant="danger" icon="warning"} 客戶與合約資訊分散在不同的 Notion 資料庫中，雖可以透過關聯進行整合，但無法像傳統 RDB 一樣進行複雜查詢與分析。
+- :badge[權限設定]{variant="danger" icon="warning"} 目前 Notion 雖可以按照人員顯示特定的合約資料，但沒有辦法做到 Column Level 的權限設定，導致部分敏感資訊無法被保護。
+- :badge[欄位驗證]{variant="danger" icon="warning"} Notion 的資料填寫，無法鎖定必填與格式驗證，導致資料品質不佳。
+- :badge[效能貧頸]{variant="danger" icon="warning"} Notion 的資料量增加時，查詢與操作效能可能下降，影響使用者體驗。
+- :badge[版本迭代]{variant="danger" icon="warning"} Notion 的功能更新與變動，目前在權限的設定上就因為表單權限的變動，導致相關功能無法使用。
 
 ---
 
@@ -38,13 +38,13 @@ updatedAt: "2026-06-23"
 
 ### 業務流程管理（需具有流程追蹤與交付文件管理能力）
 
-- 對應系統：BPM
-- 服務選型：自建系統
+- 對應系統：:badge[BPM]{variant="info" outline}
+- 服務選型：:badge[自建系統]{variant="success"}
 
 ### 合約管理（需具有電子簽章與法律效力）
 
-- 對應系統：CLM
-- 服務選型：點點簽、BizForm
+- 對應系統：:badge[CLM]{variant="info" outline}
+- 服務選型：:badge[點點簽]{variant="tip"} :badge[BizForm]{variant="tip"}
 
 :::note
 目前僅有點點簽提供電子簽章服務，BizForm 目前僅提供表單簽核服務，因此在合約管理，選用點點簽最為妥當。
@@ -52,8 +52,8 @@ updatedAt: "2026-06-23"
 
 ### 客戶管理與商機追蹤
 
-- 對應系統：CRM
-- 服務選型：Vital CRM
+- 對應系統：:badge[CRM]{variant="info" outline}
+- 服務選型：:badge[Vital CRM]{variant="tip"}
 
 ::::tabs
 :::tab{label="Vital CRM 功能特色"}
@@ -90,8 +90,8 @@ updatedAt: "2026-06-23"
 
 ### 表單簽核
 
-- 對應系統：BPM、CLM
-- 服務選型：BizForm
+- 對應系統：:badge[BPM]{variant="info" outline} :badge[CLM]{variant="info" outline}
+- 服務選型：:badge[BizForm]{variant="tip"}
 
 ::::tabs
 :::tab{label="BizForm 功能特色"}
@@ -116,8 +116,8 @@ updatedAt: "2026-06-23"
 
 ### 知識庫管理
 
-- 對應系統：KM、CLM
-- 服務選型：Vital KM
+- 對應系統：:badge[KM]{variant="info" outline} :badge[CLM]{variant="info" outline}
+- 服務選型：:badge[Vital KM]{variant="tip"}
 
 :::info{title="補充說明"}
 使用 Vital KM 進行知識庫管理，主要是為了讓 Vital CRM 可以實現 CLM 整合，讓相關的合約與文件能夠集中管理，並提供搜尋與關聯功能。
@@ -189,7 +189,9 @@ updatedAt: "2026-06-23"
 
 ### 建議方案
 
-> 方案 A 與方案 B 各有優劣，但整體而言，考量當前內部流程未有簽核流程、BizForm 服務若要串接 API 需另外收費，且業務流程與客戶管理需求尚未完全明確，建議先採用方案 B。
+:::success{title="建議採用方案 B"}
+方案 A 與方案 B 各有優劣，但整體而言，考量當前內部流程未有簽核流程、BizForm 服務若要串接 API 需另外收費，且業務流程與客戶管理需求尚未完全明確，建議先採用方案 B。
+:::
 
 ---
 
