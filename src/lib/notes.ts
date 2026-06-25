@@ -12,8 +12,9 @@ export type AiMarker = {
 
 const MARKER_RE = /\{\/\*\s*@ai-visualize\s+([\s\S]*?)\*\/\}/g;
 
-export function parseMarkers(body: string): AiMarker[] {
+export function parseMarkers(body: string | undefined | null): AiMarker[] {
   const out: AiMarker[] = [];
+  if (!body) return out;
   for (const m of body.matchAll(MARKER_RE)) {
     const raw = m[1];
     const obj: Record<string, string> = {};
@@ -133,7 +134,8 @@ export function buildDashboardStats(notes: Note[], today: string): DashboardStat
   };
 }
 
-export function excerpt(body: string, fallback: string): string {
+export function excerpt(body: string | undefined | null, fallback: string): string {
+  if (!body) return fallback.replace(/\s+/g, " ").slice(0, 220);
   const stripped = body
     .replace(/^---[\s\S]*?---/, "")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")

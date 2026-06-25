@@ -1,0 +1,227 @@
+---
+title: "規格書撰寫 - WHAT 寫什麼？"
+description: "介紹如何將模糊的產品想法逐層拆解，直到工程師可以開始動手、PO 可以驗收、設計師可以畫圖。以 HRM SaaS 為例，串起 Scrum 中常用的工作層級，並接上 Product Roadmap 與 MVP 的時間維度。"
+tags: ["專案管理"]
+createdAt: "2026-06-24"
+updatedAt: "2026-06-24"
+---
+
+
+寫規格不是「把功能列出來」，而是把**模糊的產品想法**逐層拆解，直到工程師可以開始動手、PO 可以驗收、設計師可以畫圖。我們以假想的 **LexPayroll AI**為例，串起 Scrum 中常用的工作層級，並接上 Product Roadmap 與 MVP 的時間維度。
+
+## 為什麼要分層？
+
+產品有「**為什麼**」「**做什麼**」「**怎麼做**」三個層次。如果直接從「怎麼做」開始寫規格，常會發生兩種狀況：
+
+1. 規格越寫越細，但說不清楚這個功能要解決誰的什麼問題。
+2. 功能彼此孤立，PO 無法排優先序、Scrum Master 無法切 Sprint。
+
+Scrum 把工作切成不同顆粒度，正是為了讓不同角色在不同時間點看到合適的資訊量。
+
+## 工作層級總覽（由大到小）
+
+| 層級 | 顆粒度 | 時間跨度 | 誰負責 | 例子（HRM SaaS） |
+| --- | --- | --- | --- | --- |
+| **Product Vision** | 一句話 | 數年 | PO / 創辦人 | 讓企業不需要 HR 部門也能管好人 |
+| **Epic（史詩）** | 大型主題 | 數月 ~ 一季 | PO | 員工生命週期管理 |
+| **Feature（功能）** | 可獨立交付的能力 | 數週 | PO + Translator | 線上 onboarding 流程 |
+| **User Story（使用者故事）** | 一個使用者的一個需求 | 1 ~ 數天 | Translator | 身為 HR，我想要管理員工的入職流程 |
+| **Task（任務）** | 技術拆解 | 數小時 | 開發團隊 | 實作員工基本資料建置 |
+
+> Product Backlog 與 Sprint Backlog **不是新的層級**，而是「裝這些工作項目的容器」，差別在於時間範圍。
+
+## 各層級詳解
+
+### Epic：產品的「章節標題」
+
+Epic 是一個**夠大、需要跨多個 Sprint 才能完成**的主題。寫 Epic 時不要寫實作細節，重點是描述**要解決的問題**。
+
+HRM SaaS 可能的 Epic：
+
+- **Epic 1**：員工生命週期管理（入職、異動、離職）
+- **Epic 2**：薪酬與出勤
+- **Epic 3**：績效與目標管理（OKR / KPI）
+- **Epic 4**：員工自助服務（請假、打卡、查薪資單）
+
+Epic 的驗收標準通常很抽象，例如：「HR 能在系統內完成 90% 的新人入職流程，無需紙本」。
+
+### Feature：Epic 的具體「能力」
+
+Feature 是把 Epic 切成**可以被單獨上線、單獨展示價值**的能力單元。一個 Epic 通常拆成 3 ~ 10 個 Feature。
+
+以 **Epic 1：員工生命週期管理** 為例：
+
+- Feature 1.1：線上 onboarding 流程
+- Feature 1.2：員工資料維護（個資、緊急聯絡人、銀行帳戶）
+- Feature 1.3：組織異動（轉調、升遷、調薪）
+- Feature 1.4：離職與離職面談
+
+Feature 是 PO 與設計師溝通的主要單位，通常會附上 user flow、wireframe 與成功指標（例如「新人完成 onboarding 平均時間 < 30 分鐘」）。
+
+### User Story：開發團隊真正動手的單位
+
+User Story 採用經典三段式：
+
+> **As a** ⟨角色⟩, **I want to** ⟨行為⟩, **so that** ⟨價值⟩.
+
+以 **Feature 1.1：線上 onboarding** 為例，可拆成多個 Story：
+
+- **Story A**：身為新員工，我想在收到 email 邀請後設定密碼登入系統，**這樣**我才能開始填寫個人資料。
+- **Story B**：身為新員工，我想上傳身分證與學歷證明，**這樣**HR 不用再向我索取紙本。
+- **Story C**：身為新員工，我想線上簽署勞動契約，**這樣**第一天上班就能直接報到。
+- **Story D**：身為 HR，我想看到所有在途的 onboarding 進度，**這樣**我能催促進度落後者。
+
+每個 Story 必須符合 **INVEST** 原則：
+
+- **I**ndependent 獨立 — 不依賴其他 Story 才能上線
+- **N**egotiable 可協商 — 細節可以討論，不是合約
+- **V**aluable 有價值 — 對使用者或業務有意義
+- **E**stimable 可估算 — 團隊能評估工作量
+- **S**mall 夠小 — 通常一個 Sprint 內可完成
+- **T**estable 可測試 — 有明確的 Acceptance Criteria
+
+### Acceptance Criteria：Story 的驗收條件
+
+User Story 本身只是「對話的起點」，真正讓 Story 可以被開發與驗收的是 **Acceptance Criteria（AC）**。常見格式是 **Given / When / Then**：
+
+以 **員工休假申請** 為例：
+
+- **Given** 員工剩餘特休天數足夠，**When** 他送出休假申請單，**Then** 系統將申請狀態設為「待主管審核」並通知直屬主管。
+- **Given** 員工剩餘特休天數不足，**When** 他送出休假申請單，**Then** 系統擋下送出並提示剩餘天數與可選的請假類別（如事假）。
+- **Given** 主管收到待審核申請，**When** 他點擊「核准」，**Then** 系統扣除該員工特休天數、更新請假狀態為「已核准」並寄送通知信給員工與 HR。
+
+## Product Backlog vs. Sprint Backlog
+
+這是兩個容易混淆的概念：
+
+### Product Backlog（產品待辦清單）
+
+- **裝什麼**：所有已知但尚未完成的 Epic / Feature / Story。
+- **誰維護**：Product Owner（PO）。
+- **特性**：永遠在變動、永遠排好優先序、**越上面越細**、越下面越粗（DEEP 原則：Detailed、Estimated、Emergent、Prioritized）。
+
+HRM SaaS 的 Product Backlog 可能長這樣（由上而下優先序遞減）：
+
+1. :badge[最高優先]{variant="warning" size="sm" icon="star"} Story：新員工密碼設定（已細化、已估點）
+2. :badge[最高優先]{variant="warning" size="sm" icon="star"} Story：上傳身分證件（已細化、已估點）
+3. Story：線上簽署契約（細化中）
+4. Feature：員工資料維護（待拆解）
+5. Feature：請假申請流程（待拆解）
+6. Epic：薪酬與出勤（尚未拆解）
+7. Epic：績效管理（尚未拆解）
+
+### Sprint Backlog（衝刺待辦清單）
+
+- **裝什麼**：本次 Sprint（通常 1 ~ 2 週）團隊**承諾完成**的 Story 與其拆解出的 Task。
+- **誰維護**：開發團隊（Dev Team）。
+- **特性**：Sprint 一開始就鎖定，**Sprint 進行中不再加東西**（除非有重大事件，由 PO 與團隊重新協商）。
+
+例如本 Sprint（2 週）團隊承諾完成 Story A、B、C，並把它們拆成：
+
+- Story A → Task：設計密碼設定頁、串接 email 服務、寫單元測試 …
+- Story B → Task：規劃檔案儲存路徑、設定病毒掃描、實作上傳元件 …
+- Story C → Task：研究電子簽章 API、設計簽署流程 UI、處理 PDF 蓋章 …
+
+## 接上時間維度：Product Roadmap 與 MVP
+
+到目前為止講的都是「**怎麼拆**」，接下來會說明「**什麼時候做、先做什麼**」。
+
+### MVP（Minimum Viable Product）
+
+MVP 不是「功能少的產品」，而是**用最小的功能組合驗證最關鍵的假設**。寫規格時要不斷問：「這個 Story 拿掉，MVP 還能驗證假設嗎？」
+
+HRM SaaS 的核心假設可能是：
+
+> 「企業願意付月費，換取一套讓 HR 工作量減半的線上系統。」
+
+要驗證這個假設，MVP 至少需要：
+
+- :badge[納入]{variant="success" size="sm" icon="check"} Epic 1（員工生命週期）— 但只做 Feature 1.1（onboarding）與 1.2（資料維護）
+- :badge[納入]{variant="success" size="sm" icon="check"} Epic 4（員工自助）— 但只做「請假申請」與「打卡」這一個 Feature
+- :badge[捨棄]{variant="danger" size="sm"} Epic 3（績效管理）— MVP 不做，這不是企業最痛的點
+- :badge[捨棄]{variant="danger" size="sm"} 行動 App — MVP 先做 RWD 網頁，行動 App 之後再說
+
+**判斷標準**：拿掉這個功能，潛在客戶會不會說「那我不用了」？會 → 留下；不會 → 砍掉或延後。
+
+### Product Roadmap：把 Backlog 攤在時間軸上
+
+Roadmap 是給 **外部利害關係人（業務、客戶、投資人）** 看的高階規劃。它不是甘特圖，不該寫死日期，而是用 **季度（Quarter）或主題（Theme）** 呈現。
+
+HRM SaaS 的 Roadmap 範例：
+
+| 階段 | 時間 | 主題 | 包含的 Epic / Feature |
+| --- | --- | --- | --- |
+| **MVP** | Q3 2026 | 讓 HR 不用紙本處理新人 | Onboarding、員工資料、請假 |
+| **Release 1** | Q4 2026 | 涵蓋員工日常自助 | 報帳、薪資單查詢、行事曆 |
+| **Release 2** | Q1 2027 | 補上薪酬計算 | 出勤、加班、薪資計算、勞健保申報 |
+| **Release 3** | Q2 2027 | 進入績效領域 | OKR、一對一回饋、年度考核 |
+
+## 從 Vision 到 Task 的完整流程
+
+把所有層級串起來，HRM SaaS 的範例鏈路：
+
+::::steps
+:::step{title="Vision"}
+讓企業不需要 HR 部門也能管好人。
+:::
+:::step{title="Roadmap"}
+Q3 2026 MVP：讓 HR 不用紙本處理新人。
+:::
+:::step{title="Epic 1"}
+員工生命週期管理。
+:::
+:::step{title="Feature 1.1"}
+線上 onboarding。
+:::
+:::step{title="Story C"}
+身為新員工，我想線上簽署勞動契約。
+:::
+:::step{title="Acceptance Criteria"}
+- AC 1：點擊簽署 → 顯示預覽 + OTP 驗證
+- AC 2：簽署完成 → HR 可下載蓋章 PDF
+:::
+:::step{title="Task"}
+- 串接電子簽章 API（8h）
+- 設計簽署流程 UI（4h）
+- 實作 PDF 蓋章與儲存（6h）
+:::
+::::
+
+> **驗證自己寫的規格**：從任何一層往上問「為什麼」，都應該能走到 Vision；往下問「具體怎麼做」，都應該能走到 Task。中間斷掉的地方，就是規格還沒寫完的地方。
+
+## 撰寫規格的實務建議
+
+1. **先寫 Epic 與 Feature，不要急著寫 Story**：先確定產品的形狀，再細化局部。
+2. **Story 永遠用使用者語言**：避免「實作 JWT 驗證」這種技術描述，那是 Task。
+3. **AC 寫得越具體，估點越準**：模糊的 AC 是 Sprint 延遲的主因。
+4. **Backlog 上的東西不一定要做**：80% 的價值來自 20% 的 Story，砍掉低價值項目是 PO 的本分。
+5. **Roadmap 不要承諾日期，要承諾主題**：客戶記得的是「Q3 會推出 onboarding」，不是「8/15 上線」。
+
+## 概念
+
+下方標記預計用一張**互動式分層圖**呈現「Vision → Roadmap → Epic → Feature → Story → Task」的鏈路，並可點擊任一層展開 HRM SaaS 的具體範例。
+
+{/* @ai-visualize
+id: scrum-spec-hierarchy
+type: free
+status: generated
+prompt: |
+  畫一個互動式的「接力跑道 + 角色泳道」混搭元件，以 HRM SaaS 為例，呈現規格從 Vision 一路被「翻譯」到 Task 的過程，同時讓讀者看出責任從哪位角色傳到下一位。
+
+  雙軸：
+  - 橫軸（X）：7 個 stage 由左到右——Vision / Roadmap / Epic / Feature / User Story / Acceptance Criteria / Task；時間跨度從「數年」遞減到「數小時」。
+  - 縱軸（Y）：4 條角色泳道——創辦人 / PO / Translator / 開發團隊（每條 lane 一個低飽和底色與 icon）。
+
+  視覺：每個 stage 是一顆膠囊，放在「該 stage 欄」×「主導角色 lane」交叉格上；Feature 膠囊跨 PO + Translator 兩條 lane（共擔），是視覺上唯一的「黏接點」；膠囊由左上往右下斜向分布，肉眼看出責任轉移。最上方一列是時間軸刻度，最下方是「焦點跑者軌道」，跑者 icon 以 motion layoutId 平滑滑到當前 stage。
+
+  互動：點膠囊 / 點時間軸欄 / 點軌道 / 鍵盤左右鍵 切換 stage；切換時詳情卡用 motion 切換內容，顯示角色 chip、層名與時間、example heading（支援 **粗體**）、body、「為什麼是這位角色？」教學段、產出物。預設聚焦 User Story（核心洞察在 Translator 這層——把 PO 商業意圖翻譯成 Dev 可實作語言的關鍵交接點）。
+
+  響應式：桌面 grid 佈局；手機改為垂直時間線堆疊卡片，跑者退化為水平 stepper。樣式遵循 trendlink-design，禁用 emoji，全部以 lucide-react icon 表達，尊重 prefers-reduced-motion。
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import ScrumSpecHierarchy from '@/components/generated/scrum-spec-hierarchy'
+
+<GeneratedFrame id="scrum-spec-hierarchy" type="free" prompt={"畫一個互動式的「接力跑道 + 角色泳道」混搭元件，以 HRM SaaS 為例，呈現規格從 Vision 一路被「翻譯」到 Task 的過程，同時讓讀者看出責任從哪位角色傳到下一位。\n\n雙軸：\n- 橫軸（X）：7 個 stage 由左到右——Vision / Roadmap / Epic / Feature / User Story / Acceptance Criteria / Task；時間跨度從「數年」遞減到「數小時」。\n- 縱軸（Y）：4 條角色泳道——創辦人 / PO / Translator / 開發團隊（每條 lane 一個低飽和底色與 icon）。\n\n視覺：每個 stage 是一顆膠囊，放在「該 stage 欄」×「主導角色 lane」交叉格上；Feature 膠囊跨 PO + Translator 兩條 lane（共擔），是視覺上唯一的「黏接點」；膠囊由左上往右下斜向分布，肉眼看出責任轉移。最上方一列是時間軸刻度，最下方是「焦點跑者軌道」，跑者 icon 以 motion layoutId 平滑滑到當前 stage。\n\n互動：點膠囊 / 點時間軸欄 / 點軌道 / 鍵盤左右鍵 切換 stage；切換時詳情卡用 motion 切換內容，顯示角色 chip、層名與時間、example heading（支援 **粗體**）、body、「為什麼是這位角色？」教學段、產出物。預設聚焦 User Story（核心洞察在 Translator 這層）。\n\n響應式：桌面 grid 佈局；手機改為垂直時間線堆疊卡片，跑者退化為水平 stepper。樣式遵循 trendlink-design，禁用 emoji，全部以 lucide-react icon 表達，尊重 prefers-reduced-motion。"}>
+  <ScrumSpecHierarchy client:load />
+</GeneratedFrame>

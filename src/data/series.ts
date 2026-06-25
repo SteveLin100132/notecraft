@@ -74,6 +74,20 @@ export const SERIES: SeriesDef[] = [
     icon: "layers",
     slugs: ["ai-內容生成演示系列-訂單狀態機", "ai-內容生成演示系列-複利效應"],
   },
+  {
+    id: "specification-writing-demo",
+    title: "規格書撰寫演示系列",
+    eyebrow: "SPECIFICATION WRITING DEMO",
+    description:
+      "規格書撰寫演示系列：展示在規格書撰寫方面的流程與方法，作為未來規格書撰寫參考與學習的資源。",
+    accent: "navy",
+    icon: "layers",
+    slugs: [
+      "規格書撰寫-what-寫什麼",
+      "規格書撰寫-how-怎麼寫",
+      "規格書撰寫-where-寫在哪",
+    ],
+  },
 ];
 
 // ── accent → 視覺 token（CSS 變數字串，astro 與 island 共用）──
