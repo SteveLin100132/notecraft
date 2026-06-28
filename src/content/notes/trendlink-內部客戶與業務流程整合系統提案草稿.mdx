@@ -428,3 +428,64 @@ import SolutionArchitectureComparison from '@/components/generated/solution-arch
 - 上述未含 BizForm API 串接費（方案 A 若走 API 整合需另外估算）、Cloud Storage 超用與對外流量費
 :::
 
+{/* @ai-visualize
+id: cost-estimate-comparison
+type: chart
+prompt: |
+  把「方案 A vs 方案 B 年度成本」做成一張可一眼看懂組成與差異的對照視覺，並可切換「月繳 / 年費預繳」。單位一律 NTD／年。
+
+  ## 核心訊息（讀者一眼要 get 到的三件事）
+  1. 每個成本組成各占多少：點點簽、GCP DEV、GCP PRD，以及僅方案 A 才有的 BizForm
+  2. 方案 A、方案 B 的年費總額
+  3. 兩案唯一差異就是 BizForm 固定年費（A 比 B 多 11,100）
+
+  ## 主視覺：兩條水平堆疊長條（方案 B 在上、方案 A 在下）
+  共用四個堆疊段，配色固定（語意：GCP 走藍色系由淺到深，BizForm 用橘色凸顯它是唯一差異）：
+  - 點點簽：淺藍（如 var(--blue-200) / #85B7EB）
+  - GCP DEV：中藍（如 var(--blue-400) / #378ADD）
+  - GCP PRD：深藍（如 var(--blue-600) / #185FA5）
+  - BizForm：橘色（如 #eb6834，僅方案 A 出現）
+
+  段內數值大到放得下就置中顯示（GCP DEV / GCP PRD），太窄的（點點簽、BizForm）數值放圖例與標註，不要硬塞進色塊。
+  每條長條右側顯示「年費總額（大字）」+「預繳後總額（小灰字）」兩行對齊。
+  方案 B 標頭加一顆綠色「建議採用」徽章（呼應筆記結論：建議採用方案 B）。
+  在方案 A 的橘色 BizForm 段下方拉一條暖色小標註：「兩案唯一差異：BizForm +11,100」。
+
+  ## 數值（月繳 / 年費預繳 兩種狀態）
+  共用段（月繳 → 預繳）：
+  - 點點簽：6,000 → 6,000（無預繳優惠）
+  - GCP DEV：45,148 → 32,666
+  - GCP PRD：89,042 → 64,080
+  - BizForm（僅 A）：11,100 → 11,100（固定，無預繳優惠）
+  總額：
+  - 方案 B：月繳 140,190（月 11,683）／預繳 102,746（月 8,542）
+  - 方案 A：月繳 151,290（月 12,608）／預繳 113,846（月 9,467）
+  切換到「年費預繳」時，只有 GCP DEV / GCP PRD 兩段寬度與數字改變，點點簽與 BizForm 不變；長條寬度與總額同步重算。
+
+  ## 下方 KPI 條（三格小卡，不要做成大留白卡片）
+  - 方案 B 年費（建議）：140,190；副標「預繳 102,746 · 月 11,683」，數字用綠色
+  - A 比 B 多花：+11,100；副標「BizForm 固定年費」，數字用橘 / 紅褐色
+  - 改年費預繳每年省：37,444；副標「GCP 約省 25%」，數字用藍色
+
+  ## 互動
+  - 頂端一組「月繳 / 年費預繳」pill 切換，active 為主藍底白字；切換時長條寬度、段內數字、右側總額、KPI 同步更新（純 CSS transition，200–400ms ease-out）
+  - 不需要點擊節點彈卡；保持簡潔
+
+  ## 底部附註（小灰字一行）
+  尚未涵蓋：BizForm API 串接費、Cloud Storage 超用與對外流量費，後續評估另計。
+
+  ## 技術限制
+  - 色票、字級、圓角一律走 trendlink-design 設計系統 token，不要硬編碼色碼（上面的 hex 僅為語意參考）
+  - 禁 emoji、any、required props；根元素不加外框
+  - 為避免 SSR/CSR hydration 不一致，不要使用 motion 的 layout / AnimatePresence / useReducedMotion，也不要做 DOM measurement（getBoundingClientRect / ResizeObserver）；切換動畫用純 CSS transition
+  - 長條寬度用百分比換算（各段值 ÷ 該狀態下方案 A 的總額，讓兩案共用同一基準對齊）
+caption: 方案 A / 方案 B 年度成本對照（可切換月繳 / 年費預繳）
+status: generated
+*/}
+
+import CostEstimateComparison from '@/components/generated/cost-estimate-comparison'
+
+<GeneratedFrame id="cost-estimate-comparison" type="chart" prompt={"把「方案 A vs 方案 B 年度成本」做成一張可一眼看懂組成與差異的對照視覺，並可切換「月繳 / 年費預繳」。單位一律 NTD／年。\n\n## 核心訊息（讀者一眼要 get 到的三件事）\n1. 每個成本組成各占多少：點點簽、GCP DEV、GCP PRD，以及僅方案 A 才有的 BizForm\n2. 方案 A、方案 B 的年費總額\n3. 兩案唯一差異就是 BizForm 固定年費（A 比 B 多 11,100）\n\n## 主視覺：兩條水平堆疊長條（方案 B 在上、方案 A 在下）\n共用四個堆疊段，配色固定（語意：GCP 走藍色系由淺到深，BizForm 用橘色凸顯它是唯一差異）：\n- 點點簽：淺藍（如 var(--blue-200) / #85B7EB）\n- GCP DEV：中藍（如 var(--blue-400) / #378ADD）\n- GCP PRD：深藍（如 var(--blue-600) / #185FA5）\n- BizForm：橘色（如 #eb6834，僅方案 A 出現）\n\n段內數值大到放得下就置中顯示（GCP DEV / GCP PRD），太窄的（點點簽、BizForm）數值放圖例與標註，不要硬塞進色塊。\n每條長條右側顯示「年費總額（大字）」+「預繳後總額（小灰字）」兩行對齊。\n方案 B 標頭加一顆綠色「建議採用」徽章（呼應筆記結論：建議採用方案 B）。\n在方案 A 的橘色 BizForm 段下方拉一條暖色小標註：「兩案唯一差異：BizForm +11,100」。\n\n## 數值（月繳 / 年費預繳 兩種狀態）\n共用段（月繳 → 預繳）：\n- 點點簽：6,000 → 6,000（無預繳優惠）\n- GCP DEV：45,148 → 32,666\n- GCP PRD：89,042 → 64,080\n- BizForm（僅 A）：11,100 → 11,100（固定，無預繳優惠）\n總額：\n- 方案 B：月繳 140,190（月 11,683）／預繳 102,746（月 8,542）\n- 方案 A：月繳 151,290（月 12,608）／預繳 113,846（月 9,467）\n切換到「年費預繳」時，只有 GCP DEV / GCP PRD 兩段寬度與數字改變，點點簽與 BizForm 不變；長條寬度與總額同步重算。\n\n## 下方 KPI 條（三格小卡，不要做成大留白卡片）\n- 方案 B 年費（建議）：140,190；副標「預繳 102,746 · 月 11,683」，數字用綠色\n- A 比 B 多花：+11,100；副標「BizForm 固定年費」，數字用橘 / 紅褐色\n- 改年費預繳每年省：37,444；副標「GCP 約省 25%」，數字用藍色\n\n## 互動\n- 頂端一組「月繳 / 年費預繳」pill 切換，active 為主藍底白字；切換時長條寬度、段內數字、右側總額、KPI 同步更新（純 CSS transition，200–400ms ease-out）\n- 不需要點擊節點彈卡；保持簡潔\n\n## 底部附註（小灰字一行）\n尚未涵蓋：BizForm API 串接費、Cloud Storage 超用與對外流量費，後續評估另計。\n\n## 技術限制\n- 色票、字級、圓角一律走 trendlink-design 設計系統 token，不要硬編碼色碼（上面的 hex 僅為語意參考）\n- 禁 emoji、any、required props；根元素不加外框\n- 為避免 SSR/CSR hydration 不一致，不要使用 motion 的 layout / AnimatePresence / useReducedMotion，也不要做 DOM measurement（getBoundingClientRect / ResizeObserver）；切換動畫用純 CSS transition\n- 長條寬度用百分比換算（各段值 ÷ 該狀態下方案 A 的總額，讓兩案共用同一基準對齊）"} caption="方案 A / 方案 B 年度成本對照（可切換月繳 / 年費預繳）">
+  <CostEstimateComparison client:visible />
+</GeneratedFrame>
+
