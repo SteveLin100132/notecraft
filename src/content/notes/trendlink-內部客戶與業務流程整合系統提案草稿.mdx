@@ -32,6 +32,50 @@ updatedAt: "2026-06-23"
 - :badge[效能貧頸]{variant="danger" icon="warning"} Notion 的資料量增加時，查詢與操作效能可能下降，影響使用者體驗。
 - :badge[版本迭代]{variant="danger" icon="warning"} Notion 的功能更新與變動，目前在權限的設定上就因為表單權限的變動，導致相關功能無法使用。
 
+{/* @ai-visualize
+id: background-painpoint-evolution
+type: free
+prompt: |
+  把「背景」與「痛點」整合成一張因果敘事圖（呼應頁面標題「為什麼要做這套系統」），由上到下三列：演進時間軸（背景融入）→ Notion 五大痛點（為何不是終點）→ 結論列（轉向自建系統）。扁平卡片版型、無漸層無重陰影。
+
+  ## 第一列：演進時間軸（把背景三點融入，水平三節點，節點間以 chevron 箭頭連接，整列等高）
+  1. Excel（PAST · 過去）：中性灰卡（底 --neutral-100），icon=表格；說明「客服／顧問師逐筆把客戶合約手動維護進 Excel」。
+  2. Notion（NOW · 現在，PoC 過渡）：highlight 卡（藍底 --blue-50 + 1.5px 實線藍框 --blue-700），icon=筆記本；說明「作為過渡期工具，同步搜集需求、記錄規格與流程」。
+  3. 自建系統（FUTURE · 目標）：橘色虛線框卡（底 --orange-50 + 1.5px dashed --orange-400），icon=server；說明「合約／客戶規格已趨成熟，可作為開發藍本」。
+  每張卡：頂部小標（PAST/NOW/FUTURE + 中文階段）+ 標題 + 一行說明。
+
+  ## 第二列：Notion 五大痛點（填滿整寬的橫條，密度高）
+  區塊標題：紅色警示 icon + 「Notion 五大痛點 — 為何 Notion 不是終點」，右側紅色 pill「現況問題」（底 --danger-50 字 --danger-500）。
+  五條橫條，每條：左 3px 紅邊條（--danger-500）+ 白底，水平三欄：[icon + 痛點名（約 120px 固定）]　[說明（彈性撐滿）]　[影響（約 210px 固定，「影響」二字紅色粗體 + 內容）]。
+  資料（痛點名｜說明｜影響）：
+  1. 資料分散（icon=affiliate/share）｜跨 DB 關聯，無法像 RDB 做複雜查詢｜跨表報表需人工彙整
+  2. 權限設定（icon=lock）｜無法做到 Column Level 權限控管｜薪資、合約金額無法分層遮蔽
+  3. 欄位驗證（icon=forms）｜無法鎖定必填欄位與資料格式｜漏填、格式錯誤難以稽核
+  4. 效能瓶頸（icon=gauge）｜資料量大時查詢速度明顯變慢｜客戶量一大即明顯卡頓
+  5. 版本迭代（icon=versions）｜Notion 改版常導致權限功能失效｜每次改版需重設、不可控
+
+  ## 第三列：結論列（整寬橫幅，藍底 --blue-50 + 左 3px 藍邊條 --blue-700，左側燈泡 icon）
+  文字「五大痛點皆源於 Notion 的『工具天花板』，需轉向具 RDB 複雜查詢與 Column-Level 權限控管的自建系統。」（關鍵詞「工具天花板／RDB 複雜查詢／Column-Level 權限控管」用 --blue-700 粗體）。
+  右側綠色 pill（底 --success-50 字 --success-500）：「規格已成熟 · 可作開發藍本」。
+
+  ## 設計 token（走 trendlink-design，勿硬編碼色碼）
+  主藍 --blue-700 / --blue-500 / --blue-50；橘 --orange-400 / --orange-600 / --orange-700 / --orange-50；危險紅 --danger-500 / --danger-50；綠 --success-500 / --success-50；中性 --neutral-100 / --neutral-300 / --neutral-500 / --neutral-700。
+
+  ## 技術限制
+  - 純靜態展示，無互動切換；icon 用 inline `<svg>`（stroke=currentColor），禁 emoji、禁 lucide-react 等白名單外套件（僅可 react、clsx）。
+  - 禁 any、無 required props；根元素 `<div className="not-prose w-full space-y-5">`，不加外框 / shadow / 外層 bg（由 GeneratedFrame 提供）。
+  - 用字「效能瓶頸」（非「貧頸」）。
+caption: 背景 × 痛點整合：為什麼要做這套系統（演進 → 痛點 → 結論）
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import BackgroundPainpointEvolution from '@/components/generated/background-painpoint-evolution'
+
+<GeneratedFrame id="background-painpoint-evolution" type="free" prompt={"把「背景」與「痛點」整合成一張因果敘事圖（呼應頁面標題「為什麼要做這套系統」），由上到下三列：演進時間軸（背景融入）→ Notion 五大痛點（為何不是終點）→ 結論列（轉向自建系統）。扁平卡片版型、無漸層無重陰影。\n\n## 第一列：演進時間軸（把背景三點融入，水平三節點，節點間以 chevron 箭頭連接，整列等高）\n1. Excel（PAST · 過去）：中性灰卡（底 --neutral-100），icon=表格；說明「客服／顧問師逐筆把客戶合約手動維護進 Excel」。\n2. Notion（NOW · 現在，PoC 過渡）：highlight 卡（藍底 --blue-50 + 1.5px 實線藍框 --blue-700），icon=筆記本；說明「作為過渡期工具，同步搜集需求、記錄規格與流程」。\n3. 自建系統（FUTURE · 目標）：橘色虛線框卡（底 --orange-50 + 1.5px dashed --orange-400），icon=server；說明「合約／客戶規格已趨成熟，可作為開發藍本」。\n每張卡：頂部小標（PAST/NOW/FUTURE + 中文階段）+ 標題 + 一行說明。\n\n## 第二列：Notion 五大痛點（填滿整寬的橫條，密度高）\n區塊標題：紅色警示 icon + 「Notion 五大痛點 — 為何 Notion 不是終點」，右側紅色 pill「現況問題」（底 --danger-50 字 --danger-500）。\n五條橫條，每條：左 3px 紅邊條（--danger-500）+ 白底，水平三欄：[icon + 痛點名（約 120px 固定）]　[說明（彈性撐滿）]　[影響（約 210px 固定，「影響」二字紅色粗體 + 內容）]。\n資料（痛點名｜說明｜影響）：\n1. 資料分散（icon=affiliate/share）｜跨 DB 關聯，無法像 RDB 做複雜查詢｜跨表報表需人工彙整\n2. 權限設定（icon=lock）｜無法做到 Column Level 權限控管｜薪資、合約金額無法分層遮蔽\n3. 欄位驗證（icon=forms）｜無法鎖定必填欄位與資料格式｜漏填、格式錯誤難以稽核\n4. 效能瓶頸（icon=gauge）｜資料量大時查詢速度明顯變慢｜客戶量一大即明顯卡頓\n5. 版本迭代（icon=versions）｜Notion 改版常導致權限功能失效｜每次改版需重設、不可控\n\n## 第三列：結論列（整寬橫幅，藍底 --blue-50 + 左 3px 藍邊條 --blue-700，左側燈泡 icon）\n文字「五大痛點皆源於 Notion 的『工具天花板』，需轉向具 RDB 複雜查詢與 Column-Level 權限控管的自建系統。」（關鍵詞「工具天花板／RDB 複雜查詢／Column-Level 權限控管」用 --blue-700 粗體）。\n右側綠色 pill（底 --success-50 字 --success-500）：「規格已成熟 · 可作開發藍本」。\n\n## 設計 token（走 trendlink-design，勿硬編碼色碼）\n主藍 --blue-700 / --blue-500 / --blue-50；橘 --orange-400 / --orange-600 / --orange-700 / --orange-50；危險紅 --danger-500 / --danger-50；綠 --success-500 / --success-50；中性 --neutral-100 / --neutral-300 / --neutral-500 / --neutral-700。\n\n## 技術限制\n- 純靜態展示，無互動切換；icon 用 inline `<svg>`（stroke=currentColor），禁 emoji、禁 lucide-react 等白名單外套件（僅可 react、clsx）。\n- 禁 any、無 required props；根元素 `<div className=\"not-prose w-full space-y-5\">`，不加外框 / shadow / 外層 bg（由 GeneratedFrame 提供）。\n- 用字「效能瓶頸」（非「貧頸」）。"} caption="背景 × 痛點整合：為什麼要做這套系統（演進 → 痛點 → 結論）">
+  <BackgroundPainpointEvolution />
+</GeneratedFrame>
+
 ---
 
 ## 系統模組 & 服務整合
@@ -376,7 +420,6 @@ status: generated
 merged-into: solution-architecture-comparison
 */}
 
-import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import SolutionArchitectureComparison from '@/components/generated/solution-architecture-comparison'
 
 <GeneratedFrame id="solution-architecture-comparison" type="diagram" prompt={"繪製方案 A、方案 B 合併的 Solution Architecture 圖（頂端切換按鈕對照）。\n\n## 視覺風格\n\n採用「雲端架構圖」常見的**巢狀分組卡片**版型（類似 AWS / GCP 官方架構圖）：\n\n- **最外層分組**：用淡灰底（var(--neutral-50)）圓角大卡，標頭置中、含一個 GCP 風格 icon + 分組名稱（例如「Deployment (GCP)」、「CI/CD」、「External SaaS」）\n- **內層子分組**：用**藍色虛線框 + 白底**圓角中卡，左上角貼一顆 GCP 服務徽章（小藍底圓 + 白字 icon）+ 子分組名稱（例如「GCP Compute Engine」、「GCP Cloud SQL」、「GCP Cloud Storage」）\n- **服務節點卡**：白底、細邊框、輕陰影的圓角小卡，水平排版：左邊是品牌 / 服務 logo 色塊（例如 React 藍綠、NestJS 紅、n8n 粉、PostgreSQL 藍、n8n 等），右邊上方粗體服務名稱、下方一行小灰字描述\n- **配色**：自建走 trendlink-design 主藍系；GCP 子分組統一用 GCP 藍色標頭徽章；外部 SaaS（BizForm、點點簽）用單獨的中性 / 暖色分組\n- **頂部**：兩顆 pill 切換按鈕「方案 A / 方案 B」，active 為 var(--blue-700) 底白字\n\n## 分組結構\n\n### 上方：CI/CD 區塊（最外層淡灰大卡）\n- GitHub Repo — 前後端各一個 Repo\n- GitHub Actions — 自動測試 / 打包 / 部署\n\n### 中段：Deployment (GCP)（最外層淡灰大卡，內含多個藍色虛線子分組）\n\n**Compute Engine（子分組）**\n- Web UI — React.js + Vite（前端）\n- API Server — NestJS + TypeScript（後端）\n- n8n — 資料同步 / 自動化排程\n- 方案 B 時：派案管理、諮詢管理、報價管理、執案管理（自建模組以小卡列出在 API Server 下方）\n\n**Cloud SQL（子分組）**\n- PostgreSQL — 主資料庫（客戶、合約、業務流程資料）\n\n**Cloud Storage（子分組）**\n- 系統附件、合約 PDF、表單上傳檔（例：.xlsx、.png、.pdf）\n\n### 下方：External SaaS（最外層淡灰大卡）\n\n- 方案 A 才有：**BizForm** — 派案 / 諮詢 / 報價 / 執案表單（Webhook 回寫主系統）\n- **點點簽** — 電子簽章服務（兩方案都有，唯一外部依賴）\n\n### 最上方：User（單獨一條，User icon + 文字）\n- 客服人員 / 顧問師（內部）\n- 客戶 / 渠道人員（外部簽署）\n\n## 互動\n\n- 頂端方案 A / B 切換按鈕：切換時 Compute Engine 子分組內的「派案 / 諮詢 / 報價 / 執案」自建模組會出現（B）或隱藏（A），且 External SaaS 區塊內 BizForm 卡片會出現（A）或隱藏（B）\n- 點擊任一節點顯示說明卡片（職責、技術細節、與其他模組的關聯）\n- 為避免 SSR/CSR hydration 不一致，**不要使用 motion 的 layout / AnimatePresence / useReducedMotion，也不要做 DOM measurement**；切換動畫用純 CSS transition（opacity / transform）即可\n- 排版以巢狀分組為主，但**這次需要補上元件間的交互折線**（見下方「連線」）\n\n## 分組結構修訂版（取代上方分組結構，由上至下）\n\n1. **User（單獨一條，不在大卡內）**：客服 / 顧問師（內部）、客戶 / 渠道人員（外部）\n2. **Deployment (GCP) 大卡**，內含三個藍虛線子分組：\n   - **GCP Compute Engine** 內**再嵌一層 Docker** 虛線框（左上 Docker 徽章）；Docker 框內含：\n     - Web UI（React.js + Vite） — 副標兩行：「主系統後台（客服 / 顧問師作業）」「數據分析 Dashboard（看板視圖）」\n     - API Server（NestJS + TypeScript） — 副標列出自建業務模組：共同 = 客戶管理(CRM) / 合約管理 / 分析看板資料服務；[B] 派案 / 諮詢 / 報價 / 執案管理；[A] 業務流程資料對接（接 BizForm Webhook）\n   - **GCP Cloud SQL** — PostgreSQL 主資料庫\n   - **GCP Cloud Storage** — 附件 / 合約 PDF / 表單上傳檔\n3. **External SaaS 大卡**（標頭副標「訂閱服務」）\n   - **n8n（官方訂閱）** — 副標三條：主系統透過 API 觸發 workflow / Webhook 回寫主系統 / 整合通知（Email、Slack 等）\n   - **點點簽** — 副標：API（合約建立 / 查詢）/ Webhook（簽署完成事件回寫）\n   - **[A] BizForm**（方案 A 才出現） — 副標：Webhook（表單交付資料回寫）\n4. **CI/CD 大卡（最底層）**\n   - GitHub Repo — 前後端各一個 Repo\n   - GitHub Actions — 自動測試 / 打包 / 部署\n   - 流程：GitHub Repo --push--> GitHub Actions --SSH / Docker pull--> GCP Compute Engine\n\n## 連線（折線、含協定標籤）\n\n使用一層 absolute 覆蓋的 SVG 畫 orthogonal polyline（只走水平 / 垂直），每條線中段加白底細邊框的小 pill 標籤標註協定：\n\n- User → Web UI：HTTPS\n- Web UI → API Server：HTTPS / REST API\n- API Server → Cloud SQL：TCP\n- API Server → Cloud Storage：HTTPS（GCS SDK）\n- API Server ↔ n8n：API + Webhook（資料同步 / 通知）\n- 合約管理（API Server 內的子標籤）↔ 點點簽：API + Webhook\n- [A] 業務流程資料對接 ↔ BizForm：Webhook\n- GitHub Repo → GitHub Actions：push\n- GitHub Actions → GCP Compute Engine：SSH / Docker pull\n\n**線條樣式**：內部資料流 = 實線 var(--blue-300)；外部 SaaS 串接 = 虛線 var(--orange-400)；CI/CD 流程 = 實線 var(--neutral-400)。箭頭用 SVG `<marker>`，雙向關係兩端都有箭頭。\n座標**靜態寫死**，不要 DOM measurement。\n\n## 圓弧\n\n整體圓角收斂：大卡 rounded-xl（12px），子分組 rounded-lg（8px），節點卡 rounded-md（6px），切換按鈕 pill。\n\n## 互動 & 技術限制\n\n- 方案 A / B 切換：純 React state + CSS opacity / max-height transition 控制差異節點顯隱\n- 點擊任一節點顯示說明卡片（職責、技術、上下游關聯）\n- **嚴格禁止**：motion / AnimatePresence / motion 的 layout prop / useLayoutEffect / useReducedMotion / DOM measurement（getBoundingClientRect / ResizeObserver） / window / navigator / matchMedia\n- 禁 emoji、any、required props；根元素不加外框"} caption="方案 A / 方案 B：Solution Architecture 對照（互動切換）">
