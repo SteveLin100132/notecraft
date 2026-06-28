@@ -66,7 +66,7 @@ status: pending | generated | locked | failed
 
 ### 元件白名單
 
-允許 import：`react`、`motion`、`recharts`、`d3`、`clsx`、`tailwind-merge`、專案內相對路徑。其他套件**先在對話中徵詢作者**。
+允許 import：`react`、`motion`、`recharts`、`d3`、`clsx`、`tailwind-merge`、`lucide-react`（圖示）、專案內相對路徑。其他套件**先在對話中徵詢作者**。
 
 ### 視覺化選型（決策樹要點）
 

@@ -17,6 +17,12 @@ export default defineConfig({
   ],
   vite: {
     server: { host: "127.0.0.1" },
+    // 生成元件常用的 client 相依預先打包，避免 dev 期間被「按需發現」後觸發
+    // 重新最佳化、換掉 ?v= hash，導致進行中的 dynamic import 取到舊 hash 而 404
+    //（症狀：Failed to fetch dynamically imported module）。
+    optimizeDeps: {
+      include: ["react", "react-dom", "motion/react", "lucide-react", "clsx", "recharts", "d3"],
+    },
   },
   markdown: {
     // 關閉 Astro 內建 Shiki：圍欄程式碼改由 remarkNotecraftCodeblock 以自寫 build-time
