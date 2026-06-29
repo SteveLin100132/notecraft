@@ -88,6 +88,18 @@ export const SERIES: SeriesDef[] = [
       "規格書撰寫-where-寫在哪",
     ],
   },
+  {
+    id: "trendlink-proposal",
+    title: "聯和趨動內部專案提案",
+    eyebrow: "TRENDLINK PROPOSAL",
+    description: "提案系列：展示於公司內部相關專案的提案，作為個人經歷的紀錄。",
+    accent: "navy",
+    icon: "bookOpen",
+    slugs: [
+      "trendlink-內部客戶與業務流程整合系統提案草稿",
+      "trendlink-ai-入門工作坊提案草稿",
+    ],
+  },
 ];
 
 // ── accent → 視覺 token（CSS 變數字串，astro 與 island 共用）──
