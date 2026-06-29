@@ -18,6 +18,7 @@ import {
   Info,
   ArrowLeftRight,
   ArrowRight,
+  DollarSign,
 } from 'lucide-react';
 
 type Plan = 'A' | 'B';
@@ -244,6 +245,19 @@ function GcpBadge({ icon: Icon, label }: { icon: React.ElementType; label: strin
   );
 }
 
+function PaidBadge({ absolute }: { absolute?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 bg-[var(--orange-50)] border border-[var(--orange-300)] text-[var(--orange-700)] rounded-md px-2 py-0.5 text-[10px] font-semibold${
+        absolute ? ' absolute top-3 right-3 z-10' : ''
+      }`}
+    >
+      <DollarSign size={10} />
+      需付費
+    </span>
+  );
+}
+
 function DockerBadge() {
   return (
     <span className="inline-flex items-center gap-1 bg-[var(--neutral-50)] border border-[var(--neutral-300)] text-[var(--neutral-700)] rounded-md px-2 py-1 text-xs font-semibold">
@@ -278,6 +292,7 @@ function NodeCard({
   onSelect,
   children,
   saasBadge,
+  paid,
   equalHeight,
   nodeRef,
 }: {
@@ -290,6 +305,7 @@ function NodeCard({
   onSelect: (id: string | null) => void;
   children?: React.ReactNode;
   saasBadge?: React.ReactNode;
+  paid?: boolean;
   equalHeight?: boolean;
   nodeRef?: React.RefObject<HTMLDivElement>;
 }) {
@@ -297,6 +313,7 @@ function NodeCard({
   return (
     <div ref={nodeRef} className={`relative${equalHeight ? ' h-full' : ''}`}>
       {saasBadge}
+      {paid && <PaidBadge absolute />}
       <div
         className={`rounded-md border bg-white cursor-pointer transition-all${equalHeight ? ' h-full' : ''} ${
           isSelected
@@ -603,7 +620,10 @@ export default function SolutionArchitectureComparison() {
 
           {/* GCP Compute Engine sub-group */}
           <div className="border border-dashed border-[var(--blue-400)] bg-white rounded-md p-3 space-y-3">
-            <GcpBadge icon={Cpu} label="GCP Compute Engine" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <GcpBadge icon={Cpu} label="GCP Compute Engine" />
+              <PaidBadge />
+            </div>
 
             {/* Docker sub-frame */}
             <div className="border border-dashed border-[var(--neutral-400)] bg-white rounded-md p-3 space-y-3">
@@ -672,7 +692,10 @@ export default function SolutionArchitectureComparison() {
               ref={cloudsqlGroupRef}
               className="border border-dashed border-[var(--blue-400)] bg-white rounded-md p-3 space-y-2 h-full flex flex-col"
             >
-              <GcpBadge icon={Database} label="GCP Cloud SQL" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <GcpBadge icon={Database} label="GCP Cloud SQL" />
+                <PaidBadge />
+              </div>
               <div className="relative flex-1 h-full">
                 <NodeCard
                   id="cloudsql"
@@ -690,7 +713,10 @@ export default function SolutionArchitectureComparison() {
               ref={cloudstorageGroupRef}
               className="border border-dashed border-[var(--blue-400)] bg-white rounded-md p-3 space-y-2 h-full flex flex-col"
             >
-              <GcpBadge icon={HardDrive} label="GCP Cloud Storage" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <GcpBadge icon={HardDrive} label="GCP Cloud Storage" />
+                <PaidBadge />
+              </div>
               <div className="relative flex-1 h-full">
                 <NodeCard
                   id="cloudstorage"
@@ -737,6 +763,7 @@ export default function SolutionArchitectureComparison() {
               icon={PenLine}
               logoColor="bg-[var(--orange-500)]"
               title="點點簽"
+              paid={true}
               subtitle={
                 <span>
                   API（合約建立 / 查詢）
@@ -761,6 +788,7 @@ export default function SolutionArchitectureComparison() {
                   icon={LayoutList}
                   logoColor="bg-[var(--neutral-500)]"
                   title="[A] BizForm"
+                  paid={true}
                   subtitle="Webhook（表單交付資料回寫）"
                   selectedNode={selectedNode}
                   onSelect={setSelectedNode}
