@@ -52,7 +52,10 @@ export const SERIES: SeriesDef[] = [
       "AI 顧問陪跑筆記：紀錄與 AI 顧問 Danny 進行 Workshop 期間的 AI 技術交流與專案討論，包含對 AI 技術的理解、實驗過程、專案規劃與管理等面向的內容，作為未來 AI 專案參考與學習的資源。",
     accent: "navy",
     icon: "code",
-    slugs: ["建立-bump-prd-hook-的認知調整歷程"],
+    slugs: [
+      "建立-bump-prd-hook-的認知調整歷程",
+      "ssr-專案dutymate-ai-憲章與-workflow-設計",
+    ],
   },
   {
     id: "ai-consultant-workshop",

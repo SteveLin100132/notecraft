@@ -1,0 +1,535 @@
+---
+title: "SSR 專案(DutyMate) AI 憲章與 Workflow 設計"
+description: ""
+tags: ["AI 陪跑筆記", "AI 技術"]
+createdAt: "2026-07-02"
+updatedAt: "2026-07-02"
+---
+
+# Duty Mate SDD Workflow
+
+> 本文件為 Duty Mate 專案 SDD（Spec-Driven Development）流程的權威說明，涵蓋從需求進入到封存的七個階段，以及每個 Task 的微觀交付迴圈。
+
+**圖例：**
+
+- :badge[手動]{variant="warning" icon="bolt"} — 需要使用者主動下提示詞觸發
+- :badge[自動]{variant="info"} — 由上一步自動串接，使用者不用動手
+- :badge[新]{variant="success" icon="sparkle"} — 新增角色（相對舊流程）
+
+---
+
+## 1. 角色總覽
+
+```
+┌ Skills（流程編排／品質閘，由使用者觸發）
+│   openspec-propose · clarify · openspec-apply-change · openspec-archive-change
+│   /code-review（tech-lead 借用）
+│
+├ Subagents — 治理層
+│   pm           需求釐清、規格撰寫
+│   tech-lead    任務拆解／派工規劃／Code Review／打勾
+│
+├ Subagents — 分析／設計層
+│   sa  ★      全域脈絡＋業務流程 Flow Chart
+│   sd  ★      技術設計／UML（Class Diagram、Sequence Diagram）
+│   ui-ux ★    前端設計藍圖（逐頁 wireframe＋Design Token 映射，依 Prototype，與 sd 平行）
+│
+├ Subagents — 實作層
+│   backend-developer · dba · ui-ux · technical-writer
+│
+└ Subagents — 品質層
+    qa  ★      驗收審查（Scenario + DoD），不做 Code Review
+```
+
+:::warning{title="執行原則"}
+subagent 不能自行呼叫其他 subagent；所有跨 agent 的銜接皆由**主 agent**（即與使用者對話的 Claude）依據本文件流程驅動。
+:::
+
+---
+
+## 2. 巨觀主流程（七階段）
+
+{/* @ai-visualize
+id: sdd-workflow-map
+type: diagram
+prompt: |
+  互動式主流程地圖：把 §2 巨觀主流程（7 階段）、§4 守門表、§5 跨 agent 文件流向合併為單一敘事元件。
+  核心洞察：這條 SDD 流程的簽名設計是「[2a] sd ∥ [2b] ui-ux 平行、其餘序列」，以及每階段都有明確的「手動觸發／自動接續」節奏與過閘條件；每個階段的產物並非孤立文件，而是被下游 agent 必讀的脈絡輸入。
+  版面：頂部橫向 stepper 顯示 7 個節點（sa → sd∥ui-ux → propose → clarify → tech-lead → apply-change → archive），其中 [2] 節點在視覺上分裂成上下雙軌再匯流回 [3]；每個節點以 icon 標示手動觸發（🗣️ 對應語意，但請用 lucide-react 的 Hand / MessageSquare 等 icon 替代，不得使用 emoji）；例外通道（超小型調整可跳過 [2a]/[2b]）以虛線捷徑呈現。
+  互動：
+  - 點擊任一節點，右側面板顯示該階段的：觸發方式、負責 agent、產物路徑、過閘條件（資料取自 §4 表格）
+  - 面板底部列出「本階段產出被誰必讀」（資料取自 §5 文件流）
+  - Hover 節點時，用細線亮起產物 → 下游消費者的連線
+  - 節點選取時，橫向 stepper 上以顏色標示所選節點與其後續依賴節點
+  使用 trendlink-design 色票：主色 --blue-700、平行分支 --sky-500、例外通道 --neutral-400 虛線、手動觸發 icon 用 --orange-400。以手寫 SVG 建構節點與連線，用 motion 讓面板切換與連線亮起有 200-300ms ease-out 過渡；尊重 prefers-reduced-motion。
+caption: 點擊任一階段查看角色、產物與過閘條件；平行分支 [2a]/[2b] 為此流程的簽名設計
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import SddWorkflowMap from '@/components/generated/sdd-workflow-map'
+
+<GeneratedFrame id="sdd-workflow-map" type="diagram" prompt={"互動式主流程地圖：把 §2 巨觀主流程（7 階段）、§4 守門表、§5 跨 agent 文件流向合併為單一敘事元件。\n核心洞察：這條 SDD 流程的簽名設計是「[2a] sd ∥ [2b] ui-ux 平行、其餘序列」，以及每階段都有明確的「手動觸發／自動接續」節奏與過閘條件；每個階段的產物並非孤立文件，而是被下游 agent 必讀的脈絡輸入。\n版面：頂部橫向 stepper 顯示 7 個節點（sa → sd∥ui-ux → propose → clarify → tech-lead → apply-change → archive），其中 [2] 節點在視覺上分裂成上下雙軌再匯流回 [3]；每個節點以 icon 標示手動觸發（🗣️ 對應語意，但請用 lucide-react 的 Hand / MessageSquare 等 icon 替代，不得使用 emoji）；例外通道（超小型調整可跳過 [2a]/[2b]）以虛線捷徑呈現。\n互動：\n- 點擊任一節點，右側面板顯示該階段的：觸發方式、負責 agent、產物路徑、過閘條件（資料取自 §4 表格）\n- 面板底部列出「本階段產出被誰必讀」（資料取自 §5 文件流）\n- Hover 節點時，用細線亮起產物 → 下游消費者的連線\n- 節點選取時，橫向 stepper 上以顏色標示所選節點與其後續依賴節點\n使用 trendlink-design 色票：主色 --blue-700、平行分支 --sky-500、例外通道 --neutral-400 虛線、手動觸發 icon 用 --orange-400。以手寫 SVG 建構節點與連線，用 motion 讓面板切換與連線亮起有 200-300ms ease-out 過渡；尊重 prefers-reduced-motion."} caption="點擊任一階段查看角色、產物與過閘條件；平行分支 [2a]/[2b] 為此流程的簽名設計">
+  <SddWorkflowMap client:visible />
+</GeneratedFrame>
+
+:::tip{collapsible title="展開純文字版流程圖（ASCII fallback）"}
+
+```
+[1] sa（System Analysis）
+        ① openspec new change "<name>" 建立 change 目錄（含 .openspec.yaml）
+        ② 產出 openspec/changes/<name>/system-analysis.md
+        （全域脈絡、跨功能依賴、PRD/Spec 矛盾、業務流程 Flow Chart）
+            │
+            ↓  使用者確認摘要後同時委派 sd 與 ui-ux（兩者平行、互不依賴）
+       ┌────┴─────────────────────────────────────────────┐
+[2a] sd（System Design）  ★           [2b] ui-ux（前端設計藍圖）  ★
+        產出                              產出
+        openspec/changes/<name>/          openspec/changes/<name>/
+        system-design.md                  system-ui-design.md
+        （Class / Sequence Diagram、     （依 Prototype 產出逐頁
+        必要時 State/Activity）           wireframe、Handlebars 拆分、
+                                          互動狀態、Design Token 映射）
+       └────┬─────────────────────────────────────────────┘
+            ↓  兩份設計文件皆完成、使用者確認後觸發 propose
+[3] openspec-propose
+        使用 [1] 已建立的 change 目錄（不重新建立）
+        產出 openspec/changes/<name>/{proposal,design,tasks}.md
+        （Spec 只寫 What；技術 How 歸 tasks）
+            │
+            ↓
+[4] clarify
+        Q/P 釐清 → 互動式選擇視窗逐項詢問 Q → 回修三件套
+        （品質閘：所有 Q 有答、P 已補才過閘）
+            │
+            ↓  使用者手動觸發 tech-lead
+[5] tech-lead
+        產出 tasks.md（+ @assignee + deps + parallel 標記）
+        （只規劃不實作；派工資訊全寫進 tasks.md，不另出 dispatch-plan）
+            │
+            ↓  使用者觸發 openspec-apply-change
+[6] openspec-apply-change
+        主 agent 依 tasks.md 逐列派工 → 微觀交付迴圈（見 §3）
+        → 全 task [x]
+            │
+            ↓
+[7] openspec-archive-change
+        封存 change（全 task [x]、測試綠、可啟動）
+```
+
+:::
+
+### 2.1 例外通道：超小型功能可跳過 sd 與 ui-ux
+
+:::info{title="例外通道"}
+若 sa 階段判定為**超小型調整**（如純文案／設定值微調），不涉及新類別、新互動序列，也不涉及版面或元件變動，可在使用者確認後**直接委派 openspec-propose**，跳過 [2a]／[2b]。此屬例外，預設仍走 sa →（sd ∥ ui-ux）→ propose。
+:::
+
+### 2.2 change 名稱命名規則
+
+change 名稱由 SA 在步驟 1 從 Spec 檔名推導，所有後續階段使用同一名稱：
+
+- 去掉數字前綴與分隔符號：`01-login.md` → `login`
+- **必須以字母開頭**（OpenSpec CLI 限制，數字開頭會被拒絕）
+- 使用 kebab-case：`02-schedule-management.md` → `schedule-management`
+- SA 透過 `openspec new change "<name>"` 建立目錄（含 `.openspec.yaml`），後續 SD、ui-ux 與 openspec-propose **使用既有目錄**，不重新建立
+
+最終 change 目錄結構：
+
+```
+openspec/changes/<name>/
+├── .openspec.yaml          ← SA 透過 openspec new change 建立
+├── system-analysis.md      ← SA 產出
+├── system-design.md        ← SD 產出（後端技術藍圖）
+├── system-ui-design.md     ← ui-ux 產出（前端設計藍圖，與 SD 平行）
+├── proposal.md             ← openspec-propose 產出
+├── design.md               ← openspec-propose 產出
+├── tasks.md                ← openspec-propose 產出
+└── specs/                  ← openspec-propose 產出
+    └── <capability>/
+        └── spec.md
+```
+
+---
+
+## 3. 微觀交付迴圈（[6] 每個 Task 內部）
+
+{/* @ai-visualize
+id: sdd-delivery-loop
+type: motion
+prompt: |
+  微觀交付迴圈的可播放狀態機。核心洞察：這個小宇宙的關鍵張力不是「有幾步」，而是**退回機制的計數與升級門檻**——tech-lead Code Review 同 task 上限 2 次、第 3 次升級人類介入；qa 驗收不通過也會退回實作 agent 重跑 CR + QA。這是靜態圖畫不出來的節奏。
+  版面：手寫 SVG 中央橫向流程 —— 實作 agent → ① tech-lead Code Review → ② qa 驗收 → ③ tech-lead 標 [x] → ④ commit；退回路徑用虛線繞回實作 agent，顯示計數徽章（0/2 → 1/2 → 2/2 → 升級）。
+  互動：
+  - 提供三顆按鈕：「播放：一路通過」「模擬：Code Review 退回」「模擬：QA 退回」
+  - 「一路通過」跑一次成功路徑，實作 → ① 綠勾 → ② 綠勾 → ③ 打勾 → ④ commit
+  - 「Code Review 退回」每按一次退回一次並增加 CR 計數（0/2 → 1/2 → 2/2），第 3 次觸發「升級回報使用者」的紅色警示狀態
+  - 「QA 退回」示範 qa 產出缺陷報告 → 回實作 agent → 重走 ① ②（動畫沿著虛線繞回）
+  - 每步節點以 motion 高亮（scale 1.06、200-300ms ease-out），完成的節點保留較淡的成功綠邊框；重置按鈕清空狀態
+  使用 trendlink-design：成功 --success-500、警示 --warning-500、升級 --danger-500、主線 --blue-700、退回虛線 --neutral-400；calibrated icons 用 lucide-react（Check、RotateCcw、AlertTriangle、GitCommit）。尊重 prefers-reduced-motion。
+caption: 按下模擬鈕看退回計數如何從 0/2 累積到升級門檻，體驗 CR × QA 的兩層守門
+status: generated
+*/}
+
+import SddDeliveryLoop from '@/components/generated/sdd-delivery-loop'
+
+<GeneratedFrame id="sdd-delivery-loop" type="motion" prompt={"微觀交付迴圈的可播放狀態機。核心洞察：這個小宇宙的關鍵張力不是「有幾步」，而是**退回機制的計數與升級門檻**——tech-lead Code Review 同 task 上限 2 次、第 3 次升級人類介入；qa 驗收不通過也會退回實作 agent 重跑 CR + QA。這是靜態圖畫不出來的節奏。\n版面：手寫 SVG 中央橫向流程 —— 實作 agent → ① tech-lead Code Review → ② qa 驗收 → ③ tech-lead 標 [x] → ④ commit；退回路徑用虛線繞回實作 agent，顯示計數徽章（0/2 → 1/2 → 2/2 → 升級）。\n互動：\n- 提供三顆按鈕：「播放：一路通過」「模擬：Code Review 退回」「模擬：QA 退回」\n- 「一路通過」跑一次成功路徑，實作 → ① 綠勾 → ② 綠勾 → ③ 打勾 → ④ commit\n- 「Code Review 退回」每按一次退回一次並增加 CR 計數（0/2 → 1/2 → 2/2），第 3 次觸發「升級回報使用者」的紅色警示狀態\n- 「QA 退回」示範 qa 產出缺陷報告 → 回實作 agent → 重走 ① ②（動畫沿著虛線繞回）\n- 每步節點以 motion 高亮（scale 1.06、200-300ms ease-out），完成的節點保留較淡的成功綠邊框；重置按鈕清空狀態\n使用 trendlink-design：成功 --success-500、警示 --warning-500、升級 --danger-500、主線 --blue-700、退回虛線 --neutral-400；calibrated icons 用 lucide-react（Check、RotateCcw、AlertTriangle、GitCommit）。尊重 prefers-reduced-motion."} caption="按下模擬鈕看退回計數如何從 0/2 累積到升級門檻，體驗 CR × QA 的兩層守門">
+  <SddDeliveryLoop client:visible />
+</GeneratedFrame>
+
+:::tip{collapsible title="展開純文字版交付迴圈（ASCII fallback）"}
+
+```
+           主 agent 依 tasks.md @assignee 派工
+                       │
+   ┌───────────────────▼────────────────────┐
+   │ 實作 agent                              │
+   │   backend-developer / dba / ui-ux /     │
+   │   technical-writer                      │
+   │   - 以 TDD 完成（單元 Jest + 整合       │
+   │     Supertest，與實作同 task）          │
+   │   - 完成後回報 diff／測試結果           │
+   └───────────────────┬────────────────────┘
+                       ▼
+   ① tech-lead Code Review（架構／設計層）
+       借助 /code-review skill 輔助逐行檢查
+       重點：分層・SOLID・命名・JSDoc・DTO・Design Token・符合 design.md
+       ├─ 退回（同 task 上限 2 次，第 3 次升級回報使用者）→ 回實作 agent ↺
+       └─ 通過 ▼
+   ② qa 驗收審查（review，非 code review）
+       逐一對照 OpenSpec spec 每個 Scenario（Given/When/Then）
+       ＋ E2E（Playwright）＋ 整合 ＋ 回歸
+       ＋ Migration up/down 實跑 ＋ 啟動冒煙
+       ＋ Decision Table 列舉情境
+       ├─ 不通過 → 缺陷報告 → 退回實作 agent（修正後重走 ①②）↺
+       └─ 通過（DoD 全滿足）▼
+   ③ qa 回報主 agent → tech-lead 將該 task 標 [x]
+                       ▼
+   ④ commit（同章節 / 同前綴編號群組通過後 commit，格式依 CLAUDE.md §3.2）
+```
+
+:::
+
+### 3.1 DoD 閘門（②通過的硬條件）
+
+完整清單以 [.claude/agents/qa.md](.claude/agents/qa.md) 為準：
+
+:::success{title="DoD 閘門檢查清單"}
+
+- [x] spec 中所有 Scenario 皆已驗證並通過
+- [x] Decision Table 情境皆有對應驗證
+- [x] 單元 + 整合 + E2E 測試全綠
+- [x] Migration up / down 可正常回滾（如適用）
+- [x] 專案可正常啟動（啟動冒煙）
+- [x] 通過 ESLint
+- [x] 文件已同步（JSDoc、受影響的 SDD 文件）
+
+:::
+
+---
+
+## 4. 階段產物與守門表
+
+| 階段          | 觸發                     | 角色                                                          | 產物                                                 | 過閘條件                                                                                         |
+| ------------- | ------------------------ | ------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [1] sa        | 🗣️                       | sa                                                            | `openspec/changes/<name>/system-analysis.md`         | PRD/Spec 矛盾與跨功能耦合都已列出；Flow Chart 覆蓋 happy path + 主要例外                         |
+| [2a] sd ★     | 🗣️ 接 sa                 | sd                                                            | `openspec/changes/<name>/system-design.md`           | Class Diagram 覆蓋主要分層；Sequence Diagram 覆蓋每個關鍵 Scenario                               |
+| [2b] ui-ux ★  | 🗣️ 接 sa（與 sd 平行）   | ui-ux                                                         | `openspec/changes/<name>/system-ui-design.md`        | 依 Prototype 逐頁還原；Handlebars 拆分明確；每個視覺屬性皆映射到 Design Token（無寫死色值/尺寸） |
+| [3] propose   | 🗣️（sd 與 ui-ux 皆完成） | openspec-propose                                              | `openspec/changes/<name>/{proposal,design,tasks}.md` | 三件套齊備、Spec 只寫 What；design.md／tasks.md 已納入 UI 藍圖與 Prototype 來源指標              |
+| [4] clarify   | 🗣️                       | clarify                                                       | 釐清報告＋三件套回修                                 | 所有 Q 有答、P 已補                                                                              |
+| [5] tech-lead | 🗣️                       | tech-lead                                                     | `tasks.md`（+ @assignee + deps + parallel 標記）     | 章節保留、deps 無環、每 task 有 @assignee、可平行群組已標                                        |
+| [6] 實作      | 🗣️                       | openspec-apply-change（主 agent 派工）＋ 實作／品質 subagents | 程式 + 測試 + `[x]`                                  | 每 task 通過 Code Review + QA(DoD)                                                               |
+| [7] 封存      | 🗣️                       | openspec-archive-change                                       | change 歸檔                                          | 全 task `[x]`、測試綠、可啟動                                                                    |
+
+---
+
+## 5. 跨 Agent 文件流向
+
+> §2 的互動流程圖點擊任一節點後，右側面板底部會列出「本階段產出被誰必讀」；以下為純文字對照版本。
+
+:::tip{collapsible title="展開純文字版文件流向（ASCII fallback）"}
+
+```
+sa    ──→ openspec/changes/<name>/system-analysis.md     ┐
+                                                       ├─→ 被 sd 必讀
+                                                       ├─→ 被 ui-ux 必讀
+sd    ──→ openspec/changes/<name>/system-design.md       │
+ui-ux ──→ openspec/changes/<name>/system-ui-design.md    ┘  皆被 tech-lead 必讀
+                                                            皆被 openspec-propose 必讀
+                                                            system-ui-design.md 亦被實作階段 UI task 必讀
+
+openspec-propose ──→ openspec/changes/<name>/{proposal,design,tasks}.md
+                                                  ├─→ 被 tech-lead 必讀
+                                                  ├─→ 被實作 agent 必讀
+                                                  └─→ 被 qa 必讀（spec 為驗收準繩）
+
+tech-lead ──→ tasks.md（補 @assignee/deps/parallel）
+                                                  └─→ 被主 agent 在 openspec-apply-change 階段讀取派工
+```
+
+:::
+
+:::warning{title="qa 驗收唯一準繩"}
+qa 的驗收**唯一準繩**是 OpenSpec spec 的 Scenario。`system-analysis.md`、`system-design.md` 與 `system-ui-design.md` 僅供脈絡參考，不可取代 Scenario 驗收。
+:::
+
+---
+
+## 6. 審查／驗收職責分工
+
+{/* @ai-visualize
+id: sdd-review-boundary
+type: diagram
+prompt: |
+  靜態兩軸對照：tech-lead vs qa 的職責邊界。核心洞察：這不是「兩人一起看」的併行審查，而是**互補不取代的邊界**——tech-lead 不做 Scenario 驗收、qa 不做 Code Review。「不做什麼」比「做什麼」更能定義這條邊界。
+  版面：左右兩張並排的角色卡（左 tech-lead / 右 qa），中間一條細細的分隔線暗示邊界。
+  每張卡片上下兩區：
+  - 上區「負責」：列出該角色負責的項目（如 tech-lead：分層／SOLID／命名／DTO／Design Token；qa：Scenario 驗收、E2E、Migration up/down、啟動冒煙）—— 使用綠色 Check icon 的 chip
+  - 下區「不做」：列出該角色不做的項目（tech-lead：不做 Scenario 驗收；qa：不做 Code Review）—— 使用灰色劃線樣式（text-decoration:line-through）的 chip 或 icon Ban
+  最底一列補一句提示：「順序：先 tech-lead Code Review，後 qa 驗收，互補不取代」，配一個小的順序箭頭（lucide-react ArrowRight）。
+  純靜態不需要 motion，響應式從桌面兩欄，窄螢幕自動垂直堆疊；用 trendlink-design 色票：tech-lead 用 --blue-700 主題、qa 用 --sky-500 主題、負責 chip 用 --success-500、不做 chip 用 --neutral-500 灰。禁用任何 emoji。
+caption: 這條邊界靠「不做什麼」定義：tech-lead 不做 Scenario 驗收、qa 不做 Code Review
+status: generated
+*/}
+
+import SddReviewBoundary from '@/components/generated/sdd-review-boundary'
+
+<GeneratedFrame id="sdd-review-boundary" type="diagram" prompt={"靜態兩軸對照：tech-lead vs qa 的職責邊界。核心洞察：這不是「兩人一起看」的併行審查，而是**互補不取代的邊界**——tech-lead 不做 Scenario 驗收、qa 不做 Code Review。「不做什麼」比「做什麼」更能定義這條邊界。\n版面：左右兩張並排的角色卡（左 tech-lead / 右 qa），中間一條細細的分隔線暗示邊界。\n每張卡片上下兩區：\n- 上區「負責」：列出該角色負責的項目（如 tech-lead：分層／SOLID／命名／DTO／Design Token；qa：Scenario 驗收、E2E、Migration up/down、啟動冒煙）—— 使用綠色 Check icon 的 chip\n- 下區「不做」：列出該角色不做的項目（tech-lead：不做 Scenario 驗收；qa：不做 Code Review）—— 使用灰色劃線樣式（text-decoration:line-through）的 chip 或 icon Ban\n最底一列補一句提示：「順序：先 tech-lead Code Review，後 qa 驗收，互補不取代」，配一個小的順序箭頭（lucide-react ArrowRight）。\n純靜態不需要 motion，響應式從桌面兩欄，窄螢幕自動垂直堆疊；用 trendlink-design 色票：tech-lead 用 --blue-700 主題、qa 用 --sky-500 主題、負責 chip 用 --success-500、不做 chip 用 --neutral-500 灰。禁用任何 emoji."} caption="這條邊界靠「不做什麼」定義：tech-lead 不做 Scenario 驗收、qa 不做 Code Review">
+  <SddReviewBoundary client:visible />
+</GeneratedFrame>
+
+| 範疇                           | 負責              | 範圍                                                                                              |
+| ------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------- |
+| **Code Review**（架構/設計層） | tech-lead         | 分層、SOLID、命名、JSDoc、檔案位置、DTO + class-validator、Design Token、是否符合 design.md／Spec |
+| **驗收審查**（review）         | qa                | 逐一對照 spec 每個 Scenario（Given/When/Then），確認 DoD 滿足                                     |
+| **白箱測試**                   | backend-developer | 單元（Jest）、整合（Supertest），與實作同 task 以 TDD 完成                                        |
+| **黑箱驗收**                   | qa                | E2E（Playwright）、跨模組整合、回歸、Migration up/down 實跑、啟動冒煙                             |
+
+:::info{title="順序"}
+先 tech-lead Code Review，後 qa 驗收，互補不取代；qa **不**做 Code Review，tech-lead **不**做 Scenario 驗收。
+:::
+
+---
+
+## 7. 打勾權責
+
+:::warning{title="打勾權責"}
+
+- qa 驗收通過 → 回報主 agent → **由 tech-lead** 將 `tasks.md` 對應 task 由 `- [ ]` 改為 `- [x]`
+- qa **不自行打勾**；qa 驗收通過是打勾的唯一前提，但執行打勾的人是 tech-lead
+
+:::
+
+---
+
+## 8. 新增 Subagent 狀態
+
+- **sa** :badge[已建立]{variant="success" icon="check"} — [.claude/agents/sa.md](.claude/agents/sa.md)：全域脈絡 + 業務流程 Flow Chart
+- **sd** :badge[已建立]{variant="success" icon="check"} — [.claude/agents/sd.md](.claude/agents/sd.md)：技術設計（Class Diagram / Sequence Diagram）
+- **ui-ux** :badge[已升為設計層]{variant="success" icon="sparkle"} — [.claude/agents/ui-ux.md](.claude/agents/ui-ux.md)：前端設計藍圖（逐頁 wireframe、Handlebars 拆分、Design Token 映射），與 sd 平行
+- **qa** :badge[已建立]{variant="success" icon="check"} — [.claude/agents/qa.md](.claude/agents/qa.md)：驗收審查（Scenario + DoD），不做 Code Review
+
+---
+
+## 9. 與既有規範的對應
+
+- **派工機制**：所有派工資訊（@assignee、deps、parallel 群組）全寫進 tasks.md，由主 agent 在 openspec-apply-change 階段讀取後直接派給對應 subagent。
+- **測試分層**：單元（Jest）、整合（Supertest）由 backend-developer 以 TDD 完成；E2E（Playwright）與 Scenario 驗收由 qa 執行（見 [CLAUDE.md §1-2](../CLAUDE.md)）。
+- **Commit 時機**：每完成一個 Task（過 Code Review + QA）即 commit；同章節或同前綴編號群組通過後一起 commit（見 [CLAUDE.md §3.2](../CLAUDE.md)）。
+- **DoD**：完整清單以 [.claude/agents/qa.md](.claude/agents/qa.md) 為準（見 [CLAUDE.md §2](../CLAUDE.md)）。
+- **Design Token**：tech-lead Code Review 須檢查 UI 變更是否引用 `public/css/tokens/` 的 CSS 變數，禁止寫死色值與尺寸（見 [CLAUDE.md §1-4](../CLAUDE.md)）。
+
+---
+
+## 10. 各階段提示詞範例
+
+> 以下範例假設目標功能名稱為「登入功能」、kebab-case 為 `login`、對應 Spec 檔為 `docs/specs/01-login.md`。實際使用時請替換成目標功能。
+
+:::::tabs
+::::tab{label="[1] sa"}
+
+```text title="prompt · [1] sa — 啟動全域脈絡分析"
+請呼叫 sa agent 為「登入功能」進行系統分析。
+
+目標 Spec：docs/specs/01-login.md
+
+請依 sa agent 的工作步驟：
+1. 從 Spec 檔名推導 change 名稱（01-login → login）取得 <feature>
+2. 執行 openspec new change "<feature>" 建立 change 目錄
+3. 載入 PRD 與目標 Spec
+4. 盤點跨 Spec 耦合
+5. 繪製業務流程 Flow Chart
+6. 產出 openspec/changes/<feature>/system-analysis.md
+
+完成後向我展示摘要與 flow chart，等我確認再委派 sd。
+```
+
+::::
+
+::::tab{label="[2] sd ∥ ui-ux"}
+
+:::warning{title="一次貼出，別拆兩則訊息"}
+以下是**一整段**提示詞，請一次貼出，不要拆成兩則訊息貼。主 agent 收到後會在**同一個 turn** 內同時發出 sd 與 ui-ux 兩個 Agent 呼叫（parallel tool calls），兩者真正併行；若拆成兩則貼，會退化成先跑 sd、再跑 ui-ux 的序列，白費「平行」設計。
+:::
+
+```text title="prompt · [2a] + [2b] sd ∥ ui-ux — 一次性平行派工"
+sa 已完成（openspec/changes/login/system-analysis.md）。
+請「在同一則回覆內同時發起」以下兩個平行分支的 subagent 派工
+（兩者互不依賴，只讀 SA 產物；不得先跑一個再跑另一個）。
+
+── 分支 A：sd（後端 UML 技術設計）─────────────────
+請呼叫 sd agent，依其工作步驟：
+1. 必讀 openspec/changes/<feature>/system-analysis.md 作為脈絡基準
+2. 依 NestJS 分層識別 Module / Controller / Service / Repository / Entity / DTO
+3. 繪製 Class Diagram
+4. 對每個關鍵 Scenario 繪製 Sequence Diagram
+5. 產出 openspec/changes/<feature>/system-design.md
+完成後回報摘要與 UML 預覽，不自行觸發 openspec-propose（需與 ui-ux 分支匯流）。
+
+── 分支 B：ui-ux（前端設計藍圖）───────────────────
+請呼叫 ui-ux agent，必讀脈絡：
+- openspec/changes/<feature>/system-analysis.md（業務流程 Flow Chart 與 Prototype 連結）
+- docs/specs/01-login.md（功能規格）
+- Prototype 參考畫面（設計來源，務必實際開啟檢視）
+- .claude/skills/trendlink-design/（品牌色票、字體、UI Kit）
+- public/css/tokens/（Design Token 唯一來源，禁止寫死色值/尺寸）
+
+依 ui-ux agent 的「SDD 產物」步驟：
+1. 逐頁還原 Prototype 版面
+2. 對應到 Handlebars layout / partial / page 拆分
+3. 列出每個互動元件的狀態（正常 / 驗證失敗 / loading / 空狀態）
+4. 將每個視覺屬性映射到 Design Token
+5. 產出 openspec/changes/<feature>/system-ui-design.md
+完成後回報摘要（含逐頁 wireframe 與 token 映射預覽），不自行觸發 openspec-propose（需與 sd 分支匯流）。
+
+──────────────────────────────────────
+兩個分支皆完成後，把兩份摘要一起展示給我；我確認後再由你觸發 [3] openspec-propose。
+```
+
+:::info{title="例外通道"}
+若 sa 階段判定為超小型調整（純文案／設定值微調、不涉及類別／互動／版面），可跳過 [2a]／[2b]，直接進入 [3]。
+:::
+
+::::
+
+::::tab{label="[3] propose"}
+
+```text title="prompt · [3] openspec-propose — 產出三件套"
+sa、sd、ui-ux 皆已完成（openspec/changes/login/）。請使用 openspec-propose skill 為「登入功能」產出 OpenSpec 三件套。
+
+⚠️ change 目錄 openspec/changes/<feature>/ 已由 SA 建立（含 .openspec.yaml），請直接使用此目錄，不要執行 openspec new change。
+
+必讀脈絡：
+- openspec/changes/<feature>/system-analysis.md（業務脈絡與跨功能耦合）
+- openspec/changes/<feature>/system-design.md（後端 UML 技術藍圖）
+- openspec/changes/<feature>/system-ui-design.md（前端設計藍圖與 Prototype 來源）
+- docs/specs/01-login.md（功能規格）
+- docs/project-requirement-document.md（PRD）
+
+產出 openspec/changes/<feature>/{proposal,design,tasks}.md。
+注意：
+- Spec 只寫 What；技術與 UI 的 How（含 Prototype 來源指標、Design Token 映射）全歸 design.md / tasks.md，不進 spec
+- tasks.md 中涉及 UI 的 task 需標註「必讀 system-ui-design.md」，作為實作階段唯一 UI 依據
+```
+
+:::tip{collapsible title="或用 slash command"}
+
+```text
+/openspec-propose 登入功能
+```
+
+:::
+
+::::
+
+::::tab{label="[4] clarify"}
+
+```text title="prompt · [4] clarify — Q/P 釐清"
+請使用 clarify skill 對 openspec/changes/login/ 進行品質閘檢查，列出 Q（待釐清問題）與 P（缺漏項）。
+
+提供最佳建議，並且逐項詢問我，我會逐項回答 / 補齊，請依我的回覆回修三件套，直到所有 Q 有答、P 已補。
+```
+
+:::tip{collapsible title="或用 slash command"}
+
+```text
+/clarify login
+```
+
+:::
+
+::::
+
+::::tab{label="[5] tech-lead"}
+
+```text title="prompt · [5] tech-lead — 任務拆解與派工規劃"
+clarify 已通過，請呼叫 tech-lead agent 為 openspec/changes/login/ 規劃 tasks.md。
+
+請依 tech-lead agent 的工作步驟：
+1. 必讀 openspec/changes/<feature>/system-analysis.md、system-design.md 與 system-ui-design.md（UI 相關 task 拆解需依前端藍圖對應 Handlebars 拆分／狀態／Design Token）
+2. 必讀 openspec/changes/<feature>/{proposal,design,tasks}.md
+3. 為每個 task 補上 @assignee、依賴關係、parallel 標記；UI 相關 task 明確標註「必讀 system-ui-design.md」
+4. 確保章節保留、deps 無環
+
+完成後向我展示實作計畫，等我同意再進入 openspec-apply-change。
+```
+
+::::
+
+::::tab{label="[6] apply-change"}
+
+```text title="prompt · [6] openspec-apply-change — 逐列派工 + 交付迴圈"
+使用 openspec-apply-change skill，依 openspec/changes/login/tasks.md 逐列派工執行。
+
+派工規則：
+- 依 @assignee 派給對應 subagent
+- 同章節若有 parallel 標記，可同時派出
+- **涉及 UI 的 task（Handlebars 模板／頁面／元件）派工時，指示實作 agent 必讀 openspec/changes/login/system-ui-design.md 作為 UI 唯一依據**
+- 每個 task 完成後走交付迴圈：
+  ① tech-lead Code Review（含 Design Token 引用檢查）
+  ② qa 驗收審查（依 spec 每個 Scenario + DoD）
+  ③ tech-lead 將通過的 task 標 [x]
+  ④ 同章節全通過後 commit（依 CLAUDE.md §3.2）
+
+遇到 Code Review 退回 ≥2 次或 qa 同缺陷退回多次，請停下回報給我。
+```
+
+:::tip{collapsible title="或用 slash command"}
+
+```text
+/openspec-apply-change login
+```
+
+:::
+
+::::
+
+::::tab{label="[7] archive"}
+
+```text title="prompt · [7] openspec-archive-change — 封存"
+openspec/changes/login/tasks.md 全部 [x]，測試全綠、專案可啟動。請使用 openspec-archive-change skill 封存此 change。
+```
+
+:::tip{collapsible title="或用 slash command"}
+
+```text
+/openspec-archive-change login
+```
+
+:::
+
+::::
+:::::
+
+---
+
+### 10.1 通用提醒
+
+:::warning{title="通用提醒（易踩雷）"}
+
+- **不要跳階段**：每階段都需使用者明確觸發；下游 agent 只有在使用者確認上一階段摘要後才會啟動。**[2a] sd 與 [2b] ui-ux 為平行分支**，需兩者都完成、使用者確認後才觸發 [3] propose。
+- **平行分支要「一次貼」**：[2a] + [2b] 的提示詞已合併為單一段落，請整段一次貼出，讓主 agent 在同一 turn 內同時發起兩個 subagent 呼叫（parallel tool calls）；拆兩則貼會退化成序列，失去平行意義。
+- **不要省略「必讀」**：每階段提示詞都明列前置文件路徑，避免下游 agent 只看對話 context、漏掉持久化文件。UI 相關 task 於實作階段必須指向 `system-ui-design.md`。
+- **不要替 agent 打勾**：使用者不直接動 `tasks.md`，打勾權責屬 tech-lead（見 §7）。
+
+:::
