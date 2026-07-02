@@ -1,0 +1,390 @@
+---
+title: "AI 顧問陪跑 Workshop - 20260625"
+description: "討論 AI-assisted 開發流程、OpenSpec 規格管理、共用元件與 SSOT 總表、前後端拆分、基礎架構規劃與薪資法規模組化的會議紀錄。"
+tags: ["AI 陪跑筆記", "會議紀錄"]
+createdAt: "2026-07-02"
+updatedAt: "2026-07-02"
+---
+
+## 會議資訊
+
+- **時間**：2026-06-25 10:05–11:38
+- **主題**：AI-assisted 開發流程、:tip[OpenSpec]{content="以規格檔案驅動 Proposal / Design / Task 產出的規格管理流程"} 規格管理、共用元件／API／資料庫總表、前後端拆分、基礎架構規劃
+
+## 一、整體摘要
+
+本次會議主要討論目前的 AI-assisted 開發流程，以及後續新人資／發薪系統在正式產品化時需要先定下來的工程規範。
+
+目前流程已經大致成形：由 PM／SA 將產品需求整理成規格摘要，再透過 OpenSpec 產出 Proposal、Design 與 Task，接著由主 Agent 指派 Subagent 執行任務。Teddy 會介入 Code Review，QA 則負責後續品質驗收，驗收結果再回報給主 Agent，由主 Agent 更新任務狀態。
+
+:::info{title="核心洞察"}
+真正關鍵不只是「讓 AI 寫程式」，而是要先把規格、共用元件、API、資料庫 schema、內部介面與文件演進流程定清楚，否則 AI 很容易重複造輪子、亂長 table、或在不同功能裡產生不一致的實作。
+:::
+
+會議中也討論到，現有流程用在小型 side project 會偏重，但若是正式產品開發，這樣的流程是合理的。
+
+## 二、目前開發流程
+
+{/* @ai-visualize
+id: agent-collaboration-flow
+type: motion
+prompt: |
+  以互動 stepper / swim-lane 呈現 AI-assisted 開發流程中「人」與「AI Agent」在 6 個階段的協作與交棒。
+  角色軌道包含：PM / SA、SD、主 Agent、Subagents（可平行）、Teddy（Code Review）、QA。
+  階段：需求整理 → 系統設計（OpenSpec Proposal / Design / Task） → 釐清收斂 → 任務拆分與指派 → 執行與 Review → 驗收與回報。
+  讓讀者透過按鈕、stepper 或時間軸 slider 逐階段推進；每一步：
+  - 顯示當前活躍角色（非活躍角色淡出）
+  - 顯示當前產出的 artifact（Proposal / Design / Task / PR / 驗收報告）
+  - 顯示 artifact 如何從一個角色流動到下一個角色
+  - 在 Subagent 執行階段呈現多個平行執行的 Subagent
+  - 在驗收階段呈現 QA → 主 Agent 的回報迴圈（用回流箭頭）
+  用不同色系明顯區分「人角色」與「AI 角色」，讓讀者一眼看出人與 AI 的交棒點與把關節點。
+caption: 6 階段的多角色協作 —— 觀察人與 AI 的交棒點與 artifact 流向。
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import AgentCollaborationFlow from '@/components/generated/agent-collaboration-flow'
+
+<GeneratedFrame id="agent-collaboration-flow" type="motion" prompt={"以互動 stepper / swim-lane 呈現 AI-assisted 開發流程中「人」與「AI Agent」在 6 個階段的協作與交棒。\n角色軌道包含：PM / SA、SD、主 Agent、Subagents（可平行）、Teddy（Code Review）、QA。\n階段：需求整理 → 系統設計（OpenSpec Proposal / Design / Task） → 釐清收斂 → 任務拆分與指派 → 執行與 Review → 驗收與回報。\n讓讀者透過按鈕、stepper 或時間軸 slider 逐階段推進；每一步：\n- 顯示當前活躍角色（非活躍角色淡出）\n- 顯示當前產出的 artifact（Proposal / Design / Task / PR / 驗收報告）\n- 顯示 artifact 如何從一個角色流動到下一個角色\n- 在 Subagent 執行階段呈現多個平行執行的 Subagent\n- 在驗收階段呈現 QA → 主 Agent 的回報迴圈（用回流箭頭）\n用不同色系明顯區分「人角色」與「AI 角色」，讓讀者一眼看出人與 AI 的交棒點與把關節點。"} caption="6 階段的多角色協作 —— 觀察人與 AI 的交棒點與 artifact 流向。">
+  <AgentCollaborationFlow client:visible />
+</GeneratedFrame>
+
+::::steps
+:::step{title="需求整理"}
+- 先讀既有產品需求文件與功能規格
+- SA 角色主要負責將原始需求整理成分析文件，必要時補 Flowchart
+- 這一階段不一定是真正做深度系統設計，比較偏向需求摘要與轉譯
+:::
+:::step{title="系統設計"}
+- SD 會根據 SA 產出的內容，整理 System Design 文件
+- 會使用 OpenSpec 的流程產出 Proposal、Design 與 Task
+- UML 或流程圖可以由 AI 協助產生
+:::
+:::step{title="釐清與收斂"}
+- Proposal 產出後，會再跑 clarify 流程
+- 若規格仍有模糊處，就重複釐清，直到問題收斂
+:::
+:::step{title="任務拆分與指派"}
+- 根據 Task MD 檔案進行任務拆分
+- 目前會在 Task MD 裡標記可平行處理或需依序處理的項目
+- 標記方式要確認能被系統正確讀取，尤其格式、引號、縮排等需要固定
+:::
+:::step{title="執行與 Review"}
+- Subagent 根據任務執行
+- Teddy 會先做 Code Review
+- Review 完後再交給 QA 做品質驗收
+:::
+:::step{title="驗收與回報"}
+- QA 驗收後會回報給主 Agent
+- Subagent 之間目前不適合假設能直接互相溝通
+- 比較穩的模式是：Subagent 回報主 Agent，再由主 Agent 統一更新任務狀態
+:::
+::::
+
+## 三、主要討論重點
+
+### 1. 現有流程對小案子偏重，但對正式產品合理
+
+目前這套流程對 side project 來說有點複雜，但如果是正式產品，尤其是未來會有前端、後端、國際版、多法規、多插件或多模組需求，這樣的流程是必要的。重點不是把流程做得很漂亮，而是避免後面出現以下狀況：
+
+:::warning{title="流程若不到位可能產生的後果"}
+- 每個功能自己長一套 service
+- 每個人或 Agent 各自建重複 table
+- 前後端介面不一致
+- 文件和實作不同步
+- 未來要重構時成本過高
+:::
+
+### 2. 前後端應該分開管理，但技術規範要一致
+
+會議中討論到 monorepo 與多 repo 的取捨。目前傾向是前後端可以分開 repo 或分開目錄管理，但需要在規格或 Code MD 裡明確寫清楚：
+
+- 前端在哪裡
+- 後端在哪裡
+- API 文件在哪裡
+- 共用規範在哪裡
+- Agent 執行時應該看哪些文件
+
+:::tip
+不一定需要把所有東西塞在同一個根目錄。若未來專案變多，根目錄會變得很亂。比較穩的做法是每個 repo 或模組自己管理，但在文件中清楚標示彼此關係。
+:::
+
+### 3. 共用元件、Service、API、資料需要 :tip[SSOT]{content="Single Source of Truth，單一事實來源"}
+
+:::danger{title="本次最重要的結論之一"}
+如果系統未來會有多個功能、多個模組、甚至插件機制，就必須先規劃共用資源的總表或註冊表。
+:::
+
+{/* @ai-visualize
+id: ssot-vs-duplication
+type: motion
+prompt: |
+  並排模擬「無 SSOT」與「有 SSOT」兩種架構隨著新增功能而演變的差異。
+  介面：上方 2–3 顆按鈕（新增功能 A、功能 B、功能 C，加上「重置」），下方左右兩欄同時演出：
+  - 左欄「無 SSOT」：每點一次就長出一個 Feature 卡片，其中各自包含自己的 Service、Table、API endpoint。隨功能增加，相同名字的方塊在不同 Feature 中重複出現，線條交錯、堆疊混亂，暗示重複造輪子與後期難維護。
+  - 右欄「有 SSOT」：中央有一個共用資源總表（元件 / Service / API / DB Schema），每次點按只長出 Feature 卡片，透過箭頭指向中央總表既有資源；即使加到第三個 Feature，中央總表仍只有一份共用源，結構收斂、清爽。
+  兩側請同步漸入以強調對照。可加上小提示：無 SSOT 側 3 個功能就開始重疊，有 SSOT 側依然只有一份共用源。
+  用色：無 SSOT 側使用警告 / 冷淡色；有 SSOT 側使用主品牌色或成功色。
+caption: 點擊新增功能，體驗有無 SSOT 對系統成長型態的差異。
+status: generated
+*/}
+
+import SsotVsDuplication from '@/components/generated/ssot-vs-duplication'
+
+<GeneratedFrame id="ssot-vs-duplication" type="motion" prompt={"並排模擬「無 SSOT」與「有 SSOT」兩種架構隨著新增功能而演變的差異。\n介面：上方 2–3 顆按鈕（新增功能 A、功能 B、功能 C，加上「重置」），下方左右兩欄同時演出：\n- 左欄「無 SSOT」：每點一次就長出一個 Feature 卡片，其中各自包含自己的 Service、Table、API endpoint。隨功能增加，相同名字的方塊在不同 Feature 中重複出現，線條交錯、堆疊混亂，暗示重複造輪子與後期難維護。\n- 右欄「有 SSOT」：中央有一個共用資源總表（元件 / Service / API / DB Schema），每次點按只長出 Feature 卡片，透過箭頭指向中央總表既有資源；即使加到第三個 Feature，中央總表仍只有一份共用源，結構收斂、清爽。\n兩側請同步漸入以強調對照。可加上小提示：無 SSOT 側 3 個功能就開始重疊，有 SSOT 側依然只有一份共用源。\n用色：無 SSOT 側使用警告 / 冷淡色；有 SSOT 側使用主品牌色或成功色。"} caption="點擊新增功能，體驗有無 SSOT 對系統成長型態的差異。">
+  <SsotVsDuplication client:visible />
+</GeneratedFrame>
+
+這個總表要讓人與 AI 都能知道：
+
+- 已有哪些共用元件
+- 已有哪些共用 service
+- 已有哪些內部 API
+- 哪些資料應該從哪張 table 讀
+- 哪些功能可以被插件或其他模組呼叫
+- 哪些東西是內部使用，哪些未來可能開放給外部
+
+否則 AI 很可能在下一個功能裡又自己寫一套類似的函式、service 或 table，導致後續維護困難。
+
+### 4. 內部 API／介面要先規劃
+
+這裡講的 API 不只是不對外的 HTTP API，也包含系統內部可被其他模組或插件呼叫的介面。例如未來如果要做聊天功能、插件功能、國家別邏輯、薪資計算模組，就需要先定義：
+
+- 哪些資料可以被呼叫
+- 要透過哪個 service 呼叫
+- 呼叫參數是什麼
+- 回傳格式是什麼
+- 哪些邏輯不能直接碰資料庫
+- 哪些地方必須經過統一 service
+
+:::note
+這是為了避免未來各模組直接繞過共用層，導致邏輯散落在各處。
+:::
+
+### 5. 資料庫 schema 需要總表或自動化文件
+
+會議中討論到，目前 migration 本身只記錄「做過哪些 migration」，但不等於有一份給人看的資料庫結構說明。
+
+:::tip{title="比較合理的方向"}
+- migration 照常存在
+- 另外維護一份 Database 總表
+- 每張 table、欄位、型別、意義、關聯、備註都要能被查到
+- 可以考慮在 migration 執行後，自動 dump 最新 schema
+- DB 欄位最好加 comment，讓匯出的 schema 不只是 key 和型別
+- DBA Agent 可以負責維護或更新這份總表
+:::
+
+這份總表不是只有 AI 需要，人也需要。尤其當 table 變多後，單看 migration 很難快速理解整體資料模型。
+
+### 6. 規格文件需要 CR 流程持續演進
+
+目前的想法是 OpenSpec 文件封存後，如果後續 issue 或需求變更會影響規格，就要走 :tip[CR]{content="Change Request，變更申請"} 流程。
+
+:::tip{title="比較穩的方式"}
+- 原始規格放在專案文件中
+- 變更需求用 CR 文件記錄
+- CR 要能連回對應規格
+- 實作完成後要回頭更新規格
+- 避免規格文件停留在舊版本，最後跟實作脫節
+:::
+
+:::warning
+Hook 要自動判斷「是否要更新規格」會比較困難，因為它不一定知道這次改動背後的脈絡。比較可行的是讓非互動式 Agent 做摘要或後處理，但重要規格更新仍應有人負責確認。
+:::
+
+### 7. 規格撰寫要用 User Story 與 Scrum 思維
+
+下午要和副總討論規格標準流程，因此會議中先整理出一個方向：用 Scrum 常見方法論作為基礎。從大到小的層級：
+
+::::steps{layout="horizontal"}
+:::step{title="願景"}
+產品的長期目標與方向
+:::
+:::step{title="Epic"}
+大顆的功能主軸
+:::
+:::step{title="Feature"}
+可獨立交付的功能
+:::
+:::step{title="User Story"}
+從使用者視角描述需求
+:::
+:::step{title="AC"}
+Acceptance Criteria，驗收條件
+:::
+:::step{title="Task"}
+可實作的最小工作單位
+:::
+::::
+
+副總或業務端在提出功能時，應該先用 User Story 的格式回答：
+
+- 為什麼要做這個功能
+- 目的是什麼
+- 誰會使用
+- 使用情境是什麼
+- 成功標準是什麼
+
+工程端再根據這些內容轉成可實作的規格與任務。
+
+:::warning{title="重要提醒"}
+規格就是規格，不要在規格文件裡寫太多實作細節、技術選型或過度包裝的描述。規格要清楚回答功能、角色、資料、限制、例外情境與驗收標準。
+:::
+
+### 8. AI 可以協助分工，但不能完全取代人判斷
+
+任務分派可以讓 AI 協助判斷，例如根據依賴關係、共用元件、基礎建設與 feature 順序來排序。但實際上仍需要人判斷。原因是：
+
+:::info
+- 任務估點很難準
+- 不同人對複雜度認知不同
+- AI 也可能誤判任務大小
+- 有些任務看似簡單但背後依賴很多
+- 有些任務看似複雜但實際只改幾行
+:::
+
+因此比較務實的方式是：任務拆細、每天認領、持續調整，不要太依賴一次性的預估點數。
+
+### 9. Tag 規則可以寫成 Skill，但不要過度自動化
+
+Tag 可以用來標記任務類型，例如 :badge[共用元件]{variant="info" size="sm"} :badge[API]{variant="tip" size="sm"} :badge[DB]{variant="note" size="sm"} :badge[前端]{variant="success" size="sm"} :badge[後端]{variant="warning" size="sm"} :badge[可平行]{variant="neutral" size="sm"} :badge[需依賴]{variant="danger" size="sm"} 等。
+
+未來可以把 Tag 規則寫成 Skill，讓 AI 協助補標或修正。但完全自動化仍有風險，因為 Agent 有時候會沒做、有時候會亂做。
+
+:::tip{title="比較安全的模式"}
+- Tag 規則先明確定義
+- AI 協助初步標記
+- 人做最後確認
+- 不要一開始就追求全自動
+:::
+
+### 10. AI Agent 權限要開，但危險指令要硬性過濾
+
+Agent 如果要有效工作，權限不能給得太小，否則每一步都要 approve，效率會很差。但刪除、批次移動、全目錄清空這類指令必須硬性防護。
+
+:::danger{title="建議方向"}
+- 一般讀寫可以放寬
+- 危險刪除要擋
+- 單檔刪除可以允許
+- 全刪、批次刪除、危險 shell 指令要禁止或要求人工確認
+- 不要只靠 prompt 規則，要有硬性的指令偵測
+:::
+
+## 四、基礎架構討論
+
+### 1. 開發、測試、正式環境需要分開
+
+目前預計至少需要：:badge[開發機]{variant="info"} :badge[測試機]{variant="warning"} :badge[正式機]{variant="danger"}
+
+內部系統如 CRM、一鍵發薪、後續內部工具，可能會共用一組基礎環境。但如果未來系統變大，仍可能需要拆成更多台。
+
+:::note
+目前初步方向是先爭取開發與正式環境分開。如果資源不足，至少要有一台較大的測試機，讓多個服務可以先跑在裡面。
+:::
+
+### 2. Postgres 資源要保守估
+
+Postgres 不建議放在太小的機器上，因為資料庫會吃 memory、cache、I/O。即使外部連線被擋掉，資料庫本身仍需要穩定資源。
+
+:::tip{title="目前討論方向"}
+- 不要選太低階、後續不好升級的 instance
+- 優先選可擴充的規格
+- 測試機可以先用較大的機器承載多服務
+- 正式資料庫資源要獨立評估
+- 若未來負載增加，再拆出去
+:::
+
+### 3. 技術選型要盡量一致
+
+CRM 或其他內部系統，底層技術規範應該盡量和一鍵發薪一致。這樣可以降低團隊學習成本，也讓 AI 產出的架構、程式碼與規範更一致。
+
+:::tip{title="目前傾向"}
+- 前端統一技術棧
+- 後端統一技術棧
+- API 文件格式統一
+- 共用規範先定出來
+- 不要每個專案各自發展一套
+:::
+
+## 五、法規與薪資計算相關討論
+
+:::danger{title="高風險區域"}
+薪資、人資與法規相關模組**不能讓 LLM 自己算**。
+:::
+
+{/* @ai-visualize
+id: payroll-llm-boundary
+type: diagram
+prompt: |
+  用對比式流程圖呈現「薪資與法規計算」中 LLM 的正確與錯誤邊界。
+  上下（或左右）並排兩條 flow：
+  - 錯誤路徑（染警告 / 危險色）：使用者需求 → LLM 直接輸出計算結果 → 使用者。旁邊標示風險：幻覺、無法審計、無驗證、無區域差異參數。
+  - 正確路徑（染成功 / 主品牌色）：使用者需求 → LLM 理解需求 / 解釋法規 → 呼叫程式化計算工具（社保 / 加班 / 假別 / 扣款 / 稅務等可替換模組） → 工具依明確參數計算 → 結果回傳 LLM 說明 → 使用者。
+  強調「LLM 只呼叫工具、不直接輸出計算結果」。
+  正確路徑下方以「固定基底 + 地區差異模組」的抽象暗示多國支援的擴充點：可加互動 —— 切換不同地區（例：台灣 / 日本 / 越南），讓「地區差異模組」被替換、固定基底保持不變。
+  兩條 flow 用同一組節點語彙但箭頭走向不同，方便讀者一眼比對差異。
+caption: LLM 只做解釋與呼叫工具，計算交給可替換的程式化模組。
+status: generated
+*/}
+
+import PayrollLlmBoundary from '@/components/generated/payroll-llm-boundary'
+
+<GeneratedFrame id="payroll-llm-boundary" type="diagram" prompt={"用對比式流程圖呈現「薪資與法規計算」中 LLM 的正確與錯誤邊界。\n上下（或左右）並排兩條 flow：\n- 錯誤路徑（染警告 / 危險色）：使用者需求 → LLM 直接輸出計算結果 → 使用者。旁邊標示風險：幻覺、無法審計、無驗證、無區域差異參數。\n- 正確路徑（染成功 / 主品牌色）：使用者需求 → LLM 理解需求 / 解釋法規 → 呼叫程式化計算工具（社保 / 加班 / 假別 / 扣款 / 稅務等可替換模組） → 工具依明確參數計算 → 結果回傳 LLM 說明 → 使用者。\n強調「LLM 只呼叫工具、不直接輸出計算結果」。\n正確路徑下方以「固定基底 + 地區差異模組」的抽象暗示多國支援的擴充點：可加互動 —— 切換不同地區（例：台灣 / 日本 / 越南），讓「地區差異模組」被替換、固定基底保持不變。\n兩條 flow 用同一組節點語彙但箭頭走向不同，方便讀者一眼比對差異。"} caption="LLM 只做解釋與呼叫工具，計算交給可替換的程式化模組。">
+  <PayrollLlmBoundary client:visible />
+</GeneratedFrame>
+
+比較正確的方向是：
+
+- 法規判斷可以由 LLM 協助解釋或摘要
+- 實際計算要由程式化工具完成
+- LLM 只能呼叫工具，不應直接輸出計算結果
+- 不同國家或地區的規則要有明確參數
+- 社保、加班、假別、扣款、稅務等規則要抽象成可替換模組
+
+:::warning
+若要支援不同國家，架構上要先定好「固定基底」與「地區差異模組」。否則後面每增加一個國家，就可能變成客製化硬塞，維護成本會失控。
+:::
+
+## 六、初步決議與待辦
+
+### 初步決議
+
+:::success{title="會議共識"}
+1. 正式產品開發可以採用目前 OpenSpec + Agent + Code Review + QA 的流程，但小案子可視情況簡化
+2. 前後端可以分開 repo 或目錄，但文件中要明確標示位置與關聯
+3. 共用元件、Service、API、資料庫都需要總表或註冊表
+4. 內部 API／介面要先規劃，避免各模組直接各寫各的
+5. Database schema 需要可讀的總表，不能只靠 migration
+6. 規格變更要走 CR 流程，並回頭更新原規格
+7. AI 可以協助任務分派與規格整理，但不能完全取代人做最後判斷
+8. Agent 權限可以放寬，但危險指令必須硬性過濾
+9. 薪資與法規計算要程式化，LLM 只能輔助解釋與呼叫工具
+10. CRM、一鍵發薪與後續內部系統應盡量共用技術規範
+:::
+
+### 待辦事項
+
+- [ ] 補一份共用元件／Service／API／Database 的總表設計
+- [ ] 定義內部 API 與插件可呼叫介面的規範
+- [ ] 補 Database schema 文件產生或回填流程
+- [ ] 設計規格 CR 流程，確保實作後能回寫規格
+- [ ] 將 User Story 與規格撰寫思維整理成 Skill
+- [ ] 定義任務 Tag 規則，讓 AI 可協助補標
+- [ ] 確認前後端 repo／目錄拆分方式
+- [ ] 確認開發、測試、正式環境的機器規格
+- [ ] 規劃薪資計算模組的法規參數與工具呼叫方式
+- [ ] 下午與副總討論規格流程與組織架構時，先用 Scrum／User Story 作為基礎框架
+
+## 七、仍需釐清的問題
+
+:::info{title="待釐清"}
+1. 多帳號同時開發時，任務要如何切分才不會互相衝突？
+2. 共用元件與 service 的註冊表要由誰維護？人、AI，還是 DBA／架構角色？
+3. API 文件要採用 OpenAPI、Swagger、自動產生，還是另外維護一份可讀文件？
+4. 規格文件要放 GitHub、Docs、Wiki，還是另外做一個表單／介面？
+5. 業務或非工程人員要怎麼提交需求，才能避免格式太自由導致後面整理困難？
+6. 法規差異是由系統內建，還是由外包商／客戶透過 API 或插件自行實作？
+7. CRM 與一鍵發薪是否要完全共用同一套技術規範？
+8. 測試機、正式機與資料庫要分到什麼程度，才符合成本與穩定性需求？
+:::
