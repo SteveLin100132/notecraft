@@ -6,7 +6,9 @@
 
 # NoteCraftApp
 
-**在任何專案下用 `npx` 啟動漂亮的 UI 讀取、編輯 md/mdx 資料夾。**
+**由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。**
+
+用 `npx` 一行指令在任何專案的 md/mdx 資料夾啟動漂亮 UI；搭配 [Claude Code](https://claude.com/claude-code)，讓 AI 把 MDX 中的「這裡放張流程圖」標記自動變成 React 互動元件、寫回筆記。
 
 <p>
   <a href="https://www.npmjs.com/package/notecraftapp"><img alt="npm" src="https://img.shields.io/npm/v/notecraftapp"></a>
@@ -20,14 +22,50 @@
 
 ## 為什麼要 NoteCraftApp
 
-任何專案的 `./docs`、`./notes`、`./content` 資料夾裡塞了一堆 md/mdx，卻沒有一個順手的介面看它們？NoteCraftApp 讓你**一行指令**在瀏覽器打開該資料夾，享受：
+傳統筆記工具只能顯示文字。當你想把一段流程講清楚、把兩個方案並排比較、或讓讀者親手拖動看兩種策略的差異——只能貼靜態圖或放連結。NoteCraftApp 讓「知識能被看見、被操作」：
 
-- 儀表板 — 統計 / 最近更新 / 標籤分布 / 系列進度
-- 巢狀資料夾原生支援 — `guides/oauth/flow.mdx` 直接對到 `/notes/guides/oauth/flow`
-- 缺 frontmatter 也能顯示 — 標題從 H1 或檔名抓、日期從檔案 mtime 抓
-- MDX 相對圖片路徑（`![](./cover.png)`）自動解析
-- 「系列」定義（多份筆記串成有順序的閱讀路徑）
-- HMR 寫入 — 在 UI 新增/編輯/刪除筆記、瀏覽器即時反映
+- **AI 視覺化** — MDX 內用 `@ai-visualize` 標記描述你想要的圖表 / 時序 / 動畫 / 互動；Claude Code 讀懂後產生 React 元件、自動嵌入筆記
+- **儀表板** — 統計 / 最近更新 / 標籤分布 / 系列進度、AI 視覺化生成率
+- **系列** — 多份筆記串成有順序的閱讀路徑，含進度條與繼續閱讀
+- **巢狀資料夾原生支援** — `guides/oauth/flow.mdx` 直接對到 `/notes/guides/oauth/flow`
+- **缺 frontmatter 也能顯示** — 標題從 H1 或檔名抓、日期從檔案 mtime 抓
+- **MDX 相對圖片路徑**（`![](./cover.png)`）自動解析
+- **HMR 寫入** — 在 UI 新增 / 編輯 / 刪除筆記，瀏覽器即時反映
+
+---
+
+## 兩層體驗
+
+### 靜態層（v1 已上）
+
+只是一行 `npx notecraftapp view ./docs`，你就能得到儀表板、系列、標籤、巢狀 URL、圖片、寫入 UI——完整的閱讀 + 輕量編輯體驗。**MDX 中的 `@ai-visualize` 標記會以「待生成」卡片顯示**，等你之後動手處理。
+
+### AI 生成層（Roadmap：`notecraftapp init-skill` v1.1）
+
+真正的招牌功能——**由 AI 把「這裡放張圖」的自然語言描述變成互動元件**。
+
+在 MDX 中寫：
+
+```mdx
+{/* @ai-visualize
+id: oauth-flow
+type: diagram
+status: pending
+prompt: |
+  畫一張 OAuth 2.0 + PKCE 的完整時序圖，
+  含前端、後端、AS、Resource Server 四方通訊
+*/}
+```
+
+在 Claude Code 中對筆記說「處理這個標記」，NoteCraft 的 `content-visualize` skill 會：
+
+1. 掃描檔案找出所有 `@ai-visualize` 標記
+2. 依 prompt 決定用手寫 SVG / recharts / d3 / motion 等
+3. 產出 React 元件到 `src/components/generated/<id>.tsx`
+4. 在 MDX 標記下方插入 `import` 與 `<Component client:visible />`
+5. 更新標記的 `status` 為 `generated`
+
+**v1 已包含 UI 顯示 pending 標記與 generated 元件**；`notecraftapp init-skill` 把 skill 一鍵安裝到你的 `.claude/skills/`，讓 Claude Code 認得——這是下一版的重點。
 
 ---
 
@@ -215,6 +253,7 @@ CLI 偵測到 `.git` 就會跳過套件複製、直接從當前 repo 執行。�
 
 ## Roadmap（v1.1+）
 
+- ⭐ **`notecraftapp init-skill`** — 一鍵把 `content-visualize` skill 安裝到 `.claude/skills/`，讓 Claude Code 直接處理你的 `@ai-visualize` 標記
 - 寫入 UI 支援子資料夾新增
 - pagefind 全文搜尋
 - 背景 rebuild + SSE reload（免重啟即時反映）
