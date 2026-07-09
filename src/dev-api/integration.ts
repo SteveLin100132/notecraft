@@ -17,10 +17,6 @@ function isViewerMode(): boolean {
   return Boolean(process.env.NOTECRAFT_NOTES_DIR);
 }
 
-// viewer 模式下的新增筆記 slug 白名單：只允許 ASCII kebab-case，避免路徑逃逸或 URL 難讀。
-// 主專案模式不強制（作者本人可用 CJK slug，如「專案-vs-產品」）。
-const SLUG_ASCII_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 // 路徑安全檢查（P5 §7.3）：
 // - resolvedCandidate 必須落在 notesRoot 之下（防 ../ 逃逸）
 // - 若 candidate 已存在，realpath 也必須在 notesRoot 之下（防 symlink 到目錄外）
@@ -159,15 +155,7 @@ async function handleCreateNote(cwd: string, notesRoot: string, req: IncomingMes
   const tags = normalizeTagList(payload.tags);
 
   const slug = slugify(title);
-  // viewer 模式強制 ASCII 白名單；主專案允許 CJK 保留現有行為
-  if (isViewerMode() && !SLUG_ASCII_RE.test(slug)) {
-    return json(res, 400, {
-      error: "invalid slug (viewer mode requires ASCII kebab-case)",
-      slug,
-      hint: "以英文標題新增，例如「External Note」→ external-note",
-    });
-  }
-
+  // slug 已由 slugify 剝掉路徑分隔符與非法字元；CJK 保留（跟主專案一致），路徑安全由 assertSafePath 統一把關。
   const existing = await findNoteFile(notesRoot, slug);
   if (existing) return json(res, 409, { error: "slug already exists", slug });
 
@@ -246,6 +234,27 @@ async function collectTagStats(notesRoot: string) {
     }
   }
   return stats;
+}
+
+// GET /api/folders：讓「新增筆記」modal 的資料夾下拉根據當前 notesRoot 動態呈現。
+// 掃 notesRoot 下一層（不遞迴、略過 . 開頭），回傳可直接顯示的路徑字串。
+async function handleFolderList(cwd: string, notesRoot: string, res: ServerResponse) {
+  const rel = path.relative(cwd, notesRoot);
+  const displayRoot = !rel || rel.startsWith("..")
+    ? notesRoot.endsWith(path.sep) ? notesRoot : notesRoot + path.sep
+    : rel + "/";
+  const folders: string[] = [displayRoot];
+  try {
+    const ents = await fs.readdir(notesRoot, { withFileTypes: true });
+    for (const e of ents) {
+      if (!e.isDirectory()) continue;
+      if (e.name.startsWith(".")) continue;
+      folders.push(`${displayRoot}${e.name}/`);
+    }
+  } catch {
+    // notesRoot 不存在或無權限：只回傳 root，前端 fallback 顯示
+  }
+  return json(res, 200, { folders });
 }
 
 async function handleTagList(notesRoot: string, res: ServerResponse) {
@@ -405,6 +414,10 @@ export default function devApi(): AstroIntegration {
             // /api/tags — GET
             if (parts.length === 2 && parts[1] === "tags" && req.method === "GET") {
               return await handleTagList(notesRoot, res);
+            }
+            // /api/folders — GET
+            if (parts.length === 2 && parts[1] === "folders" && req.method === "GET") {
+              return await handleFolderList(cwd, notesRoot, res);
             }
             // /api/tags/:name — PUT (rename) / DELETE
             if (parts.length === 3 && parts[1] === "tags") {

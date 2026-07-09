@@ -299,12 +299,14 @@ CLI 啟動時設 `NOTECRAFT_LOCAL_EDIT=1`，取代目前判定 `import.meta.env.
 
 **這條沒得商量**，寫入端一律遵守：
 
-- slug 白名單：`/^[a-z0-9]+(?:-[a-z0-9]+)*$/`
+- slug 由 `slugify()` 產生，**保留 CJK**（跟主專案一致，作者以中文寫作）；路徑分隔符與非法字元由 slugify 剝除
 - 目標路徑：`path.resolve(notesDir, `${slug}.mdx`)`
 - 驗證：`resolvedPath.startsWith(notesDir + path.sep)`；不成立直接 400
 - 新增筆記時檢查目標檔不存在，存在則 409（包含衝突原因）
 - 所有寫入操作只綁 `127.0.0.1`，拒絕外部連線
 - 拒絕 symlink（`fs.realpath` 後再驗證一次 prefix）
+
+**曾考慮但決定不做**：viewer 模式強制 ASCII kebab-case slug 白名單。理由：主專案本身就大量使用 CJK slug（`專案-vs-產品`、`ai-顧問陪跑-workshop-20260625`），viewer 模式若比主專案嚴格會破壞 UX；路徑安全由上述 slugify + assertSafePath 兩層把關已足夠。
 
 ### 7.4 新增筆記的 frontmatter 預設模板
 

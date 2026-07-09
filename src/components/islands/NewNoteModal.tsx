@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { Plus, X, ArrowRight, Edit3, Check, ChevronDown } from "lucide-react";
 
-const FOLDERS = [
-  "src/content/notes/",
-  "src/content/notes/frontend/",
-  "src/content/notes/backend/",
-  "src/content/notes/security/",
-];
+// FOLDERS 由 GET /api/folders 動態載入（依 NOTECRAFT_NOTES_DIR 或 fallback 到 src/content/notes/），
+// 若 API 不可用則退回單一 root 選項避免壞掉。
+const FALLBACK_FOLDERS = ["src/content/notes/"];
 
 function slugify(s: string) {
   return (
@@ -29,7 +26,8 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
   const [tagQuery, setTagQuery] = useState("");
   const [allTags, setAllTags] = useState<string[]>([]);
   const [apiUnavailable, setApiUnavailable] = useState(false);
-  const [folder, setFolder] = useState(FOLDERS[0]);
+  const [folders, setFolders] = useState<string[]>(FALLBACK_FOLDERS);
+  const [folder, setFolder] = useState(FALLBACK_FOLDERS[0]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ slug: string; path: string; vscode: string } | null>(null);
@@ -42,7 +40,7 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
       setTitle("");
       setSelected([]);
       setTagQuery("");
-      setFolder(FOLDERS[0]);
+      setFolder(folders[0] ?? FALLBACK_FOLDERS[0]);
       setError("");
       setDone(null);
       setSubmitting(false);
@@ -66,6 +64,26 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
         setAllTags(names);
       })
       .catch(() => alive && setApiUnavailable(true));
+    return () => {
+      alive = false;
+    };
+  }, [open]);
+
+  // 載入 notesRoot 底下實際存在的資料夾（依 NOTECRAFT_NOTES_DIR 或 fallback）
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    fetch("/api/folders")
+      .then((r) => r.json())
+      .then((d: { folders?: string[] }) => {
+        if (!alive) return;
+        const next = Array.isArray(d.folders) && d.folders.length ? d.folders : FALLBACK_FOLDERS;
+        setFolders(next);
+        setFolder(next[0]);
+      })
+      .catch(() => {
+        // API 不可用時保留 fallback
+      });
     return () => {
       alive = false;
     };
@@ -281,7 +299,7 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
             <Field label="分類 / 資料夾">
               <div style={{ position: "relative" }}>
                 <select value={folder} onChange={(e) => setFolder(e.target.value)} style={selectStyle}>
-                  {FOLDERS.map((f) => (
+                  {folders.map((f) => (
                     <option key={f} value={f}>
                       {f}
                     </option>
