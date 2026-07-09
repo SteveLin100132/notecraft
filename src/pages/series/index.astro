@@ -18,7 +18,7 @@ const cards: SeriesCardData[] = SERIES.map((s) => {
     accent: s.accent,
     icon: s.icon,
     chapters: chapters.map((c) => {
-      const note = notes.find((n) => n.slug === c.slug);
+      const note = notes.find((n) => n.id === c.slug);
       return { slug: c.slug, title: c.title, tags: note?.data.tags ?? [] };
     }),
   };

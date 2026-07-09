@@ -2,6 +2,11 @@ import { getCollection, type CollectionEntry } from "astro:content";
 
 export type Note = CollectionEntry<"notes">;
 
+// Content Layer (glob loader) 沒有 entry.slug，改用 entry.id；為降低散彈式改動，統一封裝成 noteSlug(n)。
+export function noteSlug(note: Note): string {
+  return note.id;
+}
+
 export type AiMarker = {
   id: string;
   type: string;
@@ -111,7 +116,7 @@ export function buildDashboardStats(notes: Note[], today: string): DashboardStat
   const recent = notes.slice(0, 6).map((n) => {
     const ms = parseMarkers(n.body);
     return {
-      slug: n.slug,
+      slug: n.id,
       title: n.data.title,
       updatedAt: n.data.updatedAt,
       tags: n.data.tags,

@@ -18,9 +18,9 @@ for (const s of SERIES) s.slugs.forEach((slug, i) => seriesBySlug.set(slug, { ti
 
 const cards = notes.map((n) => {
   const ms = parseMarkers(n.body);
-  const sr = seriesBySlug.get(n.slug) ?? null;
+  const sr = seriesBySlug.get(n.id) ?? null;
   return {
-    slug: n.slug,
+    slug: n.id,
     title: n.data.title,
     description: n.data.description,
     tags: n.data.tags,

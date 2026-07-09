@@ -17,7 +17,7 @@ export type SeriesChapter = {
 };
 
 function noteBySlug(notes: Note[], slug: string): Note | undefined {
-  return notes.find((n) => n.slug === slug);
+  return notes.find((n) => n.id === slug);
 }
 
 // 重複 slug 偵測：同一 slug 出現在多個系列 → 警示、以首見為準（build log，不中斷）。
@@ -46,7 +46,7 @@ export function getSeriesChapters(notes: Note[], series: SeriesDef): SeriesChapt
     }
     const ms = parseMarkers(note.body);
     chapters.push({
-      slug: note.slug,
+      slug: note.id,
       title: note.data.title,
       description: note.data.description,
       markersTotal: ms.length,

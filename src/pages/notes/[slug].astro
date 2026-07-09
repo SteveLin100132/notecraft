@@ -1,5 +1,5 @@
 ---
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
@@ -17,23 +17,25 @@ import { fmtDate } from "@/lib/dates";
 
 export async function getStaticPaths() {
   const notes = await getCollection("notes");
-  return notes.map((n) => ({ params: { slug: n.slug }, props: { note: n } }));
+  return notes.map((n) => ({ params: { slug: n.id }, props: { note: n } }));
 }
 
 const { note } = Astro.props;
-const { Content, headings } = await note.render();
+const { Content, headings } = await render(note);
 const markers = parseMarkers(note.body);
 const genCount = markers.filter((m) => m.status === "generated").length;
 const pendingMarkers = markers.filter((m) => m.status !== "generated");
 const pendingIds = pendingMarkers.map((m) => m.id);
 const isDev = import.meta.env.DEV;
-const noteAbsPath = `${process.cwd()}/src/content/notes/${note.id}`;
-// vscode:// 需要正斜線路徑；Windows 的 process.cwd() 會帶反斜線，且磁碟機代號前要補一個斜線
+// Content Layer 的 entry.filePath 是相對於 cwd 的來源路徑；vscode:// 需要絕對正斜線路徑。
+const noteAbsPath = note.filePath
+  ? `${process.cwd()}/${note.filePath}`
+  : `${process.cwd()}/src/content/notes/${note.id}.mdx`;
 const vscodeHref = `vscode://file/${noteAbsPath.replace(/\\/g, "/").replace(/^\/+/, "")}`;
 
 const allNotes = await getAllNotes();
 const stats = tagStats(allNotes).map((t) => ({ name: t.name, count: t.count }));
-const series = seriesOf(allNotes, note.slug);
+const series = seriesOf(allNotes, note.id);
 const seriesNavData = series
   ? {
       id: series.series.id,
@@ -61,7 +63,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
       <div style="margin-bottom:14px;">
         <TagEditor
           client:load
-          slug={note.slug}
+          slug={note.id}
           initialTags={note.data.tags}
           editable={isDev}
           suggestions={stats}
@@ -90,10 +92,10 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
               {genCount}/{markers.length} 視覺化已生成
             </span>
           )}
-          <ReadingControl client:idle slug={note.slug} />
+          <ReadingControl client:idle slug={note.id} />
         </div>
         <span class="nc-note-actions" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
-          <FavoriteButton client:idle slug={note.slug} />
+          <FavoriteButton client:idle slug={note.id} />
           {isDev && (
             <a
               href={vscodeHref}
@@ -103,12 +105,12 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
             </a>
           )}
           {isDev && pendingIds.length > 0 && (
-            <RegenerateButton client:idle slug={note.slug} pendingIds={pendingIds} />
+            <RegenerateButton client:idle slug={note.id} pendingIds={pendingIds} />
           )}
           {isDev && (
             <DeleteNoteButton
               client:idle
-              slug={note.slug}
+              slug={note.id}
               title={note.data.title}
               componentIds={markers.map((m) => m.id)}
             />
@@ -130,13 +132,13 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         <Content />
       </div>
 
-      <DonePrompt client:visible slug={note.slug} />
+      <DonePrompt client:visible slug={note.id} />
 
       <div
         style="margin-top:44px;padding-top:22px;border-top:1px solid var(--neutral-200);display:flex;justify-content:space-between;color:var(--text-muted);font-size:13px;"
       >
         <span>建立於 {fmtDate(note.data.createdAt)}</span>
-        <span style="font-family:var(--font-mono);">src/content/notes/{note.id}</span>
+        <span style="font-family:var(--font-mono);">{note.filePath ?? `src/content/notes/${note.id}.mdx`}</span>
       </div>
 
       {seriesNavData && <SeriesNav client:visible series={seriesNavData} />}
