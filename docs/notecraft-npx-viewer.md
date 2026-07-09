@@ -42,7 +42,7 @@ Project Name: NoteCraft NPX Viewer
 | 1 | 執行模式 | **astro build + 快取靜態產物**，非 astro dev |
 | 2 | 執行位置 | **複製到 `~/.notecraft/app-<version>/`** 後執行，不污染 npm cache |
 | 3 | 寫入能力 | **v1 直接包含寫入**，不做「先唯讀」中間版本 |
-| 4 | 路徑對應 | **攤平**，維持目前 `[slug].astro` 的實作 |
+| 4 | 路徑對應 | **保留階層**（catchall route，`[...slug].astro`）——實作階段調整，見 §6 |
 | 5 | Frontmatter 缺欄位 | **靜默補預設值**，使用者無感 |
 
 ---
@@ -246,21 +246,42 @@ export async function loadSeries(): Promise<SeriesDef[]> {
 
 ---
 
-## 6. 路徑對應（攤平）
+## 6. 路徑對應（保留階層）
 
 ### 6.1 規則
 
 - 遞迴讀 `<notesDir>/**/*.{md,mdx}`
-- `slug = basename(file, extname(file))`（僅檔名、去副檔名）
-- 保留副檔名判斷來決定 md vs mdx 走不同解析
+- `slug` = 檔案相對 notesDir 的路徑（去副檔名、以 `/` 分隔）
+  - `hello.mdx` → `hello`
+  - `guides/setup.mdx` → `guides/setup`
+  - `guides/oauth/flow.mdx` → `guides/oauth/flow`
+- Astro 路由用 `[...slug].astro`（rest 參數），URL 直接對應階層：
+  - `/notes/hello`、`/notes/guides/setup`、`/notes/guides/oauth/flow`
 
-### 6.2 命名衝突處理
+### 6.2 為什麼不用攤平（實作階段調整）
 
-`guides/setup.mdx` 與 `tutorials/setup.mdx` 會產生相同 slug。
+**原本問題 4 選攤平**，前提是「主專案自己的 slug 都是平的、不會有衝突」。實作到 P6/P7 才意識到 viewer 是給**任何專案**用的，別人的 `./docs` 幾乎都是巢狀（`guides/`、`api/`、`tutorials/`）。攤平會：
 
-- **讀取時**：後讀到的檔案不映射到 route，記錄到「衝突清單」
-- **儀表板**：新增一個「⚠ Slug 衝突（N）」的入口，展開後列出所有相同 slug 的檔案絕對路徑，指示使用者要嘛改檔名、要嘛在 frontmatter 加 `slug: xxx` 覆蓋（v1 支援這個 escape hatch）
-- **新增筆記時（見 §7）**：檢查目標 slug 是否已存在，存在就擋掉並在 UI 顯示衝突
+- URL 失去階層感（`/notes/setup` 讀不出來這篇屬於 guides 還是 tutorials）
+- 同名衝突需要另外偵測、UI 顯示、frontmatter escape hatch，複雜度大
+
+保留階層則天然沒有這些問題：每個檔案的完整相對路徑天然唯一，不需要衝突偵測。
+
+### 6.3 寫入時的 slug 產生
+
+新增筆記走 `POST /api/notes`：
+
+- `slug = slugify(title)`（純檔名，不含 `/`）
+- 一律寫到 `notesRoot/<slug>.mdx` 根層
+- v1 不支援「新增筆記到子資料夾」的 UI（保留給 v1.1）
+- 讀取時仍照 §6.1 規則，所以已存在的子資料夾筆記能被正確路由
+
+### 6.4 API URL 對巢狀 slug 的處理
+
+- `PUT /api/notes/<slug>/tags`：`<slug>` 可含 `/`（例 `/api/notes/guides/setup/tags`）
+- `DELETE /api/notes/<slug>`：同理
+- 伺服端解析：`parts.slice(2, -1).join("/")` 抓中間段做 slug
+- 路徑安全一律走 `assertSafePath`（`resolve` 後 prefix 檢查 + `fs.realpath`）
 
 ---
 
@@ -499,7 +520,7 @@ notecraftapp init-skill      把 content-visualize skill 安裝到當前專案
 套件：notecraftapp（npm）、指令 npx notecraftapp view ./docs
 執行：build + 快取，複製到 ~/.notecraft/app-<v>/、~/.notecraft/ 內一律用 npm
 寫入：v1 就開，路徑安全鎖死 notesDir 底下、slug 白名單
-路由：攤平，同名衝突儀表板顯示、支援 frontmatter slug 覆寫
+路由：保留階層（[...slug].astro rest route），新增筆記寫根層、讀取全深度
 Metadata：靜默補預設，只 enrich、不寫回
 系列：<notesDir>/.notecraft/series.json 外部載入；主專案 fallback 到 series.registry.ts
 Cache：mtime 比對 + .stale 檔；編輯後要重啟
