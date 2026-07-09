@@ -57,7 +57,11 @@ function resolveNotesDirArg(dirArg) {
   return notesDir;
 }
 
-// ── 快取失效偵測（§8.1）────────────────────────────────────────
+// ── 快取失效偵測（§8.1、P7）────────────────────────────────────────
+// 三條路徑：
+// 1) md/mdx 內容變動：遞迴掃 notesDir、跳過 . 開頭子資料夾、取最大 mtime + 檔案數
+// 2) .notecraft/*.json 設定變動：series.json 之類的東西，series 用來 build 系列頁
+// 3) 檔案數量變動：新增/刪除筆記（mtime 不見得會變）
 async function shouldRebuild(cacheDir, notesDir, force) {
   if (force) return { should: true, why: "--rebuild flag" };
   const distDir = path.join(cacheDir, "dist");
@@ -73,9 +77,11 @@ async function shouldRebuild(cacheDir, notesDir, force) {
     return { should: true, why: "meta.json 壞掉" };
   }
   const lastBuildMs = new Date(meta.lastBuildAt).getTime();
-  let count = 0;
-  let latest = 0;
-  async function walk(dir) {
+
+  // Pass 1：md/mdx 內容檔
+  let mdxCount = 0;
+  let latestMdx = { mtime: 0, path: "" };
+  async function walkMdx(dir) {
     let ents;
     try {
       ents = await fs.readdir(dir, { withFileTypes: true });
@@ -85,18 +91,44 @@ async function shouldRebuild(cacheDir, notesDir, force) {
     for (const e of ents) {
       if (e.isDirectory()) {
         if (e.name.startsWith(".")) continue;
-        await walk(path.join(dir, e.name));
+        await walkMdx(path.join(dir, e.name));
       } else if (e.name.endsWith(".mdx") || e.name.endsWith(".md")) {
-        count += 1;
-        const s = statSync(path.join(dir, e.name));
-        if (s.mtimeMs > latest) latest = s.mtimeMs;
+        mdxCount += 1;
+        const p = path.join(dir, e.name);
+        const s = statSync(p);
+        if (s.mtimeMs > latestMdx.mtime) latestMdx = { mtime: s.mtimeMs, path: p };
       }
     }
   }
-  await walk(notesDir);
-  if (latest > lastBuildMs) return { should: true, why: `有 md/mdx 檔案在上次 build 後被修改` };
-  if (count !== meta.fileCount) return { should: true, why: `md/mdx 數量從 ${meta.fileCount} 變成 ${count}` };
-  return { should: false, meta: { fileCount: count, latest } };
+  await walkMdx(notesDir);
+
+  // Pass 2：.notecraft/*.json 設定檔（只掃頂層，不遞迴）
+  let latestConfig = { mtime: 0, path: "" };
+  const configDir = path.join(notesDir, ".notecraft");
+  try {
+    const ents = await fs.readdir(configDir, { withFileTypes: true });
+    for (const e of ents) {
+      if (!e.isFile() || !e.name.endsWith(".json")) continue;
+      const p = path.join(configDir, e.name);
+      const s = statSync(p);
+      if (s.mtimeMs > latestConfig.mtime) latestConfig = { mtime: s.mtimeMs, path: p };
+    }
+  } catch {
+    // 沒 .notecraft 資料夾就跳過
+  }
+
+  if (latestMdx.mtime > lastBuildMs) {
+    const rel = path.relative(notesDir, latestMdx.path);
+    return { should: true, why: `md/mdx 有變動（最新：${rel}）` };
+  }
+  if (latestConfig.mtime > lastBuildMs) {
+    const rel = path.relative(notesDir, latestConfig.path);
+    return { should: true, why: `設定檔有變動（最新：${rel}）` };
+  }
+  if (mdxCount !== meta.fileCount) {
+    return { should: true, why: `md/mdx 數量從 ${meta.fileCount} 變成 ${mdxCount}` };
+  }
+  return { should: false, meta: { fileCount: mdxCount } };
 }
 
 async function writeMeta(cacheDir, notesDir, fileCount) {
