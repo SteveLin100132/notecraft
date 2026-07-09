@@ -8,6 +8,10 @@
  *     - 再用 path.relative(notesDir, 絕對路徑) 得到 notesDir 相對，如果落在外面就跳過（避免 leak）
  *     - 產生 `/notes-assets/<notesDir-relative-with-forward-slash>`
  *
+ * 順便處理**筆記間內連結**：`[test1](./test/test1.mdx)` → `/notes/test/test1`。
+ * 直覺跟 GitHub / VS Code 一致（點 .md/.mdx 檔就跳到那頁），不用作者記得手寫 `/notes/<slug>`。
+ * 只認 .md / .mdx 副檔名；query / hash 會保留。落在 notesDir 外的連結不動。
+ *
  * URL 提供端見 `src/dev-api/integration.ts` 的 `handleNotesAsset`。
  */
 
@@ -32,12 +36,29 @@ function isRewritable(url: string | undefined): boolean {
   return true;
 }
 
+// 從 URL 抽出 path / query / hash 三段，rewrite 只動 path。
+function splitUrl(url: string): { pathPart: string; suffix: string } {
+  const m = url.match(/^([^?#]*)([?#].*)?$/);
+  return { pathPart: m?.[1] ?? url, suffix: m?.[2] ?? "" };
+}
+
 function walk(node: MdNode, notesDir: string, mdxAbsPath: string) {
   if (node.type === "image" && isRewritable(node.url)) {
     const imgAbs = path.resolve(path.dirname(mdxAbsPath), node.url!);
     const rel = path.relative(notesDir, imgAbs);
     if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
       node.url = `/notes-assets/${rel.split(path.sep).join("/")}`;
+    }
+  }
+  if (node.type === "link" && isRewritable(node.url)) {
+    const { pathPart, suffix } = splitUrl(node.url!);
+    if (/\.mdx?$/i.test(pathPart)) {
+      const linkAbs = path.resolve(path.dirname(mdxAbsPath), pathPart);
+      const rel = path.relative(notesDir, linkAbs);
+      if (rel && !rel.startsWith("..") && !path.isAbsolute(rel)) {
+        const slug = rel.replace(/\.mdx?$/i, "").split(path.sep).join("/");
+        node.url = `/notes/${slug}${suffix}`;
+      }
     }
   }
   if (node.children) for (const c of node.children) walk(c, notesDir, mdxAbsPath);
