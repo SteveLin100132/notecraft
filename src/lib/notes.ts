@@ -1,10 +1,77 @@
+import fs from "node:fs";
+import path from "node:path";
 import { getCollection, type CollectionEntry } from "astro:content";
 
-export type Note = CollectionEntry<"notes">;
+// RawNote：直接從 astro:content 讀出來的 entry，data 的 title/createdAt/updatedAt 可能 undefined。
+export type RawNote = CollectionEntry<"notes">;
+
+// EnrichedNote：經 enrichNote() 補足預設值後的形式，data 的關鍵欄位保證有值。
+// 下游只讀 .data.xxx 與 .body / .id / .filePath，因此以 Omit 覆蓋 data 即可。
+export type EnrichedNote = Omit<RawNote, "data"> & {
+  data: {
+    title: string;
+    description: string;
+    tags: string[];
+    category?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+// 對外的 Note 型別指向 EnrichedNote，讓下游程式碼繼續讀 n.data.title 等而不需要 null check。
+export type Note = EnrichedNote;
 
 // Content Layer (glob loader) 沒有 entry.slug，改用 entry.id；為降低散彈式改動，統一封裝成 noteSlug(n)。
-export function noteSlug(note: Note): string {
+export function noteSlug(note: RawNote | EnrichedNote): string {
   return note.id;
+}
+
+function fmtDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function fallbackTitle(id: string, body: string | undefined | null): string {
+  if (body) {
+    const m = body.match(/^#\s+(.+?)\s*$/m);
+    if (m) return m[1].trim();
+  }
+  return id.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// P3：把 optional 欄位補齊。原則：
+// - title 依「H1 → 檔名 Title Case」順序 fallback
+// - description 缺就從內文段落抓 excerpt
+// - createdAt / updatedAt 缺就讀檔案的 birthtime / mtime（Node fs 只在 build/dev 時可用，正好符合 Astro 執行時機）
+export function enrichNote(entry: RawNote): EnrichedNote {
+  const d = entry.data;
+  let birthISO: string | undefined;
+  let mtimeISO: string | undefined;
+  if ((!d.createdAt || !d.updatedAt) && entry.filePath) {
+    try {
+      const abs = path.resolve(process.cwd(), entry.filePath);
+      const st = fs.statSync(abs);
+      birthISO = fmtDate(st.birthtime);
+      mtimeISO = fmtDate(st.mtime);
+    } catch {
+      // 檔案不存在（不該發生）或權限問題 → 走最終 fallback
+    }
+  }
+  const finalMtime = d.updatedAt ?? mtimeISO ?? birthISO ?? "2000-01-01";
+  const finalCreated = d.createdAt ?? birthISO ?? mtimeISO ?? finalMtime;
+  return {
+    ...entry,
+    data: {
+      title: d.title ?? fallbackTitle(entry.id, entry.body),
+      description: d.description || excerpt(entry.body, ""),
+      tags: d.tags ?? [],
+      category: d.category,
+      createdAt: finalCreated,
+      updatedAt: finalMtime,
+    },
+  };
 }
 
 export type AiMarker = {
@@ -62,9 +129,10 @@ export function parseMarkers(body: string | undefined | null): AiMarker[] {
   return out;
 }
 
-export async function getAllNotes(): Promise<Note[]> {
+export async function getAllNotes(): Promise<EnrichedNote[]> {
   const notes = await getCollection("notes");
-  return notes.sort((a, b) => b.data.updatedAt.localeCompare(a.data.updatedAt));
+  const enriched = notes.map(enrichNote);
+  return enriched.sort((a, b) => b.data.updatedAt.localeCompare(a.data.updatedAt));
 }
 
 // 系列章節順序權威已移至集中式 registry（src/data/series.ts）；

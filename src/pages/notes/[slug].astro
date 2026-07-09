@@ -1,5 +1,5 @@
 ---
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
@@ -16,7 +16,7 @@ import { seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 
 export async function getStaticPaths() {
-  const notes = await getCollection("notes");
+  const notes = await getAllNotes();
   return notes.map((n) => ({ params: { slug: n.id }, props: { note: n } }));
 }
 

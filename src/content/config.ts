@@ -10,13 +10,15 @@ const notesDir = envDir
 
 const notes = defineCollection({
   loader: glob({ pattern: "**/*.{md,mdx}", base: notesDir }),
+  // P3: title/createdAt/updatedAt 改為 optional，缺欄位由 lib/notes.ts 的 enrichNote() 補 fallback
+  // （H1 或檔名、fs.stat 的 birthtime / mtime）。主專案既有筆記都有完整 frontmatter，行為不變。
   schema: z.object({
-    title: z.string(),
+    title: z.string().optional(),
     description: z.string().default(""),
     tags: z.array(z.string()).default([]),
     category: z.string().optional(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
   }),
 });
 
