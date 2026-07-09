@@ -29,16 +29,26 @@ const SeriesFileSchema = z.object({
 });
 
 async function loadFromExternalJson(notesDir: string): Promise<SeriesDef[]> {
-  const abs = path.resolve(process.cwd(), notesDir, ".notecraft/series.json");
-  if (!fs.existsSync(abs)) return [];
-  try {
-    const raw = fs.readFileSync(abs, "utf-8");
-    const parsed = SeriesFileSchema.parse(JSON.parse(raw));
-    return parsed.series;
-  } catch (e) {
-    console.warn(`[series] 讀 ${abs} 失敗：${(e as Error).message}`);
-    return [];
+  // 依序嘗試兩個位置：
+  // 1) <notesDir>/.notecraft/series.json（近的：緊鄰筆記）
+  // 2) <userCwd>/.notecraft/series.json（遠的：使用者專案根，例：對 ./docs 呼叫時的專案 root）
+  // 近的贏遠的，符合大部分工具的 config discovery 直覺。
+  const candidates = [path.resolve(notesDir, ".notecraft/series.json")];
+  const userCwd = process.env.NOTECRAFT_USER_CWD;
+  if (userCwd && path.resolve(userCwd) !== path.resolve(notesDir)) {
+    candidates.push(path.resolve(userCwd, ".notecraft/series.json"));
   }
+  for (const abs of candidates) {
+    if (!fs.existsSync(abs)) continue;
+    try {
+      const raw = fs.readFileSync(abs, "utf-8");
+      const parsed = SeriesFileSchema.parse(JSON.parse(raw));
+      return parsed.series;
+    } catch (e) {
+      console.warn(`[series] 讀 ${abs} 失敗：${(e as Error).message}`);
+    }
+  }
+  return [];
 }
 
 async function loadFromRegistry(): Promise<SeriesDef[]> {

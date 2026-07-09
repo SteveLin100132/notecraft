@@ -128,7 +128,7 @@ function resolveNotesDirArg(dirArg) {
 // 1) md/mdx 內容變動：遞迴掃 notesDir、跳過 . 開頭子資料夾、取最大 mtime + 檔案數
 // 2) .notecraft/*.json 設定變動：series.json 之類的東西，series 用來 build 系列頁
 // 3) 檔案數量變動：新增/刪除筆記（mtime 不見得會變）
-async function shouldRebuild(cacheDir, notesDir, force) {
+async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   if (force) return { should: true, why: "--rebuild flag" };
   const distDir = path.join(cacheDir, "dist");
   const metaPath = path.join(cacheDir, "meta.json");
@@ -168,19 +168,24 @@ async function shouldRebuild(cacheDir, notesDir, force) {
   }
   await walkMdx(notesDir);
 
-  // Pass 2：.notecraft/*.json 設定檔（只掃頂層，不遞迴）
+  // Pass 2：.notecraft/*.json 設定檔（可能在 notes 資料夾或使用者 cwd）
   let latestConfig = { mtime: 0, path: "" };
-  const configDir = path.join(notesDir, ".notecraft");
-  try {
-    const ents = await fs.readdir(configDir, { withFileTypes: true });
-    for (const e of ents) {
-      if (!e.isFile() || !e.name.endsWith(".json")) continue;
-      const p = path.join(configDir, e.name);
-      const s = statSync(p);
-      if (s.mtimeMs > latestConfig.mtime) latestConfig = { mtime: s.mtimeMs, path: p };
+  const configDirs = [path.join(notesDir, ".notecraft")];
+  if (userCwd && path.resolve(userCwd) !== path.resolve(notesDir)) {
+    configDirs.push(path.join(userCwd, ".notecraft"));
+  }
+  for (const configDir of configDirs) {
+    try {
+      const ents = await fs.readdir(configDir, { withFileTypes: true });
+      for (const e of ents) {
+        if (!e.isFile() || !e.name.endsWith(".json")) continue;
+        const p = path.join(configDir, e.name);
+        const s = statSync(p);
+        if (s.mtimeMs > latestConfig.mtime) latestConfig = { mtime: s.mtimeMs, path: p };
+      }
+    } catch {
+      // 沒 .notecraft 資料夾就跳過
     }
-  } catch {
-    // 沒 .notecraft 資料夾就跳過
   }
 
   if (latestMdx.mtime > lastBuildMs) {
@@ -188,8 +193,7 @@ async function shouldRebuild(cacheDir, notesDir, force) {
     return { should: true, why: `md/mdx 有變動（最新：${rel}）` };
   }
   if (latestConfig.mtime > lastBuildMs) {
-    const rel = path.relative(notesDir, latestConfig.path);
-    return { should: true, why: `設定檔有變動（最新：${rel}）` };
+    return { should: true, why: `設定檔有變動（最新：${latestConfig.path}）` };
   }
   if (mdxCount !== meta.fileCount) {
     return { should: true, why: `md/mdx 數量從 ${meta.fileCount} 變成 ${mdxCount}` };
@@ -231,12 +235,12 @@ async function countMdx(dir) {
   return count;
 }
 
-async function runAstroBuild(cwd, notesDir, outDir) {
+async function runAstroBuild(cwd, notesDir, outDir, userCwd) {
   return new Promise((resolve, reject) => {
     const astroBin = path.join(cwd, "node_modules", "astro", "astro.js");
     const proc = spawn(process.execPath, [astroBin, "build", "--outDir", outDir], {
       cwd,
-      env: { ...process.env, NOTECRAFT_NOTES_DIR: notesDir },
+      env: { ...process.env, NOTECRAFT_NOTES_DIR: notesDir, NOTECRAFT_USER_CWD: userCwd },
       stdio: "inherit",
     });
     proc.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`astro build exited with code ${code}`))));
@@ -244,8 +248,8 @@ async function runAstroBuild(cwd, notesDir, outDir) {
   });
 }
 
-async function ensureBuild(cwd, notesDir, cacheDir, force) {
-  const check = await shouldRebuild(cacheDir, notesDir, force);
+async function ensureBuild(cwd, notesDir, cacheDir, force, userCwd) {
+  const check = await shouldRebuild(cacheDir, notesDir, force, userCwd);
   if (!check.should) {
     log(`快取有效，跳過 build（${check.meta.fileCount} 篇筆記）`);
     return;
@@ -253,7 +257,7 @@ async function ensureBuild(cwd, notesDir, cacheDir, force) {
   log(`重 build：${check.why}`);
   await fs.mkdir(cacheDir, { recursive: true });
   const distDir = path.join(cacheDir, "dist");
-  await runAstroBuild(cwd, notesDir, distDir);
+  await runAstroBuild(cwd, notesDir, distDir, userCwd);
   const count = await countMdx(notesDir);
   await writeMeta(cacheDir, notesDir, count);
 }
@@ -352,13 +356,15 @@ const viewCmd = defineCommand({
   },
   async run({ args }) {
     const notesDir = resolveNotesDirArg(args.dir);
+    const userCwd = process.cwd();
     log(`spawn astro dev`);
     log(`notes dir  : ${notesDir}`);
+    log(`user cwd   : ${userCwd}`);
     log(`port       : ${args.port}`);
     const astroBin = path.join(packageRoot, "node_modules", "astro", "astro.js");
     const proc = spawn(process.execPath, [astroBin, "dev", "--port", String(args.port), "--host", args.host], {
       cwd: packageRoot,
-      env: { ...process.env, NOTECRAFT_NOTES_DIR: notesDir },
+      env: { ...process.env, NOTECRAFT_NOTES_DIR: notesDir, NOTECRAFT_USER_CWD: userCwd },
       stdio: "inherit",
     });
     const shutdown = () => proc.kill("SIGTERM");
@@ -379,7 +385,7 @@ const buildCmd = defineCommand({
     const cacheDir = cacheDirFor(notesDir);
     log(`notes dir  : ${notesDir}`);
     log(`cache dir  : ${cacheDir}`);
-    await ensureBuild(packageRoot, notesDir, cacheDir, args.rebuild);
+    await ensureBuild(packageRoot, notesDir, cacheDir, args.rebuild, process.cwd());
     log(`dist:      : ${path.join(cacheDir, "dist")}`);
   },
 });
@@ -398,7 +404,7 @@ const serveCmd = defineCommand({
     const cacheDir = cacheDirFor(notesDir);
     log(`notes dir  : ${notesDir}`);
     log(`cache dir  : ${cacheDir}`);
-    await ensureBuild(packageRoot, notesDir, cacheDir, args.rebuild);
+    await ensureBuild(packageRoot, notesDir, cacheDir, args.rebuild, process.cwd());
     await startStaticServer(
       packageRoot,
       notesDir,

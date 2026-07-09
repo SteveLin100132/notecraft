@@ -134,7 +134,12 @@ notecraftapp view ./docs
 
 ### 系列（可選）：`.notecraft/series.json`
 
-在 notes 資料夾放一個 `.notecraft/series.json`，串多篇筆記成有順序的閱讀路徑：
+放一個 `.notecraft/series.json`，串多篇筆記成有順序的閱讀路徑。**兩個位置都會被讀取**：
+
+- `<notes 資料夾>/.notecraft/series.json`（近的、優先）
+- `<專案根>/.notecraft/series.json`（例如 `notecraftapp view ./docs`，series.json 放在專案 root）
+
+範例內容：
 
 ```jsonc
 {
