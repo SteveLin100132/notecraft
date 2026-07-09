@@ -28,6 +28,14 @@ const SeriesFileSchema = z.object({
   series: z.array(SeriesEntrySchema),
 });
 
+// 對 series.json 裡的 slug 做寬容化：剝副檔名、開頭的 ./、多餘的 /。
+// 讓 slugs 可以寫成 "foo"、"foo.md"、"./foo.mdx"、"specs/foo.md" 都對到同一個 entry.id。
+function normalizeSlug(raw: string): string {
+  let s = raw.trim().replace(/^\.\//, "").replace(/\/+/g, "/").replace(/^\/+|\/+$/g, "");
+  s = s.replace(/\.(mdx?|MDX?)$/, "");
+  return s;
+}
+
 async function loadFromExternalJson(notesDir: string): Promise<SeriesDef[]> {
   // 依序嘗試兩個位置：
   // 1) <notesDir>/.notecraft/series.json（近的：緊鄰筆記）
@@ -43,7 +51,7 @@ async function loadFromExternalJson(notesDir: string): Promise<SeriesDef[]> {
     try {
       const raw = fs.readFileSync(abs, "utf-8");
       const parsed = SeriesFileSchema.parse(JSON.parse(raw));
-      return parsed.series;
+      return parsed.series.map((s) => ({ ...s, slugs: s.slugs.map(normalizeSlug) }));
     } catch (e) {
       console.warn(`[series] 讀 ${abs} 失敗：${(e as Error).message}`);
     }
