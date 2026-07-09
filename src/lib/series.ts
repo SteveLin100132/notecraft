@@ -1,12 +1,81 @@
-// ── 系列 build 端彙總（執行於 astro build / dev，依賴 astro:content）──
-// registry 的 slugs 為章節順序唯一權威；本檔把 slug 對應回筆記、產出靜態章節資料，
-// 並提供 seriesOf()（取代舊 lib/notes.ts 的 seriesNav，由 registry 推導上一章/下一章）。
+// ── 系列 build 端彙總（執行於 astro build / dev）──
+// P4：SERIES 不再是模組頂層常數，改由 loadSeries() 依 env 決定資料來源。
+// - 有 NOTECRAFT_NOTES_DIR → 讀 <notesDir>/.notecraft/series.json（外部 viewer）
+// - 沒有 env → dynamic import ./data/series.registry 拿回硬編碼陣列（主專案 / 開發）
+// - 兩者都沒 → 空陣列，/series 頁顯示引導文案
 
-import { SERIES, type SeriesDef } from "@/data/series";
+import fs from "node:fs";
+import path from "node:path";
+import { z } from "astro:content";
+import type { SeriesDef } from "@/data/series";
 import { parseMarkers, type Note } from "@/lib/notes";
 
-export { SERIES };
 export type { SeriesDef };
+
+// ── 外部 series.json 的 schema ──
+const SeriesEntrySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  eyebrow: z.string(),
+  description: z.string(),
+  accent: z.enum(["blue", "orange", "navy"]),
+  icon: z.enum(["target", "code", "layers", "bookOpen", "bolt"]),
+  slugs: z.array(z.string()),
+});
+
+const SeriesFileSchema = z.object({
+  $schema: z.string().optional(),
+  series: z.array(SeriesEntrySchema),
+});
+
+async function loadFromExternalJson(notesDir: string): Promise<SeriesDef[]> {
+  const abs = path.resolve(process.cwd(), notesDir, ".notecraft/series.json");
+  if (!fs.existsSync(abs)) return [];
+  try {
+    const raw = fs.readFileSync(abs, "utf-8");
+    const parsed = SeriesFileSchema.parse(JSON.parse(raw));
+    return parsed.series;
+  } catch (e) {
+    console.warn(`[series] 讀 ${abs} 失敗：${(e as Error).message}`);
+    return [];
+  }
+}
+
+async function loadFromRegistry(): Promise<SeriesDef[]> {
+  try {
+    const mod = await import("@/data/series.registry");
+    return mod.SERIES;
+  } catch {
+    return [];
+  }
+}
+
+// 重複 slug 偵測：同一 slug 出現在多個系列 → 警示、以首見為準（build log，不中斷）。
+function dedupeSlugsAcrossSeries(series: SeriesDef[]): void {
+  const seen = new Map<string, string>();
+  for (const s of series) {
+    for (const slug of s.slugs) {
+      const prev = seen.get(slug);
+      if (prev && prev !== s.id) {
+        console.warn(
+          `[series] slug "${slug}" 同時出現在系列 "${prev}" 與 "${s.id}"，違反單系列歸屬；以首見（${prev}）為準。`,
+        );
+      } else if (!prev) {
+        seen.set(slug, s.id);
+      }
+    }
+  }
+}
+
+/** 統一入口：依 env 決定資料來源，載入完成才做 dedupe 檢查。 */
+export async function loadSeries(): Promise<SeriesDef[]> {
+  const envDir = process.env.NOTECRAFT_NOTES_DIR;
+  const series = envDir
+    ? await loadFromExternalJson(envDir)
+    : await loadFromRegistry();
+  dedupeSlugsAcrossSeries(series);
+  return series;
+}
 
 export type SeriesChapter = {
   slug: string;
@@ -18,21 +87,6 @@ export type SeriesChapter = {
 
 function noteBySlug(notes: Note[], slug: string): Note | undefined {
   return notes.find((n) => n.id === slug);
-}
-
-// 重複 slug 偵測：同一 slug 出現在多個系列 → 警示、以首見為準（build log，不中斷）。
-const _seen = new Map<string, string>();
-for (const s of SERIES) {
-  for (const slug of s.slugs) {
-    const prev = _seen.get(slug);
-    if (prev && prev !== s.id) {
-      console.warn(
-        `[series] slug "${slug}" 同時出現在系列 "${prev}" 與 "${s.id}"，違反單系列歸屬；以首見（${prev}）為準。`,
-      );
-    } else if (!prev) {
-      _seen.set(slug, s.id);
-    }
-  }
 }
 
 /** 依 registry 順序，把某系列的 slug 解析為章節靜態資料；找不到的 slug 會警示並跳過。 */
@@ -68,9 +122,12 @@ export type SeriesOf = {
   next: SeriesLink | null;
 };
 
-/** 取得某筆記所屬系列的導覽資訊；不在任何系列則回傳 null（取代 seriesNav）。 */
-export function seriesOf(notes: Note[], slug: string): SeriesOf | null {
-  for (const series of SERIES) {
+/**
+ * 取得某筆記所屬系列的導覽資訊；不在任何系列則回傳 null（取代 seriesNav）。
+ * P4：多一個 seriesList 參數，避免每次呼叫都重複載入外部 JSON。呼叫端一次 await loadSeries() 後把結果傳進來。
+ */
+export function seriesOf(notes: Note[], slug: string, seriesList: SeriesDef[]): SeriesOf | null {
+  for (const series of seriesList) {
     const i = series.slugs.indexOf(slug);
     if (i === -1) continue;
     const chapters = getSeriesChapters(notes, series);

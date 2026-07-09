@@ -4,11 +4,12 @@ import Icon from "@/components/Icon.astro";
 import SeriesDetail from "@/components/islands/SeriesDetail.tsx";
 import type { SeriesDetailData } from "@/components/islands/SeriesDetail.tsx";
 import { getAllNotes } from "@/lib/notes";
-import { SERIES, getSeriesChapters } from "@/lib/series";
+import { loadSeries, getSeriesChapters } from "@/lib/series";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
-  return SERIES.map((s) => {
+  const series = await loadSeries();
+  return series.map((s) => {
     const chapters = getSeriesChapters(notes, s);
     const data: SeriesDetailData = {
       id: s.id,

@@ -9,7 +9,7 @@ import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import ContinueReading from "@/components/islands/ContinueReading.tsx";
 import type { ContinueSeries } from "@/components/islands/ContinueReading.tsx";
 import { getAllNotes, buildDashboardStats } from "@/lib/notes";
-import { SERIES, getSeriesChapters } from "@/lib/series";
+import { loadSeries, getSeriesChapters } from "@/lib/series";
 import { daysAgo } from "@/lib/dates";
 
 const TODAY = "2026-06-12";
@@ -17,8 +17,9 @@ const isDev = import.meta.env.DEV;
 
 const notes = await getAllNotes();
 const s = buildDashboardStats(notes, TODAY);
+const series = await loadSeries();
 
-const continueSeries: ContinueSeries[] = SERIES.map((sr) => ({
+const continueSeries: ContinueSeries[] = series.map((sr) => ({
   id: sr.id,
   title: sr.title,
   accent: sr.accent,

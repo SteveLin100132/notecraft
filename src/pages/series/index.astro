@@ -4,11 +4,12 @@ import PageHead from "@/components/PageHead.astro";
 import SeriesOverview from "@/components/islands/SeriesOverview.tsx";
 import type { SeriesCardData } from "@/components/islands/SeriesOverview.tsx";
 import { getAllNotes } from "@/lib/notes";
-import { SERIES, getSeriesChapters } from "@/lib/series";
+import { loadSeries, getSeriesChapters } from "@/lib/series";
 
 const notes = await getAllNotes();
+const series = await loadSeries();
 
-const cards: SeriesCardData[] = SERIES.map((s) => {
+const cards: SeriesCardData[] = series.map((s) => {
   const chapters = getSeriesChapters(notes, s);
   return {
     id: s.id,

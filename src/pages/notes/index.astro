@@ -7,14 +7,15 @@ import NotesList from "@/components/islands/NotesList.tsx";
 import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import PagefindSearch from "@/components/islands/PagefindSearch.tsx";
 import { getAllNotes, parseMarkers, tagStats, excerpt } from "@/lib/notes";
-import { SERIES } from "@/lib/series";
+import { loadSeries } from "@/lib/series";
 
 const isDev = import.meta.env.DEV;
 const notes = await getAllNotes();
+const series = await loadSeries();
 
 // 列表「系列」排序的依據改由集中式 registry 推導（不再讀筆記 frontmatter）。
 const seriesBySlug = new Map<string, { title: string; index: number }>();
-for (const s of SERIES) s.slugs.forEach((slug, i) => seriesBySlug.set(slug, { title: s.title, index: i }));
+for (const s of series) s.slugs.forEach((slug, i) => seriesBySlug.set(slug, { title: s.title, index: i }));
 
 const cards = notes.map((n) => {
   const ms = parseMarkers(n.body);
