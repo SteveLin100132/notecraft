@@ -4,7 +4,45 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
-const NOTES_ROOT = "src/content/notes";
+// P5：所有寫入操作的目標資料夾。
+// - 有 NOTECRAFT_NOTES_DIR → 用該絕對路徑（viewer 模式）
+// - 否則 fallback src/content/notes/（主專案）
+// notesRoot 一律回傳「絕對路徑」，讓後續 path.resolve + prefix 檢查有可比較的基準。
+function resolveNotesRoot(cwd: string): string {
+  const env = process.env.NOTECRAFT_NOTES_DIR;
+  return env ? path.resolve(cwd, env) : path.resolve(cwd, "src/content/notes");
+}
+
+function isViewerMode(): boolean {
+  return Boolean(process.env.NOTECRAFT_NOTES_DIR);
+}
+
+// viewer 模式下的新增筆記 slug 白名單：只允許 ASCII kebab-case，避免路徑逃逸或 URL 難讀。
+// 主專案模式不強制（作者本人可用 CJK slug，如「專案-vs-產品」）。
+const SLUG_ASCII_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+// 路徑安全檢查（P5 §7.3）：
+// - resolvedCandidate 必須落在 notesRoot 之下（防 ../ 逃逸）
+// - 若 candidate 已存在，realpath 也必須在 notesRoot 之下（防 symlink 到目錄外）
+// 回傳絕對路徑；不安全時 throw Error 讓上層轉 400。
+async function assertSafePath(candidate: string, notesRoot: string): Promise<string> {
+  const abs = path.resolve(candidate);
+  const rootWithSep = notesRoot.endsWith(path.sep) ? notesRoot : notesRoot + path.sep;
+  if (!abs.startsWith(rootWithSep) && abs !== notesRoot) {
+    throw new Error(`path outside notesRoot: ${abs}`);
+  }
+  try {
+    const real = await fs.realpath(abs);
+    if (!real.startsWith(rootWithSep) && real !== notesRoot) {
+      throw new Error(`symlink target outside notesRoot: ${real}`);
+    }
+  } catch (e: unknown) {
+    // 檔案不存在時 realpath 會 ENOENT，那是合法情境（新增筆記）；其他錯往上丟。
+    const code = (e as { code?: string })?.code;
+    if (code !== "ENOENT") throw e;
+  }
+  return abs;
+}
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -52,20 +90,29 @@ function json(res: ServerResponse, status: number, body: unknown) {
 async function listMdx(root: string): Promise<string[]> {
   const out: string[] = [];
   async function walk(dir: string) {
-    const ents = await fs.readdir(dir, { withFileTypes: true });
+    let ents: import("node:fs").Dirent[];
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const e of ents) {
       const p = path.join(dir, e.name);
-      if (e.isDirectory()) await walk(p);
-      else if (e.name.endsWith(".mdx") || e.name.endsWith(".md")) out.push(p);
+      if (e.isDirectory()) {
+        // 跳過 .notecraft 之類的設定資料夾
+        if (e.name.startsWith(".")) continue;
+        await walk(p);
+      } else if (e.name.endsWith(".mdx") || e.name.endsWith(".md")) {
+        out.push(p);
+      }
     }
   }
   await walk(root);
   return out;
 }
 
-async function findNoteFile(cwd: string, slug: string): Promise<string | null> {
-  const root = path.join(cwd, NOTES_ROOT);
-  const files = await listMdx(root);
+async function findNoteFile(notesRoot: string, slug: string): Promise<string | null> {
+  const files = await listMdx(notesRoot);
   for (const f of files) {
     const base = path.basename(f, path.extname(f));
     if (base === slug) return f;
@@ -73,7 +120,7 @@ async function findNoteFile(cwd: string, slug: string): Promise<string | null> {
   return null;
 }
 
-const TEMPLATE = (title: string, tagsYaml: string) => `---
+const TEMPLATE = (title: string, tagsYaml: string, includeMarker: boolean) => `---
 title: ${JSON.stringify(title)}
 description: ""
 tags: ${tagsYaml}
@@ -82,7 +129,7 @@ updatedAt: "${todayISO()}"
 ---
 
 在此撰寫筆記內文。
-
+${includeMarker ? `
 ## 概念
 
 於下方標記區塊填入提示詞，描述你想看到的視覺化。
@@ -97,9 +144,9 @@ prompt: |
 */}
 
 接著在 Claude Code 中執行 content-visualize-skill，AI 會掃描標記、生成元件，並在標記下方插入對應的 \`import\` 與 \`<Component client:visible />\`。
-`;
+` : ""}`;
 
-async function handleCreateNote(cwd: string, req: IncomingMessage, res: ServerResponse) {
+async function handleCreateNote(cwd: string, notesRoot: string, req: IncomingMessage, res: ServerResponse) {
   const raw = await readBody(req);
   let payload: { title?: string; tags?: string[]; folder?: string };
   try {
@@ -110,25 +157,43 @@ async function handleCreateNote(cwd: string, req: IncomingMessage, res: ServerRe
   const title = (payload.title || "").trim();
   if (!title) return json(res, 400, { error: "title required" });
   const tags = normalizeTagList(payload.tags);
-  let folder = (payload.folder || `${NOTES_ROOT}/`).replace(/^\/+/, "");
-  if (!folder.endsWith("/")) folder += "/";
-  if (!folder.startsWith(NOTES_ROOT)) folder = `${NOTES_ROOT}/`;
 
   const slug = slugify(title);
-  const existing = await findNoteFile(cwd, slug);
+  // viewer 模式強制 ASCII 白名單；主專案允許 CJK 保留現有行為
+  if (isViewerMode() && !SLUG_ASCII_RE.test(slug)) {
+    return json(res, 400, {
+      error: "invalid slug (viewer mode requires ASCII kebab-case)",
+      slug,
+      hint: "以英文標題新增，例如「External Note」→ external-note",
+    });
+  }
+
+  const existing = await findNoteFile(notesRoot, slug);
   if (existing) return json(res, 409, { error: "slug already exists", slug });
 
-  const absDir = path.join(cwd, folder);
-  await fs.mkdir(absDir, { recursive: true });
-  const abs = path.join(absDir, `${slug}.mdx`);
-  const tagsYaml = `[${tags.map((t) => JSON.stringify(t)).join(", ")}]`;
-  await fs.writeFile(abs, TEMPLATE(title, tagsYaml), "utf8");
+  // viewer 模式不支援子資料夾，一律寫進 notesRoot 根層；主專案沿用 folder 選項
+  let targetDir = notesRoot;
+  if (!isViewerMode()) {
+    const folder = (payload.folder || "src/content/notes").replace(/^\/+/, "");
+    if (folder.startsWith("src/content/notes")) {
+      targetDir = path.resolve(cwd, folder);
+    }
+  }
 
-  return json(res, 200, {
-    slug,
-    path: path.relative(cwd, abs),
-    vscode: `vscode://file/${abs.replace(/\\/g, "/").replace(/^\/+/, "")}`,
-  });
+  try {
+    const abs = await assertSafePath(path.join(targetDir, `${slug}.mdx`), notesRoot);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    const tagsYaml = `[${tags.map((t) => JSON.stringify(t)).join(", ")}]`;
+    // v1 viewer 不塞 @ai-visualize 標記（無 AI 管線可觸發）
+    await fs.writeFile(abs, TEMPLATE(title, tagsYaml, !isViewerMode()), "utf8");
+    return json(res, 200, {
+      slug,
+      path: path.relative(cwd, abs),
+      vscode: `vscode://file/${abs.replace(/\\/g, "/").replace(/^\/+/, "")}`,
+    });
+  } catch (e) {
+    return json(res, 400, { error: (e as Error).message });
+  }
 }
 
 async function readNote(filePath: string) {
@@ -142,9 +207,14 @@ async function writeNote(filePath: string, data: Record<string, unknown>, conten
   await fs.writeFile(filePath, out, "utf8");
 }
 
-async function handleSetNoteTags(cwd: string, slug: string, req: IncomingMessage, res: ServerResponse) {
-  const file = await findNoteFile(cwd, slug);
+async function handleSetNoteTags(notesRoot: string, slug: string, req: IncomingMessage, res: ServerResponse) {
+  const file = await findNoteFile(notesRoot, slug);
   if (!file) return json(res, 404, { error: "note not found" });
+  try {
+    await assertSafePath(file, notesRoot);
+  } catch (e) {
+    return json(res, 400, { error: (e as Error).message });
+  }
   const raw = await readBody(req);
   let payload: { tags?: string[] };
   try {
@@ -160,9 +230,8 @@ async function handleSetNoteTags(cwd: string, slug: string, req: IncomingMessage
   return json(res, 200, { ok: true, tags });
 }
 
-async function collectTagStats(cwd: string) {
-  const root = path.join(cwd, NOTES_ROOT);
-  const files = await listMdx(root);
+async function collectTagStats(notesRoot: string) {
+  const files = await listMdx(notesRoot);
   const stats = new Map<string, { count: number; lastUsed: string; files: string[] }>();
   for (const f of files) {
     const { data } = await readNote(f);
@@ -179,8 +248,8 @@ async function collectTagStats(cwd: string) {
   return stats;
 }
 
-async function handleTagList(cwd: string, res: ServerResponse) {
-  const stats = await collectTagStats(cwd);
+async function handleTagList(notesRoot: string, res: ServerResponse) {
+  const stats = await collectTagStats(notesRoot);
   const list = Array.from(stats.entries()).map(([name, v]) => ({
     name,
     count: v.count,
@@ -189,7 +258,7 @@ async function handleTagList(cwd: string, res: ServerResponse) {
   return json(res, 200, { tags: list });
 }
 
-async function handleRenameTag(cwd: string, oldName: string, req: IncomingMessage, res: ServerResponse) {
+async function handleRenameTag(notesRoot: string, oldName: string, req: IncomingMessage, res: ServerResponse) {
   const raw = await readBody(req);
   let payload: { newName?: string };
   try {
@@ -199,7 +268,7 @@ async function handleRenameTag(cwd: string, oldName: string, req: IncomingMessag
   }
   const newName = (payload.newName || "").trim();
   if (!newName) return json(res, 400, { error: "newName required" });
-  const stats = await collectTagStats(cwd);
+  const stats = await collectTagStats(notesRoot);
   const target = stats.get(oldName);
   if (!target) return json(res, 404, { error: "tag not found" });
   const merged = stats.has(newName);
@@ -207,6 +276,7 @@ async function handleRenameTag(cwd: string, oldName: string, req: IncomingMessag
   let failed = 0;
   for (const file of target.files) {
     try {
+      await assertSafePath(file, notesRoot);
       const { data, content } = await readNote(file);
       const tags = Array.isArray(data.tags) ? (data.tags as string[]) : [];
       const next = normalizeTagList(tags.map((t) => (t === oldName ? newName : t)));
@@ -221,14 +291,15 @@ async function handleRenameTag(cwd: string, oldName: string, req: IncomingMessag
   return json(res, 200, { ok: true, done, failed, affected: target.files.length, merged, newName });
 }
 
-async function handleDeleteTag(cwd: string, name: string, res: ServerResponse) {
-  const stats = await collectTagStats(cwd);
+async function handleDeleteTag(notesRoot: string, name: string, res: ServerResponse) {
+  const stats = await collectTagStats(notesRoot);
   const target = stats.get(name);
   if (!target) return json(res, 404, { error: "tag not found" });
   let done = 0;
   let failed = 0;
   for (const file of target.files) {
     try {
+      await assertSafePath(file, notesRoot);
       const { data, content } = await readNote(file);
       const tags = Array.isArray(data.tags) ? (data.tags as string[]) : [];
       data.tags = tags.filter((t) => t !== name);
@@ -251,22 +322,35 @@ function markerIds(content: string): string[] {
   return out;
 }
 
-async function handleDeleteNote(cwd: string, slug: string, res: ServerResponse) {
-  const file = await findNoteFile(cwd, slug);
+async function handleDeleteNote(cwd: string, notesRoot: string, slug: string, res: ServerResponse) {
+  const file = await findNoteFile(notesRoot, slug);
   if (!file) return json(res, 404, { error: "note not found" });
+  try {
+    await assertSafePath(file, notesRoot);
+  } catch (e) {
+    return json(res, 400, { error: (e as Error).message });
+  }
 
+  // viewer 模式沒有 AI 管線 / generated 元件，直接刪 md/mdx 就好
+  if (isViewerMode()) {
+    await fs.unlink(file);
+    return json(res, 200, {
+      deletedNote: path.relative(cwd, file),
+      deletedComponents: [],
+      keptShared: [],
+      failed: [],
+    });
+  }
+
+  // 主專案模式：連帶清理未被其他 MDX 引用的 generated 元件
   const { content } = await readNote(file);
   const ids = markerIds(content);
-
-  // 掃描其他 MDX 是否仍引用這些 id（保留共用元件）
-  const root = path.join(cwd, NOTES_ROOT);
-  const others = (await listMdx(root)).filter((f) => f !== file);
+  const others = (await listMdx(notesRoot)).filter((f) => f !== file);
   const referencedElsewhere = new Set<string>();
   for (const f of others) {
     const otherIds = new Set(markerIds((await readNote(f)).content));
     for (const id of ids) if (otherIds.has(id)) referencedElsewhere.add(id);
   }
-
   const deletedComponents: string[] = [];
   const keptShared: string[] = [];
   const failed: string[] = [];
@@ -284,7 +368,6 @@ async function handleDeleteNote(cwd: string, slug: string, res: ServerResponse) 
       if (code !== "ENOENT") failed.push(`${id}.tsx`);
     }
   }
-
   await fs.unlink(file);
   return json(res, 200, {
     deletedNote: path.relative(cwd, file),
@@ -305,6 +388,7 @@ export default function devApi(): AstroIntegration {
     hooks: {
       "astro:server:setup": ({ server }) => {
         const cwd = process.cwd();
+        const notesRoot = resolveNotesRoot(cwd);
         server.middlewares.use(async (req, res, next) => {
           const url = req.url || "";
           if (!url.startsWith("/api/")) return next();
@@ -316,27 +400,27 @@ export default function devApi(): AstroIntegration {
             const parts = u.pathname.split("/").filter(Boolean); // ['api', ...]
             // /api/notes — POST
             if (parts.length === 2 && parts[1] === "notes" && req.method === "POST") {
-              return await handleCreateNote(cwd, req, res);
+              return await handleCreateNote(cwd, notesRoot, req, res);
             }
             // /api/tags — GET
             if (parts.length === 2 && parts[1] === "tags" && req.method === "GET") {
-              return await handleTagList(cwd, res);
+              return await handleTagList(notesRoot, res);
             }
             // /api/tags/:name — PUT (rename) / DELETE
             if (parts.length === 3 && parts[1] === "tags") {
               const name = decodeURIComponent(parts[2]);
-              if (req.method === "PUT") return await handleRenameTag(cwd, name, req, res);
-              if (req.method === "DELETE") return await handleDeleteTag(cwd, name, res);
+              if (req.method === "PUT") return await handleRenameTag(notesRoot, name, req, res);
+              if (req.method === "DELETE") return await handleDeleteTag(notesRoot, name, res);
             }
             // /api/notes/:slug/tags — PUT
             if (parts.length === 4 && parts[1] === "notes" && parts[3] === "tags" && req.method === "PUT") {
               const slug = decodeURIComponent(parts[2]);
-              return await handleSetNoteTags(cwd, slug, req, res);
+              return await handleSetNoteTags(notesRoot, slug, req, res);
             }
             // /api/notes/:slug — DELETE
             if (parts.length === 3 && parts[1] === "notes" && req.method === "DELETE") {
               const slug = decodeURIComponent(parts[2]);
-              return await handleDeleteNote(cwd, slug, res);
+              return await handleDeleteNote(cwd, notesRoot, slug, res);
             }
             return json(res, 404, { error: "not found" });
           } catch (e: unknown) {
