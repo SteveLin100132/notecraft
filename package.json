@@ -1,11 +1,49 @@
 {
-  "name": "notecraft",
+  "name": "notecraftapp",
   "type": "module",
   "version": "0.1.0",
-  "private": true,
+  "description": "在任何專案下用 npx 啟動漂亮的 UI 讀取、編輯 md/mdx 資料夾。內建儀表板、系列、標籤、圖片、寫入 API。",
+  "keywords": [
+    "notecraft",
+    "notecraftapp",
+    "mdx",
+    "markdown",
+    "notes",
+    "viewer",
+    "astro",
+    "cli",
+    "documentation"
+  ],
+  "author": "建宇",
+  "license": "MIT",
+  "homepage": "TODO: 填入 GitHub 或個人網站 URL 再 publish",
+  "repository": {
+    "type": "git",
+    "url": "TODO: 填入 git+https://github.com/<owner>/<repo>.git 再 publish"
+  },
+  "bugs": {
+    "url": "TODO: 填入 issue tracker URL 再 publish"
+  },
   "bin": {
     "notecraftapp": "./bin/notecraftapp.mjs"
   },
+  "files": [
+    "bin/",
+    "src/components/*.astro",
+    "src/components/islands/",
+    "src/content/config.ts",
+    "src/data/series.ts",
+    "src/dev-api/",
+    "src/env.d.ts",
+    "src/layouts/",
+    "src/lib/",
+    "src/pages/",
+    "src/styles/",
+    "astro.config.mjs",
+    "tailwind.config.mjs",
+    "tsconfig.json",
+    "README.md"
+  ],
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",

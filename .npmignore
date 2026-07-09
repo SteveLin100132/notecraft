@@ -1,0 +1,30 @@
+# ── 作者私人資料，絕對不能發佈 ──
+src/content/notes/
+src/data/series.registry.ts
+docs/
+CLAUDE.md
+.claude/
+
+# ── 開發專用檔案 ──
+scripts/
+tmp/
+netlify.toml
+.env
+.env.*
+!.env.example
+.git/
+.github/
+.vscode/
+
+# ── build 產物 / 暫存 ──
+dist/
+.astro/
+.netlify/
+*.log
+
+# ── 系統檔 ──
+.DS_Store
+
+# ── 依賴（npm 會自己解） ──
+node_modules/
+package-lock.json

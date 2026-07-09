@@ -7,7 +7,7 @@
 // 「能寫」與否天然對齊 astro 的 dev/build 兩態，不再需要額外旗標。
 
 import { defineCommand, runMain } from "citty";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { promises as fs, existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -19,6 +19,72 @@ import { tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(__filename), "..");
 const pkgJson = JSON.parse(readFileSync(path.join(packageRoot, "package.json"), "utf-8"));
+
+// ── P8：首次執行時把套件複製到 ~/.notecraft/app-<version>/ ────────────────────────
+// 目的：不污染 npm/pnpm cache 目錄；在使用者家目錄有穩定執行位置。
+//
+// 三種情境：
+// - dev 源碼（packageRoot 有 .git 或 NOTECRAFTAPP_DEV=1）→ 直接跑，不複製
+// - 已在 ~/.notecraft/app-<v>/ → 直接跑
+// - 其他（npm cache、npx cache、global install）→ 複製過去、npm install、重新 exec
+//
+// 這段在頂層執行、且會 process.exit()，所以下面的 CLI 主流程只有「已就位」的情況才走到。
+
+const stableAppRoot = path.join(os.homedir(), ".notecraft", `app-${pkgJson.version}`);
+
+function isDevSource() {
+  if (process.env.NOTECRAFTAPP_DEV === "1") return true;
+  return existsSync(path.join(packageRoot, ".git"));
+}
+
+async function copyDirExcluding(src, dest, excludes) {
+  await fs.mkdir(dest, { recursive: true });
+  const ents = await fs.readdir(src, { withFileTypes: true });
+  for (const e of ents) {
+    if (excludes.has(e.name)) continue;
+    const s = path.join(src, e.name);
+    const d = path.join(dest, e.name);
+    if (e.isDirectory()) {
+      await copyDirExcluding(s, d, excludes);
+    } else if (e.isFile()) {
+      await fs.copyFile(s, d);
+    }
+  }
+}
+
+async function ensureInstalled() {
+  if (isDevSource()) return; // dev 源碼直接跑
+  if (packageRoot === stableAppRoot) return; // 已在穩定位置
+
+  if (!existsSync(stableAppRoot)) {
+    console.log(`[notecraftapp] 首次執行：複製套件到 ${stableAppRoot}`);
+    // 排除 node_modules（下面會 npm install）與快取
+    const excludes = new Set(["node_modules", ".git", ".astro", "dist", "tmp"]);
+    await copyDirExcluding(packageRoot, stableAppRoot, excludes);
+
+    console.log(`[notecraftapp] 安裝相依（npm install）…`);
+    const install = spawnSync("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], {
+      cwd: stableAppRoot,
+      stdio: "inherit",
+    });
+    if (install.status !== 0) {
+      console.error("[notecraftapp] npm install 失敗");
+      process.exit(install.status ?? 1);
+    }
+  }
+
+  // 從穩定位置 re-exec，把後續行為交給新的 process
+  const proc = spawn(process.execPath, [path.join(stableAppRoot, "bin", "notecraftapp.mjs"), ...process.argv.slice(2)], {
+    cwd: process.cwd(),
+    stdio: "inherit",
+    env: { ...process.env, NOTECRAFTAPP_INSTALLED: "1" },
+  });
+  proc.on("exit", (code) => process.exit(code ?? 0));
+  // 讓下方的 runMain 不要執行
+  await new Promise(() => {});
+}
+
+await ensureInstalled();
 
 const STATIC_MIME = {
   ".html": "text/html; charset=utf-8",
