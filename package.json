@@ -3,19 +3,26 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "notecraftapp": "./bin/notecraftapp.mjs"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
-    "new-note": "node scripts/new-note.mjs"
+    "new-note": "node scripts/new-note.mjs",
+    "viewer:view": "node bin/notecraftapp.mjs view",
+    "viewer:build": "node bin/notecraftapp.mjs build",
+    "viewer:serve": "node bin/notecraftapp.mjs serve"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.0.3",
     "@astrojs/react": "^4.1.2",
     "@astrojs/tailwind": "^5.1.4",
     "astro": "^5.0.5",
+    "citty": "^0.2.2",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "gray-matter": "^4.0.3",

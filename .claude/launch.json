@@ -22,6 +22,20 @@
       "env": { "NOTECRAFT_NOTES_DIR": "tmp/notecraft-test" },
       "port": 4330,
       "autoPort": false
+    },
+    {
+      "name": "notecraftapp-view",
+      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeArgs": ["bin/notecraftapp.mjs", "view", "tmp/notecraft-test", "--port", "4332"],
+      "port": 4332,
+      "autoPort": false
+    },
+    {
+      "name": "notecraftapp-serve",
+      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeArgs": ["bin/notecraftapp.mjs", "serve", "tmp/notecraft-test", "--port", "4333", "--no-open"],
+      "port": 4333,
+      "autoPort": false
     }
   ]
 }
