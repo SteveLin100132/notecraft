@@ -257,6 +257,53 @@ async function handleFolderList(cwd: string, notesRoot: string, res: ServerRespo
   return json(res, 200, { folders });
 }
 
+// P2：GET /notes-assets/<path> — 從 notesRoot 底下提供靜態檔（配合 remark-notecraft-notes-assets 使用）
+const MIME_MAP: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".avif": "image/avif",
+  ".ico": "image/x-icon",
+  ".pdf": "application/pdf",
+};
+
+async function handleNotesAsset(notesRoot: string, urlPath: string, res: ServerResponse) {
+  const raw = urlPath.replace(/^\/notes-assets\//, "").split("?")[0].split("#")[0];
+  let relPath: string;
+  try {
+    relPath = decodeURIComponent(raw);
+  } catch {
+    res.statusCode = 400;
+    return res.end("bad url");
+  }
+  const abs = path.resolve(notesRoot, relPath);
+  try {
+    await assertSafePath(abs, notesRoot);
+  } catch (e) {
+    res.statusCode = 400;
+    return res.end((e as Error).message);
+  }
+  try {
+    const stat = await fs.stat(abs);
+    if (!stat.isFile()) {
+      res.statusCode = 404;
+      return res.end("not a file");
+    }
+    const ext = path.extname(abs).toLowerCase();
+    const type = MIME_MAP[ext] ?? "application/octet-stream";
+    const data = await fs.readFile(abs);
+    res.setHeader("content-type", type);
+    res.setHeader("cache-control", "no-cache");
+    return res.end(data);
+  } catch {
+    res.statusCode = 404;
+    return res.end("not found");
+  }
+}
+
 async function handleTagList(notesRoot: string, res: ServerResponse) {
   const stats = await collectTagStats(notesRoot);
   const list = Array.from(stats.entries()).map(([name, v]) => ({
@@ -400,6 +447,19 @@ export default function devApi(): AstroIntegration {
         const notesRoot = resolveNotesRoot(cwd);
         server.middlewares.use(async (req, res, next) => {
           const url = req.url || "";
+          // P2：/notes-assets/* → 從 notesRoot 提供靜態檔
+          if (url.startsWith("/notes-assets/")) {
+            if (!localhostOnly(req)) {
+              res.statusCode = 403;
+              return res.end("localhost only");
+            }
+            try {
+              return await handleNotesAsset(notesRoot, url, res);
+            } catch (e: unknown) {
+              res.statusCode = 500;
+              return res.end(e instanceof Error ? e.message : "internal error");
+            }
+          }
           if (!url.startsWith("/api/")) return next();
           if (!localhostOnly(req)) {
             return json(res, 403, { error: "dev API is localhost-only" });

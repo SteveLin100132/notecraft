@@ -5,6 +5,7 @@ import tailwind from "@astrojs/tailwind";
 import remarkDirective from "remark-directive";
 import remarkNotecraftDirectives from "./src/lib/remark-notecraft-directives.ts";
 import remarkNotecraftCodeblock from "./src/lib/remark-notecraft-codeblock.ts";
+import remarkNotecraftNotesAssets from "./src/lib/remark-notecraft-notes-assets.ts";
 import devApi from "./src/dev-api/integration.ts";
 
 export default defineConfig({
@@ -30,6 +31,7 @@ export default defineConfig({
     syntaxHighlight: false,
     // 順序固定：remark-directive 先解析指令；directives 處理 admonition/tabs/tooltip/annotate；
     // codeblock 最後改寫 code 節點（buildAnnotate 需在 code 仍為原始節點時讀值）。
-    remarkPlugins: [remarkDirective, remarkNotecraftDirectives, remarkNotecraftCodeblock],
+    // notes-assets 只在 viewer 模式（有 NOTECRAFT_NOTES_DIR）下作用，重寫相對圖片路徑為 /notes-assets/*。
+    remarkPlugins: [remarkDirective, remarkNotecraftDirectives, remarkNotecraftCodeblock, remarkNotecraftNotesAssets],
   },
 });
