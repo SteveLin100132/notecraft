@@ -101,11 +101,22 @@ async function listMdx(root) {
   return out;
 }
 
+// slug 對應到 <notesRoot>/<slug>.mdx 或 .md（slug 對齊 Content Layer glob 的 entry.id，
+// 巢狀路徑會含 /，例如 "test/test1"）。path.resolve + assertSafePath 一體處理路徑逃逸。
 async function findNoteFile(notesRoot, slug) {
-  const files = await listMdx(notesRoot);
-  for (const f of files) {
-    const base = path.basename(f, path.extname(f));
-    if (base === slug) return f;
+  for (const ext of [".mdx", ".md"]) {
+    const abs = path.resolve(notesRoot, `${slug}${ext}`);
+    try {
+      await assertSafePath(abs, notesRoot);
+    } catch {
+      return null;
+    }
+    try {
+      const s = await fs.stat(abs);
+      if (s.isFile()) return abs;
+    } catch {
+      // ENOENT → 試下一個副檔名
+    }
   }
   return null;
 }
@@ -478,13 +489,14 @@ export async function tryHandleApiRequest(cwd, notesRoot, req, res) {
         return true;
       }
     }
-    if (parts.length === 4 && parts[1] === "notes" && parts[3] === "tags" && req.method === "PUT") {
-      const slug = decodeURIComponent(parts[2]);
+    // 巢狀 slug 支援：/api/notes/a/b/c/tags PUT、/api/notes/a/b/c DELETE
+    if (parts.length >= 4 && parts[1] === "notes" && parts[parts.length - 1] === "tags" && req.method === "PUT") {
+      const slug = parts.slice(2, -1).map(decodeURIComponent).join("/");
       await handleSetNoteTags(notesRoot, slug, req, res);
       return true;
     }
-    if (parts.length === 3 && parts[1] === "notes" && req.method === "DELETE") {
-      const slug = decodeURIComponent(parts[2]);
+    if (parts.length >= 3 && parts[1] === "notes" && req.method === "DELETE") {
+      const slug = parts.slice(2).map(decodeURIComponent).join("/");
       await handleDeleteNote(cwd, notesRoot, slug, res);
       return true;
     }
