@@ -20,13 +20,13 @@
   ],
   "author": "建宇",
   "license": "MIT",
-  "homepage": "TODO: 填入 GitHub 或個人網站 URL 再 publish",
+  "homepage": "https://github.com/SteveLin100132/notecraft#readme",
   "repository": {
     "type": "git",
-    "url": "TODO: 填入 git+https://github.com/<owner>/<repo>.git 再 publish"
+    "url": "git+https://github.com/SteveLin100132/notecraft.git"
   },
   "bugs": {
-    "url": "TODO: 填入 issue tracker URL 再 publish"
+    "url": "https://github.com/SteveLin100132/notecraft/issues"
   },
   "bin": {
     "notecraftapp": "./bin/notecraftapp.mjs"
@@ -46,7 +46,8 @@
     "astro.config.mjs",
     "tailwind.config.mjs",
     "tsconfig.json",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "astro dev",

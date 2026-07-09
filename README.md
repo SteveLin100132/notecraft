@@ -265,4 +265,4 @@ CLI 偵測到 `.git` 就會跳過套件複製、直接從當前 repo 執行。�
 
 ## License
 
-MIT — 見 [LICENSE](./LICENSE)（TODO：待補）
+MIT — 見 [LICENSE](./LICENSE)
