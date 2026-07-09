@@ -14,6 +14,14 @@
       "runtimeArgs": ["node_modules/astro/astro.js", "preview", "--port", "4329"],
       "port": 4329,
       "autoPort": false
+    },
+    {
+      "name": "viewer-poc",
+      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeArgs": ["node_modules/astro/astro.js", "dev", "--port", "4330"],
+      "env": { "NOTECRAFT_NOTES_DIR": "tmp/notecraft-test" },
+      "port": 4330,
+      "autoPort": false
     }
   ]
 }
