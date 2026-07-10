@@ -27,7 +27,7 @@ Project Name: NoteCraft NPX Viewer
 
 ### 1.2 非目標（v1 不做）
 
-- AI 視覺化管線（`@ai-visualize` 標記處理）——留給 v2 的 `notecraft init-skill`
+- AI 視覺化管線（`@ai-visualize` 標記處理）——留給 v2 的 `notecraft init-skill`，設計見 [v2 doc](./notecraft-npx-viewer-v2.md)
 - pagefind 或任何全文搜尋
 - 主題切換、多站點、workspace 概念
 - Git 衝突偵測、undo
