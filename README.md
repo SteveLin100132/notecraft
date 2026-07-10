@@ -24,13 +24,14 @@
 
 傳統筆記工具只能顯示文字。當你想把一段流程講清楚、把兩個方案並排比較、或讓讀者親手拖動看兩種策略的差異——只能貼靜態圖或放連結。NoteCraftApp 讓「知識能被看見、被操作」：
 
-- **AI 視覺化** — MDX 內用 `@ai-visualize` 標記描述你想要的圖表 / 時序 / 動畫 / 互動；Claude Code 讀懂後產生 React 元件、自動嵌入筆記
+- **AI 視覺化** — MDX 內用 `@ai-visualize` 標記描述你想要的圖表 / 時序 / 動畫 / 互動；Claude Code 讀懂後產生 React 元件、自動嵌入筆記。`npx notecraftapp init-skill` 一鍵把 skill 裝到你的專案
+- **即時 preview** — `serve` 內建背景 rebuild + SSE auto reload：Claude Code 在另一個 terminal 寫檔、viewer 這邊瀏覽器自動刷新，全程免手動重啟
 - **儀表板** — 統計 / 最近更新 / 標籤分布 / 系列進度、AI 視覺化生成率
 - **系列** — 多份筆記串成有順序的閱讀路徑，含進度條與繼續閱讀
 - **巢狀資料夾原生支援** — `guides/oauth/flow.mdx` 直接對到 `/notes/guides/oauth/flow`
 - **缺 frontmatter 也能顯示** — 標題從 H1 或檔名抓、日期從檔案 mtime 抓
 - **MDX 相對圖片路徑**（`![](./cover.png)`）自動解析
-- **HMR 寫入** — 在 UI 新增 / 編輯 / 刪除筆記，瀏覽器即時反映
+- **HMR 寫入** — `view` 模式在 UI 新增 / 編輯 / 刪除筆記，瀏覽器即時反映
 
 ---
 
@@ -40,11 +41,19 @@
 
 只是一行 `npx notecraftapp view ./docs`，你就能得到儀表板、系列、標籤、巢狀 URL、圖片、寫入 UI——完整的閱讀 + 輕量編輯體驗。**MDX 中的 `@ai-visualize` 標記會以「待生成」卡片顯示**，等你之後動手處理。
 
-### AI 生成層（Roadmap：`notecraftapp init-skill` v1.1）
+### AI 生成層（v0.2.0 已上）
 
 真正的招牌功能——**由 AI 把「這裡放張圖」的自然語言描述變成互動元件**。
 
-在 MDX 中寫：
+**一次性安裝**（把 `content-visualize` skill + 4 個 subagent 設定裝到當前專案的 `.claude/`）：
+
+```bash
+npx notecraftapp init-skill
+# 檢查已安裝版本與可升級版本
+npx notecraftapp init-skill --check
+```
+
+之後在 MDX 中寫：
 
 ```mdx
 {/* @ai-visualize
@@ -59,13 +68,13 @@ prompt: |
 
 在 Claude Code 中對筆記說「處理這個標記」，NoteCraft 的 `content-visualize` skill 會：
 
-1. 掃描檔案找出所有 `@ai-visualize` 標記
-2. 依 prompt 決定用手寫 SVG / recharts / d3 / motion 等
-3. 產出 React 元件到 `src/components/generated/<id>.tsx`
-4. 在 MDX 標記下方插入 `import` 與 `<Component client:visible />`
+1. **note-scanner** 掃描檔案找出所有 `@ai-visualize` 標記
+2. **visualize-planner** 依 prompt 決定用手寫 SVG / recharts / d3 / motion 等
+3. **component-generator** 產出 React 元件到 `.notecraft/components/<id>.tsx`；產出前先 lint import 白名單、白名單外套件走「徵詢作者」路徑不撞 build
+4. **mdx-writer** 在 MDX 標記下方插入 `import` 與 `<Component client:visible />`
 5. 更新標記的 `status` 為 `generated`
 
-**v1 已包含 UI 顯示 pending 標記與 generated 元件**；`notecraftapp init-skill` 把 skill 一鍵安裝到你的 `.claude/skills/`，讓 Claude Code 認得——這是下一版的重點。
+**同時另開 terminal 跑 `npx notecraftapp serve ./notes`**——內建背景 watcher + SSE，AI 一寫檔瀏覽器就自動 reload，兩邊各司其職不用手動刷新。
 
 ---
 
@@ -86,7 +95,22 @@ notecraftapp view ./docs
 
 ---
 
-## 三個子命令
+## 四個子命令
+
+### `notecraftapp init-skill`
+
+一次性把 `content-visualize` skill + 4 個 subagent 設定安裝到當前專案的 `.claude/`，讓 Claude Code 能處理 `@ai-visualize` 標記。裝完就能在你自己的專案內跑 AI 視覺化 pipeline。
+
+```bash
+npx notecraftapp init-skill              # 首次安裝到 cwd
+npx notecraftapp init-skill --check      # 版本比對、不寫檔
+npx notecraftapp init-skill --force      # 直接覆寫本地已改過的 skill
+npx notecraftapp init-skill --dir <path> # 指定安裝目標 root
+```
+
+衝突處理：有本地手改過的檔案時，走互動 prompt（`overwrite / skip / overwrite-all / skip-all / abort`）；非 TTY 環境（CI）且未帶 `--force` → 直接拒絕、exit 1。
+
+適合：**第一次要在自己專案跑 AI 視覺化的時候跑一次即可**。
 
 ### `notecraftapp view <dir>`
 
@@ -104,9 +128,15 @@ notecraftapp view ./docs
 
 ### `notecraftapp serve <dir>`
 
-靜態伺服器，服務 `build` 產物的 dist。**純唯讀**——沒有寫入 API，「新增筆記」按鈕自動隱藏。仍然掛 `/notes-assets/*` 讓相對圖片正常顯示。
+Node HTTP 靜態伺服器，服務 `build` 產物的 dist。**預設帶背景 rebuild + auto reload**（`--no-watch` 退回純靜態）：
 
-適合：內部團隊分享、Demo 站、放到內網。
+- 內建 chokidar watcher 監看 `.md` / `.mdx` / `.notecraft/components/*.tsx` / `.notecraft/*.json`
+- 檔案變動 → debounce 300ms → `astro build` 到 `dist.next/` → `rename` 原子交換 → 保留舊 dist 若 rebuild 失敗
+- SSE `/__notecraft/events` 通知瀏覽器 auto reload（客戶端 script inline 注入 HTML）
+- 首次 build 失敗仍上線 fallback 頁——修好 mdx 後 SSE 觸發 auto reload 拿到真頁面
+- **純唯讀**——沒有寫入 API，「新增筆記」按鈕自動隱藏
+
+適合：**觀察 AI 生成**（Claude Code 在另一個 terminal 寫檔、viewer 這邊自動反映）、內部團隊分享、Demo 站、放到內網。
 
 ---
 
@@ -216,10 +246,19 @@ MDX 或 md 內 `![](./cover.png)` / `![](../shared/logo.svg)` 都會被自動 re
 
 ### 額外
 
-| Flag        | 適用命令      | 說明                   |
-| :---------- | :------------ | :--------------------- |
-| `--no-open` | serve         | 不自動開瀏覽器         |
-| `--rebuild` | build / serve | 強制 rebuild，忽略快取 |
+| Flag         | 適用命令      | 說明                                          |
+| :----------- | :------------ | :-------------------------------------------- |
+| `--no-open`  | serve         | 不自動開瀏覽器                                |
+| `--rebuild`  | build / serve | 強制 rebuild，忽略快取                        |
+| `--no-watch` | serve         | 關閉背景 rebuild + SSE，回到純靜態、唯讀行為  |
+
+### `init-skill`
+
+| Flag           | 預設   | 說明                                            |
+| :------------- | :----- | :---------------------------------------------- |
+| `--force`      | false  | 衝突檔直接覆寫，不 prompt                       |
+| `--check`      | false  | 只印安裝狀態與版本比對，不寫檔                  |
+| `--dir <path>` | cwd    | 安裝目標 root（一般不用）                       |
 
 ---
 
@@ -256,12 +295,17 @@ CLI 偵測到 `.git` 就會跳過套件複製、直接從當前 repo 執行。�
 
 ---
 
-## Roadmap（v1.1+）
+## Roadmap（v0.3+）
 
-- ⭐ **`notecraftapp init-skill`** — 一鍵把 `content-visualize` skill 安裝到 `.claude/skills/`，讓 Claude Code 直接處理你的 `@ai-visualize` 標記
+**已完成（v0.2）**：
+- ✅ `notecraftapp init-skill` — 一鍵把 `content-visualize` skill 裝到 `.claude/`
+- ✅ 背景 rebuild + SSE auto reload（`serve` 預設 ON）
+- ✅ 外部 `.notecraft/components/*.tsx` 透過 `@notes/*` alias 被 `astro build` 解析
+- ✅ 元件 import 白名單集中管理（`component-generator` 產出前 lint、白名單外走「徵詢作者」）
+
+**排隊中**：
 - 寫入 UI 支援子資料夾新增
 - pagefind 全文搜尋
-- 背景 rebuild + SSE reload（免重啟即時反映）
 - Windows 完整支援
 - 支援 `.notecraft/config.json`（主題、預設 port、隱藏某些筆記）
 - 一鍵包成靜態站部署（GitHub Pages / Netlify / Vercel）
