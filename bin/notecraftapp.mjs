@@ -633,29 +633,42 @@ const serveCmd = defineCommand({
 //
 // chokidar v4/v5 已棄用 glob 語法（`**/*.md` 之類）；watch notesDir 整棵樹、
 // 然後在 handler 內以 relPath 判斷是不是我們關心的三類。
-function isWatchedFile(notesDir, filePath) {
+//
+// v2 修正：.notecraft/ 現在放在 userCwd（見 astro.config.mjs 註解），
+// 所以 watcher 要同時看 notesDir（md/mdx）與 userCwd/.notecraft/（tsx / json）。
+function isWatchedFile(notesDir, userCwd, filePath) {
+  const ncRoot = path.join(userCwd || notesDir, ".notecraft");
+  const relToNc = path.relative(ncRoot, filePath);
+  if (!relToNc.startsWith("..") && !path.isAbsolute(relToNc)) {
+    const parts = relToNc.split(path.sep);
+    if (parts.length === 1 && parts[0].endsWith(".json")) return true;
+    if (parts.length === 2 && parts[0] === "components" && parts[1].endsWith(".tsx")) return true;
+    return false;
+  }
+  // 不在 .notecraft/ 內 → 看是不是 notesDir 底下的 md/mdx
   const rel = path.relative(notesDir, filePath);
   if (rel.startsWith("..") || path.isAbsolute(rel)) return false;
   const parts = rel.split(path.sep);
-  if (parts[0] === ".notecraft") {
-    if (parts.length === 2 && parts[1].endsWith(".json")) return true;
-    if (parts.length === 3 && parts[1] === "components" && parts[2].endsWith(".tsx")) return true;
-    return false;
-  }
-  // notesDir 底下、非 .* 目錄 → 只吃 md/mdx
   if (parts.some((p) => p.startsWith("."))) return false;
   return filePath.endsWith(".md") || filePath.endsWith(".mdx");
 }
 
 function startBackgroundRebuild({ cwd, notesDir, cacheDir, userCwd, broadcast, setLastError }) {
-  const watcher = chokidar.watch(notesDir, {
+  // 兩條 watch anchor：notesDir 抓 md/mdx；userCwd/.notecraft/ 抓 AI 生成 tsx 與 series.json
+  const ncDir = userCwd ? path.join(userCwd, ".notecraft") : null;
+  const watchPaths = [notesDir];
+  if (ncDir && path.resolve(ncDir) !== path.resolve(path.join(notesDir, ".notecraft"))) {
+    // userCwd 與 notesDir 不同層時才多加；否則單一 anchor 就涵蓋
+    watchPaths.push(ncDir);
+  }
+  const watcher = chokidar.watch(watchPaths, {
     ignoreInitial: true,
     awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
     ignored: (p) => {
-      // 目錄一律讓過（讓 chokidar recurse）；除了 .* 深層目錄（省 CPU）
+      // 相對 notesDir 判斷；userCwd/.notecraft/ 底下的檔會走這條返回 false，pass
       const rel = path.relative(notesDir, p);
       const parts = rel.split(path.sep);
-      // 允許 .notecraft 本身；其他 . 開頭資料夾（.git、node_modules 等）不 recurse
+      // 只 skip notesDir 底下 .* 開頭子目錄（.git 等）；`.notecraft` 例外允許
       if (parts.length === 1 && parts[0].startsWith(".") && parts[0] !== ".notecraft") return true;
       return false;
     },
@@ -702,12 +715,17 @@ function startBackgroundRebuild({ cwd, notesDir, cacheDir, userCwd, broadcast, s
 
   watcher.on("all", (event, filePath) => {
     // 只吃 md/mdx、.notecraft/components/*.tsx、.notecraft/*.json
-    // 目錄 add/unlink 事件也會來，用 isWatchedFile 過濾（目錄的 filePath 不會有副檔名）
-    if (!isWatchedFile(notesDir, filePath)) return;
-    trigger(`${event} ${path.relative(notesDir, filePath)}`);
+    // 目錄 add/unlink 事件也會來，用 isWatchedFile 過濾
+    if (!isWatchedFile(notesDir, userCwd, filePath)) return;
+    // 顯示相對路徑取比較短的那個 anchor
+    const relN = path.relative(notesDir, filePath);
+    const relU = userCwd ? path.relative(userCwd, filePath) : relN;
+    const shown = relN.startsWith("..") || relU.length < relN.length ? relU : relN;
+    trigger(`${event} ${shown}`);
   });
   watcher.on("error", (err) => log(`watcher error: ${err.message || err}`));
-  log(`watching: ${notesDir}`);
+  log(`watching notes: ${notesDir}`);
+  if (watchPaths.length > 1) log(`watching .notecraft: ${ncDir}`);
 }
 
 // ── v2 Q2: init-skill ────────────────────────────────────────────

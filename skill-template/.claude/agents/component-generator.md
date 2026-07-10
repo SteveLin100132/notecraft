@@ -30,12 +30,12 @@ model: sonnet
      - 3a) **可用白名單替代**（例：`date-fns` → `Date` 內建 / `Intl.DateTimeFormat`；`sanitize-html` → 手寫 escape；`lodash` → 原生方法）→ Edit 檔案改掉，繼續走 step 4
      - 3b) **不可替代**（功能上必要、白名單無替代品）→ **停止產出**、用 Bash 刪除已寫的元件檔（避免 astro build 時整站掛掉），跳到 step 6 以「需徵詢作者引入 X」格式回報，**不跑 step 4 驗證**
    - lint 完成前**不進 step 4**——白名單外套件會在 tsc 或 astro build 才炸、錯誤訊息比 lint 出來的難讀
-4. **驗證**：依序執行
-   ```bash
-   npx tsc --noEmit
-   npx astro build
-   ```
-5. **修復**：若驗證失敗，讀取錯誤訊息、用 Edit 修正元件、重新驗證；最多 3 次
+<!-- BEGIN:validation-cg -->
+4. **驗證**（觀察 serve --watch 就好）：**不要在使用者 cwd 跑 `npx tsc --noEmit` 或 `npx astro build`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗
+   - 假設作者已開著 `npx notecraftapp serve ./notes`（見 CLAUDE.md 建議工作流）；mdx-writer 寫回 mdx 後，viewer 的 watcher 自動觸發 rebuild、成功會 SSE 廣播 auto reload
+   - 若作者離線驗證（沒開 serve）：可跑 `npx notecraftapp build ./notes` 手動觸發一次 build
+5. **修復**：若後續 serve 的 rebuild 失敗（terminal 印出錯誤 + fallback 頁），讀錯誤訊息、用 Edit 修正元件；watcher 會再 trigger 一次 rebuild，最多重試 3 次
+<!-- END:validation-cg -->
 6. **回報**：成功、需徵詢、或最終失敗時，將結果以下列格式回報給主 Agent
 
 ## 元件寫作守則

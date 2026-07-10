@@ -10,13 +10,23 @@ import remarkNotecraftNotesAssets from "./src/lib/remark-notecraft-notes-assets.
 import { GENERATED_COMPONENT_PACKAGE_WHITELIST } from "./src/lib/generated-component-whitelist.ts";
 import devApi from "./src/dev-api/integration.ts";
 
-// v2 Q3: 有 NOTECRAFT_NOTES_DIR 時，把 <notesDir>/.notecraft 掛成 @notes 別名，
-// 讓外部 MDX 能 `import Foo from '@notes/components/foo'` 讀到使用者專案下的 AI 生成元件。
-// 同時把 notesDir 加入 vite server.fs.allow，避開 dev server 對專案根外檔案的預設拒絕
-// （build 期預設不受此限，但保留設定讓 view 子命令 dev 模式也能用）。
+// v2 Q3 + Bug fix: `.notecraft/` 資料夾**放在 userCwd**（使用者專案根、與 .claude/ 同層），
+// 不放在 notesDir——因為 subagent 從 project root 跑並寫到 cwd 下的 .notecraft/，
+// 若 alias 指向 notesDir/.notecraft 會找不到（例如 serve ./notes 時 notesDir=project/notes/）。
+//
+// 讀取優先序：NOTECRAFT_USER_CWD > NOTECRAFT_NOTES_DIR。CLI 兩者都會設；
+// 舊版 CLI 或 npm run astro build 直接跑時可能只有 notesDir，退回舊行為保相容。
 const notesDir = process.env.NOTECRAFT_NOTES_DIR
   ? path.resolve(process.env.NOTECRAFT_NOTES_DIR)
   : null;
+const userCwd = process.env.NOTECRAFT_USER_CWD
+  ? path.resolve(process.env.NOTECRAFT_USER_CWD)
+  : null;
+const notecraftDir = userCwd
+  ? path.join(userCwd, ".notecraft")
+  : notesDir
+    ? path.join(notesDir, ".notecraft")
+    : null;
 
 export default defineConfig({
   output: "static",
@@ -29,11 +39,12 @@ export default defineConfig({
   vite: {
     server: {
       host: "127.0.0.1",
-      ...(notesDir && { fs: { allow: [process.cwd(), notesDir] } }),
+      // fs.allow：notesDir、userCwd 都要允許（dev server 才能讀專案根外的 tsx / mdx）
+      ...(notesDir && { fs: { allow: [process.cwd(), notesDir, ...(userCwd ? [userCwd] : [])] } }),
     },
     resolve: {
-      alias: notesDir ? { "@notes": path.join(notesDir, ".notecraft") } : {},
-      // 外部 mdx 引用的 tsx 位在 notesDir 底下、無自帶 node_modules；
+      alias: notecraftDir ? { "@notes": notecraftDir } : {},
+      // 外部 mdx 引用的 tsx 位在 .notecraft/components/ 底下、無自帶 node_modules；
       // rollup 若從 tsx 位置向上找不到白名單套件會 build fail。
       // dedupe 強制這些套件一律從 viewer app 的 project root 解析。
       // 白名單集中在 src/lib/generated-component-whitelist.ts（見 v2 doc §6.6）。

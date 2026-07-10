@@ -92,6 +92,7 @@ status: pending | generated | locked | failed
 
 > 此步驟由 component-generator Subagent 在元件寫入後自行執行。
 
+<!-- BEGIN:validation-skill -->
 完成元件寫入後，執行：
 
 ```bash
@@ -100,6 +101,7 @@ npx astro build
 ```
 
 若任一指令失敗，讀取錯誤訊息、修正元件、再次驗證。每個區塊最多嘗試修正 3 次。若仍失敗，**跳到第 5 步、將該 MDX 標記的 `status` 設為 `failed`**（保留原始 prompt），並在對話中回報錯誤節錄。驗證未通過前，不要進行第 5 步的 MDX 寫回。
+<!-- END:validation-skill -->
 
 ### 5. 寫回 MDX
 

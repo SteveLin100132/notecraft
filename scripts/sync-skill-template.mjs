@@ -59,6 +59,26 @@ function buildWhitelistBlock(entries) {
   return `<!-- BEGIN:whitelist -->${entries.map((p) => `\`${p}\``).join('、')}<!-- END:whitelist -->`
 }
 
+// v2 修正：viewer 版的驗證段——use cwd 沒有 astro 專案設定，
+// 直接跑 `npx astro build` 一定炸；改為信任 `serve --watch` 的背景 rebuild。
+const VALIDATION_SKILL_MARKER = /<!-- BEGIN:validation-skill -->[\s\S]*?<!-- END:validation-skill -->/g
+const VALIDATION_SKILL_VIEWER = `<!-- BEGIN:validation-skill -->
+完成元件寫入後，**不要在使用者 cwd 跑 \`npx tsc --noEmit\` 或 \`npx astro build\`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗，錯誤訊息也對本次生成沒幫助。
+
+驗證的正確做法是**觀察使用者的 \`npx notecraftapp serve ./notes\`**：mdx-writer 寫回 mdx 後，viewer 的 chokidar watcher 會在 300ms 內觸發 rebuild、SSE 廣播 auto reload；成功則瀏覽器直接看到元件、失敗則 fallback 頁顯示錯誤節錄。
+
+- 若作者離線測試（沒開 serve）：可跑 \`npx notecraftapp build ./notes\` 手動觸發一次 build 產物到 \`~/.notecraft/cache/<hash>/dist/\`
+- 若 rebuild 失敗、每次修正後仍不通過：3 次後放棄，**跳到第 5 步、將該 MDX 標記的 \`status\` 設為 \`failed\`**（保留原始 prompt），並在對話中回報錯誤節錄。驗證未通過前，不要進行第 5 步的 MDX 寫回。
+<!-- END:validation-skill -->`
+
+const VALIDATION_CG_MARKER = /<!-- BEGIN:validation-cg -->[\s\S]*?<!-- END:validation-cg -->/g
+const VALIDATION_CG_VIEWER = `<!-- BEGIN:validation-cg -->
+4. **驗證**（觀察 serve --watch 就好）：**不要在使用者 cwd 跑 \`npx tsc --noEmit\` 或 \`npx astro build\`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗
+   - 假設作者已開著 \`npx notecraftapp serve ./notes\`（見 CLAUDE.md 建議工作流）；mdx-writer 寫回 mdx 後，viewer 的 watcher 自動觸發 rebuild、成功會 SSE 廣播 auto reload
+   - 若作者離線驗證（沒開 serve）：可跑 \`npx notecraftapp build ./notes\` 手動觸發一次 build
+5. **修復**：若後續 serve 的 rebuild 失敗（terminal 印出錯誤 + fallback 頁），讀錯誤訊息、用 Edit 修正元件；watcher 會再 trigger 一次 rebuild，最多重試 3 次
+<!-- END:validation-cg -->`
+
 // Files whose main-project copy carries the whitelist marker — sync also
 // rewrites these in-place so the source-of-truth constant flows to the docs
 // the author reads in their own tree.
@@ -112,6 +132,23 @@ function applyWhitelist(text, block) {
   return { text: text.replace(WHITELIST_MARKER, block), count: matches.length }
 }
 
+// viewer 版才做的替換：驗證步驟主專案版跑 npx astro build，viewer 版改成觀察 serve --watch
+function applyViewerValidation(text) {
+  let count = 0
+  let result = text
+  const skillMatches = result.match(VALIDATION_SKILL_MARKER)
+  if (skillMatches) {
+    result = result.replace(VALIDATION_SKILL_MARKER, VALIDATION_SKILL_VIEWER)
+    count += skillMatches.length
+  }
+  const cgMatches = result.match(VALIDATION_CG_MARKER)
+  if (cgMatches) {
+    result = result.replace(VALIDATION_CG_MARKER, VALIDATION_CG_VIEWER)
+    count += cgMatches.length
+  }
+  return { text: result, count }
+}
+
 async function refreshWhitelistInPlace(relPath, block) {
   const abs = path.join(projectRoot, relPath)
   const original = await fs.readFile(abs, 'utf8')
@@ -135,12 +172,13 @@ async function syncFile(srcRel, destRel, block, { addHeader = false } = {}) {
   const substCount = countSubstitutions(original)
   const pathed = applySubstitutions(original)
   const { text: withWhitelist, count: whitelistCount } = applyWhitelist(pathed, block)
-  const body = addHeader ? VIEWER_HEADER + withWhitelist : withWhitelist
+  const { text: withValidation, count: validationCount } = applyViewerValidation(withWhitelist)
+  const body = addHeader ? VIEWER_HEADER + withValidation : withValidation
 
   await fs.mkdir(path.dirname(destAbs), { recursive: true })
   await fs.writeFile(destAbs, body, 'utf8')
 
-  return { destRel, substCount, whitelistCount }
+  return { destRel, substCount, whitelistCount, validationCount }
 }
 
 async function main() {
@@ -193,7 +231,7 @@ async function main() {
   console.log('\nsynced skill-template:')
   for (const r of results) {
     console.log(
-      `  ${r.destRel.padEnd(w)} (${r.substCount} path subs, ${r.whitelistCount} whitelist)`,
+      `  ${r.destRel.padEnd(w)} (${r.substCount} path subs, ${r.whitelistCount} whitelist, ${r.validationCount} validation)`,
     )
   }
   console.log(`  ${versionPath.padEnd(w)} (${VERSION})`)

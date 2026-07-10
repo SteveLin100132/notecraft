@@ -60,8 +60,16 @@ async function loadFromExternalJson(notesDir: string): Promise<SeriesDef[]> {
 }
 
 async function loadFromRegistry(): Promise<SeriesDef[]> {
+  // series.registry.ts 是主專案本地檔、被 .npmignore 排除。
+  // 直接 `await import("@/data/series.registry")` 會讓 rollup 在 build 期靜態
+  // resolve 失敗（tarball 沒有此檔）；改用 import.meta.glob——找不到檔就返回空 map、不 error。
+  const registryModules = import.meta.glob<{ SERIES: SeriesDef[] }>(
+    "../data/series.registry.ts",
+  );
+  const key = Object.keys(registryModules)[0];
+  if (!key) return [];
   try {
-    const mod = await import("@/data/series.registry");
+    const mod = await registryModules[key]();
     return mod.SERIES;
   } catch {
     return [];

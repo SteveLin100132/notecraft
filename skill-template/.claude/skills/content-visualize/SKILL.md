@@ -105,14 +105,14 @@ status: pending | generated | locked | failed
 
 > 此步驟由 component-generator Subagent 在元件寫入後自行執行。
 
-完成元件寫入後，執行：
+<!-- BEGIN:validation-skill -->
+完成元件寫入後，**不要在使用者 cwd 跑 `npx tsc --noEmit` 或 `npx astro build`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗，錯誤訊息也對本次生成沒幫助。
 
-```bash
-npx tsc --noEmit
-npx astro build
-```
+驗證的正確做法是**觀察使用者的 `npx notecraftapp serve ./notes`**：mdx-writer 寫回 mdx 後，viewer 的 chokidar watcher 會在 300ms 內觸發 rebuild、SSE 廣播 auto reload；成功則瀏覽器直接看到元件、失敗則 fallback 頁顯示錯誤節錄。
 
-若任一指令失敗，讀取錯誤訊息、修正元件、再次驗證。每個區塊最多嘗試修正 3 次。若仍失敗，**跳到第 5 步、將該 MDX 標記的 `status` 設為 `failed`**（保留原始 prompt），並在對話中回報錯誤節錄。驗證未通過前，不要進行第 5 步的 MDX 寫回。
+- 若作者離線測試（沒開 serve）：可跑 `npx notecraftapp build ./notes` 手動觸發一次 build 產物到 `~/.notecraft/cache/<hash>/dist/`
+- 若 rebuild 失敗、每次修正後仍不通過：3 次後放棄，**跳到第 5 步、將該 MDX 標記的 `status` 設為 `failed`**（保留原始 prompt），並在對話中回報錯誤節錄。驗證未通過前，不要進行第 5 步的 MDX 寫回。
+<!-- END:validation-skill -->
 
 ### 5. 寫回 MDX
 

@@ -17,12 +17,14 @@ model: sonnet
      - 3a) **可用白名單替代**（例：`date-fns` → `Date` 內建 / `Intl.DateTimeFormat`；`sanitize-html` → 手寫 escape；`lodash` → 原生方法）→ Edit 檔案改掉，繼續走 step 4
      - 3b) **不可替代**（功能上必要、白名單無替代品）→ **停止產出**、用 Bash 刪除已寫的元件檔（避免 astro build 時整站掛掉），跳到 step 6 以「需徵詢作者引入 X」格式回報，**不跑 step 4 驗證**
    - lint 完成前**不進 step 4**——白名單外套件會在 tsc 或 astro build 才炸、錯誤訊息比 lint 出來的難讀
+<!-- BEGIN:validation-cg -->
 4. **驗證**：依序執行
    ```bash
    npx tsc --noEmit
    npx astro build
    ```
 5. **修復**：若驗證失敗，讀取錯誤訊息、用 Edit 修正元件、重新驗證；最多 3 次
+<!-- END:validation-cg -->
 6. **回報**：成功、需徵詢、或最終失敗時，將結果以下列格式回報給主 Agent
 
 ## 元件寫作守則
