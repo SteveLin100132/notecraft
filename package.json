@@ -43,6 +43,7 @@
     "src/lib/",
     "src/pages/",
     "src/styles/",
+    "skill-template/",
     "astro.config.mjs",
     "tailwind.config.mjs",
     "tsconfig.json",
@@ -57,6 +58,7 @@
     "typecheck": "astro check",
     "new-note": "node scripts/new-note.mjs",
     "sync-skill": "node scripts/sync-skill-template.mjs",
+    "prepublishOnly": "npm run sync-skill",
     "viewer:view": "node bin/notecraftapp.mjs view",
     "viewer:build": "node bin/notecraftapp.mjs build",
     "viewer:serve": "node bin/notecraftapp.mjs serve"
