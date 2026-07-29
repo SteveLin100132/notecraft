@@ -92,23 +92,28 @@ const modules: Record<string, { default?: Deck }> = {
   }),
 };
 
+// slug 一律正規化為 NFC 再比對：中文檔名在 macOS 檔系存為 NFD（分解式）、
+// 字面量與 URL 多為 NFC（組合式），兩者「看起來相同、位元組不同」會讓純字串
+// 比對判錯 —— 導致工具列該顯示「簡報」卻顯示「生成簡報」、或 /present/<slug> 404。
+const nfc = (s: string): string => s.normalize("NFC");
+
 const bySlug = new Map<string, Deck>();
 for (const mod of Object.values(modules)) {
   const deck = mod?.default;
-  if (deck?.slug) bySlug.set(deck.slug, deck);
+  if (deck?.slug) bySlug.set(nfc(deck.slug), deck);
 }
 
-/** 所有已生成簡報的筆記 slug（供 getStaticPaths、Dashboard 統計） */
+/** 所有已生成簡報的筆記 slug（NFC；供 getStaticPaths、Dashboard 統計） */
 export function allDeckSlugs(): string[] {
   return [...bySlug.keys()];
 }
 
-/** 取某 slug 的 deck；不存在回 null */
+/** 取某 slug 的 deck；不存在回 null（比對前正規化為 NFC） */
 export function deckOf(slug: string): Deck | null {
-  return bySlug.get(slug) ?? null;
+  return bySlug.get(nfc(slug)) ?? null;
 }
 
-/** 該筆記是否已生成簡報（驅動功能列入口 / 路由 / 統計） */
+/** 該筆記是否已生成簡報（驅動功能列入口 / 路由 / 統計；比對前正規化為 NFC） */
 export function hasDeck(slug: string): boolean {
-  return bySlug.has(slug);
+  return bySlug.has(nfc(slug));
 }

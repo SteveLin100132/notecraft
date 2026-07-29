@@ -101,7 +101,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         <span class="nc-note-actions" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
           {noteHasDeck ? (
             <a
-              href={`/present/${note.id}`}
+              href={`/present/${note.id.normalize("NFC")}`}
               style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
             >
               <Icon name="play" size={15} /> 簡報
