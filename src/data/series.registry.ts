@@ -38,6 +38,7 @@ export const SERIES: SeriesDef[] = [
     slugs: [
       "建立-bump-prd-hook-的認知調整歷程",
       "ssr-專案dutymate-ai-憲章與-workflow-設計",
+      "五個-lang-函式庫還是服務",
     ],
   },
   {

@@ -1,0 +1,269 @@
+---
+title: "五個 Lang，各自佔一個位置"
+description: "分清 LangChain / LangGraph / LangSmith / Langfuse / LangFlow 五個工具的形態——兩個是函式庫、三個是服務——以及各自的定位、選型時機與建議的採用順序。"
+tags:
+  - AI 陪跑筆記
+  - LangChain
+  - 技術選型
+category: 技術筆記
+createdAt: "2026-07-29"
+updatedAt: "2026-07-29"
+---
+
+LangChain、LangGraph、LangSmith、Langfuse、LangFlow。名字都以 Lang 開頭，常被放在一起比較，但其中兩個是你 `npm install` 進專案的函式庫，另外三個是要另外部署或註冊的服務。先分清形態，選擇就簡單了。
+
+:::info{title="本文前提 · TypeScript 專案視角"}
+以 TypeScript 專案的角度整理。LangChain.js 需要 Node.js 20 以上（Node 18 已於 2025 年 3 月 EOL）。
+:::
+
+---
+
+## 先分清形態
+
+把五個東西放進同一張比較表之前，得先承認它們不是同一種東西。函式庫是你 import 進來、跟你的程式碼一起部署的；服務是獨立跑的行程，你的程式碼只是把資料送過去。這個差別決定了誰要顧維運、誰要付費、資料會流到哪裡。
+
+| 名稱 | 形態 | 層級 | 授權 | 自架 |
+|---|---|---|---|---|
+| **LangChain** | 函式庫（`langchain`） | 應用開發層 | 開源 · MIT | 不適用，跟你的 app 一起跑 |
+| **LangGraph** | 函式庫（`@langchain/langgraph`） | 執行 / 編排層 | 開源 · MIT | 不適用，跟你的 app 一起跑 |
+| **LangSmith** | 託管服務（SaaS + SDK） | 可觀測 / 評估層 | 閉源 | 僅 Enterprise 方案 |
+| **Langfuse** | 服務（雲端或自架 + SDK） | 可觀測 / 評估層 | 開源 · MIT | 可以，零授權費 |
+| **LangFlow** | 自架應用程式（Web UI + API） | 視覺化建構層 | 開源 · MIT | 目前實質上只能自架 |
+
+TypeScript 專案要特別注意：**LangFlow 的後端是 Python（FastAPI）**，沒有 npm 套件。對 TS 專案來說它純粹是一個外部服務，你透過它產出的 REST／MCP 端點去呼叫，不會出現在你的 `package.json` 裡。這其實正好印證了上面的分類邏輯。
+
+> 「不適用」不是不能自架，而是它們本來就沒有獨立的服務端可架——那是你 app 的一部分。
+
+---
+
+## 堆疊關係
+
+真正在生產環境跑起來時，這五個工具不是平行的選項，而是疊在一起的層。下圖把它們的堆疊關係與 :tip[trace]{content="一次請求從進到出的完整執行紀錄：檢索了哪些文件、送出的 prompt、tool 呼叫、延遲與成本。"} 資料流畫出來——實線是函式庫、虛線是獨立部署的服務。
+
+{/* @ai-visualize
+id: lang-stack-architecture
+type: diagram
+prompt: |
+  以手寫 SVG 畫出五個 Lang 工具的堆疊關係架構圖。核心洞察是「函式庫（跟你的 app 一起部署）vs 服務（獨立跑的行程）」的形態差異——用實線框代表函式庫、虛線框代表獨立部署的服務來區分，並附一個小圖例說明這個對應。
+
+  結構：
+  - 最上方一個虛線框「LangFlow（可選）—— 拖拉建構，輸出即 API」，一條向下箭頭進入下方主堆疊。
+  - 中間一個實線大框，內含三個由上到下堆疊的橫層：(1) LangChain —— 高階 API、createAgent、整合；(2) LangGraph —— 狀態、節點、checkpoint、重試；(3) 模型與工具 —— LLM、向量庫、外部 API。三層都是函式庫（實線）。
+  - 右側一個實線框「可觀測層 · 擇一」，內含兩張並排小卡：Langfuse（MIT · 可自架）與 LangSmith（閉源 · 託管）。
+  - 主堆疊三層各自有一條橫向箭頭指向右側可觀測層，代表 trace 資料流；旁邊標註一句「trace 資料流：三層各自送出紀錄，可觀測層不參與執行」。
+
+  可加上節制的 motion 讓三條 trace 箭頭依序浮現，強調「各自送出」的意象。
+caption: 五個 Lang 的堆疊關係：實線為函式庫、虛線為獨立部署的服務；橫向箭頭是 trace 資料流。
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import LangStackArchitecture from '@/components/generated/lang-stack-architecture'
+
+<GeneratedFrame id="lang-stack-architecture" type="diagram" prompt={"以手寫 SVG 畫出五個 Lang 工具的堆疊關係架構圖：實線框＝函式庫（LangChain / LangGraph / 模型與工具，跟 app 一起部署），虛線框＝獨立部署的服務（LangFlow、Langfuse、LangSmith）；三層各自以橫向 trace 箭頭指向右側可觀測層，箭頭依序浮現，並附實線/虛線圖例。"} caption="五個 Lang 的堆疊關係：實線為函式庫、虛線為獨立部署的服務；橫向箭頭是 trace 資料流。">
+  <LangStackArchitecture client:visible />
+</GeneratedFrame>
+
+---
+
+## LangChain
+
+:badge[函式庫]{variant="success" outline} :badge[應用開發層]{variant="neutral" outline}
+
+開源框架，提供把 LLM 接上外部資料、API 與工具的預建元件。不用自己處理各家模型的介面差異、向量庫的檢索邏輯、工具呼叫的解析。
+
+需要注意的是它的定位已經變了。LangChain 與 LangGraph 都在 **2025 年 10 月 22 日**推出 1.0，架構重新定調：LangGraph 成為底層 runtime，LangChain 變成上層有主見的高階 API。核心入口是 `createAgent`，舊的 LCEL chain 與 `@langchain/langgraph/prebuilt` 的 `createReactAgent` 已被棄用。
+
+> 「LangChain 做 chain、LangGraph 做 agent」這個 1.0 之前的心智模型已經不成立了。現在是同一套東西的兩個高度。
+
+官方承諾 2.0 之前不會有破壞性變更，所以現在是相對安穩的進場時機。
+
+```bash
+npm install langchain @langchain/core @langchain/langgraph zod
+npm install @langchain/anthropic   # 或其他 provider
+```
+
+```ts title="agent.ts"
+import { createAgent, tool } from "langchain";
+import * as z from "zod";
+
+const getWeather = tool(
+  (input) => `${input.city} 現在是晴天`,
+  {
+    name: "get_weather",
+    description: "查詢指定城市的天氣",
+    schema: z.object({ city: z.string() }),
+  }
+);
+
+const agent = createAgent({
+  model: "claude-sonnet-4-6",
+  tools: [getWeather],
+});
+
+const result = await agent.invoke({
+  messages: [{ role: "user", content: "高雄天氣如何？" }],
+});
+```
+
+TS 這邊 v1 遷移有兩件事值得記：**舊的抽象（`LLMChain`、`initializeAgentExecutorWithOptions` 之類）搬到了 `@langchain/classic`**，還有新增的 `ContentBlock` 型別讓多模態輸入能正確推導型別。小到中型專案的遷移大約是幾小時的工。
+
+---
+
+## LangGraph
+
+:badge[函式庫]{variant="success" outline} :badge[編排 / 執行層]{variant="neutral" outline}
+
+以圖為架構：節點是函式，邊是轉移，runtime 維護跨節點的 state，條件邊依 state 分支。它解決的是 chain 結構做不到的事——循環、重試、條件路由、多 agent 協作、人工審核中斷。
+
+最有說服力的採用理由是可靠度的數學。十個 tool call、每步 85% 成功率，全程走完的機率只有約 20%（0.85^10）。換更強的模型不會修好網路逾時，只有 :tip[checkpoint]{content="把執行進度存檔，失敗後可從中斷處 resume，而不是整條流程重跑。"} 與 resume 可以。
+
+{/* @ai-visualize
+id: agent-reliability-compound
+type: motion
+prompt: |
+  做一個可互動的「Agent 可靠度複利崩塌」示範。核心洞察是「換更強的模型不會修好網路逾時，只有 checkpoint 與 resume 可以」——要讓讀者親手拖出「單步看起來很高、全程其實很低」的張力。
+
+  兩個 slider：
+  - 步驟數（tool call 次數，1–20，預設 10）
+  - 每步成功率（50%–99%，預設 85%）
+
+  即時計算並用大字強調整體成功率 = 每步成功率 ^ 步驟數（預設 0.85^10 ≈ 20%）。
+  視覺化用一條由多個小方塊組成的「步驟鏈」：每個方塊代表一步，鏈越長，末端「全程走完」的機率條越短；整體成功率低於某門檻（例如 50%）時機率條轉為警示色。
+  可並排放「單步 85%」與「全程約 20%」兩個數字，凸顯落差。
+  數值變動用節制的 motion 過渡（200–400ms），並尊重 prefers-reduced-motion。
+caption: 拖動兩個滑桿，看單步 85% 的成功率如何在十步後複利崩塌到約 20%。
+status: generated
+*/}
+
+import AgentReliabilityCompound from '@/components/generated/agent-reliability-compound'
+
+<GeneratedFrame id="agent-reliability-compound" type="motion" prompt={"可互動的 Agent 可靠度複利崩塌示範：兩個滑桿（步驟數 1–20、每步成功率 50–99%），即時計算整體成功率＝每步成功率的步驟次方（0.85^10≈20%），用步驟鏈與機率條放大『單步很高、全程很低』的落差，低於門檻轉警示色。核心：換更強的模型不會修好網路逾時，只有 checkpoint 與 resume 可以。"} caption="拖動兩個滑桿，看單步 85% 的成功率如何在十步後複利崩塌到約 20%。">
+  <AgentReliabilityCompound client:visible />
+</GeneratedFrame>
+
+人工介入的模式也換了：現在是 `interrupt()` 搭配 `Command`（帶 `resume`）恢復執行，通常包在 human-in-the-loop middleware 裡，而非舊的 `interruptBefore` 編譯旗標。TS 版本從 `@langchain/langgraph` 匯入，命名是 camelCase，其餘概念與 Python 版一致。
+
+---
+
+## Langfuse
+
+:badge[服務]{variant="info" outline} :badge[可觀測 / 評估層]{variant="neutral" outline} :badge[MIT · 可自架]{variant="success" outline}
+
+:::warning{title="最常被誤會的一個"}
+**Langfuse 不是 LangChain 團隊的產品。** 它是獨立的開源 LLM 工程平台，涵蓋可觀測性、prompt 管理、評估與實驗，記錄每次互動的輸入輸出、tool 使用、重試、延遲與成本。
+:::
+
+形態上它是一組後端服務（含資料庫），你的應用透過 SDK 或 OpenTelemetry 把 trace 送過去。要嘛用他們的雲端，要嘛用 Docker／Helm 自己架一份——MIT 授權，自架沒有授權費。
+
+TS 專案接法是裝 JS/TS SDK，用 callback handler 掛進 LangChain 執行流程；它同時支援 OpenTelemetry，所以就算之後換掉框架，儀器化的部分不用重寫。
+
+:::note{title="值得知道的近況" collapsible}
+ClickHouse 於 2026 年 1 月 16 日宣布收購 Langfuse，作為其 4 億美元 D 輪募資的一部分。Langfuse 官方表示 roadmap 不變，仍持續投入開源與自架，使用方式沒有立即改變。
+:::
+
+> 使用者不會說「prompt 的 context 不足」。他們只會說「它給我錯的答案」。剩下的得靠 trace 自己查。
+
+---
+
+## LangSmith
+
+:badge[服務]{variant="info" outline} :badge[可觀測 / 評估層]{variant="neutral" outline} :badge[閉源 · 託管]{variant="warning" outline}
+
+功能定位跟 Langfuse 高度重疊：追蹤、評估、prompt 管理、資料集。差別在商業模式與生態綁定。
+
+它是**閉源的託管服務**，Developer 方案免費（單一 seat、額度有限），付費方案按 seat 加 trace 用量計費。自架只開放給 Enterprise 方案，且部分功能在自架版本不提供。
+
+選它的理由通常是深度整合：LangGraph Studio 的視覺化逐步除錯、託管的 agent 部署，這些跟 LangChain 官方工具鏈咬得比較緊。它本身是框架無關的（用 `traceable` 包裝任何程式碼都能送 trace），但最順的路徑仍然是 LangChain 與 LangGraph。
+
+### 那到底選哪個
+
+判斷點通常不是功能，是這兩件事：**資料能不能離開你的機房**，以及**團隊會長到多大**。
+
+- 醫療、金融業無法把病患或財務資料送到第三方 → Langfuse 可完全自架；LangSmith 的自架門檻在 Enterprise
+- Langfuse 的線上確定性評估仍在 roadmap 上而非正式版，LangSmith 這塊目前較完整
+- LangSmith 按 seat 計費，人一多成本線性成長；Langfuse 不按 seat 計費
+
+> 兩邊的官方比較文都存在，但都由當事人撰寫，看的時候記得打折。
+
+---
+
+## LangFlow
+
+:badge[自架應用]{variant="info" outline} :badge[視覺化建構層]{variant="neutral" outline} :badge[MIT]{variant="success" outline}
+
+低程式碼的視覺化建構器：React Flow 的拖拉前端加上 FastAPI 後端，每一個流程都能直接對外變成 REST API、MCP server 或相容 OpenAI 的端點。元件本身是可編輯的 Python，所以不是只能點按——卡住的地方可以掉下去寫程式碼。
+
+它的形態最特別：這是一個**你要跑起來的網頁應用**，不是你 import 的套件。透過 PyPI、Docker、Helm 或桌面版安裝。
+
+身世也繞了一圈。Langflow 2024 年被 DataStax 收購，DataStax 又在 2025 年 5 月 28 日被 IBM 併購完成，因此現在屬於 IBM，但仍維持 MIT 開源。
+
+:::danger{title="託管版已關閉"}
+託管版 DataStax Langflow 已於 2026 年 3 月 9 日宣告棄用、4 月 9 日關閉服務並刪除資料——所以實務上現在就是自架。
+:::
+
+適合的情境是讓非工程背景的成員也能參與組裝流程，或是快速試不同的 RAG 拓撲。不適合的情境是把它當成生產環境的執行引擎——真的要上線，多數團隊還是會把流程搬回程式碼。
+
+---
+
+## 什麼時候用哪個
+
+下面把六種常見情境收成一張互動選型卡——多數時候答案是「組合」，不是二選一。
+
+{/* @ai-visualize
+id: lang-selection-guide
+type: motion
+prompt: |
+  做一個「什麼時候用哪個」的互動選型指南。核心洞察是「這些不是選擇題——實務答案是用 LangChain 寫、跑在 LangGraph 上、把 trace 送進 Langfuse 或 LangSmith，LangFlow 視團隊組成決定加不加」。
+
+  用 tab 或 stepper 走查六種情境，每格顯示：情境標題、推薦採用的工具（用 badge 標出「函式庫」或「服務」形態）、一句話理由、以及代表性案例或代價提醒。切換時用節制的 motion 帶出內容。
+
+  六格：
+  1. 只用 LangChain 就夠 —— 單向流程的原型與小型系統（文件問答 RAG、客服 FAQ bot、內容生成工具）。不需要循環或人工介入，學習曲線最低。
+  2. 往下掉到 LangGraph —— 有狀態、會分支、要人審的流程（多 agent 協作、人工審核卡點、可中斷後續跑、複雜條件路由）。案例：Klarna 客服 bot 服務 8500 萬用戶、解決時間降低 80%；LinkedIn 全公司資料存取 SQL Bot。
+  3. 一定要接可觀測層 —— 任何要進生產環境的系統。沒有 trace 就是在猜；Langfuse 或 LangSmith 都行，重點是要有。
+  4. Langfuse 而非 LangSmith —— 資料主權是硬需求，或團隊會長大。可完全自架、零授權費、不按 seat 計費。代價：自架維運工時是真實成本。
+  5. LangSmith 而非 Langfuse —— 吃 LangGraph 官方工具鏈（LangGraph Studio 視覺化除錯、官方託管部署），線上評估較完整，小團隊起步免費方案夠用。
+  6. 加上 LangFlow —— 非工程成員（PM、領域專家）要參與流程設計時，拖拉介面比 code review 有效率；但別把它當生產環境的執行引擎。
+caption: 六種情境下的選型建議：多數時候是組合，不是二選一。
+status: generated
+*/}
+
+import LangSelectionGuide from '@/components/generated/lang-selection-guide'
+
+<GeneratedFrame id="lang-selection-guide" type="motion" prompt={"『什麼時候用哪個』互動選型指南：以左側清單走查六種情境，每格顯示推薦工具（badge 標出函式庫/服務形態）、一句理由與案例或代價提醒。核心：這些不是選擇題——用 LangChain 寫、跑在 LangGraph 上、把 trace 送進 Langfuse 或 LangSmith，LangFlow 視團隊決定加不加。"} caption="六種情境下的選型建議：多數時候是組合，不是二選一。">
+  <LangSelectionGuide client:visible />
+</GeneratedFrame>
+
+---
+
+## 建議的採用順序
+
+::::steps
+:::step{title="先用 createAgent 做出可跑的版本" status="current"}
+不要一開始就手刻 graph，多數需求高階 API 就滿足了。想更快看到形狀，可以先在 LangFlow 上拖一版當草稿。
+:::
+:::step{title="第一天就接上 Langfuse 或 LangSmith"}
+不是等出問題才裝——出問題時你需要的是「當時」的紀錄，那時候補裝已經來不及。
+:::
+:::step{title="真的需要循環、分支、人工介入時，再往下掉到 StateGraph"}
+高階 API 撐不住的那一刻你會很清楚，在那之前不必付這個複雜度的代價。
+:::
+::::
+
+回到開頭那句：這些不是選擇題。實務上的答案是「用 LangChain 寫、跑在 LangGraph 上、把 trace 送進 Langfuse 或 LangSmith」，LangFlow 則是視團隊組成決定要不要加的一層。分不清楚的時候，先問它是函式庫還是服務，答案通常就出來了。
+
+---
+
+## 延伸閱讀
+
+- [Langfuse — LangChain & LangGraph 整合文件](https://langfuse.com/integrations/frameworks/langchain)
+- [Langfuse — 加入 ClickHouse 的公告](https://langfuse.com/blog/joining-clickhouse)
+- [ClickHouse — 收購 Langfuse 說明](https://clickhouse.com/blog/clickhouse-acquires-langfuse-open-source-llm-observability)
+- [LangChain — LangSmith 與 Langfuse 對照（官方立場，請斟酌）](https://www.langchain.com/resources/langsmith-vs-langfuse)
+- [DataStax — 託管版 Langflow 棄用公告](https://docs.datastax.com/en/langflow/index.html)
+- [IBM — 收購 DataStax 新聞稿](https://newsroom.ibm.com/2025-02-25-ibm-to-acquire-datastax,-deepening-watsonx-capabilities-and-addressing-generative-ai-data-needs-for-the-enterprise)
+
+---
+
+*內容整理於 2026 年 7 月 · 版本、方案與價格隨時異動，請以各官方文件為準*
