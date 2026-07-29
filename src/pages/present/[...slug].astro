@@ -1,0 +1,18 @@
+---
+// 簡報模式路由（Task 27）：/present/<slug>。僅為已生成簡報的筆記產頁。
+import PresentLayout from "@/layouts/PresentLayout.astro";
+import PresentApp from "@/components/islands/PresentApp.tsx";
+import { allDeckSlugs, deckOf } from "@/lib/decks";
+
+export function getStaticPaths() {
+  return allDeckSlugs().map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const deck = deckOf(slug ?? "");
+if (!deck) return Astro.redirect("/404");
+---
+
+<PresentLayout title={`簡報 · ${deck.title}`}>
+  <PresentApp slug={deck.slug} client:only="react" />
+</PresentLayout>

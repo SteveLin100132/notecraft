@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.8.0
+文件版本: v1.9.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-06-22
+更新日期: 2026-07-29
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -82,6 +82,7 @@ Project Name: NoteCraft
 20. \* 提供類 Material for MkDocs 的 [程式碼區塊增強](#程式碼區塊增強code-block-enhancements)：行號、檔名標題、一鍵複製、行 highlight、可展開的 [Code annotations](#code-annotations)（行內編號標記 → 點擊展開說明），以 `astro-expressive-code` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
 21. \* 提供 [Markdown 擴充語法 — Badge](#markdown-擴充語法badge)：行內標籤元件，支援多種 variant（語意色 × `outline` / `solid` 樣式），重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 的 `remark-directive` 底座，純 CSS、零 JS，正式環境同樣可用
 22. \* 提供 [Markdown 擴充語法 — Steps](#markdown-擴充語法steps)：條列「步驟」內容，支援 `horizontal` 與 `vertical`（預設）兩種版型，重用 `remark-directive` 底座，純 CSS / 漸進增強，正式環境同樣可用
+23. \* 提供 [筆記轉簡報（Note → Presentation）](#筆記轉簡報note--presentation)：作者於 [筆記檢視頁面](#筆記檢視頁面) 功能列點「生成簡報」按鈕複製提示詞、貼進 Claude Code，由 AI 讀取整篇筆記（文字 ＋ 既有 [Generated 元件](#generated-元件)）重新編排為一份**多頁簡報**（每篇一份、獨立 slides 檔），並於 [簡報模式](#筆記轉簡報note--presentation)（`/present/[slug]`）以「檢視 / 播放」兩態呈現；生成為 dev-only、播放正式環境亦可用，版面遵循 [trendlink-design](#skills)。由獨立的 `content-present` Skill 與兩個新 Subagent 執行，**與既有 AI 視覺化管線完全隔離**
 
 ### 4.2 非目標（Out of Scope）
 
@@ -99,6 +100,7 @@ NoteCraft
 ├── /                       Dashboard（首頁，功能選單 + 統計）
 ├── /notes                  筆記列表頁面
 ├── /notes/[slug]           筆記檢視頁面（含「以 VS Code 編輯」按鈕）
+├── /present/[slug]         簡報模式（檢視 + 全螢幕播放；播放正式環境亦可用）
 ├── /series                 系列總覽頁（所有系列 + 模糊查詢 + 篩選排序 + 進度）
 ├── /series/[id]            系列詳情頁（Hero + 整體進度 + 逐章清單）
 ├── /tags                   標籤索引頁
@@ -1033,6 +1035,161 @@ flowchart TD
 - [ ] 其他
 
 > 已收斂：dev 與正式皆顯示。提示詞屬教學透明資訊，公開有助讀者理解；若日後有不想公開的筆記，再考慮以標記層級的 `private-prompt` 開關處理。
+
+#### 筆記轉簡報（Note → Presentation）（\*）
+
+## 目標
+
+讓 [筆記用戶](#筆記用戶) 把一篇筆記一鍵轉為可全螢幕播放的簡報：於 [筆記檢視頁面](#筆記檢視頁面) 功能列點「生成簡報」→ 複製提示詞 → 貼進 Claude Code，由 AI 讀取整篇筆記（文字 ＋ 既有 [Generated 元件](#generated-元件)）重新編排敘事、切分投影片、選用版型並生成簡報產物；讀者可於 [簡報模式](#筆記轉簡報note--presentation) 以「檢視 / 播放」兩態瀏覽。延續系統「AI 僅於本機、透過複製提示詞觸發、不走執行時 API」的一貫哲學，產物隨原始碼 commit，正式環境（Netlify）可播放、不可生成。
+
+## 規格
+
+### 產物與資料模型
+
+- **每篇一份簡報**：一篇筆記對應單一簡報，重新生成即覆寫；一份簡報含**多頁**投影片（slide 陣列）。
+- **產物形式**：獨立 slides 檔，路徑 `src/components/generated/slides/<slug>`（與既有 [Generated 元件](#generated-元件) 同慣例，可直接 import 該筆記既有的互動元件、共用同一套孤兒清理邏輯）。
+- **slide 資料結構**（每頁）：`layout`（版型詞彙，見下）、`title`、依版型而定的內容欄位（條列 `items` / 圖文 `body` + `media` / 全幅視覺引用的 component id 等）、選用 `note`（講者備註欄位，v1 不渲染、保留給未來演示者模式）。
+- **簡報中繼與狀態**：存於該筆記 frontmatter 的 `presentation:` 區塊：
+  - `prompt`：作者對簡報走向的提示（可空；空則 AI 依全文自行決定敘事）
+  - `status`：`none | generated | locked | failed`（`none` = 尚未生成）
+  - `updatedAt`：簡報最後生成時間
+  - `status: locked` 永不覆寫；`failed` 預設不重跑，除非作者調整 `prompt` 後明確要求重試（與 [AI 標記區塊](#ai-標記區塊) 規則一致）。
+
+### 觸發與生成流程（dev-only）
+
+- 功能列「生成簡報」按鈕**僅本機顯示**（`import.meta.env.DEV` 或 `LOCAL_EDIT=1`），點擊後**複製一段對話範本到剪貼簿**（如「請依 content-present Skill 為 `<檔名>` 生成 / 重新生成簡報」），作者貼進 Claude Code 觸發。
+- 生成由獨立的 [content-present Skill 與兩個專責 Subagent](#簡報生成-subagent-與-skill-設計) 執行，**完全不動既有 `@ai-visualize` 管線**。
+- 驗證未通過（`tsc --noEmit` / `astro build`）前不寫回、不更新 `status: generated`，比照既有生成流程「先驗證後寫回」。
+
+### 簡報模式（檢視 / 播放）
+
+- **路由**：獨立路由 `src/pages/present/[...slug].astro`（URL `/present/[slug]`；Astro 靜態路由，僅為已生成簡報的筆記產生此頁）。**不採 `/notes/[slug]/present`** —— 筆記頁為 catch-all `notes/[...slug].astro`（rest 參數），Astro 不允許其後再接靜態子路由（詳見〈封裝相容性與實作備註〉）。入口為 [筆記檢視頁面](#筆記檢視頁面) 功能列的「簡報」按鈕，**正式環境亦顯示**（屬讀者功能）。
+- **檢視模式（預設、非全螢幕）**：類簡報編輯器版面 —— 一側為所有投影片的**縮覽清單**（可捲動、點選跳頁、標示目前頁），主區顯示當前選中頁的完整內容；提供「播放 / 全螢幕」按鈕進入播放模式。
+- **播放模式（全螢幕）**：透過 Fullscreen API 進入全螢幕、單頁置中呈現。導覽：鍵盤 ←/→ 翻頁、`Esc` 退出、點擊翻頁；顯示頁碼與進度列；提供**大綱跳頁面板**（叫出縮覽 / 清單，點選直接跳頁）。
+- **互動元件**：投影片中沿用的 [Generated 元件](#generated-元件) **原樣嵌入、維持可互動**（保留其 `client:*` island），讓圖表 / 動畫可於簡報現場操作。
+- 頁面轉場 200–400ms ease-out、尊重 `prefers-reduced-motion`；版面固定 16:9、隨視窗等比縮放；樣式一律遵循 [trendlink-design](#skills)、不硬編色碼。
+
+### 版型詞彙
+
+於 [content-present Skill](#簡報生成-subagent-與-skill-設計) 與 [trendlink-design](#skills) 定義一組供 AI 選用的投影片版型（非窮舉、非強制元件庫）：封面 `cover`、章節分隔 `section`、重點條列 `bullets`、圖文並排 `media`、全幅視覺 `full-visual`（嵌入互動元件）、左右對比 `compare`、引言 `quote`、結語 / 重點回顧 `closing`。AI 依內容選版型，必要時可組合；不足時可在 Skill 決策原則下自由發揮。
+
+### 環境差異
+
+- 生成類控制（生成簡報按鈕、以 VS Code 編輯 slides 檔、重新生成提示）僅本機顯示。
+- 簡報模式（檢視 / 播放）正式環境同樣可用。
+
+### Dashboard 統計
+
+- Dashboard 新增「已生成簡報」統計（含簡報的筆記數 / 佔比），於 `astro build` 階段由 Content Collections 依 frontmatter `presentation.status` 預計算，無執行時 API（比照「含 AI 標記數量」統計）。
+
+## 卡控機制
+
+- `presentation.status: locked` 的簡報一律跳過、不覆寫。
+- 生成失敗：slides 檔驗證未過時，僅將 `status` 設 `failed`、保留 `prompt`，**不寫回半成品**，並在對話中回報錯誤節錄。
+- **孤兒簡報**（筆記已刪 / 改名、slides 檔還在；或筆記內容大幅變動、簡報過期）：比照孤兒元件（[AI 標記區塊](#ai-標記區塊) 處理規則），由掃描回報、**須作者明確同意才可刪除 / 重生**，依靠 git 復原。
+- 未生成簡報的筆記：功能列「簡報」入口的呈現見〈待釐清 Q1〉。
+- 播放模式進入全螢幕失敗（瀏覽器不支援 / 拒絕）時優雅降級為視窗內最大化，不報錯。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 複製提示詞觸發生成 | 本機開啟某含內容的筆記 | 點功能列「生成簡報」 | 對話範本複製到剪貼簿；貼進 Claude Code 後由 content-present 流程生成 slides 檔並更新 frontmatter `presentation.status: generated` |
+| 檢視模式呈現 | 某筆記已生成簡報 | 進入 `/present/[slug]` | 預設為檢視模式，一側顯示全部投影片縮覽、主區顯示當前頁 |
+| 播放模式全螢幕導覽 | 檢視模式中 | 點「播放」並按 ←/→ | 進入全螢幕、可前後翻頁，`Esc` 退出，頁碼 / 進度列正確 |
+| 互動元件可操作 | 某頁嵌入既有 motion 元件 | 播放至該頁操作元件 | 元件維持互動（island 正常 hydrate） |
+| 生成 dev-only、播放正式可用 | 部署於 Netlify | 開啟含簡報的筆記 | 不顯示「生成簡報」按鈕，但「簡報」入口與播放正常運作 |
+| locked 不被覆寫 | 某筆記 `presentation.status: locked` | 作者請 Claude Code 重新生成 | 該簡報跳過，slides 檔與 frontmatter 不變 |
+| 統計反映簡報 | 新生成一份簡報並重新 build | 重新載入 Dashboard | 「已生成簡報」統計 +1 |
+
+## 待釐清
+
+### Q1. 正式環境對「未生成簡報」的筆記，功能列是否顯示「簡報」入口？
+
+- [x] **隱藏入口**：無簡報就不顯示入口，讀者不會點到空頁
+- [ ] 顯示為 disabled：一致的功能列版位，hover 提示「本篇尚無簡報」
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-07-29）：正式環境隱藏入口，讀者不需感知未生成狀態；dev 環境一律顯示「生成簡報」以供作者觸發。
+
+### Q2. slides 檔是「純資料 + 通用 Deck 元件」還是「每篇自帶版型渲染的元件」？
+
+- [x] **通用 `Deck` 元件 + 每篇資料檔**：版型渲染集中於系統維護、跨簡報一致性最高，AI 只產結構化 slides 資料、以 component id 引用要嵌入的互動元件
+- [ ] 每篇自帶渲染：最貼近現有 generated 元件慣例、版面可高度客製，一致性靠 Skill 約束
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-07-29，封裝相容性調查佐證）：採「通用 `Deck` + 每篇資料檔」。因通用 `Deck` / `SlideLayouts` 隨 npx package 出貨（`src/components/`），每個安裝 viewer 的人都免費得到一致的簡報渲染、AI 產物最小化最安全（見〈封裝相容性與實作備註〉）。
+
+#### 筆記轉簡報 — 封裝相容性與實作備註（\*）
+
+## 目標
+
+明確化「筆記轉簡報」在 NoteCraft 兩種運行模式下的落位，避免實作時破壞 `npx notecraftapp` 的可攜性。兩模式為：**主專案模式**（本 repo：筆記於 `src/content/notes/`、生成元件於 `src/components/generated/`、`@/` alias）與 **viewer / package 模式**（`npx notecraftapp view <dir>`：筆記於外部資料夾、生成元件於使用者專案 `.notecraft/components/`、`@notes` alias；skill-template 內的路徑由 `scripts/sync-skill-template.mjs` 的 `SUBSTITUTIONS` 於 publish 時自動改寫 `@/components/generated/` → `@notes/components/`、`src/components/generated/` → `.notecraft/components/`）。
+
+## 零件落位（皆沿用既有機制、屬純附加）
+
+- **隨 package 出貨**（`package.json` 的 `files` 白名單）：簡報頁面（`src/pages/`）、檢視 / 播放 island（`src/components/islands/`）、**通用 `Deck` 與版型元件**（`src/components/`）、frontmatter schema（`src/content/config.ts`）、統計與資料衍生（`src/lib/`）。
+- **AI 產物（slides `.tsx`）走與視覺化元件完全相同的管線**：寫進使用者專案 `.notecraft/components/`、由 `@notes` alias 解析、白名單套件靠 `astro.config.mjs` 的 `dedupe` 從 viewer app root 解析。slides 檔既是「被 present 頁 import 的元件」、也是「AI 生成放使用者專案」的產物，與 generated 元件同一種東西，因此天然相容。
+- **Skill / Subagent**：`content-present` + `present-planner` / `slide-generator` 併入 `skill-template/.claude/`，由 `init-skill` 安裝到使用者專案 `.claude/`。
+
+## 實作約束（實作階段務必遵守）
+
+1. **slides 產物攤平放置**：檔名 `.notecraft/components/<slug>.slides.tsx`（**不放子資料夾**；主專案模式對應 `src/components/generated/<slug>.slides.tsx`）。因 watcher 的 `isWatchedFile`（`bin/notecraftapp.mjs`）只認 `.notecraft/components/*.tsx` **恰好兩層**；放 `components/slides/<slug>.tsx`（三層）不會觸發 viewer 的自動 rebuild。
+2. **簡報路由獨立**：採 `src/pages/present/[...slug].astro`（URL `/present/[slug]`）。因筆記頁為 catch-all `notes/[...slug].astro`（rest 參數），Astro 不允許其後再接靜態子路由，故不採 `/notes/[slug]/present`。
+3. **通用 `Deck` 放 package**：版型渲染集中於系統維護的 `Deck` / `SlideLayouts` 元件（隨 package 出貨），AI 只產出 slides 資料 + 以 component id 引用要嵌入的互動元件；確保每個安裝 viewer 的人都得到一致的簡報渲染、產物最小化（見前節〈待釐清 Q2〉收斂）。
+4. **schema 附加且向後相容**：`presentation` 為 optional，舊筆記無此欄位即「無簡報」，行為不變。
+5. **sync 腳本登錄**：新增 skill / agents 後需在 `scripts/sync-skill-template.mjs` 的 `AGENT_NAMES` 與 skill 複製清單登錄新名稱（路徑改寫自動套用），並 bump 對應 VERSION；`prepublishOnly` 會跑 `sync-skill`。
+
+## 卡控機制
+
+- 主專案模式與 viewer 模式的產物路徑差異，僅靠命名與 sync `SUBSTITUTIONS` 對映；slides 檔的 import 寫法（`@/components/generated/` vs `@notes/components/`）由 `content-present` SKILL 沿用 `content-visualize` 既有慣例撰寫，交由 sync 腳本統一改寫，**不得在 SKILL 內寫死 viewer 路徑**。
+- watcher、`files` 白名單、`dedupe` 白名單若因簡報需求需調整，屬 CLI / 建置層變更，須與既有視覺化管線一併回歸測試。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| viewer 模式可播放簡報 | 使用者以 `npx notecraftapp view <dir>` 開啟含簡報的外部筆記夾 | 進入 `/present/[slug]` | 簡報正確渲染，slides 檔從 `.notecraft/components/` 解析、互動元件正常 hydrate |
+| slides 變更觸發 rebuild | viewer serve 模式執行中 | 更新 `.notecraft/components/<slug>.slides.tsx` | watcher 命中、背景 rebuild、頁面 auto reload |
+| 新 skill 隨 package 安裝 | 使用者專案尚無 `.claude/skills/content-present` | 執行 init-skill | content-present SKILL 與兩個 agent 被複製到專案 `.claude/`、路徑已改寫為 viewer 版 |
+
+#### 簡報生成 Subagent 與 Skill 設計（\*）
+
+## 目標
+
+定義「筆記轉簡報」的 AI 生成管線。**核心原則：完全隔離、純附加** —— 既有四個 Subagent（`note-scanner` / `visualize-planner` / `component-generator` / `mdx-writer`）與 `content-visualize-skill` **一律不修改**；簡報功能以獨立的「一個 Skill ＋ 兩個新 Subagent」實作。兩條管線唯一的共同接觸點是唯讀的 [trendlink-design](#skills) 與 `generated/` 目錄慣例，皆不需改動既有設定。
+
+## 規格
+
+- 新增 Skill `content-present`（`.claude/skills/content-present/SKILL.md`）：描述何時生成簡報、如何把一篇筆記切成有節奏的多頁簡報（敘事決策要點：抓全文主線 → 分章 → 每頁一個重點 → 選版型 → 決定沿用哪些既有互動元件）、版型詞彙、技術約束（產物路徑、slide 資料結構、import 白名單、16:9、`client:*` 規則），並以 [trendlink-design](#skills) 為樣式基準。與 `content-visualize-skill` 職責正交、互不引用。
+- 新增兩個 Subagent（部署於 `.claude/agents/`）：
+  - **present-planner**（model: sonnet；tools: Read, Glob, Grep）—— 唯讀。讀取整篇筆記與其既有 generated 元件，依 content-present 決策規劃簡報大綱：頁數、每頁版型與重點、要沿用 / 改寫哪些互動元件，產出可交給 slide-generator 的規劃書。
+  - **slide-generator**（model: sonnet；tools: Read, Write, Edit, Bash, Glob, Grep）—— 可寫檔。依規劃書生成 `slides/<slug>` 產物，執行 `tsc --noEmit` + `astro build` 驗證、失敗自動修最多 3 次，通過後寫回筆記 frontmatter 的 `presentation` 區塊（`status: generated` / `updatedAt`）。驗證迴圈與寫回慣例以「複製到本 agent 指示」的方式帶入，**不呼叫、不改動** component-generator / mdx-writer。
+- 主 Agent 依 content-present Skill 委派：present-planner 規劃 → slide-generator 生成驗證寫回。單一 slides 檔情境不另設 scanner（作者以按鈕針對單篇觸發）。
+
+## 卡控機制
+
+- 兩個新 Subagent 與 content-present Skill 的檔案與既有四 agent / content-visualize **完全分離**；審查時應確認既有檔案零 diff。
+- slide-generator 驗證未過不寫回 frontmatter，比照既有生成流程。
+- content-present 需在 SKILL.md 標明「適用 / 不適用情境」，避免與 content-visualize 混用。
+
+## 驗收標準
+
+| Scenario | Given | When | Then |
+| --- | --- | --- | --- |
+| 既有管線零影響 | 加入簡報功能後 | 執行既有 `@ai-visualize` 生成 | note-scanner / visualize-planner / component-generator / mdx-writer 與 content-visualize 的行為與檔案不變 |
+| 規劃與生成分離 | 作者觸發生成簡報 | 主 Agent 委派 | 先 present-planner 產規劃書、再 slide-generator 生成驗證寫回 |
+| 驗證失敗處理 | slide-generator 產物有型別錯誤 | 偵測到 build 失敗 | 內部修正重試最多 3 次，仍失敗則 `presentation.status: failed`、不寫回半成品、對話回報 |
+
+## 待釐清
+
+### Q1. slide-generator 是否兼任 frontmatter 寫回，還是另拆 slide-writer？
+
+- [x] slide-generator 兼任（新增 **2 個** Subagent）：單一 slides 檔情境，生成與 status 寫回耦合度低、不需再拆
+- [ ] 另拆 slide-writer（新增 3 個）：與既有 visualize 那組對稱
+- [ ] 其他
+
+> 已收斂（作者拍板 2026-07-29）：新增 2 個 Subagent（present-planner + slide-generator），slide-generator 兼任 frontmatter 寫回。單篇單檔情境無需拆到三個，維護成本更低。
 
 #### AI Subagent 與 Skill 設計
 
@@ -2278,6 +2435,19 @@ model: haiku
 
 **理由：** 純內容渲染、build 階段完成、無執行時 API、正式環境一致；與 AI 標記區塊機制正交。依賴 Phase 4.9 的 `remark-directive` 底座，無新外部依賴。
 
+#### Phase 4.12 — 筆記轉簡報（v1.9.0 追加）
+
+**目標：一篇筆記一鍵轉為可全螢幕播放的多頁簡報**
+
+- 新增 `content-present` Skill（`.claude/skills/content-present/SKILL.md`）+ 兩個新 Subagent（`present-planner`、`slide-generator`），**與既有 `@ai-visualize` 管線完全隔離、零改動**
+- slides 產物（`src/components/generated/slides/<slug>`）+ 筆記 frontmatter `presentation` 中繼 / 狀態（`prompt` / `status` / `updatedAt`）
+- 筆記檢視頁功能列「生成簡報」（dev-only，複製提示詞）與「簡報」入口
+- 簡報模式路由 `/present/[slug]`：檢視模式（縮覽 + 當前頁）與播放模式（Fullscreen、鍵盤 ←/→/Esc 導覽、大綱跳頁）；既有互動元件原樣嵌入維持可互動；16:9、遵循 [trendlink-design](#skills)
+- 版型詞彙：cover / section / bullets / media / full-visual / compare / quote / closing
+- Dashboard 新增「已生成簡報」統計（build-time 依 `presentation.status` 預計算）
+
+**理由：** 延續 AI-in-Claude-Code、無執行時 API 的一貫模型；生成 dev-only、播放正式可用；純附加、既有管線零改動。匯出（PDF / PPTX）本期不做，列為後續。
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2369,6 +2539,11 @@ gantt
 - `component-generator`（model: sonnet；tools: Read, Write, Edit, Bash, Glob, Grep）— 撰寫元件原始碼、執行 tsc / astro build 驗證
 - `mdx-writer`（model: haiku；tools: Read, Edit）— 寫回 MDX 的 import、JSX 與 status
 
+簡報管線專屬（與上述四個完全隔離，詳見 §7.1 [簡報生成 Subagent 與 Skill 設計](#簡報生成-subagent-與-skill-設計)）：
+
+- `present-planner`（model: sonnet；tools: Read, Glob, Grep）— 讀整篇筆記與既有元件，規劃簡報大綱、頁數與版型
+- `slide-generator`（model: sonnet；tools: Read, Write, Edit, Bash, Glob, Grep）— 生成 slides 產物、執行 tsc / astro build 驗證、寫回筆記 frontmatter `presentation`
+
 未列入初版的擴充候選：
 
 - Technical Writer — 協助補強筆記文字內容（待需要時再加入）
@@ -2376,7 +2551,8 @@ gantt
 ### 9.2 Skills
 
 - `content-visualize-skill`（系統內維護；單一統一 Skill，內部以決策樹自行判斷生成何種視覺化或互動，詳見 §7.1 [content-visualize-skill 定義](#content-visualize-skill-定義)）
-- `trendlink-design`（外部既有 design system Skill；定義色票、字級、間距、圓角、陰影等視覺語彙。由 `content-visualize-skill` 在生成元件時讀取作為樣式基準）
+- `content-present`（系統內維護；獨立於 `content-visualize-skill`，負責「筆記 → 多頁簡報」的敘事切分、版型選用與 slides 生成，詳見 §7.1 [簡報生成 Subagent 與 Skill 設計](#簡報生成-subagent-與-skill-設計)。與 content-visualize 職責正交、互不引用；同樣以 `trendlink-design` 為樣式基準）
+- `trendlink-design`（外部既有 design system Skill；定義色票、字級、間距、圓角、陰影等視覺語彙。由 `content-visualize-skill` 與 `content-present` 在生成元件 / 簡報時讀取作為樣式基準）
 
 ### 9.3 Hooks
 
@@ -2400,13 +2576,17 @@ gantt
 
   寫在 MDX 中的特殊 MDX 註解（`{/* @ai-visualize ... */}`），包含 `id`、`type`、`prompt`、`status` 等欄位，是 AI Agent 識別「該在何處生成什麼」的依據
 
+- ### 簡報（Presentation）
+
+  由 [content-present Skill](#簡報生成-subagent-與-skill-設計) 讀取整篇筆記（文字 ＋ 既有 [Generated 元件](#generated-元件)）重新編排成的一份**多頁投影片**。每篇筆記至多一份，產物為獨立 slides 檔（`src/components/generated/slides/<slug>`），中繼與狀態存於筆記 frontmatter 的 `presentation` 區塊。讀者於簡報模式（`/present/[slug]`）以「檢視 / 全螢幕播放」兩態瀏覽。生成為 dev-only，播放正式環境亦可用
+
 - ### AI Agent
 
   AI 協作系統的執行載體，本系統採用 [Claude Code](https://claude.com/claude-code)。作者在本機開啟 Claude Code 並以自然語言請其處理筆記，Claude Code 依專案內 `.claude/skills/` 下的 Skill 定義主動讀取標記區塊、規劃技術方案、生成元件並寫回 MDX。系統不另外維護獨立的 AI Agent 執行檔或 CLI 入口
 
 - ### AI Subagent
 
-  Claude Code 原生功能：放在 `.claude/agents/<name>.md` 的獨立 agent 配置，擁有自己的 system prompt、工具白名單、模型設定與獨立 context window。本系統定義四個 Subagent：`note-scanner`（掃描）、`visualize-planner`（規劃）、`component-generator`（生成）、`mdx-writer`（寫回），由主 Agent 依任務委派，完整定義詳見 §7.1 [Subagents 定義](#subagents-定義)
+  Claude Code 原生功能：放在 `.claude/agents/<name>.md` 的獨立 agent 配置，擁有自己的 system prompt、工具白名單、模型設定與獨立 context window。本系統為 AI 視覺化管線定義四個 Subagent：`note-scanner`（掃描）、`visualize-planner`（規劃）、`component-generator`（生成）、`mdx-writer`（寫回），由主 Agent 依任務委派，完整定義詳見 §7.1 [Subagents 定義](#subagents-定義)；另有簡報管線專屬的 `present-planner`（規劃）、`slide-generator`（生成 / 驗證 / 寫回）兩個 Subagent，與上述四個**完全隔離、互不影響**，詳見 §7.1 [簡報生成 Subagent 與 Skill 設計](#簡報生成-subagent-與-skill-設計)
 
 - ### Skill
 
@@ -2427,6 +2607,19 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.9.0] - 2026-07-29
+- **Added**: §7.1 新增「筆記轉簡報（Note → Presentation）」與「簡報生成 Subagent 與 Skill 設計」兩節 —— 一篇筆記一鍵轉為可全螢幕播放的多頁簡報；AI 於本機經複製提示詞觸發、無執行時 API；生成 dev-only、播放正式環境亦可用
+  - 產物：獨立 slides 檔（`src/components/generated/slides/<slug>`），每篇一份、含多頁 slide 陣列；中繼 / 狀態存於筆記 frontmatter `presentation` 區塊（`prompt` / `status` / `updatedAt`）
+  - 簡報模式路由 `/present/[slug]`：檢視模式（投影片縮覽 + 當前頁）與播放模式（Fullscreen、鍵盤 ←/→/Esc 導覽、大綱跳頁）；既有互動 [Generated 元件](#generated-元件) 原樣嵌入維持可互動；版面 16:9、遵循 [trendlink-design](#skills)
+  - 版型詞彙：cover / section / bullets / media / full-visual / compare / quote / closing
+- **Isolation**: 新增 Skill `content-present` ＋ 兩個 Subagent（`present-planner`、`slide-generator`），與既有四個 Subagent、`content-visualize-skill` **完全隔離、零改動**；驗證迴圈與寫回慣例以複製指示方式帶入新 agent，不呼叫 / 不修改既有 agent
+- **Updated**: §4.1 核心目標新增第 23 項；§5 Site Map 新增 `/present/[slug]`；§8.1 新增 Phase 4.12；§9.1 Subagents 新增 `present-planner` / `slide-generator`；§9.2 Skills 新增 `content-present`；§10 術語表新增「簡報」條目、AI Subagent 條目補述隔離的簡報管線
+- **Dashboard**: 新增「已生成簡報」統計（build-time 依 frontmatter `presentation.status` 預計算）
+- **Decided（2026-07-29 作者拍板 8 項）**: ① 產物＝獨立 slides 檔、每篇一份含多頁；② 每篇單一簡報、重生覆寫；③ 觸發＝功能列按鈕複製提示詞、狀態存 frontmatter `presentation`；④ 定位＝追加功能（\*）；⑤ 呈現＝獨立路由，分檢視 / 播放兩態；⑥ v1 導覽＝基本導覽＋大綱跳頁＋Fullscreen（暫不做講者模式）；⑦ 互動元件原樣嵌入維持可互動；⑧ 新增 2 個專責 Subagent、與既有管線完全隔離
+- **Decided（2026-07-29 封裝相容性調查後補 3 項）**: ⑨ 簡報路由採獨立 `src/pages/present/[...slug].astro`（URL `/present/[slug]`）—— 筆記頁為 catch-all rest route，Astro 無法接子路由；⑩ slides 產物攤平放 `.notecraft/components/<slug>.slides.tsx`，避開 viewer watcher「只認兩層」的盲點；⑪ 通用 `Deck` / 版型元件隨 package 出貨、AI 只產 slides 資料（§7.1 待釐清 Q2 收斂為「通用 Deck + 資料檔」）
+- **Compat**: §7.1「筆記轉簡報」新增〈封裝相容性與實作備註〉小節 —— 釐清主專案 / viewer（npx）兩模式下簡報各零件落位（package `files` 出貨 vs 使用者 `.notecraft/` 同步），列出 watcher 深度、獨立路由、`sync-skill-template.mjs` 登錄等實作約束；§7.1 待釐清 Q1（正式環境未生成入口）收斂為「隱藏」
+- **Out of scope（本期）**: 匯出 PDF / PPTX、多版本簡報、講者備註 / 演示者模式（未來再補）
 
 ### [1.8.0] - 2026-06-22
 - **Added**: §7.1 新增「Markdown 擴充語法：Badge」與「Markdown 擴充語法：Steps」兩節

@@ -26,7 +26,8 @@ type Name =
   | "external"
   | "menu"
   | "star"
-  | "download";
+  | "download"
+  | "play";
 
 export interface Props {
   name: Name;
@@ -39,6 +40,7 @@ export interface Props {
 const { name, size = 20, stroke = 1.9, class: className, style } = Astro.props;
 
 const paths: Record<Name, string[]> = {
+  play: ['<polygon points="6 3 20 12 6 21 6 3" />'],
   dashboard: [
     '<rect x="3" y="3" width="7" height="9" rx="1.5"/>',
     '<rect x="14" y="3" width="7" height="5" rx="1.5"/>',

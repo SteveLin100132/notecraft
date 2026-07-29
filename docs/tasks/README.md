@@ -67,4 +67,21 @@
 
 > **皆依賴 [Task 14](task-14-markdown-directive-admonitions.md) 的 `remark-directive` 底座**，無新外部依賴。八項待釐清已於 2026-06-22 收斂：Badge — ① variant 語意色 + **與 Admonitions 共用 token**、② 預設 solid、③ v1 支援 `icon`、④ v1 支援 `href`；Steps — ① 預設 vertical、② 支援 `status` 三態、③ `< 640px` 強制降級、④ step 內全支援巢狀 Markdown。
 
+## v1.9.0 追加功能（§8.1 Phase 4.12）— 筆記轉簡報
+
+> 設計交接包：`~/Downloads/design_handoff_note_to_deck/`（`README.md` + `source_reference/deck.jsx`、`present.jsx` 為版型與行為權威）。本輪範圍＝**渲染 + 檢視/播放 + 工具列入口 + 範例 deck**；AI 生成端（`content-present` SKILL、`present-planner`/`slide-generator` agent）為 PRD 已規劃之獨立後續 phase，不在本輪。
+
+| Task | 功能 | PRD spec | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 23](task-23-deck-data-model-resolution.md) | Deck 資料模型 + 兩模式列舉解析（基礎 / spike） | 筆記轉簡報 + 封裝相容性 | `lib/decks.ts`（`Deck`/`Slide` 型別、`import.meta.glob` 合併 `@/`+`@notes`） |
+| [Task 24](task-24-deck-theme-slide-layouts.md) | Deck 主題 token + 8 種版型元件 | 筆記轉簡報 §版型詞彙 | `components/deck/theme.ts`、`components/deck/slideLayouts.tsx`（token 直用、lucide、full-visual 收 viz 參照） |
+| [Task 25](task-25-slide-frame-scaling.md) | SlideFrame 16:9 等比縮放 | 筆記轉簡報 §畫布與縮放 | `components/deck/SlideFrame.tsx`（`useMeasure`、scale） |
+| [Task 26](task-26-present-app-island.md) | PresentApp island（檢視 / 播放 / 大綱 / 主題） | 筆記轉簡報 §簡報模式 | `islands/PresentApp.tsx`（Fullscreen API、鍵盤、localStorage 主題） |
+| [Task 27](task-27-present-route-layout.md) | `/present/[...slug]` 路由 + 無側邊欄外殼 | 筆記轉簡報 §簡報模式、封裝相容性 | `layouts/PresentLayout.astro`、`pages/present/[...slug].astro`（getStaticPaths、`client:only`） |
+| [Task 28](task-28-sample-deck.md) | 範例 deck（端到端驗證） | 筆記轉簡報 | `components/generated/role-responsibility-rr.deck.tsx`（接真的 `rr-raci`） |
+| [Task 29](task-29-note-toolbar-entry.md) | 筆記頁功能列簡報入口 + 生成簡報鈕 | 筆記轉簡報 §觸發、待釐清 Q1 | `pages/notes/[...slug].astro`、`islands/GenerateDeckButton.tsx` |
+| [Task 30](task-30-keyframes-dashboard-stat.md) | 動效 keyframes + Dashboard 簡報統計 | 筆記轉簡報 §Dashboard、§Interactions | `styles/global.css`（keyframes）、`lib/notes.ts`、`pages/index.astro` |
+
+> **Task 23 為 24～30 的基礎，先做**（含唯一 spike：`import.meta.glob` 對 `@notes` alias 的兩模式列舉；spike 不過走 fs 列舉退路，於 Task 23 內定案）。三項對齊設計交接的決策已於 2026-07-29 收斂：① deck 產物採 **`.tsx` 模組**（`src/components/generated/<slug>.deck.tsx`，攤平兩層符合 watcher），**非** content collection；② `full-visual` **直接 import 生成元件、以 component 參照傳入**（取代原型 `vizId` + `window.GENERATED` registry）；③ 主題 **跟隨系統 + localStorage 記憶**。版型庫（decklib）頁 v1 延後。
+
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。
