@@ -8,3 +8,6 @@ dist
 .env.*
 !.env.example
 tmp/
+
+# 私有筆記：不進 git、不 publish 到 Netlify（含內部基礎架構手冊與其截圖）
+src/content/notes/private/
