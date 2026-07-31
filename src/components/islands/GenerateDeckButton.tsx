@@ -2,10 +2,15 @@
 import { useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 
-export default function GenerateDeckButton({ slug }: { slug: string }) {
+export default function GenerateDeckButton({ slug, notePath }: { slug: string; notePath?: string }) {
   const [copied, setCopied] = useState(false);
   const onClick = async () => {
-    const template = `請把 src/content/notes/${slug}.mdx 轉成 16:9 簡報：套用 deck 版型庫（cover / section / bullets / media / full-visual / compare / quote / closing），沿用筆記中既有的 @ai-visualize 互動元件，輸出到 src/components/generated/${slug}.deck.tsx`;
+    // 刻意**不列舉版型、也不寫輸出路徑** —— 兩者都由 content-present Skill 定義：
+    //   - 版型詞彙會隨改制變動（v0.2 已從 8 種收成 6 種），在這裡列一份必然過時
+    //   - 輸出路徑兩種模式不同（主專案 src/components/generated/、viewer .notecraft/components/），
+    //     Skill 的 viewer 版由 sync-skill-template 自動改寫，這裡寫死只會錯一邊
+    const src = notePath ?? `src/content/notes/${slug}.mdx`;
+    const template = `請依 content-present Skill 把 ${src} 轉成 16:9 簡報，沿用筆記中既有的 @ai-visualize 互動元件。`;
     try {
       await navigator.clipboard.writeText(template);
       setCopied(true);

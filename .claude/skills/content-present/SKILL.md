@@ -1,11 +1,11 @@
 ---
 name: content-present
-description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck）。當作者在 Claude Code 說「生成簡報」「把這篇筆記轉成簡報」「重新生成 xxx 的簡報」，或把筆記功能列「生成簡報」按鈕複製的提示詞貼進來時使用。產物為 src/components/generated/<slug>.deck.tsx 資料模組，沿用筆記中既有的 @ai-visualize 互動元件、版面遵循 trendlink-design。Also triggers on English like "generate a presentation / slide deck from this note".
+description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck）。當作者在 Claude Code 說「生成簡報」「把這篇筆記轉成簡報」「重新生成 xxx 的簡報」，或把筆記功能列「生成簡報」按鈕複製的提示詞貼進來時使用。產物為 src/components/generated/<slug>.deck.tsx 模組，內容頁自由排版但一律組合系統的原子層、沿用筆記中既有的 @ai-visualize 互動元件、版面遵循 trendlink-design。Also triggers on English like "generate a presentation / slide deck from this note".
 ---
 
 # Content Present Skill
 
-把「一篇筆記」重新編排成「一份可全螢幕播放的多頁簡報」。簡報是**整篇筆記層級**的產物：抓出主線、切成有節奏的章節、每頁一個重點，並沿用筆記中既有的互動元件。
+把「一篇筆記」重新編排成「一份可全螢幕播放的多頁簡報」。簡報是**整篇筆記層級**的產物：抓出主線、切成有節奏的章節、每頁講完一件事，並沿用筆記中既有的互動元件。
 
 **與 content-visualize 正交、互不引用**：content-visualize 把「一段內容」變成「一個嵌入筆記的互動元件」；content-present 把「整篇筆記」變成「一份簡報」。既有四個 Subagent（note-scanner / visualize-planner / component-generator / mdx-writer）與 content-visualize 一律不動。
 
@@ -19,87 +19,262 @@ description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck
 - 只想生成單一、嵌入筆記內文的視覺化元件 → 改用 content-visualize
 - 只做文字校對 / 潤稿
 
-## 產物與資料契約（最重要）
+## 產物與核心契約（最重要）
 
-**採「通用 Deck 元件 + 每篇資料檔」**：8 種版型的渲染、色彩、字級、間距全部由系統元件（`src/components/deck/`）依 trendlink-design 決定。你要產出的只是一份**資料模組**——選對 layout、填好內容、引用要嵌入的互動元件。**deck 檔不寫任何顏色 / className / style / Tailwind。**
+一篇筆記至多一份 deck。產物路徑：`src/components/generated/<slug>.deck.tsx`（**攤平命名、與筆記 slug 一致，不放子資料夾**）。`<slug>` = 筆記檔名去副檔名。**一份 deck 一個檔、不設行數上限**；`custom` 頁的元件就定義在同一個檔案裡，緊接資料物件之前。
 
-- 一篇筆記至多一份 deck。產物路徑：`src/components/generated/<slug>.deck.tsx`（**攤平命名、與筆記 slug 一致，不要放子資料夾**）。`<slug>` = 筆記檔名去副檔名（也就是 `/notes/<slug>` 的 slug）。
-- 模組 `export default` 一個 `Deck` 物件，型別來自 `@/lib/decks`：
+模組 `export default` 一個 `Deck` 物件，型別來自 `@/lib/decks`。
 
-  ```ts
-  interface Deck { slug; title; eyebrow; generatedAt; source; slides: Slide[] }
-  interface Slide {
-    layout: "cover"|"section"|"bullets"|"media"|"compare"|"full-visual"|"quote"|"closing";
-    nav: string;               // 縮覽 / 大綱短標題（每頁必填）
-    eyebrow?; title?; subtitle?; lead?; body?;
-    num?; meta?: string[]; points?: string[];
-    items?: Array<{k;v;tone?:"blue"|"orange"|"muted"} | {n;k;v}>;
-    left?; right?: {tag;name;tone:"blue"|"orange";rows:[string,string][]};
-    mediaLabel?; mediaHint?;
-    viz?: React.ComponentType;  // full-visual：直接持有生成元件
-    vizLabel?; vizHint?;
-    quote?; by?; byMeta?; cta?; ctaMeta?;
-  }
-  ```
+**契約分兩半，不要搞混：**
 
-- **沿用互動元件（不要重畫）**：`full-visual` 版型要嵌入筆記既有的 @ai-visualize 元件時，**直接 `import` 該元件、放進 slide 的 `viz` 欄位**（component 參照，不是字串 id）：
+| 頁型 | 性質 | 你可以寫什麼 |
+| --- | --- | --- |
+| `cover` / `section` / `quote` / `closing` / `full-visual` | **純資料** | 只填欄位。**不寫任何樣式** |
+| `custom` | **元件** | 可以寫版面，但只能組合原子層（§原子層）。**不硬編色碼、不自己畫 chrome** |
 
-  ```tsx
-  import type { Deck } from "@/lib/decks";
-  import RrRaci from "@/components/generated/rr-raci";
-  const deck: Deck = { /* … */ slides: [
-    { layout: "full-visual", nav: "RACI 互動矩陣", eyebrow: "INTERACTIVE",
-      title: "RACI Matrix — 播放時仍可點選操作",
-      viz: RrRaci, vizLabel: "@ai-visualize · rr-raci",
-      vizHint: "沿用筆記中已生成的互動元件，播放時可直接點選。" },
-  ]};
-  export default deck;
-  ```
+`custom` 的自由度是「怎麼組合、要不要自己畫」，**不是**「要不要遵守設計系統」。
 
-  可用的 viz = 該筆記 MDX 中 `import ... from '@/components/generated/<id>'` 已存在者。**不要 import 不存在的 id。**
-- deck 檔的 import **僅限**：`@/lib/decks`（型別）、`@/components/generated/<id>`（筆記既有的生成元件）。**不要 import 任何外部套件**（deck 只是資料，版型渲染由系統負責）。
-
-## 版型詞彙（8 種，各自取用的欄位）
+## 版型詞彙（6 種）
 
 | layout | 用途 | 取用欄位 |
 | --- | --- | --- |
-| `cover` | 封面 | `eyebrow` `title` `subtitle` `meta[]` |
-| `section` | 章節分隔 | `num`（如 "01"） `eyebrow` `title` `subtitle` |
-| `bullets` | 重點條列（2×2） | `eyebrow` `title` `lead` `items[{k,v,tone?}]`（tone: blue/orange/muted） |
-| `media` | 圖文並排 | `eyebrow` `title` `body` `points[]` `mediaLabel` `mediaHint` |
-| `compare` | 左右對比 | `eyebrow` `title` `left`/`right{tag,name,tone,rows:[[k,v]]}`（左 blue、右 orange 慣例） |
-| `full-visual` | 全幅視覺（嵌互動元件） | `eyebrow` `title` `viz`(import) `vizLabel` `vizHint` |
+| `cover` | 封面 | `eyebrow` `title` `subtitle` `meta[]` `agenda[{n,title,sub}]` |
+| `section` | 章節分隔 | `num`（如 "01"） `eyebrow` `title` `subtitle` `numScale`("mega"\|"hero") `align`("left"\|"center") `tone`("dark" 預設\|"light") |
+| `custom` | **內容頁主力** | `render`（同檔定義的元件） `chrome`（預設 true） + 下方 chrome 欄位 |
+| `full-visual` | 全幅視覺（嵌既有互動元件） | `title` `viz` `viz2`（兩幅並排） `vizLabel` `vizHint` |
 | `quote` | 引言 | `eyebrow` `quote` `by` `byMeta` |
-| `closing` | 結語回顧 | `eyebrow` `title` `items[{n,k,v}]`（3 項） `cta` `ctaMeta` |
+| `closing` | 結語回顧 | `title` `items[{n,k,v}]`（3 項） `cta` `ctaMeta` `tone`("light" 預設\|"dark") |
 
-- 每個 slide 都要 `nav`（縮覽 / 大綱短標題）。`bullets` 最佳為 4 格（2×2）、`closing` 固定 3 欄。
+**每頁都要 `nav`**（縮覽 / 大綱短標題）。
 
-## 敘事切分原則（把一篇筆記變成一份簡報）
+### chrome 欄位（`custom` / `full-visual` / `closing` 共用）
+
+系統的 `SlideChrome` 會畫：編號徽章、kicker、標題 + 淡色註解、橘色底線、右上 pill、legend、註腳、callout、頁碼 footer。**`custom` 頁不准自己畫這些**。
+
+`num` `eyebrow` `title` `titleNote` `pill{text,tone}` `legend[{label,tone,icon}]` `callout{icon,text|items[],chip,tone}` `footnotes[{n,text}]`
+
+### `IconName`（chrome 與 block 的 `icon` 欄位只能用這 21 個）
+
+`alert` `check` `x` `info` `lightbulb` `target` `clock` `user` `users` `database` `lock` `gauge` `layers` `file` `folder` `link` `cloud` `plug` `git-branch` `settings` `trend-up`
+
+系統會查表對映 lucide-react。**寫其他名字 tsc 會直接報錯。** 需要表外的 icon 就在 `custom` 頁自己 `import { … } from "lucide-react"`。
+狀態色（`good`/`warning`/`critical`）沒給 `icon` 時系統自動補 `check`/`alert`/`x`。
+
+### `custom` 與 `full-visual` 的分界
+
+| 情況 | 用哪個 |
+| --- | --- |
+| 沿用筆記中**既有**的 @ai-visualize 元件（播放時可互動） | `full-visual` |
+| 這一頁的視覺是**為簡報現生**的 | `custom` |
+| 既有元件 + 額外的簡報用排版（標題、KPI、註解） | `custom`，內部 `import` 該元件 |
+
+`chrome: false`（整頁滿版視覺）需在規劃書寫明理由。
+
+## 原子層（`custom` 頁只能用這些）
+
+### 字級與間距 —— `@/components/deck/scale`
+
+```ts
+import { DS, DGAP, DTRACK } from "@/components/deck/scale";
+```
+
+`DS`：`mega 216` / `hero 116` / `h1 62` / `h2 40` / `h3 30` / `h4 24` / `body 20` / `small 17` / `micro 14` / `eyebrow 13`（1600×900 座標系的 px）。
+**字級一律取自 `DS`，不寫字面數字。** 內容頁主標由 chrome 用 `DS.h2` 畫，你在內容區用 `DS.h3` 當區塊標題、`DS.body` 當主述、`DS.small` 當細描述。
+
+`DGAP`：`xs 8` / `sm 16` / `md 24` / `lg 40` / `xl 64`。用 flex/grid + `gap`，不用逐元素 margin。
+`DTRACK`：`tight`（大標）/ `label`（uppercase kicker）。
+
+### 顏色 —— `@/components/deck/theme`
+
+```ts
+import { dkt } from "@/components/deck/theme";
+const c = dkt(dark);   // dark 來自 CustomSlideProps
+```
+
+`c.ink` / `c.body` / `c.muted`（文字墨色）、`c.brand` / `c.accent` / `c.seriesMuted`（識別色）、`c.good` / `c.warning` / `c.critical`（狀態色）、各自的 `*Soft` 底色、`c.slide` / `c.sunken` / `c.border` / `c.borderSoft`。
+
+**禁止硬編色碼。** 需要顏色就從 `c` 取；`SeriesTone`/`StatusTone` 對映用 `toneColor(tone, c)`（`@/components/deck/SlideChrome`）。
+
+### Block 元件庫（6 個）—— `@/components/deck/blocks`
+
+```tsx
+import { Rows, Cards, Stages, Kpi, Table, Compare } from "@/components/deck/blocks";
+```
+
+| 元件 | 用途 | 建議上限 |
+| --- | --- | --- |
+| `<Rows>` | N 列清單，每列可帶右欄註記（`noteLabel`/`note`） | 6 列 |
+| `<Cards>` | N 欄卡片，可分組帶色帶（`groups`）、`badge`、`chips`、`points`、`meta` | 6 欄 |
+| `<Stages>` | 水平流程段，`variant`: plain / active / dashed | 5 段 |
+| `<Kpi>` | 數字帶 / stat tile，`emphasis` 為大數字卡 | 5 格 |
+| `<Table>` | 表格 / 對照矩陣，cell 可帶 `icon`/`note`/`tone`/`emphasis`，`highlightCol` 整欄強調 | 6 欄 × 6 列 |
+| `<Compare>` | 左右對比：`tag`/`name`/`badge`/`rows`/`pros`/`cons` + 中央 VS 軸 | — |
+
+每個都收 `dark`，可給 `heading` 與 `style`。它們內部已處理字級階梯、`text-wrap: balance`、`tabular-nums` 與狀態色的 icon + 文字並行 —— **用它們就自動達成，自己寫 JSX 才要自己守**。
+
+**沒做成元件的三件事，直接寫 JSX**：左右分欄 → `display: flex` + `DGAP`；段落 → `<p>` + `DS.body`；嵌入既有元件 → 直接 `import` 進來放。
+
+### 嵌入既有元件的兩個必要處理
+
+筆記的 @ai-visualize 元件是為**網頁內文**設計的（高度隨內容長、頁面可往下滾），投影片是 1600×900 固定座標系。直接放進 `custom` 頁常常會出事：
+
+**1. 比 `area` 高 → 用 `<FitToArea>` 等比縮**
+
+```tsx
+import { FitToArea } from "@/components/deck/FitToArea";
+
+<FitToArea area={area}>
+  <SolutionArchitectureComparison />
+</FitToArea>
+```
+
+它量子元素的自然高度，需要時才縮（上限 1，不放大）。**不要自己寫 `transform: scale()` 硬編縮放比例** —— 元件內容一改，寫死的比例就錯了。
+
+**2. 含互動（按鈕 / 拖曳 / 動畫）→ `live === false` 時給占位，不要掛載**
+
+```tsx
+function ArchPage({ dark, live, area }: CustomSlideProps) {
+  if (!live) return <div style={{ … }}>GCP 部署架構 · 方案 A / B</div>;  // 縮覽用占位
+  return <FitToArea area={area}><SolutionArchitectureComparison /></FitToArea>;
+}
+```
+
+兩個理由：縮覽側欄會同時掛十幾頁（效能），而且**縮覽項本身是一個 `<button>`**，元件內的按鈕掛進去會變成 button 嵌 button 的無效 HTML。
+純靜態內容的 `custom` 頁不需要這個處理 —— 縮覽本來就該看得到內容。
+
+### import 白名單
+
+`custom` 頁允許：`@/lib/decks`（型別）、`@/components/deck/*`（原子層）、`@/components/generated/<id>`（筆記既有元件），以及套件 <!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`<!-- END:whitelist -->。
+
+其他套件**先在對話中徵詢作者**。動畫遵守專案規則：200–400ms ease-out、用 `useReducedMotion()`，且**只在 `live === true` 時啟動**（縮覽側欄會同時掛十幾頁，`live: false` 時啟動動畫會拖垮整頁）。
+
+### `CustomSlideProps`
+
+```ts
+function MyPage({ dark, live, area }: CustomSlideProps) { … }
+```
+
+- `dark` —— 取色用
+- `live` —— 主畫布 / 播放中為 true；縮覽為 false。動畫與計時器只在 true 時啟動
+- `area: {w,h}` —— chrome 佔用後剩下的可用區（px）。**溢出不會報錯、只會被靜靜裁掉**，這個值是你自我約束的依據
+
+`render` 外層已由系統包成一個高度確定的 flex 欄（含 `gap: DGAP.md`），所以直接回傳幾個 block 就會自動分配高度；要完全自訂版面就在裡面再包一層自己的 div。
+
+## 敘事切分原則
 
 1. **抓主線**：整篇筆記真正想讓讀者帶走的一句話是什麼？以此定 deck 的 `title`/`eyebrow` 與 `closing`。
-2. **切章節**：把內文分成數個推進段落，每段一頁；大主題轉折用 `section` 分隔。
-3. **一頁一重點**：每頁只講一件事；文字精簡到投影尺度（標題 + 幾行），不要整段搬。
-4. **選版型**：對比→`compare`、清單→`bullets`、流程 / 圖→`media` 或 `full-visual`、金句→`quote`、回顧→`closing`、開場→`cover`。
+2. **判定 treatment**：這篇是**內部備忘**（密度低、章節頁少、`custom` 頁以清單為主）還是**對外提案**（密度高、章節頁分明、可用 `chrome: false` 的滿版頁）？先定調，再決定每頁要多滿。
+3. **一頁一個完整論證**（不是「一頁一重點」）。對齊目標的內容頁會在同一頁放「三段演進 + 五個痛點 + 收斂結論」，而不是把這三件事拆成三頁。密度基準：
+
+   | 頁型 | 字數 | 主要區塊 |
+   | --- | --- | --- |
+   | `custom` 內容頁 | **200–800 字** | 2–3 個 |
+   | `section` 章節頁 | **40–60 字** | —（刻意留白） |
+
+   **節奏來自密度的極端對比** —— 內容頁很滿、章節頁只有一個大編號。不是每頁都塞滿。
+
+   **單一 block 撐滿整頁時，項數要接近上限**（`<Compare>` 每側 5–6 列、`<Rows>` 5–6 列、`<Cards>` 4–6 欄）。
+   block 會撐滿可用區 —— 一個只有 3 列的 `<Compare>` 佔掉整頁，下半部就是一大片空白。
+   內容真的只有 3 列時，選一個：加第二個 block（如 `pros`/`cons` 或一組 `<Kpi>`）、與相鄰段落合併成一頁、
+   或改用 `full-visual` 讓既有元件承擔那一頁。
+4. **選版型**：對比 → `<Compare>`；清單 → `<Rows>`/`<Cards>`；流程 / 時序 → `<Stages>`；數字 → `<Kpi>`；矩陣 → `<Table>`；沿用既有互動元件 → `full-visual`；金句 → `quote`；回顧 → `closing`。
 5. **沿用互動元件**：筆記裡最精彩的 @ai-visualize 元件，用 `full-visual` 原樣嵌入（播放時可互動），**不要重畫成靜態圖**。
-6. **控制頁數**：一般 6–12 頁；寧可精選，不要把整篇塞進去。
+6. **控制頁數**：一般 8–14 頁（含章節頁）。寧可精選，不要把整篇塞進去。
+
+## 圖表選型
+
+只要頁面上出現「數字的視覺呈現」，先照這張表決定形式，**顏色最後才想**：
+
+| 情況 | 用什麼 | 不要用 |
+| --- | --- | --- |
+| 單一數字（+ 一個副指標） | `<Kpi>`（`emphasis`） | 單柱長條圖、2 片圓餅 |
+| 幾個並列的頭條數字 | `<Kpi>` 一排 | 群組長條圖 |
+| 超過 7 個帶意義的色類別 | `<Table>` | 更多顏色 |
+| 一個系列是重點、其餘是背景 | emphasis：重點一色 + 其餘 `seriesMuted` 灰 | 八色類別 |
+| 量級 / 支援程度 / 熱度矩陣 | **單色階**（blue 由淺到深）+ icon | 綠黃紅混色 |
+| 正負 / 高於低於基準 | 兩色 + 灰中點 | 彩虹 |
+
+**硬規則：**
+
+- **絕不雙軸**（兩個 y 軸）。兩個量級不同的度量 → 兩張圖，或都指數化到同一基準。
+- **狀態色是保留色**：`good`/`warning`/`critical` 只在語意真的是好／注意／壞時使用，**絕不當第 4 個識別色**；而且一律 **icon + 文字標籤並行**，不讓色彩單獨承載語意。
+- **識別色只有** `blue` / `orange` / `muted` 三個（實測 blue↔orange 在亮色模式全項通過 CVD 檢查）。
+- **投影片上的圖必須直接標註或有 legend。** 播放時沒有滑鼠可懸停 —— tooltip 只是檢視模式的加分項，**不能是取得數值的唯一途徑**。
+- ≥2 個系列一定要有 legend；≤4 個系列同時直接標註。
+- **文字穿文字 token**（`c.ink`/`c.body`/`c.muted`），不要把系列色套到數值與標籤上；顏色由旁邊的色塊 / icon 承載。
+
+## 版面自檢（避免「AI 生成感」）
+
+動手前後各看一次：
+
+- 不要**每個**區塊都是圓角卡 + 左側色條。同一頁裡混用：有些用色條、有些只用留白與字級分層。
+- 不要全部居中。內容頁預設左對齊，居中留給 `section` 的 `align: "center"`。
+- **編號必須編碼真實資訊**。`num` / `RowItem.n` / `CardItem.n` / `closing.items[].n` 只在內容真的是序列（流程、時序、排名、章節順序）時才給；**平行清單不編號**，不要為了好看補 01/02/03。
+- 結構性裝飾（eyebrow、分隔線、legend）要說明真實的事，不要當視覺填充。
+- **禁止使用任何 emoji**（🚀 ✅ ⚠️ 等）。需要語意時用 `IconName` 交給系統畫，或在 `custom` 頁 import lucide-react。
+
+## 文案
+
+投影尺度、繁體中文。文字是設計材料，不是裝飾：
+
+- **主動語態**，用讀者認得的詞（說「合約管理」而不是「CLM 模組資料表」）。
+- **具體勝過聰明**。標題講結論（「Notion 不是終點，而是過渡」），不要只給主題（「關於 Notion」）。
+- 標題 ≤ 1 行（1600px 寬下約 20 個中文字）；`titleNote` 承接補充，不要塞進標題。
+- 每頁只留能唸出來的字。細節放 `callout` / `footnotes`，不要塞進正文。
 
 ## 工作流程（主 Agent 委派）
 
 1. 讀取指定筆記 `src/content/notes/<slug>.mdx`，並掃出其既有生成元件清單（`import ... from '@/components/generated/'`）。
-2. 委派 **present-planner**：規劃 deck 大綱（頁數、每頁 layout + 重點 + 要沿用哪些 viz）。
-3. 委派 **slide-generator**：依規劃書寫 `src/components/generated/<slug>.deck.tsx`、驗證、失敗自動修最多 3 次。
-4. 回報作者：頁數、用了哪些版型、嵌了哪些互動元件。
+2. 委派 **present-planner**：規劃 deck 大綱（頁數、每頁 layout、`custom` 頁的版面構想、要沿用哪些 viz）。
+3. 委派 **slide-generator**：依規劃書寫 `src/components/generated/<slug>.deck.tsx`，跑**第 1 層驗證**（型別 / build），失敗自動修最多 3 次。
+   - 委派時要告訴它：**本專案需 Node ^22**，預設 shell 的 `node` 可能是舊版，跑 build 前要
+     `export PATH="$HOME/.nvm/versions/node/v22.16.0/bin:$PATH"`；以及 `tsc` 的既有基準線錯誤數
+     （判定是「它改的檔案零錯誤、總數不變」，不是「零錯誤」）。
+4. **主 Agent 自己做第 2、3 層驗證**（見下方〈驗證〉）—— `slide-generator` 沒有瀏覽器工具，做不到這層。
+   發現問題就修，或帶著具體頁碼與症狀回委派 `slide-generator`。
+5. 回報作者：頁數、版型分布、用了哪些 block、嵌了哪些互動元件、**截圖檢查結果與修掉的問題**。
 
 重新生成時直接覆寫既有 deck 檔（作者以 git 保底）；若作者要保護手調過的 deck，會在對話中明說「跳過某篇」，此時不要覆寫。
 
 ## few-shot 範例（生成前先讀）
 
-`src/components/generated/role-responsibility-rr.deck.tsx` 是一份完整、正確的範例：8 頁、涵蓋全部 8 種版型、`full-visual` 嵌入 rr-raci。**動手前先讀它**，模仿其結構、欄位用法與中文文案密度。
+用 Glob 找 `src/components/generated/*.deck.tsx`，**動手前先讀一份**。重點看三件事：
 
-## 樣式
+1. 5 個固定版型的頁只有欄位、一個樣式都沒有
+2. `custom` 頁的元件怎麼定義在同一檔內、怎麼組合 block、`style={{ flex: "none" }}` 用在哪
+3. 中文文案的密度與長度（標題幾個字、`v` 幾個字、`callout` 多長）
 
-版面、色彩、字級、間距全由系統版型元件（`src/components/deck/`）依 `trendlink-design` 決定；deck 檔是純資料，**不碰樣式**。因此本 Skill 不需要像 content-visualize 那樣挑色票——只需選對 layout、填好內容。
+若一份都沒有（例如 viewer 場景下作者的筆記資料夾還沒有任何 deck），跳過這步，直接依本文的原子層與版型詞彙撰寫。
+
+> 注意：並非每份既有 deck 都已是 v0.2 形態。挑**含有 `layout: "custom"` 的那份**當範例；只有固定版型的舊 deck 只能參考那 5 種頁的寫法，不要照抄它的頁面組成。
 
 ## 驗證
 
-由 **slide-generator** 執行：主專案模式跑 `npx tsc --noEmit` + `npx astro build`；viewer（`npx notecraftapp`）模式下 cwd 只是 md/mdx 資料夾、**不能**跑上述指令，改為觀察 `npx notecraftapp serve` 的背景 rebuild（deck 檔寫到 `.notecraft/components/<slug>.deck.tsx` 會被 watcher 抓到）。詳見 slide-generator。驗證通過前不算完成。
+**三層都要過，但不是同一個人做。**
+
+| 層 | 誰做 | 內容 |
+| --- | --- | --- |
+| 1. 型別 / build | `slide-generator` | 主專案：`npx tsc --noEmit` + `npx astro build`；viewer：不能跑這兩個指令（cwd 只是 md/mdx 資料夾），改為觀察 `npx notecraftapp serve` 的背景 rebuild |
+| 2. 溢出偵測 | **主 Agent** | 看 dev console 的 `[deck]` 警告與畫面上的紅框 |
+| 3. 逐頁截圖 | **主 Agent** | 開 dev server、逐頁看 |
+
+**為什麼 2、3 層歸主 Agent**：`slide-generator` 的工具清單沒有瀏覽器 / preview 工具，做不到；而 preview 是 session 級資源，本來就該由主 Agent 持有。委派時要明說「截圖由主 Agent 做」，否則它會嘗試然後卡住。
+
+### 主 Agent 的第 2、3 層怎麼做
+
+1. 開 dev server（`preview_start`）導到 `/present/<slug>`；viewer 模式則用作者已開著的
+   `npx notecraftapp serve` 站台，路徑一樣是 `/present/<slug>`。
+2. **看 console 的 `[deck]` 警告**。有兩種：
+   - `[deck] 內容溢出，會被裁掉：<slug> · <頁碼> <nav> —— 超出 Npx 寬 / Npx 高` → 那一頁真的被裁了
+   - `[deck/<Block>] N 項超過建議上限` → 該 block 項數過多
+   > **一次載入就涵蓋所有頁**：縮覽側欄會渲染每一張 slide（`live: false`），偵測器對每一頁都跑過。
+   > 不需要逐頁點過去才能收集警告。
+3. **逐頁截圖**看：內容被裁切、標籤碰撞、疊字、大片不該有的空白、**亮暗兩主題**。
+   `tsc` 與 `astro build` **永遠測不到**被裁掉的內容（1600×900 是固定座標系、`overflow: hidden`）——
+   截圖是唯一能抓到的一層。
+4. 可選的機器檢查（比目視可靠）：量每個 `SlideChrome` 的
+   `padTop + Σ 非絕對定位子區塊高 + padBottom`，**應該剛好等於 900**。
+   注意 `scrollHeight` 是 1600×900 座標系內的**未縮放** px（縮放是 `transform`，不影響 layout 度量），
+   **不要再除以 scale**。
+
+三層都通過前不算完成。

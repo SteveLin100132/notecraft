@@ -2,9 +2,10 @@
 // 版型元件（1600×900 內部座標），外層以 transform: scale 等比縮放，字級不需 RWD。
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import type { Deck, Slide as SlideData } from "@/lib/decks";
-import { LAYOUTS } from "./slideLayouts";
+import { FALLBACK_LAYOUT, LAYOUTS } from "./slideLayouts";
+import type { LayoutProps } from "./slideLayouts";
 import { dkt } from "./theme";
 
 /** ResizeObserver 量測容器尺寸；SSR / 無 ResizeObserver 時安全跳過 */
@@ -35,7 +36,8 @@ export function Slide({
   dark: boolean;
   live?: boolean;
 }) {
-  const L = LAYOUTS[slide.layout] ?? LAYOUTS.bullets;
+  // 唯一的型別放行點：LAYOUTS 各值只接受自己那個 slide 型別，分派時才在此收斂。
+  const L = (LAYOUTS[slide.layout] ?? FALLBACK_LAYOUT) as ComponentType<LayoutProps>;
   return <L s={slide} dark={dark} deck={deck} index={index} total={total} live={live} />;
 }
 

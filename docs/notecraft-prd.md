@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.9.0
+文件版本: v1.10.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-07-29
+更新日期: 2026-07-31
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -1069,9 +1069,22 @@ flowchart TD
 - **互動元件**：投影片中沿用的 [Generated 元件](#generated-元件) **原樣嵌入、維持可互動**（保留其 `client:*` island），讓圖表 / 動畫可於簡報現場操作。
 - 頁面轉場 200–400ms ease-out、尊重 `prefers-reduced-motion`；版面固定 16:9、隨視窗等比縮放；樣式一律遵循 [trendlink-design](#skills)、不硬編色碼。
 
-### 版型詞彙
+### 版型詞彙（v1.10.0 改制）
 
-於 [content-present Skill](#簡報生成-subagent-與-skill-設計) 與 [trendlink-design](#skills) 定義一組供 AI 選用的投影片版型（非窮舉、非強制元件庫）：封面 `cover`、章節分隔 `section`、重點條列 `bullets`、圖文並排 `media`、全幅視覺 `full-visual`（嵌入互動元件）、左右對比 `compare`、引言 `quote`、結語 / 重點回顧 `closing`。AI 依內容選版型，必要時可組合；不足時可在 Skill 決策原則下自由發揮。
+於 [content-present Skill](#簡報生成-subagent-與-skill-設計) 與 [trendlink-design](#skills) 定義 **6 種**投影片版型：
+
+| layout | 用途 |
+| --- | --- |
+| `cover` | 封面（可帶 agenda） |
+| `section` | 章節分隔 |
+| **`custom`** | **內容頁主力：自由排版的頁面元件** |
+| `full-visual` | 全幅視覺（嵌入筆記既有的互動元件） |
+| `quote` | 引言 |
+| `closing` | 結語 / 重點回顧 |
+
+**設計原則**：`cover` / `section` / `quote` / `closing` / `full-visual` 這 5 種頁「結構固定、不需要創意」，由系統渲染、deck 檔只填欄位；內容頁則交給 `custom` 自由發揮。`custom` 的自由度是「怎麼組合、要不要自己畫」，**不是**「要不要遵守設計系統」—— 它只能組合系統提供的**原子層**（字級階梯 `DS`、間距 `DGAP`、主題 token `dkt()`、6 個 block 元件、強制套用的 `SlideChrome` 外框）。
+
+> v1.9.0 原定的 8 種版型中，`bullets`、`media`、`compare` 已退役（前兩者被 `custom` 取代，`compare` 降級為 block 元件）。完整型別契約、原子層規格、密度上限與取捨理由見 **[deck-slide-contract.md](deck-slide-contract.md) v0.2**；設計原則的來源與實測數據見 **[deck-design-audit.md](deck-design-audit.md)**。
 
 ### 環境差異
 
@@ -2448,6 +2461,21 @@ model: haiku
 
 **理由：** 延續 AI-in-Claude-Code、無執行時 API 的一貫模型；生成 dev-only、播放正式可用；純附加、既有管線零改動。匯出（PDF / PPTX）本期不做，列為後續。
 
+#### Phase 4.13 — 簡報版型改制：內容頁自由化（v1.10.0 追加）
+
+**目標：讓內容頁能像設計師一樣自由排版，同時不放棄設計品質**
+
+- **版型從 8 種收成 6 種**：保留 `cover` / `section` / `quote` / `closing` / `full-visual`（結構固定、不需要創意），內容頁改為 **`custom` 自由頁**（deck 檔內定義頁面元件）；`bullets`、`media`、`compare` 退役
+- **新增原子層**（`src/components/deck/`）：字級階梯 `scale.ts`（10 級 `DS`／`DGAP`／`DTRACK`）、`SlideChrome`（內容頁強制外框，含 `chromeMetrics()` 計算可用區）、**6 個 block 元件**（Rows / Cards / Stages / Kpi / Table / Compare）、`FitToArea`（把比投影片高的既有元件等比縮入）、`icons.tsx`（IconName → lucide 查表）
+- **識別色與狀態色分離**：`Tone` 拆為 `SeriesTone`（blue / orange / muted）與 `StatusTone`（good / warning / critical，必附 icon + 文字標籤）；`tokens.css` 補 status 的暗色 300 階與 `--warning-700`
+- **dev-only 溢出偵測**：`custom` 頁內容超出可用區時畫紅框 + console 警告（1600×900 是固定座標系，溢出不報錯只會被裁掉，`tsc` 與 `astro build` 測不到）
+- **驗證改為三層且分工明確**：型別 / build 由 `slide-generator` 執行；**溢出偵測與逐頁截圖由主 Agent 執行**（subagent 沒有瀏覽器工具）
+- `content-present` Skill 與 `present-planner` / `slide-generator` 依上述改寫，新增圖表選型、密度基準（內容頁 200–800 字、章節頁 40–60 字）、版面自檢與文案規則
+
+**理由：** v1.9.0 的 8 版型枚舉把內容頁鎖在「一頁一重點」的下限，與對齊目標（實測每頁 200–800 字、一頁一個完整論證）落差明顯。改制的代價是設計品質從「型別與元件保證」部分轉為「規則保證」，因此把原本鎖在版型元件裡的決策**下移為可 import 的原子層**，並補上溢出偵測與截圖驗證兩道護欄。
+
+**依據文件：** [deck-slide-contract.md](deck-slide-contract.md) v0.2（型別契約與取捨）、[deck-design-audit.md](deck-design-audit.md)（設計原則對照與實測數據）、`docs/tasks/task-31` ~ `task-37`（實作記錄）。
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2607,6 +2635,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.10.0] - 2026-07-31
+- **Added**: 新增 Phase 4.13 簡報版型改制：內容頁改為 custom 自由頁、版型收成 6 種
 
 ### [1.9.0] - 2026-07-29
 - **Added**: §7.1 新增「筆記轉簡報（Note → Presentation）」與「簡報生成 Subagent 與 Skill 設計」兩節 —— 一篇筆記一鍵轉為可全螢幕播放的多頁簡報；AI 於本機經複製提示詞觸發、無執行時 API；生成 dev-only、播放正式環境亦可用

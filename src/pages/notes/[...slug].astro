@@ -107,7 +107,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
               <Icon name="play" size={15} /> 簡報
             </a>
           ) : isDev ? (
-            <GenerateDeckButton client:idle slug={note.id} />
+            <GenerateDeckButton client:idle slug={note.id} notePath={note.filePath} />
           ) : null}
           <FavoriteButton client:idle slug={note.id} />
           {isDev && (

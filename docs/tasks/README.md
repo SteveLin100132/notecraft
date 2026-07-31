@@ -84,4 +84,40 @@
 
 > **Task 23 為 24～30 的基礎，先做**（含唯一 spike：`import.meta.glob` 對 `@notes` alias 的兩模式列舉；spike 不過走 fs 列舉退路，於 Task 23 內定案）。三項對齊設計交接的決策已於 2026-07-29 收斂：① deck 產物採 **`.tsx` 模組**（`src/components/generated/<slug>.deck.tsx`，攤平兩層符合 watcher），**非** content collection；② `full-visual` **直接 import 生成元件、以 component 參照傳入**（取代原型 `vizId` + `window.GENERATED` registry）；③ 主題 **跟隨系統 + localStorage 記憶**。版型庫（decklib）頁 v1 延後。
 
+## v1.10.0 追加功能（§8.1 Phase 4.13 待補）— 簡報版型改制（contract v0.2）
+
+> 依據：[deck-slide-contract.md](../deck-slide-contract.md) **v0.2** + [deck-design-audit.md](../deck-design-audit.md)。
+> 作者決策：內容頁不再由系統版型枚舉，改為 **`custom` 自由頁**；只保留 5 個「結構固定、不需要創意」的版型
+> （`cover` / `section` / `quote` / `closing` / `full-visual`）。
+> **PRD §8.1 尚未有 Phase 4.13 條目、文件版本仍為 v1.9.0** —— 待補（可用 `/bump-prd`）。
+
+| Task | 功能 | 依據 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 31](task-31-deck-type-union-v02.md) | Deck 型別重構：6 版型 union + Tone 拆分（基礎） | contract §3/§4/§6 | `lib/decks.ts`（discriminated union、`SeriesTone`/`StatusTone`、`CustomSlideProps`） |
+| [Task 32](task-32-deck-scale-status-tokens.md) | 原子層 token：字級階梯 + status 暗色階 | contract §5.1/§5.2、audit B-1/B-2/B-4 | `components/deck/scale.ts`（新增）、`styles/tokens.css`、`components/deck/theme.ts` |
+| [Task 33](task-33-slide-chrome-fixed-layouts.md) | SlideChrome 抽離 + 5 個固定版型改寫 | contract §4/§6 | `components/deck/SlideChrome.tsx`（新增，含 `chromeMetrics()`）、`slideLayouts.tsx` |
+| [Task 34](task-34-deck-block-components.md) | Block 元件庫（6 個） | contract §5.3/§5.3.1 | `components/deck/blocks/`（Rows/Cards/Stages/Kpi/Table/Compare） |
+| [Task 35](task-35-custom-slide-frame.md) | `custom` 版型渲染 + SlideFrame（area / 溢出偵測 / a11y） | contract §6/§7.3、audit B-5 | `slideLayouts.tsx`（`LayoutCustom`）、`SlideFrame.tsx` |
+| [Task 36](task-36-present-skill-agents-v02.md) | Skill + 兩個 agent 改寫（含截圖驗證） | contract §7/§8、audit A-1～A-9 | `content-present/SKILL.md`、`present-planner.md`、`slide-generator.md`、`skill-template/` |
+| [Task 37](task-37-regenerate-existing-decks.md) | 重新生成 3 份既有 deck（端到端驗證） | contract §11.3 | `components/generated/*.deck.tsx` |
+
+> **2026-07-31：Task 31–37 全部完成。** 三份 deck 已用新 pipeline 重新生成（11 / 12 / 13 頁，
+> 皆一次過驗證），viewer 模式已實測通過。各 Task 檔末有實作記錄，含過程中修掉的問題與偏離原計畫的理由。
+> 剩餘後續：`slide-generator` 的截圖層歸屬（它沒有瀏覽器工具）、audit C-1／C-2、PRD Phase 4.13 條目。
+>
+> **Task 31 為 32～37 的基礎，先做。** 建議順序 31 → 32 → 33／34（可並行）→ 35 → 36 → 37。
+> 契約 §12 的 5 項待確認已於 2026-07-30 全部收斂：① layout 命名採 **`custom`**（非 `freestyle`）；
+> ② block 元件庫做 **6 個**（砍掉純版面的 `text`/`columns`/`viz`）；③ `custom` 頁元件**一律單檔、不設行數上限**；
+> ④ `IconName` **維持 21 個**，治理範圍限於 SlideChrome 欄位與 block props（`custom` 頁可直接 import lucide-react）；
+> ⑤ `section` **維持固定版型**但開 `numScale`/`align`/`tone` 三個參數。
+>
+> **注意中間態**：Task 31 會把既有 deck 使用退役版型的頁**暫時移除**以維持 build 綠燈，
+> 由 Task 37 重新生成補回。若不接受中間態，31→37 應視為不可分割的批次。
+>
+> **本批最大風險**：v0.1 靠型別與元件保證設計品質，v0.2 有一部分改由 SKILL 的文字保證。
+> Task 37 是這些規則的第一次真實檢驗；產出不如預期時，修 Task 36 的文字或 Task 34 的 API，
+> **不要回頭加型別限制**（那等於退回 v0.1）。
+
+## v1.5.0 補充
+
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

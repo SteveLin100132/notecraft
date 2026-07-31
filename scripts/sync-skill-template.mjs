@@ -88,10 +88,14 @@ const VALIDATION_CG_VIEWER = `<!-- BEGIN:validation-cg -->
 // 改為觀察 serve 的背景 rebuild（deck 檔寫到 .notecraft/components/<slug>.deck.tsx 會被 watcher 抓到）。
 const VALIDATION_SG_MARKER = /<!-- BEGIN:validation-sg -->[\s\S]*?<!-- END:validation-sg -->/g
 const VALIDATION_SG_VIEWER = `<!-- BEGIN:validation-sg -->
-5. **驗證**（觀察 serve --watch 就好）：**不要在使用者 cwd 跑 \`npx tsc --noEmit\` 或 \`npx astro build\`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗。
-   - deck 檔寫到 \`.notecraft/components/<slug>.deck.tsx\` 後，假設作者開著 \`npx notecraftapp serve ./notes\`：watcher 會觸發 rebuild、成功則 SSE 廣播 auto reload，\`/present/<slug>\` 可直接看；失敗則 fallback 頁顯示錯誤節錄
-   - 若作者離線驗證（沒開 serve）：可跑 \`npx notecraftapp build ./notes\` 手動觸發一次 build
-6. **修復**：若 rebuild 失敗，讀錯誤訊息、用 Edit 修正 deck 檔；watcher 會再 trigger。最多 3 次；仍失敗則用 Bash 刪除半成品 deck 檔並回報。
+5. **驗證（你只做 rebuild 這一層）**：**不要在使用者 cwd 跑 \`npx tsc --noEmit\` 或 \`npx astro build\`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗。
+
+   deck 檔寫到 \`.notecraft/components/<slug>.deck.tsx\` 後，假設作者開著 \`npx notecraftapp serve ./notes\`：watcher 會觸發 rebuild、成功則 SSE 廣播 auto reload；失敗則 fallback 頁顯示錯誤節錄。
+   若作者離線驗證（沒開 serve）：可跑 \`npx notecraftapp build ./notes\` 手動觸發一次 build。
+
+   **溢出偵測與逐頁截圖由主 Agent 執行，不是你。** 你的工具清單沒有瀏覽器 / preview 工具，做不到，也不要嘗試。你能做的是**在回報中標出需要重點看的頁**：區塊最密的頁、單頁 block 數最多的頁、嵌入既有元件的頁（那些元件是為網頁內文設計的，常常比 900px 高）。
+6. **修復**：rebuild 失敗就讀錯誤、用 Edit 修正 deck 檔；watcher 會再 trigger。最多 3 次；仍失敗則用 Bash 刪除半成品 deck 檔並回報。
+   主 Agent 若帶著截圖發現的問題（頁碼 + 症狀）回來，同樣照這個循環修。
 <!-- END:validation-sg -->`
 
 // Files whose main-project copy carries the whitelist marker — sync also
@@ -100,6 +104,9 @@ const VALIDATION_SG_VIEWER = `<!-- BEGIN:validation-sg -->
 const WHITELIST_HOSTS = [
   '.claude/skills/content-visualize/SKILL.md',
   '.claude/agents/component-generator.md',
+  // 簡報管線：v0.2 起 custom 頁是元件、也要 import 套件，白名單同一份來源
+  '.claude/skills/content-present/SKILL.md',
+  '.claude/agents/slide-generator.md',
 ]
 
 const AGENT_NAMES = [
