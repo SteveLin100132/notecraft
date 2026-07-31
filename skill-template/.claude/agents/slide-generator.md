@@ -48,7 +48,10 @@ model: sonnet
    - **沒有字面字級**（`fontSize: 28`）—— 一律用 `DS.*`
    - `custom` 頁沒有自己畫編號徽章、標題、底線、頁碼、footer（那些是 chrome 的事）
    - 沒有 emoji
-   - block 項數沒超過建議上限（Rows/Cards 6、Stages/Kpi 5、Table 6×6）
+   - block 項數沒超過建議上限：Rows / Cards 6、Stages linear 5、Stages rail / cycle 6、Kpi 5、
+     Table 6×6、Code 16 行（`size="xs"` 19）、Terminal 18 行、Annotate pins 8 / 單側 leaders 4、
+     TagCloud 22、LogoRow 3
+   - **`<Chart>` 的系列數 ≤ 3、donut 切片 ≤ 3**（硬規則，超過只會畫前 3 個）；沒有傳 `<Tooltip>`
 <!-- BEGIN:validation-sg -->
 5. **驗證（你只做 rebuild 這一層）**：**不要在使用者 cwd 跑 `npx tsc --noEmit` 或 `npx astro build`**——viewer 場景下 cwd 只是 md/mdx 資料夾、沒有 astro 專案設定，這兩個指令一定會失敗。
 
@@ -77,7 +80,15 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
 
 - **props**：`dark`（取色）、`live`（動畫只在 true 時啟動）、`area`（chrome 佔用後的可用區，px）。
 - 系統已把 `render` 外層包成高度確定的 flex 欄（含 `gap: DGAP.md`），所以直接回傳幾個 block 就會自動分高度。要固定為自然高度的 block 傳 `style={{ flex: "none" }}`；要完全自訂版面就在裡面再包一層自己的 div。
-- **優先用 block**。6 個 block 已內建字級階梯、`text-wrap: balance`、`tabular-nums`、狀態色 icon + 文字並行 —— 用它們就自動達成。自己寫 JSX 時這些都要自己守。
+- **優先用 block**。14 個 block 已內建字級階梯、`text-wrap: balance`、`tabular-nums`、狀態色 icon + 文字並行 —— 用它們就自動達成。自己寫 JSX 時這些都要自己守。
+
+  | 類別 | 元件 |
+  | --- | --- |
+  | 結構 | `<Rows>` `<Cards>` `<Stages>` `<Kpi>` `<Table>` `<Compare>` |
+  | 技術內容 | `<Code>` `<Terminal>` `<Frame>` `<Annotate>` |
+  | 資料與修辭 | `<Chart>` `<TagCloud>` `<LogoRow>` `<Mark>` |
+
+  用途與完整 props 見 SKILL 的「Block 元件庫」段；下面只列**最容易寫錯**的幾條。
 - 沒做成元件的三件事直接寫 JSX：左右分欄 → `display: flex` + `DGAP`；段落 → `<p>` + `DS.body`；嵌入既有元件 → `import` 進來放。
 - **動畫**：200–400ms ease-out、`useReducedMotion()`、且 `live === false` 時不啟動。
 - **嵌入既有 @ai-visualize 元件時，兩件事必做**（它們是為網頁內文設計的，不是為 900px 固定高度）：
@@ -88,6 +99,22 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
   純靜態的 `custom` 頁不需要第 2 點。
 - **單一 block 撐滿整頁時，項數要接近上限**（Compare 每側 5–6 列、Rows 5–6 列、Cards 4–6 欄）；
   只有 3 列卻佔整頁會留一大片空白。真的只有 3 列就加第二個 block 或改用 `full-visual`。
+
+### 新原子最容易寫錯的地方
+
+- **`<Chart>` 的 `height` 是「這個 block 的總高」**（含 `heading` 與圖例），畫布高由元件自己扣。
+  從 `area.h` 算好傳進去，**不要自己先減標題高度**（會少算兩次）。
+  系列數上限 **3**、donut 切片上限 **3** 是硬規則，超過只會畫前 3 個。**不要傳 `<Tooltip>`**，數值本來就標在圖元上。
+- **`<Code>` 的 `highlight` 用「顯示行號」**（含 `startLine` 偏移）。同一支檔案分段講解時，
+  用**同一份 `lines` + 不同 `highlight` + 遞增的 `startLine`**，不要每頁貼不同的程式碼。
+  `lines` 可以直接給字串（自動換行切開），要掛行尾註解才用 `CodeLine[]`。
+- **`<Annotate>` 的百分比座標是相對「內容區」**，不是 children 的視覺範圍。
+  children 比內容區矮時（例如把自然高度的 `<Code>` 放進被拉伸的頁），座標會算到下方空白上。
+  解法：`<Annotate style={{ flex: "none" }}>` 讓內容區收合到 children 的高度。
+- **`<Stages variant="rail" alternate>` 的 `size` 要 ≥ 280**，給太矮上排文字會頂出容器。
+- **`<Mark>` 是行內元素**，直接包在文字中間，不要當 block 用。一頁標 3–4 處就夠。
+- **架構圖 / 拓撲圖沒有元件** —— 自己寫 SVG + `<div>`，顏色取 `dkt(dark)`。
+  要標編號或引線就用 `<Annotate>` 包起來，**不要自己畫徽章與折線**。
 
 ## import 白名單
 

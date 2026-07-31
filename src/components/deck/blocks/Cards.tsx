@@ -23,6 +23,12 @@ export interface CardItem {
   chips?: string[];
   /** 右上角徽章，如「建議」 */
   badge?: string;
+  /**
+   * 被選中 / 被推薦的那一張（Task 42，出處 mfe p5 四個方案中的 D）。
+   * 會加粗外框 + 在徽章前補 check icon —— **icon 與文字並行**，
+   * 不讓「哪張被選中」只靠顏色承載（audit A-6）。未給 `badge` 時預設顯示「建議」。
+   */
+  recommended?: boolean;
   /** 卡片頂線色 */
   tone?: SeriesTone | StatusTone;
 }
@@ -91,26 +97,30 @@ export function Cards({ dark, heading, style, columns, groups, items }: CardsPro
                 gap: DGAP.xs,
                 padding: `${DGAP.sm}px`,
                 borderRadius: "var(--radius-md)",
-                background: dark ? c.sunken : "var(--neutral-50)",
-                border: `1px solid ${c.borderSoft}`,
+                background: it.recommended ? t.soft : dark ? c.sunken : "var(--neutral-50)",
+                border: it.recommended ? `2px solid ${t.fg}` : `1px solid ${c.borderSoft}`,
                 borderTop: `3px solid ${t.fg}`,
               }}
             >
-              {it.badge && (
+              {(it.badge || it.recommended) && (
                 <span
                   style={{
                     position: "absolute",
                     top: DGAP.xs,
                     right: DGAP.xs,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
                     padding: "2px 8px",
                     borderRadius: 999,
-                    background: t.soft,
-                    color: t.fg,
+                    background: it.recommended ? t.fg : t.soft,
+                    color: it.recommended ? "var(--neutral-0)" : t.fg,
                     fontSize: DS.micro,
                     fontWeight: 800,
                   }}
                 >
-                  {it.badge}
+                  {it.recommended && <DeckIcon name="check" size={14} />}
+                  {it.badge ?? "建議"}
                 </span>
               )}
 

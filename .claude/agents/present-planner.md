@@ -22,7 +22,12 @@ model: sonnet
 6. **切章節、選版型**：把內文分成數個推進段落，為每頁決定：
    - `layout`（cover / section / custom / full-visual / quote / closing）
    - 該頁的重點（標題 + 內容綱要，投影尺度、精簡）
-   - **`custom` 頁必須另外寫「版面構想」**：用哪些 block（`<Rows>`/`<Cards>`/`<Stages>`/`<Kpi>`/`<Table>`/`<Compare>`）、各幾項、哪一部分要自己寫 JSX 且為什麼
+   - **`custom` 頁必須另外寫「版面構想」**：用哪些 block、各幾項、哪一部分要自己寫 JSX 且為什麼。
+     可指名的 block 有 14 個：
+     結構 `<Rows>` `<Cards>` `<Stages>`（`rail`/`cycle` variant）`<Kpi>` `<Table>` `<Compare>`；
+     技術內容 `<Code>` `<Terminal>` `<Frame>` `<Annotate>`；
+     資料與修辭 `<Chart>` `<TagCloud>` `<LogoRow>` `<Mark>`。
+     用途與上限見 SKILL 的「Block 元件庫」表 —— **選錯元件比自己寫 JSX 更糟**，它會把內容硬塞進不對的隱喻。
    - chrome 欄位：要不要 `num`、`pill`、`legend`、`callout`、`footnotes`
    - 若為 `full-visual`：指定要嵌入的既有 viz 元件 id（須在 step 3 清單內）
 7. **控制頁數**：一般 8–14 頁；開場 `cover`（可帶 agenda）、必要處 `section` 分隔、結尾 `closing`（含回到筆記的 CTA）。
@@ -32,10 +37,24 @@ model: sonnet
 - **密度**：`custom` 內容頁 200–800 字、2–3 個區塊；`section` 章節頁 40–60 字（刻意留白）。節奏來自密度的極端對比。
 - **編號要編碼真實資訊**：`num` / block 的 `n` 只在內容真的是序列（流程、時序、排名、章節順序）時才規劃；**平行清單不要編號**。
 - **狀態色 ≠ 識別色**：`good`/`warning`/`critical` 只在語意是好／注意／壞時使用，且一律搭配文字標籤（icon 由系統補）。識別用 `blue`/`orange`/`muted`。
-- **圖表選型**：單一數字 → `<Kpi>`；>7 類 → `<Table>`；量級／熱度矩陣 → 單色階；一個系列是重點 → 重點一色 + 其餘灰。**禁雙軸、禁單柱長條圖、禁 2 片圓餅**。
+- **圖表選型**：單一數字 → `<Kpi>`；分類比較／趨勢 → `<Chart>`；比例 → `<Chart variant="donut">`；一排完成度 → `<Chart variant="bars">`；>7 類 → `<Table>`；量級／熱度矩陣 → 單色階；一個系列是重點 → 重點一色 + 其餘灰。**禁雙軸、禁單柱長條圖、禁 2 片圓餅**。
+- **超過 3 個系列要在規劃階段就解決**：識別色只有 `blue`/`orange`/`muted` 三個，`<Chart>` 收到第 4 個系列只會畫前 3 個並警告。
+  規劃書要直接寫成「拆成 N 張 small multiples」或「改用 `<Table>` 直接標值」，**不要留給 slide-generator 去撞上限**。donut 切片同理，上限 3 片、第 4 類併成「其他」。
+- **程式碼 vs 截圖**：講「這段程式在做什麼」用 `<Code>`（可標行、可掛行尾註解、可跨頁換 `highlight`）；
+  講「這個工具的介面長怎樣、要點哪裡」用 `<Frame>` 包截圖 + `<Annotate>` 標編號。
+  **不要把程式碼放進截圖**（讀不清也改不動），也不要用 `<Code>` 去描述 UI 操作。
+- **同一支程式碼分段講解時，用同一份 `lines` + 不同 `highlight`**（搭配 `startLine` 續接），不要每頁貼一段不同的程式碼。
+  同理，多頁講同一個系統的不同狀態時，優先重用同一個視覺元件並改變 props —— 讀者只需要建立一次空間記憶。
+- **`<TagCloud>` 有使用門檻**：只在真的有一組並列、無先後關係的短詞時規劃。有順序的用 `<Stages>`、有結構的用 `<Rows>`。
+  它很容易變成「塞同義詞充版面」，規劃時就要擋掉。
+- **架構圖 / 拓撲圖沒有現成元件**：需要畫系統架構、資料流、叢集拓撲時，版面構想直接寫「自己畫 SVG」，
+  並註明要不要用 `<Annotate>` 疊編號熱點。
 - **文案**：主動語態、用讀者認得的詞、具體勝過聰明、標題 ≤ 1 行（約 20 個中文字）、標題講結論不只給主題。
 - **版面**：不要每個區塊都圓角卡 + 色條、不要全部居中。
 - `chrome: false` 必須寫明「為何這頁需要整頁滿版」。
+  **注意：只有 `custom` 頁有 `chrome` 欄位，`full-visual` 沒有。**
+  想讓既有互動元件滿版時，規劃成 **`custom` + `chrome: false` + 頁內 import 該元件**，
+  不要規劃成「`full-visual` 加 `chrome: false`」—— 那個組合不存在，slide-generator 只能退回標準 chrome。
 
 ## 輸出格式
 
@@ -59,8 +78,11 @@ model: sonnet
 5. custom — nav「…」— title「…」
    版面構想: <Compare> 左 blue「方案 A」右 orange「方案 B」（badge「建議」）+ pros/cons
    約 300 字
-6. quote — nav「…」— quote「…」/ by「…」/ byMeta「…」
-7. closing — nav「…」— items(3){n,k,v} / cta「回到筆記…」/ ctaMeta "/notes/<slug>"
+6. custom — nav「…」— title「…」
+   版面構想: <Code> 14 行（fileName "src/lib/x.ts", highlight 5–9, 4 行掛行尾註解）+ 左側 labels 2 條
+   約 180 字（程式碼頁字數本來就少，不用湊到 200）
+7. quote — nav「…」— quote「…」/ by「…」/ byMeta「…」
+8. closing — nav「…」— items(3){n,k,v} / cta「回到筆記…」/ ctaMeta "/notes/<slug>"
 
 **Notes for slide-generator**:
 - 每頁 nav 短標題已給；文案密度參考 few-shot 範例 role-responsibility-rr.deck.tsx

@@ -31,11 +31,19 @@ export interface RowsProps extends BlockBaseProps {
   items: RowItem[];
   /** 右欄寬度（px @1600 座標系）。預設 380 */
   noteWidth?: number;
+  /**
+   * `k` 的呈現方式（Task 42）。預設 `"plain"`（= Task 34 的原始外觀，不給時完全不變）。
+   * `"chip"` 把 `k` 畫成彩色標籤 —— 出處 nifi p3 的痛點列、tus p5 的困難點列、
+   * bullmq p5 的特色列（docs/deck-atoms-inventory.md §2 F2）。
+   */
+  variant?: "plain" | "chip";
+  /** chip 欄寬（px @1600 座標系）。預設 200 */
+  chipWidth?: number;
 }
 
 const LIMIT = 6;
 
-export function Rows({ dark, heading, style, items, noteWidth = 380 }: RowsProps) {
+export function Rows({ dark, heading, style, items, noteWidth = 380, variant = "plain", chipWidth = 200 }: RowsProps) {
   const c = dkt(dark);
   warnOverLimit("Rows", items.length, LIMIT);
 
@@ -82,11 +90,32 @@ export function Rows({ dark, heading, style, items, noteWidth = 380 }: RowsProps
                 </span>
               )}
 
-              <div style={{ flex: "none", width: 150 }}>
-                <div style={{ fontSize: DS.h4, fontWeight: 800, lineHeight: 1.3, color: c.ink, textWrap: "balance" }}>
-                  {it.k}
+              {variant === "chip" ? (
+                <div style={{ flex: "none", width: chipWidth }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "4px 10px",
+                      borderRadius: "var(--radius-sm)",
+                      background: t.soft,
+                      color: t.fg,
+                      border: `1px solid ${t.fg}`,
+                      fontSize: DS.small,
+                      fontWeight: 800,
+                      lineHeight: 1.35,
+                      textWrap: "balance",
+                    }}
+                  >
+                    {it.k}
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div style={{ flex: "none", width: 150 }}>
+                  <div style={{ fontSize: DS.h4, fontWeight: 800, lineHeight: 1.3, color: c.ink, textWrap: "balance" }}>
+                    {it.k}
+                  </div>
+                </div>
+              )}
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 {it.v && <div style={{ fontSize: DS.body, lineHeight: 1.5, color: c.body }}>{it.v}</div>}

@@ -68,7 +68,9 @@ description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck
 | 這一頁的視覺是**為簡報現生**的 | `custom` |
 | 既有元件 + 額外的簡報用排版（標題、KPI、註解） | `custom`，內部 `import` 該元件 |
 
-`chrome: false`（整頁滿版視覺）需在規劃書寫明理由。
+**`chrome: false`（整頁滿版視覺）只有 `custom` 頁有。** `full-visual` 的型別沒有這個欄位 ——
+要讓既有互動元件滿版，做法是用 **`custom` 頁 + `chrome: false`**，在頁內自己 `import` 那個元件
+（必要時包 `<FitToArea>`）。用 `chrome: false` 時要在規劃書寫明理由。
 
 ## 原子層（`custom` 頁只能用這些）
 
@@ -95,22 +97,66 @@ const c = dkt(dark);   // dark 來自 CustomSlideProps
 
 **禁止硬編色碼。** 需要顏色就從 `c` 取；`SeriesTone`/`StatusTone` 對映用 `toneColor(tone, c)`（`@/components/deck/SlideChrome`）。
 
-### Block 元件庫（6 個）—— `@/components/deck/blocks`
+### Block 元件庫（14 個）—— `@/components/deck/blocks`
 
 ```tsx
-import { Rows, Cards, Stages, Kpi, Table, Compare } from "@/components/deck/blocks";
+import {
+  Rows, Cards, Stages, Kpi, Table, Compare,     // 結構
+  Code, Terminal, Frame, Annotate,              // 技術內容
+  Chart, TagCloud, LogoRow, Mark,               // 資料與修辭
+} from "@/components/deck/blocks";
 ```
 
-| 元件 | 用途 | 建議上限 |
+**先看「什麼時候用」再挑元件。** 選錯元件比自己寫 JSX 更糟 —— 它會把內容硬塞進不對的隱喻。
+
+| 元件 | 什麼時候用 | 建議上限 |
 | --- | --- | --- |
-| `<Rows>` | N 列清單，每列可帶右欄註記（`noteLabel`/`note`） | 6 列 |
-| `<Cards>` | N 欄卡片，可分組帶色帶（`groups`）、`badge`、`chips`、`points`、`meta` | 6 欄 |
-| `<Stages>` | 水平流程段，`variant`: plain / active / dashed | 5 段 |
-| `<Kpi>` | 數字帶 / stat tile，`emphasis` 為大數字卡 | 5 格 |
-| `<Table>` | 表格 / 對照矩陣，cell 可帶 `icon`/`note`/`tone`/`emphasis`，`highlightCol` 整欄強調 | 6 欄 × 6 列 |
-| `<Compare>` | 左右對比：`tag`/`name`/`badge`/`rows`/`pros`/`cons` + 中央 VS 軸 | — |
+| `<Rows>` | 幾個並列的要點，每點有「標題 + 說明」，可能還要右欄註記 | 6 列 |
+| `<Cards>` | 同上但每項份量較重（有 bullet / chip / meta），或需要分組色帶 | 6 欄 |
+| `<Stages>` | **有先後順序**的流程。`variant` 決定排法（見下） | 見下 |
+| `<Kpi>` | 頭條數字。單一數字用 `emphasis` 大數字卡 | 5 格 |
+| `<Table>` | 兩個維度交叉的對照矩陣，或超過 7 個類別的比較 | 6 欄 × 6 列 |
+| `<Compare>` | **兩個**方案 / 概念的正面對決（VS 軸 + pros/cons + 建議徽章） | — |
+| `<Code>` | 程式碼。行號、`highlight` 強調行、行尾註解欄、左側引線標籤、`startLine` 續接 | sm 16 行 / xs 19 行 |
+| `<Terminal>` | CLI 互動問答或輸出。`compact` 是單行安裝指令 | 18 行 |
+| `<Frame>` | 把截圖 / UI 線框 / `<Terminal>` 包成瀏覽器、視窗或對話框 | — |
+| `<Annotate>` | 在任何 children 上疊編號熱點（`pins`）與引線標籤（`leaders`） | pins 8 / 單側 leaders 4 |
+| `<Chart>` | 量化資料。`bar`/`line`/`area`/`donut`/`bars`（進度條列） | 見下方硬規則 |
+| `<TagCloud>` | **一組並列、無先後關係的短詞**聚合成視覺重量（見下方門檻） | 22 個 |
+| `<LogoRow>` | 「A + B」的技術選型組合 | 3 個 |
+| `<Mark>` | 行內螢光筆。一頁標 3–4 處就夠，標太多等於沒標 | — |
 
 每個都收 `dark`，可給 `heading` 與 `style`。它們內部已處理字級階梯、`text-wrap: balance`、`tabular-nums` 與狀態色的 icon + 文字並行 —— **用它們就自動達成，自己寫 JSX 才要自己守**。
+
+#### `<Stages>` 的三種 variant
+
+| variant | 什麼時候用 | 上限 |
+| --- | --- | --- |
+| 不給（`linear`） | 幾個並排的階段區塊，段間有箭頭 | 5 段 |
+| `"rail"` | 一條時間軸上的里程碑。`alternate` 讓說明上下交錯 | 6 節點；`alternate` 時 `size` ≥ 280 |
+| `"cycle"` | **會回到起點**的循環流程。`center` 給環中心的標題 | 6 節點 |
+
+`rail` 不畫箭頭 —— 軸本身已經表達方向。
+
+#### `<Chart>` 的硬規則（不是建議值）
+
+- **系列數上限 3**。沿用 `blue`/`orange`/`muted`，**不擴充色票**。超過 3 個系列時元件只會畫前 3 個並在 console 警告 —— 規劃階段就要拆成 small multiples（多張圖）或改用 `<Table>` 直接標值。
+- **donut 切片上限 3**（同一個理由）。第 4 類併成「其他」（`muted` 天然就讀成「其他」）。
+- **`height` 是這個 block 的總高**（含 `heading` 與圖例），畫布高由元件自己扣。從 `area.h` 算好傳進去。
+- **不會有 tooltip**。數值直接標在圖元上 —— 投影片沒有 hover。
+- `variant="bars"` 是進度條列（一排橫條 + 百分比），不是長條圖。
+
+#### `<TagCloud>` 的使用門檻
+
+**只在真的有一組並列、無先後關係的短詞時用。** 它很容易被拿來塞同義詞充版面 —— 那會讓一頁看起來很滿但什麼都沒說。
+
+`weight`（1–4）要編碼真實的輕重，**不給就是 2**；元件不會依字數或順序自動推算（那會編碼假資訊）。有先後順序的東西改用 `<Stages>`，有結構的改用 `<Rows>`。
+
+#### 架構圖 / 拓撲圖：自己畫 SVG
+
+系統**沒有**架構圖元件（節點、連線、分組框都沒有）。需要畫系統架構、資料流、叢集拓撲時，在 `custom` 頁自己寫 SVG + `<div>`，顏色一律取 `dkt(dark)`。
+
+要在圖上標編號或引線時**用 `<Annotate>` 包起來**，不要自己畫徽章與折線。
 
 **沒做成元件的三件事，直接寫 JSX**：左右分欄 → `display: flex` + `DGAP`；段落 → `<p>` + `DS.body`；嵌入既有元件 → 直接 `import` 進來放。
 
@@ -173,13 +219,27 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 
    **節奏來自密度的極端對比** —— 內容頁很滿、章節頁只有一個大編號。不是每頁都塞滿。
 
+   **各 block 的建議上限**（超過就優先切頁；`<Chart>` 的系列數與 donut 片數是**硬規則**、不是建議）：
+
+   | 原子 | 上限 | 原子 | 上限 |
+   | --- | --- | --- | --- |
+   | `<Rows>` | 6 列 | `<Code>` | 16 行（`size="xs"` 19 行） |
+   | `<Cards>` | 6 欄 | `<Terminal>` | 18 行 |
+   | `<Stages>` linear | 5 段 | `<Annotate>` | pins 8、單側 leaders 4 |
+   | `<Stages>` rail / cycle | 6 節點 | `<Chart>` | 系列 **3**、donut **3** 片、bars 8 列 |
+   | `<Kpi>` | 5 格 | `<TagCloud>` | 22 個 |
+   | `<Table>` | 6 欄 × 6 列 | `<LogoRow>` | 3 個 |
+
    **單一 block 撐滿整頁時，項數要接近上限**（`<Compare>` 每側 5–6 列、`<Rows>` 5–6 列、`<Cards>` 4–6 欄）。
    block 會撐滿可用區 —— 一個只有 3 列的 `<Compare>` 佔掉整頁，下半部就是一大片空白。
    內容真的只有 3 列時，選一個：加第二個 block（如 `pros`/`cons` 或一組 `<Kpi>`）、與相鄰段落合併成一頁、
    或改用 `full-visual` 讓既有元件承擔那一頁。
-4. **選版型**：對比 → `<Compare>`；清單 → `<Rows>`/`<Cards>`；流程 / 時序 → `<Stages>`；數字 → `<Kpi>`；矩陣 → `<Table>`；沿用既有互動元件 → `full-visual`；金句 → `quote`；回顧 → `closing`。
+4. **選版型**：對比 → `<Compare>`；清單 → `<Rows>`/`<Cards>`；流程 / 時序 → `<Stages>`；循環 → `<Stages variant="cycle">`；數字 → `<Kpi>`/`<Chart>`；矩陣 → `<Table>`；程式碼 → `<Code>`；CLI → `<Terminal>`；截圖標註 → `<Frame>` + `<Annotate>`；沿用既有互動元件 → `full-visual`；金句 → `quote`；回顧 → `closing`。
 5. **沿用互動元件**：筆記裡最精彩的 @ai-visualize 元件，用 `full-visual` 原樣嵌入（播放時可互動），**不要重畫成靜態圖**。
-6. **控制頁數**：一般 8–14 頁（含章節頁）。寧可精選，不要把整篇塞進去。
+6. **重複場景勝過每頁新畫一張圖**：多頁在講**同一個系統的不同狀態**時（處理中 / 失敗重試 / 暫停…），優先**重用同一個視覺元件並改變它的 props**，不要每頁畫一張新圖。
+   讀者只需要建立一次空間記憶，之後每頁只讀「哪裡變了」；每頁換一張新圖等於每頁都要重新認路。
+   同理，同一支程式碼分段講解時用**同一份 `<Code lines>` + 不同 `highlight`**（搭配 `startLine` 續接），不要每頁貼一段不同的程式碼。
+7. **控制頁數**：一般 8–14 頁（含章節頁）。寧可精選，不要把整篇塞進去。
 
 ## 圖表選型
 
@@ -189,6 +249,11 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 | --- | --- | --- |
 | 單一數字（+ 一個副指標） | `<Kpi>`（`emphasis`） | 單柱長條圖、2 片圓餅 |
 | 幾個並列的頭條數字 | `<Kpi>` 一排 | 群組長條圖 |
+| 分類比較（≤ 3 個系列） | `<Chart variant="bar">`（多系列可 `stacked`） | 更多系列 |
+| 趨勢（≤ 3 個系列） | `<Chart variant="line">` / `"area"` | 雙軸 |
+| 比例分解（≤ 3 類） | `<Chart variant="donut">` | 4 片以上的圓餅 |
+| 一排完成度 / 佔比 | `<Chart variant="bars">` | 一整張長條圖 |
+| 超過 3 個系列 | **拆成多張 small multiples**，或 `<Table>` 直接標值 | 擴充色票 |
 | 超過 7 個帶意義的色類別 | `<Table>` | 更多顏色 |
 | 一個系列是重點、其餘是背景 | emphasis：重點一色 + 其餘 `seriesMuted` 灰 | 八色類別 |
 | 量級 / 支援程度 / 熱度矩陣 | **單色階**（blue 由淺到深）+ icon | 綠黃紅混色 |
@@ -196,6 +261,7 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 
 **硬規則：**
 
+- **系列數上限 3**（`<Chart>` 會強制執行：只畫前 3 個 + console 警告）。這是**規劃階段就要處理**的事 —— 資料超過 3 個系列時，規劃書要直接寫「拆成 N 張 small multiples」或「改用 `<Table>` 標值」，不要留給 slide-generator 去撞上限。
 - **絕不雙軸**（兩個 y 軸）。兩個量級不同的度量 → 兩張圖，或都指數化到同一基準。
 - **狀態色是保留色**：`good`/`warning`/`critical` 只在語意真的是好／注意／壞時使用，**絕不當第 4 個識別色**；而且一律 **icon + 文字標籤並行**，不讓色彩單獨承載語意。
 - **識別色只有** `blue` / `orange` / `muted` 三個（實測 blue↔orange 在亮色模式全項通過 CVD 檢查）。
