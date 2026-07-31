@@ -1,6 +1,6 @@
 # Screenshot 捕捉指南
 
-README.md 引用了下列 4 張截圖，請在 publish 前放進本資料夾。
+README.md 引用了下列 5 張截圖，請在 publish 前放進本資料夾。
 
 ## 建議設定
 
@@ -19,7 +19,7 @@ node bin/notecraftapp.mjs view tmp/notecraft-test --port 4321
 
 （或用你自己精心準備的 md/mdx 資料夾以便有真實內容）
 
-## 4 張要拍的圖
+## 5 張要拍的圖
 
 ### 1. `dashboard.png`
 - URL：`http://localhost:4321/`
@@ -61,3 +61,10 @@ node bin/notecraftapp.mjs view tmp/notecraft-test --port 4321
 - 4 張 png 加起來可能 1–2 MB，塞進去每個 npx 使用者都要下載
 - npm README 頁面用絕對 GitHub raw URL 才會顯示；相對路徑到套件內部 npm 不會 render
 - 所以截圖只需要放在 GitHub repo，不需要打包
+
+### 5. `present.png`（v0.3.0 新增，尚未拍）
+
+- URL：`http://localhost:4321/present/<某篇已生成簡報的筆記>`
+- 內容：簡報檢視模式 —— 左側投影片縮覽 + 右側當前頁
+- 重點：挑一頁 `custom` 內容頁（有 Rows / Cards / Kpi 之類的版面）而非封面，才看得出「內容豐富」的樣子；若該頁嵌了既有互動元件更好
+- 拍完在 README 的〈簡報層〉一節下方插入 `![Presentation](./docs/screenshots/present.png)`

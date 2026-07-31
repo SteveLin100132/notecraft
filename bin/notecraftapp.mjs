@@ -888,7 +888,7 @@ async function doInitSkill(targetRoot, { force }) {
 const initSkillCmd = defineCommand({
   meta: {
     name: "init-skill",
-    description: "把 content-visualize skill + 4 個 Subagent 設定安裝到當前專案 .claude/",
+    description: "把 3 個 Skill（content-visualize / content-present / trendlink-design）與 6 個 Subagent 設定安裝到當前專案 .claude/",
   },
   args: {
     force: { type: "boolean", description: "衝突檔直接覆寫、不 prompt" },

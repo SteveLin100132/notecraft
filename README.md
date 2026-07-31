@@ -25,6 +25,7 @@
 傳統筆記工具只能顯示文字。當你想把一段流程講清楚、把兩個方案並排比較、或讓讀者親手拖動看兩種策略的差異——只能貼靜態圖或放連結。NoteCraftApp 讓「知識能被看見、被操作」：
 
 - **AI 視覺化** — MDX 內用 `@ai-visualize` 標記描述你想要的圖表 / 時序 / 動畫 / 互動；Claude Code 讀懂後產生 React 元件、自動嵌入筆記。`npx notecraftapp init-skill` 一鍵把 skill 裝到你的專案
+- **筆記轉簡報** — 一篇筆記一鍵變成 16:9 多頁簡報，`/present/<slug>` 可全螢幕播放。**筆記裡的互動元件原樣搬進投影片，播放時照樣能點、能拖**
 - **即時 preview** — `serve` 內建背景 rebuild + SSE auto reload：Claude Code 在另一個 terminal 寫檔、viewer 這邊瀏覽器自動刷新，全程免手動重啟
 - **儀表板** — 統計 / 最近更新 / 標籤分布 / 系列進度、AI 視覺化生成率
 - **系列** — 多份筆記串成有順序的閱讀路徑，含進度條與繼續閱讀
@@ -35,7 +36,7 @@
 
 ---
 
-## 兩層體驗
+## 三層體驗
 
 ### 靜態層（v1 已上）
 
@@ -45,7 +46,7 @@
 
 真正的招牌功能——**由 AI 把「這裡放張圖」的自然語言描述變成互動元件**。
 
-**一次性安裝**（把 `content-visualize` skill + 4 個 subagent 設定裝到當前專案的 `.claude/`）：
+**一次性安裝**（把 3 個 skill 與 6 個 subagent 設定裝到當前專案的 `.claude/`）：
 
 ```bash
 npx notecraftapp init-skill
@@ -76,6 +77,20 @@ prompt: |
 
 **同時另開 terminal 跑 `npx notecraftapp serve ./notes`**——內建背景 watcher + SSE，AI 一寫檔瀏覽器就自動 reload，兩邊各司其職不用手動刷新。
 
+### 簡報層（v0.3.0 已上）
+
+**把整篇筆記變成一份可全螢幕播放的簡報**——不是把文字塞進投影片模板，而是重新抓主線、切章節、選版型。
+
+在 Claude Code 中說「把 `<筆記>` 轉成簡報」（或點筆記頁功能列的「生成簡報」複製提示詞），`content-present` skill 會：
+
+1. **present-planner** 讀整篇筆記，抓出主線、判定是內部備忘還是對外提案、切出章節與每頁的重點
+2. **slide-generator** 產出 `<slug>.deck.tsx`，跑型別與 build 驗證
+3. 你在 `/present/<slug>` 檢視或全螢幕播放
+
+版型只有 6 種，其中 5 種（封面、章節分隔、引言、結語、全幅視覺）結構固定由系統渲染；**內容頁是 `custom` 自由頁**，AI 可自由排版，但只能組合系統提供的原子層（字級階梯、色彩 token、6 個版面 block），所以不會每頁長得不一樣。
+
+**筆記裡既有的 `@ai-visualize` 元件會原樣嵌入**——播放到那一頁，該點的照樣能點、該拖的照樣能拖，不會退化成靜態截圖。
+
 ---
 
 ## Quick Start
@@ -99,7 +114,7 @@ notecraftapp view ./docs
 
 ### `notecraftapp init-skill`
 
-一次性把 `content-visualize` skill + 4 個 subagent 設定安裝到當前專案的 `.claude/`，讓 Claude Code 能處理 `@ai-visualize` 標記。裝完就能在你自己的專案內跑 AI 視覺化 pipeline。
+一次性把 **3 個 skill（`content-visualize`、`content-present`、`trendlink-design`）與 6 個 subagent** 設定安裝到當前專案的 `.claude/`，讓 Claude Code 能處理 `@ai-visualize` 標記與筆記轉簡報。裝完就能在你自己的專案內跑這兩條 AI pipeline。
 
 ```bash
 npx notecraftapp init-skill              # 首次安裝到 cwd
@@ -295,15 +310,23 @@ CLI 偵測到 `.git` 就會跳過套件複製、直接從當前 repo 執行。�
 
 ---
 
-## Roadmap（v0.3+）
+## Roadmap（v0.4+）
+
+完整版本紀錄見 [CHANGELOG.md](./CHANGELOG.md)。
+
+**已完成（v0.3）**：
+- ✅ 筆記轉簡報 — `/present/<slug>` 檢視 / 全螢幕播放，既有互動元件原樣嵌入
+- ✅ `content-present` skill + `present-planner` / `slide-generator` 兩個 subagent
+- ✅ 內容頁 `custom` 自由版型 + 系統原子層（字級階梯、色彩 token、6 個版面 block）
 
 **已完成（v0.2）**：
-- ✅ `notecraftapp init-skill` — 一鍵把 `content-visualize` skill 裝到 `.claude/`
+- ✅ `notecraftapp init-skill` — 一鍵把 skill 裝到 `.claude/`
 - ✅ 背景 rebuild + SSE auto reload（`serve` 預設 ON）
 - ✅ 外部 `.notecraft/components/*.tsx` 透過 `@notes/*` alias 被 `astro build` 解析
 - ✅ 元件 import 白名單集中管理（`component-generator` 產出前 lint、白名單外走「徵詢作者」）
 
 **排隊中**：
+- 簡報匯出 PDF / PPTX
 - 寫入 UI 支援子資料夾新增
 - pagefind 全文搜尋
 - Windows 完整支援
