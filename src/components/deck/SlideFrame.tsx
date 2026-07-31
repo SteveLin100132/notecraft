@@ -28,6 +28,8 @@ export function Slide({
   total,
   dark,
   live,
+  play,
+  outerScale,
 }: {
   slide: SlideData;
   deck: Deck;
@@ -35,10 +37,14 @@ export function Slide({
   total: number;
   dark: boolean;
   live?: boolean;
+  play?: boolean;
+  outerScale?: number;
 }) {
   // 唯一的型別放行點：LAYOUTS 各值只接受自己那個 slide 型別，分派時才在此收斂。
   const L = (LAYOUTS[slide.layout] ?? FALLBACK_LAYOUT) as ComponentType<LayoutProps>;
-  return <L s={slide} dark={dark} deck={deck} index={index} total={total} live={live} />;
+  return (
+    <L s={slide} dark={dark} deck={deck} index={index} total={total} live={live} play={play} outerScale={outerScale} />
+  );
 }
 
 export interface SlideFrameProps {
@@ -49,6 +55,8 @@ export interface SlideFrameProps {
   dark: boolean;
   /** full-visual：true 掛真元件、false（縮覽）顯示占位 */
   live?: boolean;
+  /** 全螢幕播放中（full-visual 的畫布據此切換滾輪規則與控制列濃度）*/
+  play?: boolean;
   width: number;
   radius?: string;
   border?: string;
@@ -57,7 +65,7 @@ export interface SlideFrameProps {
 }
 
 /** 等比縮放的 16:9 畫框 */
-export function SlideFrame({ slide, deck, index, total, dark, live, width, radius, border, shadow, style }: SlideFrameProps) {
+export function SlideFrame({ slide, deck, index, total, dark, live, play, width, radius, border, shadow, style }: SlideFrameProps) {
   const scale = width / 1600;
   return (
     <div
@@ -74,7 +82,16 @@ export function SlideFrame({ slide, deck, index, total, dark, live, width, radiu
       }}
     >
       <div style={{ position: "absolute", top: 0, left: 0, width: 1600, height: 900, transformOrigin: "top left", transform: `scale(${scale})` }}>
-        <Slide slide={slide} deck={deck} index={index} total={total} dark={dark} live={live} />
+        <Slide
+          slide={slide}
+          deck={deck}
+          index={index}
+          total={total}
+          dark={dark}
+          live={live}
+          play={play}
+          outerScale={scale}
+        />
       </div>
     </div>
   );

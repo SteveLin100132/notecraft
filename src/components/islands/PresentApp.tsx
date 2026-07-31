@@ -178,7 +178,7 @@ function PlayMode({ deck, start, dark, onExit }: { deck: Deck; start: number; da
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 800, background: bg, display: "flex", alignItems: "center", justifyContent: "center", animation: "ncFade 240ms var(--ease-out)" }}>
-      <SlideFrame key={cur} slide={deck.slides[cur]} deck={deck} index={cur} total={total} dark={dark} live width={w} radius="var(--radius-md)" shadow="0 30px 80px rgba(0,0,0,0.5)" style={{ animation: "ncSlideIn 280ms var(--ease-out)" }} />
+      <SlideFrame key={cur} slide={deck.slides[cur]} deck={deck} index={cur} total={total} dark={dark} live play width={w} radius="var(--radius-md)" shadow="0 30px 80px rgba(0,0,0,0.5)" style={{ animation: "ncSlideIn 280ms var(--ease-out)" }} />
 
       {arrow(-1)}
       {arrow(1)}

@@ -177,10 +177,20 @@ export interface CustomSlide extends SlideChromeFields {
 export interface FullVisualSlide extends SlideChromeFields {
   layout: "full-visual";
   title: string;
-  viz: ComponentType;
+  /**
+   * 嵌入的互動元件。**可省略** —— 標記尚未生成元件時留空，畫布會顯示空狀態
+   * （虛線紙張輪廓 + 標記 id + disabled 控制列），而不是一塊沒有解釋的空白。
+   */
+  viz?: ComponentType;
   /** 兩個並排（如兩方案架構對照） */
   viz2?: ComponentType;
   vizLabel?: string;
+  /**
+   * 元件原設計的版心寬度（畫布上那張「紙」的內容寬）。預設 860 ——
+   * 與筆記內文的版心一致，元件在簡報裡的換行位置才會跟筆記裡看到的一樣。
+   */
+  vizWidth?: number;
+  /** 空狀態（`viz` 未給）時取代預設說明的一句話。元件已生成時不顯示。 */
   vizHint?: string;
 }
 

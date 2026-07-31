@@ -10,8 +10,9 @@
 //   - icon 用 lucide-react（經 icons.tsx 查表），禁 emoji
 //   - 內容頁（full-visual / closing）的外框由 SlideChrome 提供，不各自畫 footer
 
+import { useCallback, useRef } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { Sparkles, Zap } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import type {
   ClosingSlide,
   CoverSlide,
@@ -27,6 +28,8 @@ import { dkt } from "./theme";
 import { DGAP, DS, DTRACK } from "./scale";
 import { CHROME, chromeMetrics, FULL_AREA, SlideChrome } from "./SlideChrome";
 import { OverflowBadge, useOverflowProbe } from "./overflowProbe";
+import { CanvasViewport } from "./CanvasViewport";
+import type { CanvasMode } from "./CanvasViewport";
 
 const PAD = CHROME.padX;
 
@@ -38,6 +41,10 @@ export interface LayoutProps<S extends Slide = Slide> {
   total: number;
   /** full-visual / custom：true 時掛載真元件與動畫、false（縮覽）不掛 */
   live?: boolean;
+  /** 全螢幕播放中。full-visual 的畫布據此改為「純滾輪即縮放」並收斂控制列 */
+  play?: boolean;
+  /** 外層 SlideFrame 的 transform: scale 倍率；畫布靠它把指標位移換算回 1600×900 座標系 */
+  outerScale?: number;
 }
 
 /** 各 layout 的元件簽章 —— 只看得到自己那個 slide 型別的欄位 */
@@ -227,53 +234,46 @@ function LayoutSection({ s }: LayoutProps<SectionSlide>) {
 
 // ── full-visual ─────────────────────────────────────────────
 
-function VizPanel({ Comp, dark, hint }: { Comp?: ComponentType; dark: boolean; hint?: string }) {
-  const c = dkt(dark);
-  return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 0,
-        borderRadius: "var(--radius-xl)",
-        border: `2px dashed ${c.border}`,
-        background: dark ? c.sunken : "var(--neutral-0)",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {Comp ? (
-        <div style={{ flex: 1, overflow: "hidden", padding: dark ? "18px 34px" : "8px 40px", display: "flex", alignItems: "center" }}>
-          <div
-            style={{
-              width: "100%",
-              background: dark ? "var(--neutral-0)" : "transparent",
-              borderRadius: dark ? "var(--radius-lg)" : 0,
-              padding: dark ? "6px 26px" : 0,
-            }}
-          >
-            <Comp />
-          </div>
-        </div>
-      ) : (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: DGAP.sm }}>
-          <span style={{ display: "inline-flex", color: c.brand }}>
-            <Zap size={64} />
-          </span>
-          <div style={{ fontSize: DS.h4, fontWeight: 800, color: c.brandInk }}>嵌入的互動元件</div>
-          {hint && (
-            <div style={{ fontSize: DS.small, color: c.muted, maxWidth: 720, textAlign: "center", lineHeight: 1.7 }}>{hint}</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+/** `@ai-visualize · rr-raci` → `rr-raci`（空狀態徽章只要 id）。 */
+function markerId(label?: string): string | undefined {
+  return label?.replace(/^@ai-visualize\s*[·:]\s*/, "").trim() || undefined;
 }
 
-function LayoutFullVisual({ s, dark, deck, index, total, live }: LayoutProps<FullVisualSlide>) {
+function LayoutFullVisual({ s, dark, deck, index, total, live, play, outerScale }: LayoutProps<FullVisualSlide>) {
   const c = dkt(dark);
   // vizLabel 沿用 chrome 的 pill slot（沒另給 pill 時）
   const chromeFields = s.pill || !s.vizLabel ? s : { ...s, pill: { text: s.vizLabel, tone: "orange" as const } };
+  // 畫布尺寸不寫死：SlideChrome 佔用後剩下多少就是多少（P6 為 1392×658 一類的值）
+  const area = chromeMetrics(chromeFields);
+  const dual = Boolean(s.viz2);
+  const cw = dual ? (area.w - DGAP.md) / 2 : area.w;
+  const mode: CanvasMode = !live ? "thumb" : play ? "play" : "view";
+
+  // 雙畫布：兩側縮放各自獨立，但任一側按下 fit 時同時還原兩側
+  const fitA = useRef<(() => void) | null>(null);
+  const fitB = useRef<(() => void) | null>(null);
+  const fitBoth = useCallback(() => {
+    fitA.current?.();
+    fitB.current?.();
+  }, []);
+
+  const panel = (Comp: ComponentType | undefined, ref: typeof fitA) => (
+    <CanvasViewport
+      content={live && Comp ? <Comp /> : undefined}
+      natural={s.vizWidth}
+      w={cw}
+      h={area.h}
+      mode={mode}
+      dark={dark}
+      compact={dual}
+      outerScale={outerScale}
+      emptyId={markerId(s.vizLabel)}
+      emptyHint={s.vizHint}
+      fitRef={ref}
+      onFitRequest={dual ? fitBoth : undefined}
+    />
+  );
+
   return (
     <SlideChrome
       s={chromeFields}
@@ -284,8 +284,8 @@ function LayoutFullVisual({ s, dark, deck, index, total, live }: LayoutProps<Ful
       background={dark ? c.slide : "var(--neutral-50)"}
     >
       <div style={{ height: "100%", display: "flex", gap: DGAP.md }}>
-        <VizPanel Comp={live ? s.viz : undefined} dark={dark} hint={s.vizHint} />
-        {s.viz2 && <VizPanel Comp={live ? s.viz2 : undefined} dark={dark} hint={s.vizHint} />}
+        {panel(s.viz, fitA)}
+        {dual && panel(s.viz2, fitB)}
       </div>
     </SlideChrome>
   );

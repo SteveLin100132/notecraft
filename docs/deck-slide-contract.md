@@ -337,9 +337,11 @@ export interface CustomSlideProps {
 export interface FullVisualSlide extends SlideChromeFields {
   layout: "full-visual";
   title: string;
-  viz: ComponentType;
+  viz?: ComponentType;           // 省略 → 畫布顯示空狀態（標記尚未生成元件）
   viz2?: ComponentType;          // 兩個並排（提案 P5 兩方案架構對照）
-  vizLabel?: string; vizHint?: string;
+  vizLabel?: string;
+  vizWidth?: number;             // 紙張內容寬，預設 860（＝筆記版心）
+  vizHint?: string;              // 只在空狀態顯示，取代預設說明句
 }
 
 export interface QuoteSlide {
@@ -367,6 +369,24 @@ export type Slide =
 | 沿用筆記中**既有**的 `@ai-visualize` 元件（播放時可互動） | `full-visual` |
 | 這一頁的視覺是**為簡報現生**的 | `custom` |
 | 既有元件 + 額外的簡報用排版（標題、KPI、註解） | `custom`，內部 import 該元件 |
+
+### 6.2 `full-visual` 的元件預覽畫布
+
+`viz` 不是直接貼進版面，而是放在 `CanvasViewport`（`src/components/deck/CanvasViewport.tsx`）
+這塊**藍圖畫布**上：元件躺在一張白紙上、紙躺在點陣網格上，預設水平＋垂直置中並 fit
+（四周留 24px、不放大超過 100%），可縮放（25–300%）、可平移，超出畫布的部分被裁切並靠
+平移看見。規格見 `docs/prototype/design_handoff_canvas_viewport/README.md`。
+
+這解掉的是 `full-visual` 原本的硬傷：筆記元件是為**網頁內文**設計的（高度隨內容長、
+頁面可捲），塞進固定 900px 高的投影片後，超出的部分會被靜靜裁掉。
+
+deck 端只需要知道三件事：
+
+- **`vizWidth`**：紙張的內容寬，預設 860（＝筆記版心，元件換行位置與筆記裡一致）。
+  只有在元件明顯需要更寬的版心時才給。
+- **`viz` 可省略**：標記還沒生成元件時留空，畫布會顯示空狀態而不是一塊空白。
+- **互動鍵位由畫布自己處理**，且刻意不碰 `←` `→` `↑` `↓` `Space` `Esc` `O`。
+  檢視模式要 `⌘/Ctrl` + 滾輪才縮放（純滾輪讓頁面照常捲動），播放模式純滾輪即縮放。
 
 ---
 
