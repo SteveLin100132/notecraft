@@ -26,7 +26,7 @@ const notecraftDir = userCwd
   ? path.join(userCwd, ".notecraft")
   : notesDir
     ? path.join(notesDir, ".notecraft")
-    : null;
+    : path.join(process.cwd(), ".notecraft"); // 主專案 fallback：讓 @notes alias 恆有定義（deck 兩模式 glob 需要）；指向可能不存在的本地 .notecraft，glob 命中 0 筆、不報錯
 
 export default defineConfig({
   output: "static",
@@ -43,7 +43,7 @@ export default defineConfig({
       ...(notesDir && { fs: { allow: [process.cwd(), notesDir, ...(userCwd ? [userCwd] : [])] } }),
     },
     resolve: {
-      alias: notecraftDir ? { "@notes": notecraftDir } : {},
+      alias: { "@notes": notecraftDir },
       // 外部 mdx 引用的 tsx 位在 .notecraft/components/ 底下、無自帶 node_modules；
       // rollup 若從 tsx 位置向上找不到白名單套件會 build fail。
       // dedupe 強制這些套件一律從 viewer app 的 project root 解析。

@@ -1,0 +1,229 @@
+---
+title: RAG 的向量怎麼選：Mistral 與 Voyage AI 的取捨
+description: >-
+  RAG 的第一哩路是把文字變成向量。這篇整理 embedding 在檢索中的位置、三個真正的旋鈕（維度／精度／領域），以及 Mistral 與 Voyage
+  AI（by MongoDB）兩條路線的取捨與選型時機。
+tags:
+  - AI 陪跑筆記
+  - RAG
+  - Embedding
+  - AI 技術
+category: 技術筆記
+createdAt: '2026-07-29'
+updatedAt: '2026-07-30'
+---
+
+做 RAG 時，大家把最多注意力放在 prompt 和選哪個 LLM，但決定「到底找不找得到對的資料」的，是更前面那一步：把文字變成向量的 embedding。模型選錯、維度開太滿、或忘了還有 rerank，後面接什麼大模型都補不回來。這篇把 embedding 在 RAG 的位置講清楚，再比較 Mistral 與 Voyage AI 兩條路線。
+
+:::info{title="本文視角 · TypeScript 專案"}
+以 TypeScript 專案接雲端 API 的角度整理。兩家的 embedding 都是**線上 API**（沒有本地權重可 `npm install`），你送文字、拿回向量，自己存進向量庫。所有價格、維度、context 以各官方文件為準。
+:::
+
+---
+
+## 先想清楚 embedding 在 RAG 的位置
+
+embedding 做的事只有一件：把 query 和每一段文件 :tip[chunk]{content="把長文件切成的小段落，通常數百 token，是檢索與 embedding 的基本單位。"} 放進**同一個高維向量空間**，讓「語意相近」變成「距離相近」。檢索時算 query 向量和庫裡每個向量的相似度，取最近的 :tip[top-k]{content="相似度最高的前 k 筆結果，例如 top-20。"} 幾筆送給 LLM。
+
+關鍵是分清兩件事：embedding 決定「**找得到什麼**」，:tip[rerank]{content="檢索的第二段：用更重的模型把粗篩出的候選重新精排，把最相關的排到最前面。"} 決定「**排得對不對**」。很多人只做了第一段就說 RAG 不準——其實是少了第二段。
+
+{/* @ai-visualize
+id: rag-embedding-pipeline
+type: diagram
+prompt: |
+  以手寫 SVG 畫出 RAG 檢索的資料流管線，核心洞察是「embedding 決定找得到什麼、rerank 決定排得對不對」——把這條管線切成兩段並各自標註。
+
+  由左到右（或由上到下）的流程：
+  1. 文件庫（多份 document）→ 切成 chunks
+  2. chunks 經過 embedding model → 一堆向量存進向量庫（Vector DB）
+  3. 使用者 query → 同一個 embedding model → query 向量
+  4. 在向量庫做相似度檢索（cosine / 近似最近鄰）→ 取出 top-k 候選（例如 top-20）
+  5. top-k 候選 + query 一起進 reranker → 精排後的 top-n（例如 top-3）
+  6. top-n 當作 context 餵給 LLM → 產生答案
+
+  視覺上用兩個底色區塊把管線分成「第一段：embedding 檢索（粗篩，找得到什麼）」與「第二段：rerank（精排，排得對不對）」。強調 query 與文件走的是同一個 embedding model（同一個向量空間）。可加節制的 motion 讓資料沿管線依序流動。
+caption: RAG 檢索管線：embedding 負責把 query 與 chunks 放進同一個向量空間做粗篩，rerank 負責精排；兩段缺一不可。
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import RagEmbeddingPipeline from '@/components/generated/rag-embedding-pipeline'
+
+<GeneratedFrame id="rag-embedding-pipeline" type="diagram" prompt={"以手寫 SVG 畫出 RAG 檢索的資料流管線，切成兩段並標註：第一段 embedding 檢索（文件 chunks 與 query 走同一個 embedding model → 向量庫 → 相似度檢索取 top-k，決定找得到什麼），第二段 rerank（reranker 精排成 top-n，決定排得對不對），最後餵給 LLM 產生答案。"} caption="RAG 檢索管線：embedding 負責把 query 與 chunks 放進同一個向量空間做粗篩，rerank 負責精排；兩段缺一不可。">
+  <RagEmbeddingPipeline />
+</GeneratedFrame>
+
+---
+
+## 三個真正的旋鈕
+
+選 embedding 不是「挑一個最強的模型」這麼簡單。真正會影響成本與品質的是這三個旋鈕，而且它們常常比「換一家模型」更關鍵。
+
+### 1. 維度（Matryoshka）
+
+向量的維度越高，能塞進去的語意細節越多、檢索品質通常越好——但每筆向量的儲存、記憶體與比對成本也線性上升。近年的模型支援 :tip[Matryoshka]{content="一種訓練法，讓向量的前段維度就已濃縮最重要的資訊，因此可以直接截斷到較短維度而只損失少量品質。"} 表示法：同一個模型輸出的向量，你可以只保留前 256／512／1024／2048 維，品質只掉一點點。Voyage 的 4 系列支援這四段；Mistral 的 `codestral-embed` 甚至能截到任意整數維度。
+
+### 2. 精度（量化）
+
+除了「幾維」，還有「每一維用幾個位元存」。:tip[量化]{content="把 32-bit 浮點數壓成更小的表示（如 8-bit 整數或 1-bit 二元），大幅降低儲存與比對成本，換取少量品質。"}把預設的 `float32` 換成 `int8`（省 3/4）甚至 `binary`（1 bit，省 31/32），儲存與比對速度都大降，品質只微降。這是壓低向量庫成本最有效的槓桿，卻最常被忽略。
+
+下面這個互動可以親手拖：把維度與精度往下調，看儲存怎麼崩塌式地變小。
+
+{/* @ai-visualize
+id: embedding-dimension-tradeoff
+type: motion
+prompt: |
+  做一個可互動的「向量儲存成本」示範，核心洞察是「從 float32 × 2048 維降到 int8 × 512 維或 binary × 1024 維，儲存可以省九成以上，而檢索品質只掉一點」。要讓讀者親手體驗維度 × 精度的取捨。
+
+  控制項：
+  - 維度：四個按鈕 256 / 512 / 1024 / 2048（預設 1024）
+  - 精度 dtype：三個按鈕 float32 / int8 / binary（預設 float32）
+  - 知識庫規模：slider，chunk 數 10,000 – 10,000,000（預設 1,000,000）
+
+  即時計算並強調：
+  - 每筆向量位元組數 = 維度 × 每維位元組（float32=4、int8=1、binary=1/8）
+  - 整個知識庫的總儲存 = 每筆位元組 × chunk 數（用 MB/GB 顯示）
+  - 相對於基準（float32 × 2048）省了百分之幾（大字強調）
+  用一條會隨設定縮短的儲存量長條，把「崩塌式變小」視覺化。
+  另外附兩個「示意」指標（明確標註非實測基準、僅供直覺）：相對檢索品質（維度越低／精度越粗，品質略降但幅度小）與相對比對速度（維度越低越快，binary 因用 Hamming 距離特別快）。
+  數值變動用節制的 motion 過渡（200–400ms），尊重 prefers-reduced-motion。
+caption: 拖動維度與精度，看百萬級知識庫的向量儲存如何崩塌式縮小——品質只掉一點。相對品質／速度為示意，非實測基準。
+status: generated
+*/}
+
+import EmbeddingDimensionTradeoff from '@/components/generated/embedding-dimension-tradeoff'
+
+<GeneratedFrame id="embedding-dimension-tradeoff" type="motion" prompt={"可互動的向量儲存成本示範：控制維度（256/512/1024/2048）、精度 dtype（float32/int8/binary）與知識庫規模（chunk 數），即時計算每筆向量位元組與總儲存、相對 float32×2048 省了幾成，並附示意的相對品質與比對速度。核心：從 float32×2048 降到 int8×512 或 binary×1024，儲存省九成以上、品質只掉一點。"} caption="拖動維度與精度，看百萬級知識庫的向量儲存如何崩塌式縮小——品質只掉一點。相對品質／速度為示意，非實測基準。">
+  <EmbeddingDimensionTradeoff client:visible />
+</GeneratedFrame>
+
+### 3. 領域
+
+通用模型對一般文章夠用，但**程式碼、金融、法律**這類語料有自己的詞彙與結構，領域專用模型的檢索命中率會明顯較高。Voyage 有 `voyage-code-3`、`voyage-finance-2`、`voyage-law-2`；Mistral 則用 `codestral-embed` 專攻程式碼。選錯領域，維度開再高也救不回來。
+
+:::warning{title="換模型 = 整庫重算"}
+不同 embedding 模型（甚至同模型的不同維度／精度）產生的向量**互不相容**——它們活在不同的向量空間。所以一旦選定並把知識庫 embed 進去，之後要換模型或改維度，等於**整個知識庫重新 embed 一次**。這使得初期選型與 :tip[POC]{content="Proof of Concept，概念驗證的小規模試作。"} 階段的模型評估特別值得投資。
+:::
+
+---
+
+## Mistral 路線
+
+:badge[線上 API]{variant="info" outline} :badge[通用 + 程式碼]{variant="neutral" outline} :badge[歐洲公司]{variant="success" outline}
+
+法國 Mistral 提供兩個 embedding 模型，走「簡單、少旋鈕」的路線：
+
+| 模型 | 維度 | Context | 精度選項 | 價格 | 定位 |
+|---|---|---|---|---|---|
+| `mistral-embed` | 1024（固定） | 8,192 token | float32 | 約 $0.10 / 1M token | 通用文字 |
+| `codestral-embed` | 1536 預設，最高 3072，可截任意維 | 8,192 token | float32 / int8 / uint8 / binary | 約 $0.15 / 1M token | 程式碼專用 |
+
+`mistral-embed` 的向量是 norm 1（單位長度），所以 cosine similarity、dot product、Euclidean distance 三者等價，比對邏輯怎麼寫都不會錯。`codestral-embed` 則把維度與精度的旋鈕開好開滿，適合要壓儲存的大型程式碼庫。
+
+```ts title="embed-mistral.ts"
+import { Mistral } from "@mistralai/mistralai";
+
+const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
+
+const res = await client.embeddings.create({
+  model: "mistral-embed",
+  inputs: ["把這段話變成向量。", "還有這一段。"],
+});
+
+// res.data[i].embedding 是 1024 維的 number[]
+const vectors = res.data.map((d) => d.embedding);
+```
+
+選 Mistral 的常見理由是**資料落地**：歐洲公司、有 EU 資料處理選項，對受 GDPR 或資料主權要求的專案較好交代。旋鈕少也意味著決策負擔小。
+
+---
+
+## Voyage AI 路線（by MongoDB）
+
+:badge[線上 API]{variant="info" outline} :badge[全系列 + 領域模型]{variant="neutral" outline} :badge[綁 Atlas]{variant="warning" outline}
+
+Voyage AI 專做檢索模型，產品線最完整：通用、程式碼、金融、法律、多模態，外加 reranker。
+
+| 模型 | 維度 | Context | 定位 |
+|---|---|---|---|
+| `voyage-4` / `voyage-4-large` / `voyage-4-lite` | 256 / 512 / 1024 / 2048 | 32,000 token | 通用（large 品質最高、lite 便宜快） |
+| `voyage-4-nano` | 128 / 256 / 512 | 32,000 token | 開放權重、極輕量 |
+| `voyage-code-3` | 256 / 512 / 1024 / 2048 | 32,000 token | 程式碼 |
+| `voyage-finance-2` | 1024 | 32,000 token | 金融 |
+| `voyage-law-2` | 1024 | 16,000 token | 法律 |
+| `rerank-2.5` | —（輸出相關性分數） | — | 精排用的 reranker |
+
+4 系列與 `voyage-code-3` 都支援 Matryoshka 維度截斷與 `int8` / `binary` 量化，把前面講的兩個旋鈕開好；32,000 token 的 context 也比 Mistral 的 8,192 寬鬆，長文件切 chunk 的彈性更大。
+
+:::note{title="身世與綁定" collapsible}
+MongoDB 於 **2025 年 2 月 24 日**以約 2.2 億美元收購 Voyage AI，現為「Voyage AI by MongoDB」，深度整合進 MongoDB Atlas Vector Search。多數模型有 200M token 免費額度（領域模型 50M），計費綁定你的 Atlas 帳戶。如果你的向量庫本來就打算放 Atlas，這個整合是實打實的順路；反過來說，也是一種生態綁定。
+:::
+
+> Voyage 最被低估的一塊其實是 `rerank-2.5`。embedding 負責把候選撈出來，reranker 負責把對的排到最前面——兩段一起用，檢索品質常常比換更貴的 embedding 模型還有感。
+
+---
+
+## 什麼時候選哪個
+
+判斷點通常不是「哪家分數高」，而是這幾件事：**語料領域、資料要放哪、要不要壓成本**。下面把常見情境收成一張互動選型卡。
+
+{/* @ai-visualize
+id: embedding-model-selector
+type: motion
+prompt: |
+  做一個「embedding 選型」互動指南，核心洞察是「先看語料領域與資料落地，再談維度與成本；embedding 選完別忘了加 rerank」。
+
+  用 tab 或左側清單走查六種情境，每格顯示：情境標題、推薦模型（用 badge 標出 Mistral 或 Voyage 來源）、一句理由、以及一個提醒或代價。切換時用節制的 motion 帶出內容。
+
+  六格：
+  1. 一般文件 / 客服 RAG —— voyage-4（品質）或 mistral-embed（簡單）。多數專案的起點。
+  2. 程式碼檢索 —— voyage-code-3 或 codestral-embed。領域模型命中率明顯較高。
+  3. 金融 / 法律語料 —— voyage-finance-2 / voyage-law-2。專用模型，通用模型救不回。
+  4. 已經在 MongoDB Atlas —— Voyage（by MongoDB）原生整合 Atlas Vector Search，順路。
+  5. 要壓儲存與延遲 —— 用 Matryoshka 低維 + int8/binary 量化（voyage 4 系列或 codestral-embed）。
+  6. 資料主權 / 歐洲落地 —— Mistral（歐洲公司、EU 資料處理選項）。
+  底部固定一句提醒：不論選哪個，正式上線都建議在 embedding 之後補上 rerank（如 voyage rerank-2.5）。
+caption: 六種情境下的 embedding 選型建議：先看領域與資料落地，再談維度與成本；上線別忘了 rerank。
+status: generated
+*/}
+
+import EmbeddingModelSelector from '@/components/generated/embedding-model-selector'
+
+<GeneratedFrame id="embedding-model-selector" type="motion" prompt={"『embedding 選型』互動指南：以左側清單走查六種情境（一般文件 RAG、程式碼檢索、金融/法律、已在 Atlas、壓成本、資料主權），每格顯示推薦模型（badge 標出 Mistral 或 Voyage 來源）、一句理由與提醒，底部固定提醒上線要補 rerank。核心：先看語料領域與資料落地，再談維度與成本。"} caption="六種情境下的 embedding 選型建議：先看領域與資料落地，再談維度與成本；上線別忘了 rerank。">
+  <EmbeddingModelSelector client:visible />
+</GeneratedFrame>
+
+---
+
+## 建議的落地順序
+
+::::steps
+:::step{title="先用預設維度跑一版能檢索的 POC" status="current"}
+挑一個通用模型（`voyage-4` 或 `mistral-embed`）、用預設維度與 `float32`，先把「query 進來、撈得到相關 chunk」這條路打通，不要一開始就糾結量化。
+:::
+:::step{title="用你自己的資料評估領域模型"}
+拿真實語料做小規模 A/B：通用 vs 領域模型（程式碼／金融／法律）。因為換模型要整庫重算，這個評估越早做越省。
+:::
+:::step{title="上線前補上 rerank"}
+在 embedding 粗篩之後接一個 reranker（如 `rerank-2.5`）做精排。這一步對「答得準不準」的提升，往往比升級 embedding 模型更有感。
+:::
+:::step{title="要降成本時，才動維度與量化"}
+知識庫規模上來、儲存或延遲吃緊時，再用 Matryoshka 降維 + `int8`／`binary` 量化把成本壓下來——這時你已經有真實資料可以量測品質掉多少。
+:::
+::::
+
+回到開頭：embedding 決定 RAG 找得到什麼，rerank 決定排得對不對，維度與精度決定你付多少成本。Mistral 走「少旋鈕、歐洲落地」，Voyage 走「全系列 + 領域模型 + rerank + 綁 Atlas」。先問你的語料是什麼領域、資料要放哪，答案通常就浮出來了。
+
+---
+
+## 延伸閱讀
+
+- [Mistral — Embeddings 概覽](https://docs.mistral.ai/studio-api/knowledge-rag/embeddings)
+- [Mistral — Code Embeddings（`codestral-embed`）](https://docs.mistral.ai/studio-api/knowledge-rag/embeddings/code_embeddings)
+- [Voyage AI — 官方文件](https://docs.voyageai.com/)
+- [Voyage AI by MongoDB — 文字 embedding 模型清單](https://www.mongodb.com/docs/voyageai/models/text-embeddings/)
+- [MongoDB — 宣布收購 Voyage AI（2025/02/24）](https://investors.mongodb.com/news-releases/news-release-details/mongodb-announces-acquisition-voyage-ai-enable-organizations)
+
+---
+
+*內容整理於 2026 年 7 月 · 模型、維度、額度與價格隨時異動，請以各官方文件為準*

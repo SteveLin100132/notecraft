@@ -15,6 +15,12 @@
   --success-500:#2e9e6b; --success-50:#e7f6ee;
   --warning-500:#e3a008; --warning-50:#fcf3da;
   --danger-500:#d64545; --danger-50:#fbeaea;
+  /* 300 階 = 深底（暗色投影片 #262e3d）上的狀態色。500 階在深底上不可讀：
+     danger-500 僅 3.11:1。下列值實測 vs #262e3d：5c→6.35 / f2→8.12 / ef→5.67。 */
+  --success-300:#5cc494; --warning-300:#f2c14e; --danger-300:#ef8b8b;
+  /* warning 的 500 階在白底僅 2.26:1（琥珀色的老問題），當文字色不可讀。
+     700 階供淺底文字 / icon 使用，實測 vs #ffffff 為 4.91:1。 */
+  --warning-700:#9a6600;
   --info-500:#2c6ebb; --info-50:#eef4fb;
 
   --text-strong:var(--neutral-900); --text-body:var(--neutral-700);

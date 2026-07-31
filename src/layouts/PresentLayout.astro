@@ -1,0 +1,31 @@
+---
+// 簡報模式專用外殼（Task 27）：無側邊欄、無 page-wrap；簡報 island 以 fixed inset:0 佔滿視窗。
+import "@/styles/global.css";
+import ToastHost from "@/components/islands/ToastHost.tsx";
+
+export interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — NoteCraft</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap"
+    />
+  </head>
+  <body style="margin:0;overflow:hidden;background:var(--neutral-100);">
+    <slot />
+    <ToastHost client:idle />
+  </body>
+</html>

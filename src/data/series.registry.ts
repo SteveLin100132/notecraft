@@ -39,6 +39,8 @@ export const SERIES: SeriesDef[] = [
       "建立-bump-prd-hook-的認知調整歷程",
       "ssr-專案dutymate-ai-憲章與-workflow-設計",
       "五個-lang-函式庫還是服務",
+      "rag-embedding-選型-mistral-與-voyage",
+      "勞動法遵決策支援系統-poc-範圍與技術選型",
     ],
   },
   {

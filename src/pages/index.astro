@@ -9,6 +9,7 @@ import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import ContinueReading from "@/components/islands/ContinueReading.tsx";
 import type { ContinueSeries } from "@/components/islands/ContinueReading.tsx";
 import { getAllNotes, buildDashboardStats } from "@/lib/notes";
+import { allDeckSlugs } from "@/lib/decks";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
 import { daysAgo } from "@/lib/dates";
 
@@ -17,6 +18,7 @@ const isDev = import.meta.env.DEV;
 
 const notes = await getAllNotes();
 const s = buildDashboardStats(notes, TODAY);
+const deckCount = allDeckSlugs().length;
 const series = await loadSeries();
 
 const continueSeries: ContinueSeries[] = series.map((sr) => ({
@@ -38,6 +40,13 @@ const kpis = [
     icon: "sparkle" as const,
     tone: "orange" as const,
   },
+  {
+    label: "已生成簡報",
+    value: deckCount,
+    suffix: `/ ${s.total}`,
+    icon: "play" as const,
+    tone: "orange" as const,
+  },
 ];
 const genPct = s.markersTotal > 0 ? Math.round((s.markersGenerated / s.markersTotal) * 100) : 0;
 ---
@@ -57,7 +66,7 @@ const genPct = s.markersTotal > 0 ? Math.round((s.markersGenerated / s.markersTo
   </PageHead>
 
   <!-- KPIs -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:22px;">
     {kpis.map((k) => (
       <Card padding={20}>
         <div style="display:flex;align-items:center;justify-content:space-between;">

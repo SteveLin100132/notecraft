@@ -6,6 +6,7 @@ import Toc from "@/components/islands/Toc.tsx";
 import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
 import DeleteNoteButton from "@/components/islands/DeleteNoteButton.tsx";
 import FavoriteButton from "@/components/islands/FavoriteButton.tsx";
+import GenerateDeckButton from "@/components/islands/GenerateDeckButton.tsx";
 import ReadingControl from "@/components/islands/ReadingControl.tsx";
 import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
@@ -14,6 +15,7 @@ import Icon from "@/components/Icon.astro";
 import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
 import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
+import { hasDeck } from "@/lib/decks";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -27,6 +29,7 @@ const genCount = markers.filter((m) => m.status === "generated").length;
 const pendingMarkers = markers.filter((m) => m.status !== "generated");
 const pendingIds = pendingMarkers.map((m) => m.id);
 const isDev = import.meta.env.DEV;
+const noteHasDeck = hasDeck(note.id);
 // Content Layer 的 entry.filePath 是相對於 cwd 的來源路徑；vscode:// 需要絕對正斜線路徑。
 const noteAbsPath = note.filePath
   ? `${process.cwd()}/${note.filePath}`
@@ -96,6 +99,16 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
           <ReadingControl client:idle slug={note.id} />
         </div>
         <span class="nc-note-actions" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
+          {noteHasDeck ? (
+            <a
+              href={`/present/${note.id.normalize("NFC")}`}
+              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
+            >
+              <Icon name="play" size={15} /> 簡報
+            </a>
+          ) : isDev ? (
+            <GenerateDeckButton client:idle slug={note.id} notePath={note.filePath} />
+          ) : null}
           <FavoriteButton client:idle slug={note.id} />
           {isDev && (
             <a
