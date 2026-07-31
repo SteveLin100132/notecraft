@@ -41,6 +41,8 @@ export const SERIES: SeriesDef[] = [
       "五個-lang-函式庫還是服務",
       "rag-embedding-選型-mistral-與-voyage",
       "勞動法遵決策支援系統-poc-範圍與技術選型",
+      "勞動法遵決策支援系統-poc-任務拆解與分工",
+      "勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
     ],
   },
   {
