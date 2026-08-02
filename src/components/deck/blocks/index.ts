@@ -52,3 +52,41 @@ export { TagCloud } from "./TagCloud";
 export type { TagCloudProps, TagItem } from "./TagCloud";
 export { LogoRow } from "./LogoRow";
 export type { LogoItem, LogoRowProps } from "./LogoRow";
+
+// Task 43 —— 三個「整頁級」原子：定位矩陣 / 累計拆解 / 主張＋三要素。
+// 與前 14 個的差別是**它們預期獨佔 custom 頁的內容區**，不與其他 block 並排。
+export { Quadrant } from "./Quadrant";
+export type { QuadrantCell, QuadrantProps } from "./Quadrant";
+export { Waterfall } from "./Waterfall";
+export type { WaterfallProps, WaterfallStep } from "./Waterfall";
+export { Triad } from "./Triad";
+export type { TriadItem, TriadProps } from "./Triad";
+
+// Task 44 —— 第二批整頁級原子：強度矩陣 / 排序榜 / 風險研判 / 章節導覽 / 量化前後對比。
+export { Heatmap } from "./Heatmap";
+export type { HeatCell, HeatmapProps, HeatRow } from "./Heatmap";
+export { Ranking } from "./Ranking";
+export type { RankingProps, RankItem } from "./Ranking";
+export { Risk } from "./Risk";
+export type { RiskItem, RiskProps } from "./Risk";
+export { Contents } from "./Contents";
+export type { ContentsItem, ContentsProps } from "./Contents";
+export { BeforeAfter } from "./BeforeAfter";
+export type { BeforeAfterProps, BeforeAfterRow } from "./BeforeAfter";
+
+// Task 45 —— 第三批。前三個對應 theme07（摘要 / 方法 / 集中度），
+// 後四個是 theme07 結構上沒有、但技術筆記需要的缺口（分層 / 決策記錄 / 取捨光譜 / 角色關係）。
+export { Summary } from "./Summary";
+export type { SummaryPoint, SummaryProps, SummaryStat } from "./Summary";
+export { Cross } from "./Cross";
+export type { CrossNote, CrossProps } from "./Cross";
+export { Share } from "./Share";
+export type { ShareProps, ShareSegment } from "./Share";
+export { Layers } from "./Layers";
+export type { LayerItem, LayersProps } from "./Layers";
+export { Decision } from "./Decision";
+export type { DecisionOption, DecisionProps } from "./Decision";
+export { Spectrum } from "./Spectrum";
+export type { SpectrumMark, SpectrumProps } from "./Spectrum";
+export { Roster } from "./Roster";
+export type { RosterActor, RosterProps } from "./Roster";

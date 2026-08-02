@@ -9,7 +9,11 @@
 // 不含 src/components/generated/）。
 
 import type { CustomSlideProps, Deck } from "@/lib/decks";
-import { Annotate, Cards, Chart, Code, Frame, LogoRow, Mark, Rows, Stages, TagCloud, Terminal } from "@/components/deck/blocks";
+import {
+  Annotate, BeforeAfter, Cards, Chart, Code, Compare, Contents, Cross, Decision, Frame, Heatmap, Kpi, Layers,
+  LogoRow, Mark, Quadrant, Ranking, Risk, Roster, Rows, Share, Spectrum, Stages, Summary, TagCloud, Terminal,
+  Triad, Waterfall,
+} from "@/components/deck/blocks";
 import { DGAP, DS } from "@/components/deck/scale";
 import { dkt } from "@/components/deck/theme";
 
@@ -661,6 +665,389 @@ function TagCloudCardsPage({ dark, area }: CustomSlideProps) {
   );
 }
 
+// ── <Quadrant> 典型用法：左欄敘述 + 右側 2×2，只強調一格 ────────────────────
+function QuadrantPage({ dark }: CustomSlideProps) {
+  return (
+    <Quadrant
+      dark={dark}
+      lead="把「策略價值」與「落地確定性」交叉，四種處境各自對應不同的投入方式 —— 同一個功能落在哪一格，決定的是要不要現在做，而不是要不要做。"
+      yAxis="策略價值"
+      yNote="對長期定位的影響，不是短期使用量"
+      xAxis="落地確定性"
+      xNote="技術路徑與驗收標準是否已清楚"
+      takeaway="只有右上那一格值得現在排進 sprint。"
+      cells={[
+        { title: "押注區", desc: "值得做，但路徑還沒清楚。先做一次小規模驗證再談排程。", items: ["自動生成版型", "跨筆記敘事"] },
+        {
+          title: "優先投入",
+          desc: "價值與確定性都高，資源該集中在這裡。",
+          items: ["版型庫", "填充契約"],
+          emphasis: true,
+        },
+        { title: "先擱置", desc: "兩邊都不強。記錄下來就好，不要佔用討論時間。", items: ["主題切換 UI"] },
+        { title: "順手做", desc: "做得出來但影響有限，適合塞進零碎時間。", items: ["匯出 PDF"] },
+      ]}
+    />
+  );
+}
+
+// ── <Waterfall> 典型用法：含一段負增量（沿用既有元件省下的工時）───────────────
+function WaterfallPage({ dark, area }: CustomSlideProps) {
+  return (
+    <Waterfall
+      dark={dark}
+      width={area.w}
+      height={area.h}
+      unit="h"
+      lead="一份 deck 從讀筆記到驗收通過的工時拆解。沿用筆記既有的互動元件是唯一會讓總數下降的一段。"
+      headline={{ value: "31h", label: "單份 deck 合計" }}
+      steps={[
+        { label: "讀筆記", value: 3 },
+        { label: "規劃大綱", value: 5 },
+        { label: "寫 deck", value: 18 },
+        { label: "沿用既有元件", value: -6 },
+        { label: "驗證與修正", value: 11 },
+      ]}
+      totalLabel="合計"
+      takeaway="寫 deck 佔掉一半以上 —— 版型存量正是為了壓縮這一段。"
+    />
+  );
+}
+
+// ── <Triad> 典型用法：置中主張 + 三支撐點 ──────────────────────────────────
+function TriadPage({ dark }: CustomSlideProps) {
+  return (
+    <Triad
+      dark={dark}
+      chip="選頁填字"
+      statement="簡報好不好看，不是排版問題，是版型存量問題。"
+      emphasis="版型存量"
+      items={[
+        { label: "版型庫", desc: "預先設計好的成品頁，生成時只負責挑，不負責想。", icon: "layers" },
+        { label: "填充契約", desc: "每個文字槽標好字數上限，生成前就擋，不靠事後截圖抓。", icon: "file" },
+        { label: "不重複規則", desc: "同一份 deck 內版型不得重用，節奏由機器保證。", icon: "settings" },
+      ]}
+      meta="構圖參考 dashi-ppt theme07，版面語彙以本專案設計系統重寫"
+    />
+  );
+}
+
+// ── <Heatmap> 典型用法：4 欄 × 5 列，強度跨滿 0–1 ─────────────────────────────
+function HeatmapPage({ dark }: CustomSlideProps) {
+  return (
+    <Heatmap
+      dark={dark}
+      columns={["手寫 SVG", "recharts", "d3", "motion"]}
+      rows={[
+        { label: "流程 / 時序圖", cells: [1, 0.1, 0.25, 0.4] },
+        { label: "有軸的量化資料", cells: [0.3, 1, 0.7, 0.15] },
+        { label: "非標準座標系", cells: [0.45, 0.2, 0.95, 0.3] },
+        { label: "scroll 驅動的動畫", cells: [0.35, 0.05, 0.4, 1] },
+        { label: "架構 / 拓撲圖", cells: [0.9, 0, 0.5, 0.2] },
+      ]}
+      scale={["不適合", "首選"]}
+      note="依 content-visualize 決策樹整理"
+    />
+  );
+}
+
+// ── <Ranking> 典型用法：8 列（達建議上限）+ 前二名重點 + 變化欄 ─────────────────
+function RankingPage({ dark }: CustomSlideProps) {
+  return (
+    <Ranking
+      dark={dark}
+      unit="次"
+      highlightTop={2}
+      lead="既有 8 份 deck 裡各原子的實際使用次數。用得最多的兩個決定了版型庫該先補什麼。"
+      note="口徑：以 custom 頁內的 import 計，同頁重複只計一次"
+      items={[
+        { label: "Rows", value: 24, meta: "並列要點清單", delta: 3 },
+        { label: "Cards", value: 19, meta: "分組卡片", delta: 5 },
+        { label: "Stages", value: 12, meta: "流程與時間軸", delta: 0 },
+        { label: "Compare", value: 9, meta: "兩方案對決", delta: -2 },
+        { label: "Kpi", value: 8, meta: "頭條數字" },
+        { label: "Table", value: 6, meta: "交叉對照矩陣", delta: 1 },
+        { label: "Code", value: 4, meta: "程式碼片段" },
+        { label: "Chart", value: 2, meta: "量化圖表", delta: -1 },
+      ]}
+    />
+  );
+}
+
+// ── <Risk> 典型用法：5 條（達建議上限）、三種等級都出現 ─────────────────────────
+function RiskPage({ dark }: CustomSlideProps) {
+  return (
+    <Risk
+      dark={dark}
+      lead="把 dashi 的版型搬進 NoteCraft 這件事，真正的風險不在工程量。"
+      items={[
+        {
+          risk: "視覺驗證缺口",
+          level: "critical",
+          impact: "截圖能力不可用時，只能保證不溢出，保證不了好看。",
+          mitigation: "每批做完由作者亮暗各看一次再往下做，不累積未驗收的頁。",
+        },
+        {
+          risk: "授權界線",
+          level: "warning",
+          impact: "逐頁 1:1 還原會從「參考」變成「重製 AGPL 專案的表達」。",
+          mitigation: "只取構圖決策，色票字級一律改走本專案 token，並在檔頭註明出處。",
+        },
+        {
+          risk: "版型與筆記題材不合",
+          level: "warning",
+          impact: "theme07 是融資報告，照搬會讓技術筆記削足適履。",
+          mitigation: "只挑語境中性的版面，逐個改寫成技術筆記用得上的語彙。",
+        },
+        {
+          risk: "原子過多反而難選",
+          level: "good",
+          impact: "22 個原子已接近人腦一次能權衡的上限。",
+          mitigation: "每個檔頭都寫明「與 X 的分界」，讓選型有依據而非憑印象。",
+        },
+        {
+          risk: "既有 deck 需回歸",
+          level: "good",
+          impact: "barrel 變動可能影響已生成的 8 份 deck。",
+          mitigation: "純新增匯出、不改既有簽章；每批跑 tsc 與 astro build 確認基準不變。",
+        },
+      ]}
+      takeaway="只有第一條需要你介入，其餘都已在流程裡處理掉。"
+    />
+  );
+}
+
+// ── <Contents> 典型用法：8 格（達建議上限）+ current 定位 ────────────────────────
+function ContentsPage({ dark }: CustomSlideProps) {
+  return (
+    <Contents
+      dark={dark}
+      current={3}
+      lead="版型庫從盤點到收斂的完整路徑。目前走到第三站 —— 前兩站的結論已經固定，不再回頭。"
+      items={[
+        { title: "盤點差異", sub: "量出 1020 對 6 的落差" },
+        { title: "決定架構", sub: "選頁填字，不是加規則" },
+        { title: "累積版型", sub: "每批 3–5 個，逐批驗收" },
+        { title: "填充契約", sub: "字數上限事前擋" },
+        { title: "選頁機制", sub: "role 檢索與不重複規則" },
+        { title: "改寫 Skill", sub: "custom 頁降級為例外" },
+        { title: "真實筆記試跑", sub: "與現況並排比較" },
+        { title: "決定是否擴充", sub: "看成效再談 40 頁" },
+      ]}
+    />
+  );
+}
+
+// ── <BeforeAfter> 典型用法：5 列，含一列 better="before" 的反向指標 ──────────────
+function BeforeAfterPage({ dark }: CustomSlideProps) {
+  return (
+    <BeforeAfter
+      dark={dark}
+      beforeLabel="現況（現場組版）"
+      afterLabel="目標（選頁填字）"
+      lead="同一篇筆記轉成 deck 的成本結構。唯一會變差的是原子總數 —— 那是這個方案的代價，不是副作用。"
+      rows={[
+        { label: "可選版型數", before: "6", after: "40+", delta: "×6.7", better: "after" },
+        { label: "單份 deck 工時", before: "31h", after: "9h", delta: "−71%", better: "after" },
+        { label: "AI 產出行數", before: "700–1150", after: "60–90", delta: "−92%", better: "after" },
+        { label: "溢出返工輪次", before: "2–3", after: "0", delta: "事前擋下", better: "after" },
+        { label: "原子總數", before: "17", after: "40+", delta: "選型變難", better: "before" },
+      ]}
+      takeaway="工時省下來的部分，一次性付在版型庫的建置上。"
+    />
+  );
+}
+
+// ── <Summary> 典型用法：論點 + 右欄要點 + 底部 4 格統計 ─────────────────────────
+function SummaryPage({ dark }: CustomSlideProps) {
+  return (
+    <Summary
+      dark={dark}
+      lead="NoteCraft 的簡報品質差距，不在提示詞寫得夠不夠嚴格，而在版型存量。對照組有 1020 個由人設計完成的成品頁，我們有 6 個版型加一塊自由畫布。"
+      takeaway="補的是存量，不是規則。"
+      points={[
+        { label: "設計在事前", desc: "生成時只負責挑頁與填字，不負責想版面。" },
+        { label: "容量事前擋", desc: "每個文字槽標好字數上限，不靠事後截圖抓溢出。" },
+        { label: "節奏靠機器", desc: "同一份 deck 內版型不得重用。" },
+      ]}
+      stats={[
+        { v: "1020", k: "對照組版型數", note: "12 套主題" },
+        { v: "6", k: "現有版型數", note: "含 1 個自由頁" },
+        { v: "29", k: "本批後的原子數" },
+        { v: "0", k: "溢出警告", note: "三批累計" },
+      ]}
+    />
+  );
+}
+
+// ── <Cross> 典型用法：A × B = C + 右側三張說明卡 ───────────────────────────────
+function CrossPage({ dark }: CustomSlideProps) {
+  return (
+    <Cross
+      dark={dark}
+      lead="把「誰來設計」與「何時設計」兩個角度疊起來，就能看出兩套工具的差別不在能力，而在時序。"
+      a="人設計版面"
+      b="事前完成"
+      result="選頁填字"
+      notes={[
+        { label: "只換第一項", desc: "AI 設計 × 事前完成 = 版型庫自動生成。可行，但品質仍看模型當下發揮。" },
+        { label: "只換第二項", desc: "人設計 × 生成時完成 = 每份簡報找設計師。品質最好，但不可規模化。" },
+        { label: "兩項都不換", desc: "AI 設計 × 生成時完成 = 現況。這正是差距的來源。" },
+      ]}
+      takeaway="能規模化又能保品質的，只有右上那一格。"
+    />
+  );
+}
+
+// ── <Share> 典型用法：6 段達上限，含一段 emphasis ──────────────────────────────
+function SharePage({ dark }: CustomSlideProps) {
+  return (
+    <Share
+      dark={dark}
+      lead="單份 deck 的工時分布。寫版面這一段吃掉最多，也正是版型庫要壓縮的目標。"
+      axisLabel="工時佔比 · 按工作類型分層"
+      segments={[
+        { label: "寫版面", value: 18, emphasis: true },
+        { label: "驗證與修正", value: 11 },
+        { label: "規劃大綱", value: 5 },
+        { label: "讀筆記", value: 3 },
+        { label: "選型決策", value: 2 },
+        { label: "其他", value: 1 },
+      ]}
+      takeaway="壓掉寫版面那段，總工時就少掉四成五。"
+    />
+  );
+}
+
+// ── <Layers> 典型用法：4 層 + 方向軸 + 一層 emphasis ───────────────────────────
+function LayersPage({ dark }: CustomSlideProps) {
+  return (
+    <Layers
+      dark={dark}
+      lead="版型庫不是一堆平行的元件，而是四層依賴。上層換掉不影響下層，下層一改整批都要重驗。"
+      axis={["基礎", "產出"]}
+      layers={[
+        { n: "L4", label: "deck 檔", desc: "一篇筆記一份", items: ["選頁", "填字"] },
+        { n: "L3", label: "版型庫", desc: "本次在做的", items: ["Quadrant", "Waterfall", "Heatmap", "Decision"], emphasis: true },
+        { n: "L2", label: "原子層", desc: "既有 14 個", items: ["Rows", "Cards", "Stages", "Chart"] },
+        { n: "L1", label: "設計系統", desc: "trendlink-design", items: ["DS 字級", "dkt 色票", "DGAP 間距"] },
+      ]}
+    />
+  );
+}
+
+// ── <Decision> 典型用法：4 選項（1 chosen）+ 決定 + 後果 ────────────────────────
+function DecisionPage({ dark }: CustomSlideProps) {
+  return (
+    <Decision
+      dark={dark}
+      context="dashi-ppt 有 1020 個現成版型，授權為 AGPL-3.0。要不要直接把它們搬進 NoteCraft？"
+      options={[
+        { label: "直接搬程式碼", note: "只拿得到 minified bundle，且整個 NoteCraft 會被 AGPL 傳染。" },
+        { label: "改用 dashi 產簡報", note: "產物是獨立 HTML，嵌不了筆記既有的互動元件。" },
+        { label: "搬架構不搬程式碼", note: "取選頁填字的設計思路，版型自己重做。", chosen: true },
+        { label: "維持現況", note: "省下工，但品質差距不會自己消失。" },
+      ]}
+      decision="取其架構決策，版面語彙以本專案設計系統重寫"
+      status="採用"
+      consequences={[
+        "不觸及 AGPL —— 產物是自己寫的，沒有重製或散布對方程式碼。",
+        "保留了嵌入 @ai-visualize 互動元件的能力，那是對方架構做不到的。",
+        "代價是版型要自己一個一個累積，短期內數量遠不及對照組。",
+        "原子總數上升，選型難度跟著上升，需靠檔頭的分界說明彌補。",
+      ]}
+    />
+  );
+}
+
+// ── <Spectrum> 典型用法：5 個標記達上限，上下交錯 ──────────────────────────────
+function SpectrumPage({ dark }: CustomSlideProps) {
+  return (
+    <Spectrum
+      dark={dark}
+      left="完全由 AI 現場決定"
+      right="完全由人事前決定"
+      lead="簡報生成工具在這條軸上的落點。越往右品質越穩定，但建置成本也越高。"
+      marks={[
+        { label: "純提示詞生成", at: 0.02, note: "每次結果都不一樣" },
+        { label: "原子層 + 自由排版", at: 0.3, note: "NoteCraft 現況" },
+        { label: "版型庫 + 選頁填字", at: 0.72, note: "本次的目標", emphasis: true },
+        { label: "dashi-ppt", at: 0.88, note: "1020 個成品頁" },
+        { label: "人工做簡報", at: 1, note: "不可規模化" },
+      ]}
+      takeaway="目標不是走到最右邊，是走到品質夠穩、成本還付得起的那一點。"
+    />
+  );
+}
+
+// ── <Roster> 典型用法：5 個周邊角色 + 中心 ─────────────────────────────────────
+function RosterPage({ dark, area }: CustomSlideProps) {
+  return (
+    <Roster
+      dark={dark}
+      width={area.w}
+      height={area.h}
+      lead="版型庫建好之後，圍繞它的五個角色各自負責一段，彼此之間沒有先後。"
+      center={{ label: "版型庫", note: "L3" }}
+      actors={[
+        { label: "present-planner", role: "選頁", icon: "target" },
+        { label: "slide-generator", role: "填字", icon: "file" },
+        { label: "填充契約", role: "擋溢出", icon: "lock" },
+        { label: "trendlink-design", role: "供 token", icon: "layers" },
+        { label: "作者", role: "驗收視覺", icon: "user" },
+      ]}
+    />
+  );
+}
+
+// ── <Compare> + <Kpi>：補上原本漏掉的兩個原子，順帶示範「組合級並排」 ──────────
+// 這兩個是既有 14 個裡唯二沒有驗證頁的（Task 46 補齊）。
+// Compare 每側 5 列接近上限、Kpi 4 格，兩者上下並排即為升級路徑第 2 級的樣子。
+function CompareKpiPage({ dark }: CustomSlideProps) {
+  return (
+    <>
+      <Compare
+        dark={dark}
+        left={{
+          tag: "方案 A",
+          name: "搬 dashi 的版型",
+          tone: "blue",
+          rows: [
+            ["取得成本", "極低，現成 1020 頁"],
+            ["可改性", "無 —— 只有 minified bundle"],
+            ["授權", "AGPL 會傳染整個專案"],
+            ["設計系統", "色碼寫死，接不上 trendlink"],
+            ["互動元件", "靜態 HTML，嵌不進去"],
+          ],
+        }}
+        right={{
+          tag: "方案 B",
+          name: "自建版型庫",
+          tone: "orange",
+          badge: "採用",
+          rows: [
+            ["取得成本", "高，一個一個做"],
+            ["可改性", "完全可控"],
+            ["授權", "自己寫的，無牽連"],
+            ["設計系統", "原生走 dkt token"],
+            ["互動元件", "保留 CanvasViewport 嵌入"],
+          ],
+        }}
+      />
+      <Kpi
+        dark={dark}
+        style={{ flex: "none" }}
+        items={[
+          { label: "原子總數", value: "29", sub: "14 → 29" },
+          { label: "整頁級", value: "15", sub: "本次新增" },
+          { label: "溢出警告", value: "0", sub: "三批累計" },
+          { label: "tsc 錯誤", value: "19", sub: "與基準相同" },
+        ]}
+      />
+    </>
+  );
+}
+
 const deck: Deck = {
   slug: "atoms",
   title: "Deck 原子層驗證基準",
@@ -822,6 +1209,184 @@ const deck: Deck = {
       titleNote: "F1 / F3",
       render: TagCloudCardsPage,
       callout: { icon: "alert", tone: "warning", text: "TagCloud 只在真的有一組並列、無先後關係的短詞時使用 —— 不要拿來塞同義詞充版面" },
+    },
+    {
+      layout: "custom",
+      nav: "Quadrant · 典型",
+      num: "06",
+      eyebrow: "ATOM · <Quadrant>",
+      title: "兩軸四象限定位",
+      titleNote: "G1 · 左欄敘述 + 右側矩陣",
+      render: QuadrantPage,
+      legend: [{ label: "重點象限", tone: "blue" }],
+      callout: { icon: "info", text: "四格不可增減、不可重排 —— 格子的位置本身就是資訊。離散類別請改用 <Table>" },
+    },
+    {
+      layout: "custom",
+      nav: "Waterfall · 典型",
+      num: "06",
+      eyebrow: "ATOM · <Waterfall>",
+      title: "累計貢獻拆解",
+      titleNote: "G2 · 含一段負增量",
+      render: WaterfallPage,
+      legend: [
+        { label: "各段增量", tone: "blue" },
+        { label: "合計", tone: "orange" },
+      ],
+      footnotes: [{ n: "1", text: "尺度取累計軌跡的最高點而非總計 —— 有負段時中途可能高於總計" }],
+    },
+    {
+      layout: "custom",
+      nav: "Triad · 典型",
+      num: "06",
+      eyebrow: "ATOM · <Triad>",
+      title: "主張加三個支撐點",
+      titleNote: "G3 · 固定三欄",
+      render: TriadPage,
+      callout: { icon: "lightbulb", text: "三欄是型別上釘死的 —— 要四個就改用 <Cards>，不要把「三」當成剛好的數量" },
+    },
+    {
+      layout: "custom",
+      nav: "Heatmap · 典型",
+      num: "07",
+      eyebrow: "ATOM · <Heatmap>",
+      title: "單色階強度矩陣",
+      titleNote: "G4 · 4 欄 × 5 列",
+      render: HeatmapPage,
+      callout: {
+        icon: "info",
+        text: "底色最深只染到 26% —— 剩下的強度差由量條長度與數值補足，深色底才不會壓掉文字對比",
+      },
+    },
+    {
+      layout: "custom",
+      nav: "Ranking · 典型",
+      num: "07",
+      eyebrow: "ATOM · <Ranking>",
+      title: "排序榜",
+      titleNote: "G5 · 8 列達上限 + 前二重點",
+      render: RankingPage,
+      footnotes: [{ n: "1", text: "變化欄刻意不上狀態色 —— 「上升」在不同題目裡可能是好事也可能是壞事" }],
+    },
+    {
+      layout: "custom",
+      nav: "Risk · 典型",
+      num: "07",
+      eyebrow: "ATOM · <Risk>",
+      title: "風險研判",
+      titleNote: "G6 · 5 條達上限、三種等級齊備",
+      render: RiskPage,
+      legend: [
+        { label: "高", tone: "critical" },
+        { label: "中", tone: "warning" },
+        { label: "低", tone: "good" },
+      ],
+      callout: { icon: "alert", tone: "warning", text: "缺 mitigation 會在 dev console 被點名 —— 沒有緩解的風險清單只是抱怨" },
+    },
+    {
+      layout: "custom",
+      nav: "Contents · 典型",
+      num: "07",
+      eyebrow: "ATOM · <Contents>",
+      title: "章節導覽",
+      titleNote: "G7 · 8 格達上限 + current 定位",
+      render: ContentsPage,
+      footnotes: [{ n: "1", text: "編號由元件依順序產生，呼叫端不能自己編 —— 目錄的序號必然連續" }],
+    },
+    {
+      layout: "custom",
+      nav: "BeforeAfter · 典型",
+      num: "07",
+      eyebrow: "ATOM · <BeforeAfter>",
+      title: "量化前後對比",
+      titleNote: "G8 · 含一列反向指標",
+      render: BeforeAfterPage,
+      callout: { icon: "info", text: "better 不給就兩側都中性 —— 「數字變大」是好是壞由呼叫端明講，元件不猜" },
+    },
+    {
+      layout: "custom",
+      nav: "Summary · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Summary>",
+      title: "開場濃縮",
+      titleNote: "G9 · 論點 + 要點 + 統計卡",
+      render: SummaryPage,
+      callout: { icon: "info", text: "一份 deck 最多用一次 —— 用兩次就代表主線沒收斂" },
+    },
+    {
+      layout: "custom",
+      nav: "Cross · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Cross>",
+      title: "兩個面向交叉推論",
+      titleNote: "G10 · A × B = C",
+      render: CrossPage,
+      callout: {
+        icon: "lightbulb",
+        text: "與 <Quadrant> 的差別：Quadrant 是地圖（很多項目落在四格），Cross 是公式（兩個角度推出一個結論）",
+      },
+    },
+    {
+      layout: "custom",
+      nav: "Share · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Share>",
+      title: "分段佔比條",
+      titleNote: "G11 · 6 段達上限",
+      render: SharePage,
+      footnotes: [
+        { n: "1", text: "能放到 6 段不是放寬 donut 的 3 片規則 —— 線性長度可直接比較，且每段都自標名稱與百分比，顏色不承載身分" },
+      ],
+    },
+    {
+      layout: "custom",
+      nav: "Layers · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Layers>",
+      title: "分層堆疊",
+      titleNote: "G12 · 4 層 + 方向軸",
+      render: LayersPage,
+      callout: { icon: "alert", tone: "warning", text: "分層是上下依賴、不是先後順序 —— 有時間順序請改用 <Stages>" },
+    },
+    {
+      layout: "custom",
+      nav: "Decision · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Decision>",
+      title: "決策記錄",
+      titleNote: "G13 · 背景 / 選項 / 決定 / 後果",
+      render: DecisionPage,
+      callout: { icon: "info", text: "沒被選的選項一定要留在畫面上 —— 只寫結論的決策記錄，半年後沒人敢改" },
+    },
+    {
+      layout: "custom",
+      nav: "Spectrum · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Spectrum>",
+      title: "一維取捨光譜",
+      titleNote: "G14 · 5 個標記、上下交錯",
+      render: SpectrumPage,
+      footnotes: [{ n: "1", text: "兩極都是有名字的立場，不是「沒有」與「全部」—— 這是與 <Chart variant=\"bars\"> 的分界" }],
+    },
+    {
+      layout: "custom",
+      nav: "Roster · 典型",
+      num: "08",
+      eyebrow: "ATOM · <Roster>",
+      title: "中心與周邊角色",
+      titleNote: "G15 · 5 個角色、放射狀",
+      render: RosterPage,
+      callout: { icon: "info", text: "周邊節點彼此沒有順序 —— 會繞回起點的循環流程請用 <Stages variant=\"cycle\">" },
+    },
+    {
+      layout: "custom",
+      nav: "Compare / Kpi",
+      num: "09",
+      eyebrow: "ATOM · <Compare> / <Kpi>",
+      title: "兩案對決與頭條數字",
+      titleNote: "補齊 · 組合級並排",
+      render: CompareKpiPage,
+      footnotes: [{ n: "1", text: "這兩個原子原本沒有驗證頁（Task 46 補齊）—— deck 檔頭要求「每個原子至少一頁」" }],
     },
   ],
 };

@@ -8,6 +8,37 @@
 
 ---
 
+## [0.4.0] - 2026-08-02
+
+簡報的品質瓶頸不在提示詞，在**版型存量**。這一版把原子層從 14 個補到 29 個，並把內容頁的預設從「AI 每頁重新設計版面」改成「AI 挑一個設計好的原子、把資料填進去」。
+
+### 新增
+
+- **15 個整頁級原子**（`src/components/deck/blocks/`）—— 預期獨佔內容區、一頁一個：
+  - 論證與收斂：`<Summary>` 開場濃縮、`<Triad>` 主張加三支柱、`<Decision>` 決策記錄、`<Cross>` 兩面向交叉推論
+  - 定位與取捨：`<Quadrant>` 兩軸四象限、`<Spectrum>` 一維取捨光譜、`<Heatmap>` 單色階強度矩陣
+  - 結構與關係：`<Layers>` 分層堆疊、`<Roster>` 中心與周邊角色、`<Contents>` 章節導覽
+  - 量化：`<Waterfall>` 累計拆解、`<Share>` 分段佔比條、`<Ranking>` 排序榜、`<BeforeAfter>` 量化前後對比、`<Risk>` 風險研判
+- **可查詢的原子目錄** `.claude/skills/content-present/references/atoms.md` —— 29 個原子的選型判準、必填欄位、容量上限，以及「內容型態 → 用哪個」速查表。`present-planner` 規劃前必讀，選型從憑印象改為查表
+- `<Compare>` 與 `<Kpi>` 補上 `/present/atoms` 驗證頁 —— 這兩個自 0.3.0 起就缺，而該 deck 的規範是「每個原子至少一頁」
+
+### 變更
+
+- **內容頁的預設從「自由排版」改為「選頁填字」** —— 挑一個整頁級原子填資料是第 1 級，組合級並排是第 2 級，自己寫 JSX 降為第 3 級且須寫明理由
+- **同一份 deck 內整頁級原子不得重複** —— 頁頁不同由規則保證，不靠運氣。15 個足夠撐起 10–14 頁
+- 自己寫版面新增一條正當理由：**內容有強烈的固有幾何形狀**（形狀本身就是論點的一部分，拆進通用原子會弄丟它）。選頁填字保證的是下限、不是上限
+- `content-present` skill 版本 `1.0.0-alpha.1` → `1.1.0-alpha.1`；`present-planner` / `slide-generator` 兩個 subagent 同步改寫
+- 密度基準改寫：內容頁「2–3 個區塊」→「通常 1 個」，密度改由原子的項數承載
+- few-shot 首選改為 `atoms.deck.tsx`（29 個原子每個至少一頁，抄欄位比猜 props 可靠）
+
+### 修正
+
+- **`sync-skill-template.mjs` 在 Windows 上排除清單完全失效** —— `path.relative` 回傳反斜線、`TRENDLINK_EXCLUDES` 寫正斜線，`ui_kits/dutymate` 這種帶目錄的 entry 比不中。在 Windows 跑一次 `sync-skill` 就會把 47 個未公開的 Duty Mate 素材（約 1.3 MB）複製進要發布的 `skill-template/`。比對前先把路徑正規化成正斜線
+- **`sync-skill-template.mjs` 現在會同步 skill 的 `references/` 目錄** —— 先前只複製 `SKILL.md`，viewer 版會拿到一份指向不存在的 `atoms.md` 的說明
+- `<Spectrum>` 兩端的標記卡改為位移量跟著 `at` 走 —— 固定 `translateX(-50%)` 會讓 `at=0`/`at=1` 的卡各突出半個卡寬，與其他頁的左右邊界對不齊（未溢出，但視覺不齊）
+
+---
+
 ## [0.3.0] - 2026-07-31
 
 把一篇筆記一鍵轉成 16:9 多頁簡報。這是 0.2.4 之後累積三週的成果，也是套件第一次帶簡報功能。
