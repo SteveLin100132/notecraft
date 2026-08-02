@@ -13,7 +13,7 @@
 
 ---
 name: content-present
-description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck）。當作者在 Claude Code 說「生成簡報」「把這篇筆記轉成簡報」「重新生成 xxx 的簡報」，或把筆記功能列「生成簡報」按鈕複製的提示詞貼進來時使用。產物為 .notecraft/components/<slug>.deck.tsx 模組，內容頁自由排版但一律組合系統的原子層、沿用筆記中既有的 @ai-visualize 互動元件、版面遵循 trendlink-design。Also triggers on English like "generate a presentation / slide deck from this note".
+description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck）。當作者在 Claude Code 說「生成簡報」「把這篇筆記轉成簡報」「重新生成 xxx 的簡報」，或把筆記功能列「生成簡報」按鈕複製的提示詞貼進來時使用。產物為 .notecraft/components/<slug>.deck.tsx 模組，內容頁一律從 29 個預先設計好的原子中選一個填資料、沿用筆記中既有的 @ai-visualize 互動元件、版面遵循 trendlink-design。Also triggers on English like "generate a presentation / slide deck from this note".
 ---
 
 # Content Present Skill
@@ -53,7 +53,7 @@ description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck
 | --- | --- | --- |
 | `cover` | 封面 | `eyebrow` `title` `subtitle` `meta[]` `agenda[{n,title,sub}]` |
 | `section` | 章節分隔 | `num`（如 "01"） `eyebrow` `title` `subtitle` `numScale`("mega"\|"hero") `align`("left"\|"center") `tone`("dark" 預設\|"light") |
-| `custom` | **內容頁主力** | `render`（同檔定義的元件） `chrome`（預設 true） + 下方 chrome 欄位 |
+| `custom` | **內容頁主力**。預設是「一頁一個整頁級原子」，見〈內容頁的預設寫法〉 | `render`（同檔定義的元件） `chrome`（預設 true） + 下方 chrome 欄位 |
 | `full-visual` | 全幅視覺（嵌既有互動元件） | `title` `viz` `viz2`（兩幅並排） `vizLabel` `vizHint` |
 | `quote` | 引言 | `eyebrow` `quote` `by` `byMeta` |
 | `closing` | 結語回顧 | `title` `items[{n,k,v}]`（3 項） `cta` `ctaMeta` `tone`("light" 預設\|"dark") |
@@ -81,7 +81,9 @@ description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck
 | 這一頁的視覺是**為簡報現生**的 | `custom` |
 | 既有元件 + 額外的簡報用排版（標題、KPI、註解） | `custom`，內部 `import` 該元件 |
 
-`chrome: false`（整頁滿版視覺）需在規劃書寫明理由。
+**`chrome: false`（整頁滿版視覺）只有 `custom` 頁有。** `full-visual` 的型別沒有這個欄位 ——
+要讓既有互動元件滿版，做法是用 **`custom` 頁 + `chrome: false`**，在頁內自己 `import` 那個元件
+（外框用 `<CanvasViewport>`，見〈嵌入既有元件〉）。用 `chrome: false` 時要在規劃書寫明理由。
 
 ## 原子層（`custom` 頁只能用這些）
 
@@ -108,52 +110,143 @@ const c = dkt(dark);   // dark 來自 CustomSlideProps
 
 **禁止硬編色碼。** 需要顏色就從 `c` 取；`SeriesTone`/`StatusTone` 對映用 `toneColor(tone, c)`（`@/components/deck/SlideChrome`）。
 
-### Block 元件庫（6 個）—— `@/components/deck/blocks`
+### 原子庫（29 個）—— `@/components/deck/blocks`
 
-```tsx
-import { Rows, Cards, Stages, Kpi, Table, Compare } from "@/components/deck/blocks";
-```
+**完整目錄在 [`references/atoms.md`](references/atoms.md) —— 規劃內容頁前先讀它。**
+本節只給分層與選型規則，逐個原子的判準、必填欄位與容量上限都在那份目錄裡。
 
-| 元件 | 用途 | 建議上限 |
-| --- | --- | --- |
-| `<Rows>` | N 列清單，每列可帶右欄註記（`noteLabel`/`note`） | 6 列 |
-| `<Cards>` | N 欄卡片，可分組帶色帶（`groups`）、`badge`、`chips`、`points`、`meta` | 6 欄 |
-| `<Stages>` | 水平流程段，`variant`: plain / active / dashed | 5 段 |
-| `<Kpi>` | 數字帶 / stat tile，`emphasis` 為大數字卡 | 5 格 |
-| `<Table>` | 表格 / 對照矩陣，cell 可帶 `icon`/`note`/`tone`/`emphasis`，`highlightCol` 整欄強調 | 6 欄 × 6 列 |
-| `<Compare>` | 左右對比：`tag`/`name`/`badge`/`rows`/`pros`/`cons` + 中央 VS 軸 | — |
+原子分兩層：
+
+| 層 | 數量 | 性質 | 重複使用 |
+| --- | --- | --- | --- |
+| **整頁級** | 15 | 預期**獨佔** `custom` 頁的內容區，一頁一個 | **同一份 deck 內不得重複** |
+| **組合級** | 14 | 可獨佔、也可兩三個並排 | 可重複，但同一組合不得重複 |
+
+**整頁級（15）**：`<Summary>` `<Triad>` `<Decision>` `<Cross>` — 論證與收斂；
+`<Quadrant>` `<Spectrum>` `<Heatmap>` — 定位與取捨；
+`<Layers>` `<Roster>` `<Contents>` — 結構與關係；
+`<Waterfall>` `<Share>` `<Ranking>` `<BeforeAfter>` `<Risk>` — 量化。
+
+**組合級（14）**：`<Rows>` `<Cards>` `<Stages>` `<Kpi>` `<Table>` `<Compare>` `<Code>` `<Terminal>` `<Frame>` `<Annotate>` `<Chart>` `<TagCloud>` `<LogoRow>` `<Mark>`。
 
 每個都收 `dark`，可給 `heading` 與 `style`。它們內部已處理字級階梯、`text-wrap: balance`、`tabular-nums` 與狀態色的 icon + 文字並行 —— **用它們就自動達成，自己寫 JSX 才要自己守**。
 
+**先問「我的內容是什麼型態」，不要先想版面。** 選錯原子比自己寫 JSX 更糟 —— 它會把內容硬塞進不對的隱喻。速查表見 atoms.md §三。
+
+#### `<Stages>` 的三種 variant
+
+| variant | 什麼時候用 | 上限 |
+| --- | --- | --- |
+| 不給（`linear`） | 幾個並排的階段區塊，段間有箭頭 | 5 段 |
+| `"rail"` | 一條時間軸上的里程碑。`alternate` 讓說明上下交錯 | 6 節點；`alternate` 時 `size` ≥ 280 |
+| `"cycle"` | **會回到起點**的循環流程。`center` 給環中心的標題 | 6 節點 |
+
+`rail` 不畫箭頭 —— 軸本身已經表達方向。
+
+#### `<Chart>` 的硬規則（不是建議值）
+
+- **系列數上限 3**。沿用 `blue`/`orange`/`muted`，**不擴充色票**。超過 3 個系列時元件只會畫前 3 個並在 console 警告 —— 規劃階段就要拆成 small multiples（多張圖）或改用 `<Table>` 直接標值。
+- **donut 切片上限 3**（同一個理由）。第 4 類併成「其他」（`muted` 天然就讀成「其他」）。
+- **`height` 是這個 block 的總高**（含 `heading` 與圖例），畫布高由元件自己扣。從 `area.h` 算好傳進去。
+- **不會有 tooltip**。數值直接標在圖元上 —— 投影片沒有 hover。
+- `variant="bars"` 是進度條列（一排橫條 + 百分比），不是長條圖。
+
+#### `<TagCloud>` 的使用門檻
+
+**只在真的有一組並列、無先後關係的短詞時用。** 它很容易被拿來塞同義詞充版面 —— 那會讓一頁看起來很滿但什麼都沒說。
+
+`weight`（1–4）要編碼真實的輕重，**不給就是 2**；元件不會依字數或順序自動推算（那會編碼假資訊）。有先後順序的東西改用 `<Stages>`，有結構的改用 `<Rows>`。
+
+#### 架構圖 / 拓撲圖：自己畫 SVG
+
+系統**沒有**架構圖元件（節點、連線、分組框都沒有）。需要畫系統架構、資料流、叢集拓撲時，在 `custom` 頁自己寫 SVG + `<div>`，顏色一律取 `dkt(dark)`。
+
+要在圖上標編號或引線時**用 `<Annotate>` 包起來**，不要自己畫徽章與折線。
+
 **沒做成元件的三件事，直接寫 JSX**：左右分欄 → `display: flex` + `DGAP`；段落 → `<p>` + `DS.body`；嵌入既有元件 → 直接 `import` 進來放。
 
-### 嵌入既有元件的兩個必要處理
+### 內容頁的預設寫法：選頁填字
 
-筆記的 @ai-visualize 元件是為**網頁內文**設計的（高度隨內容長、頁面可往下滾），投影片是 1600×900 固定座標系。直接放進 `custom` 頁常常會出事：
+**內容頁的預設不是「自由排版」，是「挑一個整頁級原子、把資料填進去」。**
 
-**1. 比 `area` 高 → 用 `<FitToArea>` 等比縮**
-
-```tsx
-import { FitToArea } from "@/components/deck/FitToArea";
-
-<FitToArea area={area}>
-  <SolutionArchitectureComparison />
-</FitToArea>
+```
+一頁內容 = SlideChrome（編號 / kicker / 標題 / callout / 註腳）
+         + 一個整頁級原子（獨佔內容區）
 ```
 
-它量子元素的自然高度，需要時才縮（上限 1，不放大）。**不要自己寫 `transform: scale()` 硬編縮放比例** —— 元件內容一改，寫死的比例就錯了。
+chrome 由系統畫，你只填欄位；原子的版面由它自己決定，你只填資料。這一頁的「設計」在你動手前就完成了 ——
+這正是 v0.3 與 v0.2 的差別：v0.2 讓 AI 每頁重新設計版面，v0.3 讓它挑。
 
-**2. 含互動（按鈕 / 拖曳 / 動畫）→ `live === false` 時給占位，不要掛載**
+**升級路徑（照順序試，不要跳）：**
+
+1. **一個整頁級原子** ← 預設，大部分內容頁到這裡就結束了
+2. 挑不到 → **一到兩個組合級原子並排**（`display: flex` + `DGAP`）
+3. 仍挑不到 → **自己寫 JSX / SVG**，且要在規劃書寫明「為什麼 29 個原子都不合適」
+
+**第 3 條有兩個正當理由，不是只有「沒元件可用」：**
+
+1. **沒有對應元件** —— 系統架構圖 / 拓撲圖（節點、連線、分組框）確實沒有。
+2. **內容有強烈的固有幾何形狀** —— 這個形狀本身就是論點的一部分，拆進通用原子會弄丟它。
+
+第 2 條是實測出來的。Waterfall SDLC 那篇的九個階段是「由左上往右下逐級遞降」的階梯，
+「單向往下流」這件事**是靠形狀說的**；改用 `<Stages rail>` + `<Table>` 拆成兩頁後，
+內容都在、形狀沒了。這種情況自寫一支頁面元件、跨多頁重用並只換標記層（見〈敘事切分原則〉第 6 條），
+比選頁填字更好。
+
+**判準**：問「如果把這個版面換成通用原子，讀者會不會少讀到一個論點？」
+會 → 走第 3 條並在規劃書寫明是哪個論點；不會 → 是選型沒選對，回頭重選。
+
+**選頁填字保證的是下限，不是上限。** 它讓每一頁都不會太差，但遇到內容有強烈固有形狀時，
+自寫版面仍可能更好 —— 別因為「規則說要先試原子」就把形狀犧牲掉。
+
+**硬規則：**
+
+- **整頁級原子同一份 deck 不得重複。** 15 個足夠撐起 10–14 頁而頁頁不同。
+  用完了代表這篇筆記的內容型態比想像中單一 —— 該做的是合併頁面，不是重用原子。
+- **一頁一個整頁級原子。** 想在同一頁放兩個，先問是不是該切成兩頁。
+- **不要為了用滿而用。** 8 頁的內部備忘用掉 6 個是正常的；硬湊到 15 個只會讓每頁的隱喻都不準。
+
+> 例外：〈敘事切分原則〉第 6 條的「重複場景勝過每頁新畫一張圖」仍然成立 ——
+> 多頁在講同一個系統的不同狀態時，重用**同一個 `custom` 頁元件並改變 props** 不算違反上面第一條，
+> 因為讀者看到的是「同一張圖變了」，不是「又一個新版面」。這種情況要在規劃書寫明。
+
+### 嵌入既有元件：用 `<CanvasViewport>`，不是 `<FitToArea>`
+
+筆記的 @ai-visualize 元件是為**網頁內文**設計的（高度隨內容長、頁面可往下滾），投影片是 1600×900 固定座標系。
+`custom` 頁嵌入它們時，**預設用 `<CanvasViewport>`** —— 就是 `full-visual` 版型用的那塊「可縮放平移的藍圖畫布」
+（元件躺在一張紙上、紙躺在點陣藍圖上，附縮放控制列與「還原置中」出口）。
 
 ```tsx
-function ArchPage({ dark, live, area }: CustomSlideProps) {
-  if (!live) return <div style={{ … }}>GCP 部署架構 · 方案 A / B</div>;  // 縮覽用占位
-  return <FitToArea area={area}><SolutionArchitectureComparison /></FitToArea>;
+import { CanvasViewport } from "@/components/deck/CanvasViewport";
+import type { CanvasMode } from "@/components/deck/CanvasViewport";
+
+function ArchPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const mode: CanvasMode = !live ? "thumb" : play ? "play" : "view";
+  return (
+    <CanvasViewport
+      content={live ? <SolutionArchitectureComparison /> : undefined}
+      w={area.w}
+      h={area.h}
+      mode={mode}
+      dark={dark}
+      outerScale={outerScale}
+      emptyId="solution-architecture-comparison"
+    />
+  );
 }
 ```
 
-兩個理由：縮覽側欄會同時掛十幾頁（效能），而且**縮覽項本身是一個 `<button>`**，元件內的按鈕掛進去會變成 button 嵌 button 的無效 HTML。
-純靜態內容的 `custom` 頁不需要這個處理 —— 縮覽本來就該看得到內容。
+三個一定要做對的地方：
+
+- **`mode` 三態**。`thumb`（`live === false`）時畫布只畫骨架、**不掛載真元件** —— 縮覽側欄會同時掛十幾頁（效能），
+  而且**縮覽項本身是一個 `<button>`**，元件內的按鈕掛進去會變成 button 嵌 button 的無效 HTML。
+  給了 `mode="thumb"` 就不必再自己寫 `if (!live) return <占位/>`，畫布已經處理掉了。
+- **`outerScale` 一定要往下傳**。畫布靠它把指標位移換算回 1600×900 座標系，漏傳（預設 1）拖曳就不跟手。
+- **`w` / `h` 直接吃 `area`**。`chrome: false` 的頁面 `area` 就是整個 1600×900，畫布會鋪滿整頁。
+
+`<FitToArea>` 仍然存在，但它只是把過高的元件**等比縮進可用區**、縮完就不能再互動探索 ——
+密度高的架構圖 / 矩陣縮完會看不清。只在「元件不高、單純想保險別被裁」時用它。
+兩者都**不要**自己寫 `transform: scale()` 硬編縮放比例 —— 元件內容一改，寫死的比例就錯了。
 
 ### import 白名單
 
@@ -164,12 +257,14 @@ function ArchPage({ dark, live, area }: CustomSlideProps) {
 ### `CustomSlideProps`
 
 ```ts
-function MyPage({ dark, live, area }: CustomSlideProps) { … }
+function MyPage({ dark, live, play, area, outerScale }: CustomSlideProps) { … }
 ```
 
 - `dark` —— 取色用
 - `live` —— 主畫布 / 播放中為 true；縮覽為 false。動畫與計時器只在 true 時啟動
+- `play` —— 全螢幕播放中。頁內放 `<CanvasViewport>` 時據此切成 `"play"` 模式（純滾輪即縮放）
 - `area: {w,h}` —— chrome 佔用後剩下的可用區（px）。**溢出不會報錯、只會被靜靜裁掉**，這個值是你自我約束的依據
+- `outerScale` —— 外層 `SlideFrame` 的 `transform: scale` 倍率。**放 `<CanvasViewport>` 時必須往下傳**，否則拖曳不跟手
 
 `render` 外層已由系統包成一個高度確定的 flex 欄（含 `gap: DGAP.md`），所以直接回傳幾個 block 就會自動分配高度；要完全自訂版面就在裡面再包一層自己的 div。
 
@@ -181,18 +276,39 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 
    | 頁型 | 字數 | 主要區塊 |
    | --- | --- | --- |
-   | `custom` 內容頁 | **200–800 字** | 2–3 個 |
+   | `custom` 內容頁 | **200–800 字** | 通常 1 個（那個整頁級原子） |
    | `section` 章節頁 | **40–60 字** | —（刻意留白） |
 
    **節奏來自密度的極端對比** —— 內容頁很滿、章節頁只有一個大編號。不是每頁都塞滿。
 
-   **單一 block 撐滿整頁時，項數要接近上限**（`<Compare>` 每側 5–6 列、`<Rows>` 5–6 列、`<Cards>` 4–6 欄）。
-   block 會撐滿可用區 —— 一個只有 3 列的 `<Compare>` 佔掉整頁，下半部就是一大片空白。
-   內容真的只有 3 列時，選一個：加第二個 block（如 `pros`/`cons` 或一組 `<Kpi>`）、與相鄰段落合併成一頁、
+   v0.3 起「一頁一個完整論證」的密度**由原子的項數承載**，不是靠堆疊多個區塊 ——
+   一個填滿的 `<Decision>`（4 選項 + 4 後果）或 `<Risk>`（5 條 × 三段）本身就是 400–600 字。
+   走到「一頁要放兩三個區塊」時，先確認不是選型沒選對。
+
+   **各 block 的建議上限**（超過就優先切頁；`<Chart>` 的系列數與 donut 片數是**硬規則**、不是建議）：
+
+   | 原子 | 上限 | 原子 | 上限 |
+   | --- | --- | --- | --- |
+   | `<Rows>` | 6 列 | `<Code>` | 16 行（`size="xs"` 19 行） |
+   | `<Cards>` | 6 欄 | `<Terminal>` | 18 行 |
+   | `<Stages>` linear | 5 段 | `<Annotate>` | pins 8、單側 leaders 4 |
+   | `<Stages>` rail / cycle | 6 節點 | `<Chart>` | 系列 **3**、donut **3** 片、bars 8 列 |
+   | `<Kpi>` | 5 格 | `<TagCloud>` | 22 個 |
+   | `<Table>` | 6 欄 × 6 列 | `<LogoRow>` | 3 個 |
+
+   整頁級原子的上限見 [`references/atoms.md`](references/atoms.md) 的容量欄。
+
+   **單一原子撐滿整頁時，項數要接近上限**（`<Compare>` 每側 5–6 列、`<Rows>` 5–6 列、`<Cards>` 4–6 欄、
+   `<Risk>` 4–5 條、`<Ranking>` 6–8 列）。原子會撐滿可用區 —— 一個只有 3 列的 `<Compare>` 佔掉整頁，
+   下半部就是一大片空白。內容真的只有 3 列時，選一個：換一個項數要求較低的原子、與相鄰段落合併成一頁、
    或改用 `full-visual` 讓既有元件承擔那一頁。
-4. **選版型**：對比 → `<Compare>`；清單 → `<Rows>`/`<Cards>`；流程 / 時序 → `<Stages>`；數字 → `<Kpi>`；矩陣 → `<Table>`；沿用既有互動元件 → `full-visual`；金句 → `quote`；回顧 → `closing`。
+4. **選原子**：**每個內容頁先在 [`references/atoms.md`](references/atoms.md) §三 的速查表找一個整頁級原子**，找不到才降級成組合級、再找不到才自己寫。
+   規劃書要逐頁寫明用了哪個原子，並在最後列出「本 deck 用掉的整頁級原子」清單 —— 那份清單不得有重複。
 5. **沿用互動元件**：筆記裡最精彩的 @ai-visualize 元件，用 `full-visual` 原樣嵌入（播放時可互動），**不要重畫成靜態圖**。
-6. **控制頁數**：一般 8–14 頁（含章節頁）。寧可精選，不要把整篇塞進去。
+6. **重複場景勝過每頁新畫一張圖**：多頁在講**同一個系統的不同狀態**時（處理中 / 失敗重試 / 暫停…），優先**重用同一個視覺元件並改變它的 props**，不要每頁畫一張新圖。
+   讀者只需要建立一次空間記憶，之後每頁只讀「哪裡變了」；每頁換一張新圖等於每頁都要重新認路。
+   同理，同一支程式碼分段講解時用**同一份 `<Code lines>` + 不同 `highlight`**（搭配 `startLine` 續接），不要每頁貼一段不同的程式碼。
+7. **控制頁數**：一般 8–14 頁（含章節頁）。寧可精選，不要把整篇塞進去。
 
 ## 圖表選型
 
@@ -202,6 +318,11 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 | --- | --- | --- |
 | 單一數字（+ 一個副指標） | `<Kpi>`（`emphasis`） | 單柱長條圖、2 片圓餅 |
 | 幾個並列的頭條數字 | `<Kpi>` 一排 | 群組長條圖 |
+| 分類比較（≤ 3 個系列） | `<Chart variant="bar">`（多系列可 `stacked`） | 更多系列 |
+| 趨勢（≤ 3 個系列） | `<Chart variant="line">` / `"area"` | 雙軸 |
+| 比例分解（≤ 3 類） | `<Chart variant="donut">` | 4 片以上的圓餅 |
+| 一排完成度 / 佔比 | `<Chart variant="bars">` | 一整張長條圖 |
+| 超過 3 個系列 | **拆成多張 small multiples**，或 `<Table>` 直接標值 | 擴充色票 |
 | 超過 7 個帶意義的色類別 | `<Table>` | 更多顏色 |
 | 一個系列是重點、其餘是背景 | emphasis：重點一色 + 其餘 `seriesMuted` 灰 | 八色類別 |
 | 量級 / 支援程度 / 熱度矩陣 | **單色階**（blue 由淺到深）+ icon | 綠黃紅混色 |
@@ -209,6 +330,7 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 
 **硬規則：**
 
+- **系列數上限 3**（`<Chart>` 會強制執行：只畫前 3 個 + console 警告）。這是**規劃階段就要處理**的事 —— 資料超過 3 個系列時，規劃書要直接寫「拆成 N 張 small multiples」或「改用 `<Table>` 標值」，不要留給 slide-generator 去撞上限。
 - **絕不雙軸**（兩個 y 軸）。兩個量級不同的度量 → 兩張圖，或都指數化到同一基準。
 - **狀態色是保留色**：`good`/`warning`/`critical` 只在語意真的是好／注意／壞時使用，**絕不當第 4 個識別色**；而且一律 **icon + 文字標籤並行**，不讓色彩單獨承載語意。
 - **識別色只有** `blue` / `orange` / `muted` 三個（實測 blue↔orange 在亮色模式全項通過 CVD 檢查）。
@@ -251,7 +373,10 @@ function MyPage({ dark, live, area }: CustomSlideProps) { … }
 
 ## few-shot 範例（生成前先讀）
 
-用 Glob 找 `.notecraft/components/*.deck.tsx`，**動手前先讀一份**。重點看三件事：
+**首選 `.notecraft/components/atoms.deck.tsx`** —— 它是原子層的驗證基準，29 個原子每個至少一頁，
+含典型用法與邊界狀態。要看某個原子怎麼填資料，直接在那份檔案裡找對應的頁面元件抄欄位。
+
+再用 Glob 找其他 `.notecraft/components/*.deck.tsx` 看真實筆記的文案密度。重點看三件事：
 
 1. 5 個固定版型的頁只有欄位、一個樣式都沒有
 2. `custom` 頁的元件怎麼定義在同一檔內、怎麼組合 block、`style={{ flex: "none" }}` 用在哪

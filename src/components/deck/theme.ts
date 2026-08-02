@@ -43,6 +43,16 @@ export interface DeckThemeTokens {
   hover: string;
   shadow: string;
   shadowLg: string;
+  /**
+   * 程式碼卡片的底色（Task 38，`<Code>` / 後續 `<Terminal>` 共用）。
+   *
+   * 暗色**刻意比投影片更深**（內嵌感），不是沿用 `sunken`（5% 白）——
+   * 實測 5% 白會把卡片提亮到 #313847，`attr`（sky-400）在其上只有 4.20:1、低於 4.5；
+   * 改成 22% 黑後最低的一項（attr）是 5.63:1，九個語法類別全數過關。
+   */
+  codeSurface: string;
+  /** 程式碼卡片的標頭列底色（比 codeSurface 再深一階） */
+  codeHeader: string;
 }
 
 export const DKT: { light: DeckThemeTokens; dark: DeckThemeTokens } = {
@@ -73,6 +83,8 @@ export const DKT: { light: DeckThemeTokens; dark: DeckThemeTokens } = {
     hover: "var(--neutral-50)",
     shadow: "var(--shadow-sm)",
     shadowLg: "var(--shadow-lg)",
+    codeSurface: "var(--neutral-50)",
+    codeHeader: "var(--neutral-100)",
   },
   dark: {
     stage: "var(--neutral-900)",
@@ -102,6 +114,8 @@ export const DKT: { light: DeckThemeTokens; dark: DeckThemeTokens } = {
     hover: "rgba(255,255,255,0.07)",
     shadow: "0 2px 10px rgba(0,0,0,0.45)",
     shadowLg: "0 18px 44px rgba(0,0,0,0.55)",
+    codeSurface: "rgba(0,0,0,0.22)",
+    codeHeader: "rgba(0,0,0,0.32)",
   },
 };
 

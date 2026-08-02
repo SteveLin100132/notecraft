@@ -1,0 +1,302 @@
+---
+title: "收斂到 L1–L3：勞動法遵 PoC 的第一版範圍與技術選型"
+description: "「L1~L3+L6 總表」到手後，PoC 收斂成一條檢索閉環：問句進來、撈相近法條、與總表整合、回傳，中間不需要 LLM 介入。這篇記錄這一版的範圍、目標、技術選型（pgvector／LangChain + mistral-embed／NestJS）、技術架構、資料結構與任務拆解。"
+tags:
+  - AI 陪跑筆記
+  - PoC
+  - RAG
+  - AI 技術
+category: 技術筆記
+createdAt: "2026-07-31"
+updatedAt: "2026-07-31"
+---
+
+前兩篇卡在同一個地方：**法條對不到四大類與主題**。現在那張表來了——《檢核機制_工程師初檢表_A段_L1-L3+L6》，四大類、22 個 L2 主題、85 個 L3 題型，每一列都掛好了對應的勞基法條文。
+
+缺口補上之後，PoC 不是變大，是**變小**。
+
+:::info{title="本文前提"}
+承接[〈先別急著接 RAG：勞動法遵決策系統的 PoC 怎麼匡〉](/notes/勞動法遵決策支援系統-poc-範圍與技術選型)與[〈三條線，三個介面〉](/notes/勞動法遵決策支援系統-poc-任務拆解與分工)的範圍與 Phase 定義。本篇記錄的是**收斂後的第一版 PoC**：範圍只到 L1–L3，資料以顧問師交付的「L1~L3+L6 總表」為準。
+:::
+
+---
+
+## PoC 範圍
+
+**只先做 L1~L3。**
+
+L4 以後的必要事實追問、地雷判定、受控報告全部不在這一版。而且這一版連生成式模型都不需要——整條路徑上唯一的模型是 embedding。
+
+| | 原設計（範圍那篇） | 這一版 |
+|---|---|---|
+| L1–L3 分類 | LLM 分類 ＋ structured output | :badge[反查]{variant="success"} 由 L6 條文回推總表 |
+| L6 條文檢索 | 向量檢索 ＋ rerank | 向量檢索（rerank 延後） |
+| L4–L9 | 事實追問、地雷判定、受控報告 | :badge[不做]{variant="neutral" outline} |
+| 生成式 LLM | Claude 或同級 | :badge[完全不用]{variant="success"} 只有 embedding |
+
+---
+
+## PoC 目標
+
+三個元件，各自要達成的事：
+
+::::steps
+:::step{title="Vector Database"}
+鎖定勞基法，結合當前對應的「L1~L3+L6 總表」資料建立 Embedding Database。
+:::
+:::step{title="Indexer"}
+先以**離線 CLI** 形式實現，負責將文本轉換成向量。
+:::
+:::step{title="API"}
+常駐服務，對外提供兩件事：
+
+1. 根據用戶的問題，從 Vector Database 檢索相關的勞基法條文及解釋，取最相關的內容以 **Top-K** 返回，K 先設為 **5**
+2. 將檢索到的內容與「L1~L3+L6 總表」整合後返回——**此段不需要 LLM 介入**，先把結果 output 回來就好
+:::
+::::
+
+---
+
+## PoC 技術選型
+
+| 元件 | 選型 |
+|---|---|
+| **Vector Database** | PostgreSQL + `pgvector` |
+| **Indexer** | LangChain + Mistral `mistral-embed` |
+| **API** | NestJS + TypeScript + LangChain + Mistral `mistral-embed` |
+
+Indexer 與 API 用同一個 embedding 模型，這一點要在設定層就綁死——建庫與查詢用不同模型，向量空間對不上，檢索結果會是隨機的，而且**不會報錯**。
+
+---
+
+## PoC 技術架構
+
+離線建庫、線上查詢兩段，中間用 PostgreSQL 交棒。
+
+{/* @ai-visualize
+id: poc-l1l3-retrieval-architecture
+type: diagram
+prompt: |
+  以手寫 SVG 畫出這一版 PoC 的技術架構圖。核心洞察是「這條路徑上唯一的模型是 embedding——沒有任何生成式 LLM 介入；分類不是算出來的，是拿檢索到的條文回總表反查出來的」。
+
+  版面分左右兩大區塊，中間用一個 PostgreSQL 圓柱（標註 `PostgreSQL + pgvector`）當交棒點，離線段與線上段共用同一個資料庫。頂端小字標註「Framework: LangChain ／ Embedding: Mistral」。
+
+  右側大框「Indexer & Data Loader · 離線 CLI」，內含兩個虛線子框：
+  - 「Indexer」：勞基法法條（文件圖示）→ Embedding → 寫入「法條 Vector Data」
+  - 「Data Loader」：L1~L3+L6 總表（Excel 圖示）→ ETL → 寫入「決策樹分類 Structured Data」
+  右側拉一張便利貼樣式的註記：「PoC 資料來源：勞基法條文 ＋ L1~L3+L6 總表（可先用 Excel）」，用虛線連到兩個資料來源。
+
+  左側大框「API · NestJS 常駐服務」，由上而下一條垂直流程：
+  1. 使用者提問（人形圖示 ＋ 對話框，內容寫「公司可以不給特休嗎」）
+  2. Question —— 收下白話問句
+  3. Embedding —— 標註「與 Indexer 同一個模型」
+  4. 檢索近似條文（Top-K）—— 標註「K：常數設定，先設 5」
+  5. 將檢索到的近似條文與決策樹分類表 Mapping
+  節點 4 與 5 各拉一條箭頭到中間的 PostgreSQL，分別標「向量相似度查詢」與「條文代碼 join」。
+
+  中間 PostgreSQL 上下各掛一個資料表方塊，用細線連到圓柱：
+  - 上方「法條 Vector Data」：metadata、決策樹 L1／L2／L3 編號、法條內容（vector）
+  - 下方「決策樹分類 Structured Data」：L1：… ／ L2：… ／ L3：…
+
+  兩個必要標註：在節點 5 旁用強調色標「分類是檢索的副產物，不需要 LLM」；在整張圖上明確標示「唯一的模型：mistral-embed」。
+
+  底部放圖例，說明實線（主資料流）、虛線（資料來源）與離線段／線上段兩種底色的差別。
+caption: 兩段式架構：離線 CLI 建庫、線上 API 查詢，中間以 PostgreSQL + pgvector 交棒；全程唯一的模型是 embedding。
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import PocL1L3RetrievalArchitecture from '@/components/generated/poc-l1l3-retrieval-architecture'
+
+<GeneratedFrame id="poc-l1l3-retrieval-architecture" type="diagram" prompt={"以手寫 SVG 畫出這一版 PoC 的技術架構圖。核心洞察是「這條路徑上唯一的模型是 embedding——沒有任何生成式 LLM 介入；分類不是算出來的，是拿檢索到的條文回總表反查出來的」。\n\n版面分左右兩大區塊，中間用一個 PostgreSQL 圓柱（標註 `PostgreSQL + pgvector`）當交棒點，離線段與線上段共用同一個資料庫。頂端小字標註「Framework: LangChain ／ Embedding: Mistral」。\n\n右側大框「Indexer & Data Loader · 離線 CLI」，內含兩個虛線子框：\n- 「Indexer」：勞基法法條（文件圖示）→ Embedding → 寫入「法條 Vector Data」\n- 「Data Loader」：L1~L3+L6 總表（Excel 圖示）→ ETL → 寫入「決策樹分類 Structured Data」\n右側拉一張便利貼樣式的註記：「PoC 資料來源：勞基法條文 ＋ L1~L3+L6 總表（可先用 Excel）」，用虛線連到兩個資料來源。\n\n左側大框「API · NestJS 常駐服務」，由上而下一條垂直流程：\n1. 使用者提問（人形圖示 ＋ 對話框，內容寫「公司可以不給特休嗎」）\n2. Question —— 收下白話問句\n3. Embedding —— 標註「與 Indexer 同一個模型」\n4. 檢索近似條文（Top-K）—— 標註「K：常數設定，先設 5」\n5. 將檢索到的近似條文與決策樹分類表 Mapping\n節點 4 與 5 各拉一條箭頭到中間的 PostgreSQL，分別標「向量相似度查詢」與「條文代碼 join」。\n\n中間 PostgreSQL 上下各掛一個資料表方塊，用細線連到圓柱：\n- 上方「法條 Vector Data」：metadata、決策樹 L1／L2／L3 編號、法條內容（vector）\n- 下方「決策樹分類 Structured Data」：L1：… ／ L2：… ／ L3：…\n\n兩個必要標註：在節點 5 旁用強調色標「分類是檢索的副產物，不需要 LLM」；在整張圖上明確標示「唯一的模型：mistral-embed」。\n\n底部放圖例，說明實線（主資料流）、虛線（資料來源）與離線段／線上段兩種底色的差別。"} caption="兩段式架構：離線 CLI 建庫、線上 API 查詢，中間以 PostgreSQL + pgvector 交棒；全程唯一的模型是 embedding。">
+  <PocL1L3RetrievalArchitecture />
+</GeneratedFrame>
+
+---
+
+## PoC 資料結構
+
+兩張表：`labor_articles` 存法條與向量，`decision_tree` 存總表的 85 列決策樹。決策樹的部分參考總表的「L1~L3+L6總表」分頁。
+
+:::::tabs
+::::tab{label="資料表 Schema"}
+#### `labor_articles` — 法條：Vector Data
+
+| 欄位 | Postgres 型別 | 必填 | 預設值 | 說明 |
+|---|---|:---:|---|---|
+| `id` | `bigserial` | ✔ | 自動遞增 | 主鍵 |
+| `law_name` | `text` | ✔ | `'勞動基準法'` | PoC 鎖定勞基法，先給預設值 |
+| `article_code` | `text` | ✔ | — | 條文代碼，如 `第38條`，與總表的「全部 L6 條文代碼」對得起來 |
+| `clause_no` | `text` | — | `NULL` | 項次。長條文（如第 84-1 條）按項切時才填 |
+| `content` | `text` | ✔ | — | 法條原文，embedding 的來源；保留原文才 debug 得動 |
+| `embedding` | `vector(1024)` | — | `NULL` | `mistral-embed` 固定 1024 維。Data Loader 先寫入列、Indexer 再回填，所以允許 `NULL` |
+| `embedding_model` | `text` | ✔ | `'mistral-embed'` | 記下產生這個向量的模型，換模型時可辨識殘留資料 |
+| `l1_codes` | `text[]` | ✔ | `'{}'` | 決策樹 L1 編號（**多值**） |
+| `l2_codes` | `text[]` | ✔ | `'{}'` | 決策樹 L2 編號（**多值**） |
+| `l3_codes` | `text[]` | ✔ | `'{}'` | 決策樹 L3 編號（**多值**） |
+| `created_at` | `timestamptz` | ✔ | `now()` | |
+
+#### `decision_tree` — 決策樹：Structured Data
+
+| 欄位 | Postgres 型別 | 必填 | 預設值 | 說明 |
+|---|---|:---:|---|---|
+| `l3_code` | `text` | ✔ | — | 主鍵。L3 代碼，如 `B5-02` |
+| `l3_origin_code` | `text` | ✔ | — | L3 原始代碼。85 列中有 23 列與 `l3_code` 不同（如 `A2-03a` → `A2-03`），是對回顧問師既有文件的鍵 |
+| `l1_code` | `char(1)` | ✔ | — | `A` / `B` / `C` / `D` |
+| `l1_animal` | `text` | ✔ | — | 獵犬／蜜蜂／大象／貓頭鷹 |
+| `l1_scope` | `text` | ✔ | — | L1 範圍 |
+| `l2_code` | `text` | ✔ | — | 如 `B5` |
+| `l2_name` | `text` | ✔ | — | L2 名稱 |
+| `l3_title` | `text` | ✔ | — | L3 題目 |
+| `enterprise_tone` | `text` | ✔ | — | 企業端問題語氣。這欄是天然的評測 query |
+| `frequency` | `text` | ✔ | — | `高頻` / `中頻` / `低頻`，以 `CHECK` 約束 |
+| `risk` | `text` | ✔ | — | `高風險` / `中風險` / `低風險`，以 `CHECK` 約束 |
+| `initial_mines` | `smallint` | ✔ | — | 初始地雷數 1–5。**是算出來的**，以 `CHECK` 校驗（見 SQL 分頁） |
+| `initial_intervention` | `text` | ✔ | — | 初始顧問介入程度 `低`/`中`/`高`/`急迫`。同樣是算出來的 |
+| `article_codes` | `text[]` | ✔ | `'{}'` | 全部 L6 條文代碼（多值） |
+
+:::warning{title="兩處與原始欄位定義不同，說明一下"}
+**一、L1／L2／L3 編號在法條側是多值。** 總表 85 列攤開後，101 個相異條文共 350 筆條文–題型對應——平均一條法條被 3.5 個題型引用，其中 51 條橫跨一個以上的 L1 大類。單一字串放不下，所以用 `text[]` ＋ GIN 索引。
+
+**二、「法條內容」拆成 `content` 與 `embedding` 兩欄。** 原文要留著，否則檢索結果只有一串浮點數，出問題時無從對照。
+:::
+::::
+::::tab{label="範例資料"}
+#### `labor_articles`
+
+| `article_code` | `content`（節錄） | `l1_codes` | `l2_codes` | `l3_codes` |
+|---|---|---|---|---|
+| `第38條` | 勞工在同一雇主或事業單位，繼續工作滿一定期間者，應依下列規定給予特別休假…… | `{B,D}` | `{B5,D5}` | `{B5-02,B5-03,D5-05}` |
+| `第39條` | 第三十六條所定之例假、休息日、第三十七條所定之休假及第三十八條所定之特別休假，工資應由雇主照給…… | `{B,C,D}` | `{B5,C3,D5}` | `{B5-01,B5-02,B5-03,B5-04,C3-01,D5-05}` |
+| `第79條` | 有下列各款規定行為之一者，處新臺幣二萬元以上一百萬元以下罰鍰…… | `{A,B,C,D}` | `{A4,B1,B2,…}` | `{A4-04,B1-01,…}`（共 33 個） |
+
+第 79 條那一列值得記住：它被 33 個題型引用，是全表扇出最高的條文。
+
+#### `decision_tree`
+
+| 欄位 | 範例一 | 範例二 |
+|---|---|---|
+| `l3_code` | `B5-02` | `A1-02` |
+| `l3_origin_code` | `B5-02` | `A1-02` |
+| `l1_code` | `B` | `A` |
+| `l1_animal` | 蜜蜂 | 獵犬 |
+| `l1_scope` | 工時、排班、休假與加班管理 | 勞動關係、契約與終止管理 |
+| `l2_code` | `B5` | `A1` |
+| `l2_name` | 國定假日、特休、請假與停止假期管理 | 適用範圍與勞工身分判斷 |
+| `l3_title` | 特別休假管理 | 勞工身分與名詞定義判斷 |
+| `enterprise_tone` | 公司管理特休排定、遞延與未休折現時，是否合規 | 公司使用此人力時，是否會被認定為勞基法上的勞工 |
+| `frequency` | `高頻` | `高頻` |
+| `risk` | `中風險` | `高風險` |
+| `initial_mines` | `4` | `5` |
+| `initial_intervention` | `高` | `急迫` |
+| `article_codes` | `{第23條,第38條,第39條,第79條}` | `{第2條,第21條,第22條}` |
+::::
+::::tab{label="Create SQL"}
+:::annotate
+```sql title="db/schema.sql" {2,10,44-55}
+-- 一次建好，可重跑
+CREATE EXTENSION IF NOT EXISTS vector; -- (1)!
+
+CREATE TABLE IF NOT EXISTS labor_articles (
+  id              bigserial    PRIMARY KEY,
+  law_name        text         NOT NULL DEFAULT '勞動基準法',
+  article_code    text         NOT NULL,
+  clause_no       text,
+  content         text         NOT NULL,
+  embedding       vector(1024), -- (2)!
+  embedding_model text         NOT NULL DEFAULT 'mistral-embed',
+  l1_codes        text[]       NOT NULL DEFAULT '{}',
+  l2_codes        text[]       NOT NULL DEFAULT '{}',
+  l3_codes        text[]       NOT NULL DEFAULT '{}',
+  created_at      timestamptz  NOT NULL DEFAULT now(),
+  CONSTRAINT uq_article UNIQUE (law_name, article_code, clause_no) -- (3)!
+);
+
+CREATE INDEX IF NOT EXISTS idx_articles_embedding
+  ON labor_articles USING hnsw (embedding vector_cosine_ops); -- (4)!
+
+CREATE INDEX IF NOT EXISTS idx_articles_l3
+  ON labor_articles USING gin (l3_codes); -- (5)!
+
+CREATE TABLE IF NOT EXISTS decision_tree (
+  l3_code              text     PRIMARY KEY,
+  l3_origin_code       text     NOT NULL,
+  l1_code              char(1)  NOT NULL CHECK (l1_code IN ('A','B','C','D')),
+  l1_animal            text     NOT NULL,
+  l1_scope             text     NOT NULL,
+  l2_code              text     NOT NULL,
+  l2_name              text     NOT NULL,
+  l3_title             text     NOT NULL,
+  enterprise_tone      text     NOT NULL,
+  frequency            text     NOT NULL
+                                CHECK (frequency IN ('高頻','中頻','低頻')),
+  risk                 text     NOT NULL
+                                CHECK (risk IN ('高風險','中風險','低風險')),
+  initial_mines        smallint NOT NULL CHECK (initial_mines BETWEEN 1 AND 5),
+  initial_intervention text     NOT NULL
+                                CHECK (initial_intervention IN ('低','中','高','急迫')),
+  article_codes        text[]   NOT NULL DEFAULT '{}',
+
+  CONSTRAINT chk_mines_derived CHECK ( -- (6)!
+    initial_mines =
+      (CASE frequency WHEN '低頻' THEN 1 WHEN '中頻' THEN 2 ELSE 3 END)
+    + (CASE risk      WHEN '低風險' THEN 0 WHEN '中風險' THEN 1 ELSE 2 END)
+  ),
+  CONSTRAINT chk_intervention_derived CHECK ( -- (7)!
+    initial_intervention = CASE
+      WHEN initial_mines <= 1 THEN '低'
+      WHEN initial_mines <= 3 THEN '中'
+      WHEN initial_mines  = 4 THEN '高'
+      ELSE '急迫' END
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_tree_l2 ON decision_tree (l1_code, l2_code);
+```
+
+1. `pgvector` 的 extension 名稱是 `vector` 不是 `pgvector`，這行放在 Runbook 的第一步。
+2. 允許 `NULL`：Data Loader 先把條文寫進來，Indexer 再回填向量，兩支程式可以分開跑。維度 1024 對應 `mistral-embed`，換模型要一起改。
+3. 唯一鍵帶 `clause_no`，讓「同一條按項切成多個 chunk」不會互相衝突；重跑 Indexer 時可以 `ON CONFLICT DO UPDATE`。
+4. HNSW ＋ cosine。資料量只有百來筆，其實全表掃也夠快，但索引先建好，之後擴到函釋與施行細則不用改。
+5. GIN 索引給 `l3_codes`，API 2 就是拿檢索回來的條文 `l3_codes` 去比對總表。
+6. **初始地雷數不是獨立資料，是算出來的**：地雷數 = 頻率分（低 1／中 2／高 3）＋ 風險分（低 0／中 1／高 2）。總表 85 列全部吻合、零例外，所以用 `CHECK` 守住——之後顧問師改了風險等級卻忘了改地雷數，載入當下就會被擋下來。
+7. 介入程度同理，就是說明書 L8 的門檻：1 顆低、2–3 顆中、4 顆高、5 顆以上急迫。85 列同樣零例外。
+:::
+::::
+:::::
+
+---
+
+## PoC 任務拆解
+
+::::steps
+:::step{title="Vector Database" status="current"}
+- 在 **GCP** 建立 PostgreSQL + `pgvector` 環境
+- 撰寫 PostgreSQL + `pgvector` 環境建置的 **Runbook**
+
+Runbook 別留到最後補——它的價值不在文件本身，在逼你把手動做過的每一步寫下來。沒寫下來的那幾步，就是之後重建環境時卡住的地方。
+:::
+:::step{title="Indexer"}
+- 撰寫 **Indexer CLI**，將「L1~L3+L6 總表」資料轉換成向量，並存入 Vector Database
+:::
+:::step{title="API 1｜條文檢索"}
+- 根據用戶問題，從 Vector Database 檢索相近的勞基法條文及解釋，回傳給用戶
+:::
+:::step{title="API 2｜總表整合"}
+- 將檢索到的勞基法條文及解釋與「L1~L3+L6 總表」整合，找到匹配的資料後回傳給用戶
+:::
+::::
+
+---
+
+## 延伸閱讀
+
+- [先別急著接 RAG：勞動法遵決策系統的 PoC 怎麼匡](/notes/勞動法遵決策支援系統-poc-範圍與技術選型) — L1–L10 的範圍匡定與 Phase 拆解
+- [三條線，三個介面：勞動法遵 PoC 的任務拆解](/notes/勞動法遵決策支援系統-poc-任務拆解與分工) — 三條工作線與交接介面
+- [RAG 的向量怎麼選：Mistral 與 Voyage AI 的取捨](/notes/rag-embedding-選型-mistral-與-voyage) — embedding 的三個旋鈕與兩條路線
+- [pgvector](https://github.com/pgvector/pgvector)
+- [全國法規資料庫 — 勞動基準法](https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001)
+
+---
+
+*依《檢核機制_工程師初檢表_A段_L1-L3+L6》（2026/7/1 v1）與說明書 v1 整理*

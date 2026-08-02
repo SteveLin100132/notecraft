@@ -118,6 +118,83 @@
 > Task 37 是這些規則的第一次真實檢驗；產出不如預期時，修 Task 36 的文字或 Task 34 的 API，
 > **不要回頭加型別限制**（那等於退回 v0.1）。
 
+## v1.11.0 追加功能（§8.1 Phase 4.14 待補）— 原子層擴充（technical deck atoms）
+
+> 依據：[deck-atoms-inventory.md](../deck-atoms-inventory.md) —— 作者 5 份技術主題分享簡報
+> 共 **94 頁**的逐頁圖例盤點。起因是作者指出「custom 版型庫缺少 Chart 的創作」。
+> 盤點結果：最大缺口其實是**程式碼呈現（36/94 頁）**與**架構拓撲（18/94 頁）**，
+> 而**有軸的量化圖表在 94 頁裡是 0 張** —— Chart 確實缺，但規格得從 `dataviz` skill 推導。
+> **PRD §8.1 尚未有 Phase 4.14 條目** —— 待補（可用 `/bump-prd`，Phase 4.13 也還欠著）。
+
+| Task | 功能 | 依據 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 38](task-38-deck-code-atom.md) | `<Code>` 原子 + tokenizer 共用模組 + `atoms.deck.tsx` 骨架（基礎） | inventory §2 A1–A3/A6、§5 決議 2/3 | `lib/code-tokenize.ts`（新增）、`remark-notecraft-codeblock.ts`（重構引用）、`deck/blocks/Code.tsx`、`codeTokens.ts`、`generated/atoms.deck.tsx`（新增） |
+| [Task 39](task-39-deck-annotate-atom.md) | `<Annotate>` 通用標註層 | inventory §2 A2/B2/E1 | `deck/blocks/Annotate.tsx` |
+| [Task 40](task-40-deck-chart-atom.md) | `<Chart>` 原子（bar / line / area / donut / bars） | inventory §2 D1–D3、§5 決議 1 | `deck/blocks/Chart.tsx`（recharts） |
+| [Task 41](task-41-deck-terminal-frame-mark.md) | `<Terminal>` / `<Frame>` / `<Mark>` 三個小原子 | inventory §2 A4/A5/E2–E4/F4 | `deck/blocks/{Terminal,Frame,Mark}.tsx`、`theme.ts`（螢光筆 token） |
+| [Task 42](task-42-deck-stages-variants-tagcloud.md) | `<Stages>` rail/cycle 變體 + `<TagCloud>` + 既有 block 增強 | inventory §2 C2/C3/F1/F2/F3/F5 | `deck/blocks/{Stages,Cards,Rows}.tsx`（擴充）、`TagCloud.tsx`、`LogoRow.tsx` |
+| [Task 43](task-43-deck-diagram-primitives.md) | 架構圖基元 `<Node>`/`<Connector>`/`<GroupBox>`（**範圍待確認**） | inventory §2 B1/B3/B4/B6、§4.3 | `deck/blocks/{Node,Connector,GroupBox}.tsx` |
+| [Task 44](task-44-slide-chrome-progress.md) | SlideChrome 章節進度指示器（`progress` 欄位） | inventory §2 C5/C6、§4.5 | `lib/decks.ts`、`deck/SlideChrome.tsx`（含 `chromeMetrics()`） |
+| [Task 45](task-45-present-skill-agents-atoms.md) | Skill + 兩個 agent 更新、密度上限回填（收尾） | inventory §5 決議 1/4、§6 | `content-present/SKILL.md`、`present-planner.md`、`slide-generator.md`、`skill-template/` |
+
+> **2026-07-31：Task 38、39、40、41、42、45 已完成（43 / 44 延後）。**
+> Task 38 —— tokenizer 已抽為 `src/lib/code-tokenize.ts` 供筆記與 deck 共用，重構後 18 個含程式碼區塊的
+> 筆記頁 HTML **逐位元組不變**；`atoms.deck.tsx` 已建立；`<Code>` 上限實測 **sm 16 行 / xs 19 行**。
+> Task 39 —— `<Annotate>` 四方向停靠，9 個引線端點定位**誤差 0.0%**，密集避讓 0 組重疊；
+> 上限 **pins ≤ 8 / 單側 leaders ≤ 4**。`atoms.deck.tsx` 現為 7 頁。
+> Task 40 —— `<Chart>` 五個 variant；**recharts 在 `transform: scale` 下實測沒問題**，
+> 不需退回手寫 SVG；DOM 實測 tooltip / ResponsiveContainer 皆為 0、5 系列只畫前 3。
+> `atoms.deck.tsx` 現為 10 頁。
+> Task 41 —— `<Terminal>` / `<Frame>` / `<Mark>` 三個小原子；`<Mark>` 改用 `color-mix`
+> 從 tone 前景色調底（`soft` 階疊白底幾乎看不見），6 個 tone × 明暗兩階對比已實測記錄。
+> `atoms.deck.tsx` 現為 **12 頁**。
+> Task 42 —— `<Stages>` 加 rail / cycle 兩個 variant（拆成三個內部元件、`Stages` 只做分派）、
+> `<TagCloud>` / `<LogoRow>` 新增、`<Cards recommended>` 與 `<Rows variant="chip">` 增強。
+> **原文件標示的最大風險（`<Stages>` 回歸）判斷錯了** —— 沒有任何既有 deck 用 `<Stages>`，
+> 真正的回歸面是 `<Cards>`（2 份）與 `<Rows>`（1 份）；已用**版面指紋**（每個元素的座標 +
+> 背景 + 邊框 + 字級字重字色）比對，兩份既有 deck 共 23 頁**指紋完全相同**。
+> `atoms.deck.tsx` 現為 **15 頁**。
+> Task 45 —— SKILL 原子表 6 → **14 個**（每項寫「什麼時候用」）、兩個 agent 更新、
+> 密度上限全數回填實測值、`skill-template/` 同步。
+> **端到端驗證通過**：用 `ssr-專案dutymate-ai-憲章與-workflow-設計.mdx`（16 個程式碼區塊）
+> 跑完整 pipeline，14 頁一次過、溢出全 ok、`slide-generator` 只重試 1 次；
+> `present-planner` **主動列出不用哪些新原子與理由**（沒有為了用而用）。
+> 順帶抓到一個真的規格漏洞：**`full-visual` 沒有 `chrome` 欄位**，SKILL 原文讀起來像兩種頁型都有 ——
+> 已改文字（不改型別，理由見 Task 45 記錄）。
+> 各檔末實作記錄含修掉的問題與已知副作用
+> （Dashboard 簡報統計 +1；CSS bundle hash 變動與新增的三篇筆記皆已隔離驗證、與本批無關）。
+>
+> **Task 38 為 39～45 的基礎，先做**（它同時建立 `atoms.deck.tsx` 驗證基準 deck 的骨架，
+> 之後每個 Task 各自補頁）。
+>
+> **順序在 2026-07-31 調整過**：原本是 38 → … → 43 → 44 → **45 最後**，改為
+> **38 → 39 → 40 → 41／42 → 45 → 端到端生成一份真實 deck → 再定 43 / 44**。
+> 兩個理由：
+> ① 38–42 做出的 8 個原子，在 Task 45 之前**對使用者的價值是零** ——
+> SKILL 與兩個 agent 不知道它們存在，AI 生成簡報時不會用到任何一個。
+> ② Task 43 的決策條件（「若 `custom` 頁自己寫 SVG 的痛感不明顯就不做」）**要到 45 之後才評估得了**，
+> 因為在那之前根本生不出用到新原子的簡報。Task 45 最後一步的端到端驗證，正好就是 43 需要的證據。
+> Task 44 同理 —— 它動的是 `chromeMetrics()`（算錯會讓內容被靜靜裁掉而 build 全綠），
+> 值得等真實 deck 跑過再決定。
+>
+> inventory §5 的 4 項待決議已於 2026-07-31 全部收斂：① Chart **硬規定 ≤ 3 系列**、
+> 不擴充色票、超過改 small multiples 或直接標值；② `<Code>` **v1 不引 shiki**；
+> ③ 建 **`atoms.deck.tsx`** 樣板 deck 當截圖迴歸基準（手寫維護、不由 `slide-generator` 生成）；
+> ④ 密度上限**隨各原子實作時實測後定**，由 Task 45 彙整回填。
+>
+> **開工前有一項待確認（Task 38）**：專案已有自寫的 build-time tokenizer
+> （`src/lib/remark-notecraft-codeblock.ts`，供 MDX 筆記用，**不依賴 shiki**）。
+> 抽成共用模組後 deck 端可**免費得到語法上色、且與筆記內文視覺一致** ——
+> 這不違反決議 ②（仍不引 shiki），只是讓「不上色」這個代價消失。
+> 不同意抽共用則退回原決議、少做一步。**定案後再開工，不要做一半再改。**
+> （另註：`task-17~20` 規劃的 `astro-expressive-code` **實際未採用**，
+> `package.json` 無此依賴；`global.css:410` 還留著一句提到 EC 的過時註解。）
+>
+> **本批最大風險**：Task 38 要重構的 remark plugin 正在服務全站 60 個程式碼圍欄，
+> 改壞了整站程式碼區塊都會爛 —— 「build 前後 diff 產出 HTML」是必要關卡。
+> 其次是 Task 42 對 `<Stages>` 的回歸（既有三份 deck 都在用）與
+> Task 44 對 `chromeMetrics()` 的改動（算錯會讓內容被靜靜裁掉而 build 全綠）。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

@@ -23,7 +23,7 @@ model: sonnet
 2. **確認可用 viz**：規劃書的 `full-visual` 頁會指定既有元件 id；用 Glob / Read 確認 `src/components/generated/<id>.tsx` 確實存在，才 import。**不存在就不要 import**（會 build fail）——回頭在回報中標出，改用占位（不給 `viz`，只填 `vizLabel` / `vizHint`）。
 3. **建立 deck 檔**（一份 deck 一個檔，不拆目錄）：
    - `import type { CustomSlideProps, Deck } from "@/lib/decks";`
-   - 需要的原子層：`@/components/deck/scale`（`DS`/`DGAP`/`DTRACK`）、`@/components/deck/theme`（`dkt`）、`@/components/deck/blocks`（6 個 block）
+   - 需要的原子層：`@/components/deck/scale`（`DS`/`DGAP`/`DTRACK`）、`@/components/deck/theme`（`dkt`）、`@/components/deck/blocks`（29 個原子）
    - 每個要嵌入的元件 `import Xxx from "@/components/generated/<id>";`
    - **`custom` 頁的元件定義在同一個檔案裡**，緊接 `const deck` 之前
    - `const deck: Deck = { slug, title, eyebrow, generatedAt, source: "src/content/notes/<slug>.mdx", slides: [...] };`
@@ -35,7 +35,13 @@ model: sonnet
    - **沒有字面字級**（`fontSize: 28`）—— 一律用 `DS.*`
    - `custom` 頁沒有自己畫編號徽章、標題、底線、頁碼、footer（那些是 chrome 的事）
    - 沒有 emoji
-   - block 項數沒超過建議上限（Rows/Cards 6、Stages/Kpi 5、Table 6×6）
+   - 原子項數沒超過建議上限。組合級：Rows / Cards 6、Stages linear 5、Stages rail / cycle 6、Kpi 5、
+     Table 6×6、Code 16 行（`size="xs"` 19）、Terminal 18 行、Annotate pins 8 / 單側 leaders 4、
+     TagCloud 22、LogoRow 3。整頁級：Quadrant 每格 4、Spectrum 5、Heatmap 6×6、Layers 5 層、
+     Roster 6、Contents 8、Waterfall 6、Share 6、Ranking 8、BeforeAfter 6、Risk 5、
+     Summary points 4 / stats 4、Cross notes 3、Decision options 4 / consequences 4
+   - **整頁級原子在本 deck 內沒有重複使用**（對照規劃書的「整頁級原子使用清單」）
+   - **`<Chart>` 的系列數 ≤ 3、donut 切片 ≤ 3**（硬規則，超過只會畫前 3 個）；沒有傳 `<Tooltip>`
 <!-- BEGIN:validation-sg -->
 5. **驗證（你只做第 1 層）**：
 
@@ -76,7 +82,19 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
 
 - **props**：`dark`（取色）、`live`（動畫只在 true 時啟動）、`area`（chrome 佔用後的可用區，px）。
 - 系統已把 `render` 外層包成高度確定的 flex 欄（含 `gap: DGAP.md`），所以直接回傳幾個 block 就會自動分高度。要固定為自然高度的 block 傳 `style={{ flex: "none" }}`；要完全自訂版面就在裡面再包一層自己的 div。
-- **優先用 block**。6 個 block 已內建字級階梯、`text-wrap: balance`、`tabular-nums`、狀態色 icon + 文字並行 —— 用它們就自動達成。自己寫 JSX 時這些都要自己守。
+- **照規劃書指定的原子寫，不要自己改選型。** 規劃書已經在 `references/atoms.md` 的速查表裡選過了；
+  你覺得選錯就回報，不要默默換一個 —— 換掉會讓「整頁級原子不重複」的清單失準。
+
+  原子共 29 個，分兩層：
+
+  | 層 | 元件 |
+  | --- | --- |
+  | **整頁級**（15，獨佔內容區、一頁一個） | `<Summary>` `<Triad>` `<Decision>` `<Cross>` `<Quadrant>` `<Spectrum>` `<Heatmap>` `<Layers>` `<Roster>` `<Contents>` `<Waterfall>` `<Share>` `<Ranking>` `<BeforeAfter>` `<Risk>` |
+  | **組合級**（14，可並排） | `<Rows>` `<Cards>` `<Stages>` `<Kpi>` `<Table>` `<Compare>` `<Code>` `<Terminal>` `<Frame>` `<Annotate>` `<Chart>` `<TagCloud>` `<LogoRow>` `<Mark>` |
+
+  **要看某個原子怎麼填資料，直接讀 `src/components/generated/atoms.deck.tsx`** —— 29 個原子每個至少一頁，
+  含典型用法與邊界狀態，抄它的欄位比猜 props 可靠。完整判準與容量上限見
+  `.claude/skills/content-present/references/atoms.md`；下面只列**最容易寫錯**的幾條。
 - 沒做成元件的三件事直接寫 JSX：左右分欄 → `display: flex` + `DGAP`；段落 → `<p>` + `DS.body`；嵌入既有元件 → `import` 進來放。
 - **動畫**：200–400ms ease-out、`useReducedMotion()`、且 `live === false` 時不啟動。
 - **嵌入既有 @ai-visualize 元件時，兩件事必做**（它們是為網頁內文設計的，不是為 900px 固定高度）：
@@ -87,6 +105,36 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
   純靜態的 `custom` 頁不需要第 2 點。
 - **單一 block 撐滿整頁時，項數要接近上限**（Compare 每側 5–6 列、Rows 5–6 列、Cards 4–6 欄）；
   只有 3 列卻佔整頁會留一大片空白。真的只有 3 列就加第二個 block 或改用 `full-visual`。
+
+### 新原子最容易寫錯的地方
+
+- **`<Chart>` 的 `height` 是「這個 block 的總高」**（含 `heading` 與圖例），畫布高由元件自己扣。
+  從 `area.h` 算好傳進去，**不要自己先減標題高度**（會少算兩次）。
+  系列數上限 **3**、donut 切片上限 **3** 是硬規則，超過只會畫前 3 個。**不要傳 `<Tooltip>`**，數值本來就標在圖元上。
+- **`<Code>` 的 `highlight` 用「顯示行號」**（含 `startLine` 偏移）。同一支檔案分段講解時，
+  用**同一份 `lines` + 不同 `highlight` + 遞增的 `startLine`**，不要每頁貼不同的程式碼。
+  `lines` 可以直接給字串（自動換行切開），要掛行尾註解才用 `CodeLine[]`。
+- **`<Annotate>` 的百分比座標是相對「內容區」**，不是 children 的視覺範圍。
+  children 比內容區矮時（例如把自然高度的 `<Code>` 放進被拉伸的頁），座標會算到下方空白上。
+  解法：`<Annotate style={{ flex: "none" }}>` 讓內容區收合到 children 的高度。
+- **`<Stages variant="rail" alternate>` 的 `size` 要 ≥ 280**，給太矮上排文字會頂出容器。
+- **`<Mark>` 是行內元素**，直接包在文字中間，不要當 block 用。一頁標 3–4 處就夠。
+- **架構圖 / 拓撲圖沒有元件** —— 自己寫 SVG + `<div>`，顏色取 `dkt(dark)`。
+  要標編號或引線就用 `<Annotate>` 包起來，**不要自己畫徽章與折線**。
+
+### 整頁級原子最容易寫錯的地方
+
+- **`<Waterfall>` 與 `<Roster>` 要從 `area` 傳 `width` / `height`**（同 `<Chart>` 的理由：不量測父層）。
+  `height` 是含 `heading` / 導言 / 結論列的**總高**，畫布高由元件自己扣 —— 不要先減。
+- **`<Quadrant>` 的 `cells` 順序釘死**：左上、右上、左下、右下。位置就是資訊，不可依重要性重排。
+  只該有**一格** `emphasis`。
+- **`<Triad>` 的 `items` 是三元組（tuple）**，型別上釘死三個。`emphasis` 必須是 `statement` 的子字串，否則不會標。
+- **`<Decision>` 至少要有一個沒被選的 `option`**（全標 `chosen` 會 dev 警告）。
+- **`<Risk>` 每條都要 `mitigation`**（缺了會 dev 警告）。
+- **`<Ranking>` 的 `items` 要自己先排好序**，元件不重排。`delta` 不會上狀態色，別指望它變綠變紅。
+- **`<Share>` / `<Heatmap>` 只有 `emphasis` 段用識別色**，其餘一律灰。不要試圖給每段不同顏色 —— 識別色只有 3 個。
+- **`<Spectrum>` 的 `at` 是 0–1**，兩極是有名字的立場，不是「沒有」與「全部」。
+- **`<Contents>` 的編號由元件產生**，不要自己在 `title` 裡寫「01」。
 
 ## import 白名單
 
@@ -103,7 +151,7 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
 
 - `export default` 一個 `Deck` 物件；完整 TS 型別，沒有 `any`。
 - 5 個固定版型的頁**只有結構化資料**，一個樣式都不要寫。
-- `custom` 頁可以寫樣式，但**只能來自原子層**：`DS` / `DGAP` / `DTRACK` / `dkt(dark)` / `toneColor()` / 6 個 block。**任何色碼字面值都是錯的。**
+- `custom` 頁可以寫樣式，但**只能來自原子層**：`DS` / `DGAP` / `DTRACK` / `dkt(dark)` / `toneColor()` / 29 個原子。**任何色碼字面值都是錯的。**
 - `full-visual` 的 `viz` 一律引用**已存在**的 `@/components/generated/<id>`；`vizLabel` 慣例為 `"@ai-visualize · <id>"`（系統會把它渲染成右上 pill）。
 - `closing` 的 `items` 用 `{n,k,v}`（3 項）；`section` 的 `tone` 預設 `"dark"`（深藍底），不用特別給。
 - **編號只在真的是序列時給**（流程、時序、排名、章節）；平行清單不要補 01/02/03。
@@ -118,7 +166,8 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
 ## Generated deck `<slug>`
 - Path: src/components/generated/<slug>.deck.tsx
 - Slides: N（cover 1 / section 3 / custom 4 / full-visual 2 / quote 1 / closing 1）
-- Blocks used: Rows ×2, Cards ×1, Kpi ×1, Compare ×1
+- 整頁級原子: Decision, Quadrant, Layers, Risk（4 / 15，無重複）
+- 組合級原子: Code ×1, Rows ×2
 - Reused viz: rr-raci, rr-structure（full-visual）
 - tsc: passed（改動檔零錯誤，總數與基準線相同）/ astro build: passed
 - 建議主 Agent 重點看的頁: 第 5 頁（Cards 5 欄 + Kpi 3 格，最密）、第 9 頁（嵌入既有元件，可能比 900px 高）

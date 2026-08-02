@@ -1,7 +1,7 @@
 {
   "name": "notecraftapp",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。用 npx 一行指令在任何 md/mdx 資料夾啟動漂亮 UI。",
   "keywords": [
     "notecraft",
