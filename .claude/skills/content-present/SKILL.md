@@ -70,7 +70,7 @@ description: 把一篇 NoteCraft MDX 筆記轉成一份 16:9 多頁簡報（deck
 
 **`chrome: false`（整頁滿版視覺）只有 `custom` 頁有。** `full-visual` 的型別沒有這個欄位 ——
 要讓既有互動元件滿版，做法是用 **`custom` 頁 + `chrome: false`**，在頁內自己 `import` 那個元件
-（必要時包 `<FitToArea>`）。用 `chrome: false` 時要在規劃書寫明理由。
+（外框用 `<CanvasViewport>`，見〈嵌入既有元件〉）。用 `chrome: false` 時要在規劃書寫明理由。
 
 ## 原子層（`custom` 頁只能用這些）
 
@@ -160,33 +160,43 @@ import {
 
 **沒做成元件的三件事，直接寫 JSX**：左右分欄 → `display: flex` + `DGAP`；段落 → `<p>` + `DS.body`；嵌入既有元件 → 直接 `import` 進來放。
 
-### 嵌入既有元件的兩個必要處理
+### 嵌入既有元件：用 `<CanvasViewport>`，不是 `<FitToArea>`
 
-筆記的 @ai-visualize 元件是為**網頁內文**設計的（高度隨內容長、頁面可往下滾），投影片是 1600×900 固定座標系。直接放進 `custom` 頁常常會出事：
-
-**1. 比 `area` 高 → 用 `<FitToArea>` 等比縮**
-
-```tsx
-import { FitToArea } from "@/components/deck/FitToArea";
-
-<FitToArea area={area}>
-  <SolutionArchitectureComparison />
-</FitToArea>
-```
-
-它量子元素的自然高度，需要時才縮（上限 1，不放大）。**不要自己寫 `transform: scale()` 硬編縮放比例** —— 元件內容一改，寫死的比例就錯了。
-
-**2. 含互動（按鈕 / 拖曳 / 動畫）→ `live === false` 時給占位，不要掛載**
+筆記的 @ai-visualize 元件是為**網頁內文**設計的（高度隨內容長、頁面可往下滾），投影片是 1600×900 固定座標系。
+`custom` 頁嵌入它們時，**預設用 `<CanvasViewport>`** —— 就是 `full-visual` 版型用的那塊「可縮放平移的藍圖畫布」
+（元件躺在一張紙上、紙躺在點陣藍圖上，附縮放控制列與「還原置中」出口）。
 
 ```tsx
-function ArchPage({ dark, live, area }: CustomSlideProps) {
-  if (!live) return <div style={{ … }}>GCP 部署架構 · 方案 A / B</div>;  // 縮覽用占位
-  return <FitToArea area={area}><SolutionArchitectureComparison /></FitToArea>;
+import { CanvasViewport } from "@/components/deck/CanvasViewport";
+import type { CanvasMode } from "@/components/deck/CanvasViewport";
+
+function ArchPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const mode: CanvasMode = !live ? "thumb" : play ? "play" : "view";
+  return (
+    <CanvasViewport
+      content={live ? <SolutionArchitectureComparison /> : undefined}
+      w={area.w}
+      h={area.h}
+      mode={mode}
+      dark={dark}
+      outerScale={outerScale}
+      emptyId="solution-architecture-comparison"
+    />
+  );
 }
 ```
 
-兩個理由：縮覽側欄會同時掛十幾頁（效能），而且**縮覽項本身是一個 `<button>`**，元件內的按鈕掛進去會變成 button 嵌 button 的無效 HTML。
-純靜態內容的 `custom` 頁不需要這個處理 —— 縮覽本來就該看得到內容。
+三個一定要做對的地方：
+
+- **`mode` 三態**。`thumb`（`live === false`）時畫布只畫骨架、**不掛載真元件** —— 縮覽側欄會同時掛十幾頁（效能），
+  而且**縮覽項本身是一個 `<button>`**，元件內的按鈕掛進去會變成 button 嵌 button 的無效 HTML。
+  給了 `mode="thumb"` 就不必再自己寫 `if (!live) return <占位/>`，畫布已經處理掉了。
+- **`outerScale` 一定要往下傳**。畫布靠它把指標位移換算回 1600×900 座標系，漏傳（預設 1）拖曳就不跟手。
+- **`w` / `h` 直接吃 `area`**。`chrome: false` 的頁面 `area` 就是整個 1600×900，畫布會鋪滿整頁。
+
+`<FitToArea>` 仍然存在，但它只是把過高的元件**等比縮進可用區**、縮完就不能再互動探索 ——
+密度高的架構圖 / 矩陣縮完會看不清。只在「元件不高、單純想保險別被裁」時用它。
+兩者都**不要**自己寫 `transform: scale()` 硬編縮放比例 —— 元件內容一改，寫死的比例就錯了。
 
 ### import 白名單
 
@@ -197,12 +207,14 @@ function ArchPage({ dark, live, area }: CustomSlideProps) {
 ### `CustomSlideProps`
 
 ```ts
-function MyPage({ dark, live, area }: CustomSlideProps) { … }
+function MyPage({ dark, live, play, area, outerScale }: CustomSlideProps) { … }
 ```
 
 - `dark` —— 取色用
 - `live` —— 主畫布 / 播放中為 true；縮覽為 false。動畫與計時器只在 true 時啟動
+- `play` —— 全螢幕播放中。頁內放 `<CanvasViewport>` 時據此切成 `"play"` 模式（純滾輪即縮放）
 - `area: {w,h}` —— chrome 佔用後剩下的可用區（px）。**溢出不會報錯、只會被靜靜裁掉**，這個值是你自我約束的依據
+- `outerScale` —— 外層 `SlideFrame` 的 `transform: scale` 倍率。**放 `<CanvasViewport>` 時必須往下傳**，否則拖曳不跟手
 
 `render` 外層已由系統包成一個高度確定的 flex 欄（含 `gap: DGAP.md`），所以直接回傳幾個 block 就會自動分配高度；要完全自訂版面就在裡面再包一層自己的 div。
 

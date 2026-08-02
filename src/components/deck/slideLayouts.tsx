@@ -411,7 +411,7 @@ function LayoutClosing({ s, dark, deck, index, total }: LayoutProps<ClosingSlide
 
 // ── custom（v0.2 的內容頁主力）─────────────────────────────
 
-function LayoutCustom({ s, dark, deck, index, total, live }: LayoutProps<CustomSlide>) {
+function LayoutCustom({ s, dark, deck, index, total, live, play, outerScale }: LayoutProps<CustomSlide>) {
   const c = dkt(dark);
   const Render = s.render;
   const chromeless = s.chrome === false;
@@ -432,7 +432,13 @@ function LayoutCustom({ s, dark, deck, index, total, live }: LayoutProps<CustomS
         gap: DGAP.md,
       }}
     >
-      <Render dark={dark} live={Boolean(live)} area={area} />
+      <Render
+        dark={dark}
+        live={Boolean(live)}
+        area={area}
+        play={Boolean(play)}
+        outerScale={outerScale ?? 1}
+      />
       <OverflowBadge over={over} />
     </div>
   );

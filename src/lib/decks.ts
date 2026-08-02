@@ -163,6 +163,16 @@ export interface CustomSlideProps {
    * 溢出不會報錯、只會被裁掉 —— 這個值是 custom 頁自我約束的依據。
    */
   area: { w: number; h: number };
+  /**
+   * 全螢幕播放中。與 full-visual 同樣的用途：頁內若放 `<CanvasViewport>`，
+   * 播放模式下畫布改為「純滾輪即縮放」並收斂控制列。
+   */
+  play: boolean;
+  /**
+   * 外層 SlideFrame 的 `transform: scale` 倍率。頁內放 `<CanvasViewport>` 時
+   * **必須往下傳** —— 畫布靠它把指標位移換算回 1600×900 座標系，否則拖曳不跟手。
+   */
+  outerScale: number;
 }
 
 /** 自由頁 —— v0.2 的主力。取代 v0.1 的 bullets / media / compare。 */
