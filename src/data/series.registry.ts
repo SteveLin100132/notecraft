@@ -94,7 +94,10 @@ export const SERIES: SeriesDef[] = [
     icon: "layers",
     // 章節皆為 private 筆記（src/content/notes/private/，已於 .gitignore 排除）：
     // 本機 dev 看得到；正式站因筆記不存在，此系列會被「零章節即略過」的判斷濾掉。
-    slugs: ["private/trendlink-系統-gcp-基礎架構設定與建置手冊"],
+    slugs: [
+      "private/trendlink-系統-gcp-基礎架構設定與建置手冊",
+      "private/trendlink-系統-cloud-sql-postgresql-pgvector-設定與建置手冊",
+    ],
   },
   {
     id: "trendlink-proposal",
