@@ -9,8 +9,10 @@ import { loadSeries, getSeriesChapters } from "@/lib/series";
 export async function getStaticPaths() {
   const notes = await getAllNotes();
   const series = await loadSeries();
-  return series.map((s) => {
+  // 與 /series 一致：零章節的系列不產頁（章節全為 private 筆記時，正式站不會有此路由）。
+  return series.flatMap((s) => {
     const chapters = getSeriesChapters(notes, s);
+    if (chapters.length === 0) return [];
     const data: SeriesDetailData = {
       id: s.id,
       title: s.title,
@@ -26,7 +28,7 @@ export async function getStaticPaths() {
         markersGenerated: c.markersGenerated,
       })),
     };
-    return { params: { id: s.id }, props: { data } };
+    return [{ params: { id: s.id }, props: { data } }];
   });
 }
 

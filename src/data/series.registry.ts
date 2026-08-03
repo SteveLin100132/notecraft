@@ -85,6 +85,18 @@ export const SERIES: SeriesDef[] = [
     ],
   },
   {
+    id: "trendlink-infra-runbook",
+    title: "Trendlink 系統建置手冊",
+    eyebrow: "TRENDLINK INFRA RUNBOOK",
+    description:
+      "自建系統從零到可運作的基礎架構建置紀錄：每一項配置「為什麼這樣設」的決策依據，以及實際進 console／VM 的操作步驟（Runbook）。目前涵蓋 GCP 基礎架構，後續增補 Cloud SQL 等資料層建置。",
+    accent: "navy",
+    icon: "layers",
+    // 章節皆為 private 筆記（src/content/notes/private/，已於 .gitignore 排除）：
+    // 本機 dev 看得到；正式站因筆記不存在，此系列會被「零章節即略過」的判斷濾掉。
+    slugs: ["private/trendlink-系統-gcp-基礎架構設定與建置手冊"],
+  },
+  {
     id: "trendlink-proposal",
     title: "聯和趨動內部專案提案",
     eyebrow: "TRENDLINK PROPOSAL",

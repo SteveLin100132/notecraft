@@ -21,12 +21,15 @@ const s = buildDashboardStats(notes, TODAY);
 const deckCount = allDeckSlugs().length;
 const series = await loadSeries();
 
-const continueSeries: ContinueSeries[] = series.map((sr) => ({
-  id: sr.id,
-  title: sr.title,
-  accent: sr.accent,
-  chapters: getSeriesChapters(notes, sr).map((c) => ({ slug: c.slug, title: c.title })),
-}));
+// 零章節的系列略過（章節全為 private 筆記時，正式站解析不到任何一篇），與 /series 一致。
+const continueSeries: ContinueSeries[] = series
+  .map((sr) => ({
+    id: sr.id,
+    title: sr.title,
+    accent: sr.accent,
+    chapters: getSeriesChapters(notes, sr).map((c) => ({ slug: c.slug, title: c.title })),
+  }))
+  .filter((sr) => sr.chapters.length > 0);
 const tagMax = s.tags[0]?.count ?? 1;
 
 const kpis = [

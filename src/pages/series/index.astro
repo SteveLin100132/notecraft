@@ -9,9 +9,12 @@ import { loadSeries, getSeriesChapters } from "@/lib/series";
 const notes = await getAllNotes();
 const series = await loadSeries();
 
-const cards: SeriesCardData[] = series.map((s) => {
+// 章節一篇都解析不到的系列直接略過（例：章節全是被 .gitignore 的 private 筆記，
+// 正式站沒有這些檔案）—— 避免出現「0 篇」的空系列卡。
+const cards: SeriesCardData[] = series.flatMap((s) => {
   const chapters = getSeriesChapters(notes, s);
-  return {
+  if (chapters.length === 0) return [];
+  return [{
     id: s.id,
     title: s.title,
     eyebrow: s.eyebrow,
@@ -22,7 +25,7 @@ const cards: SeriesCardData[] = series.map((s) => {
       const note = notes.find((n) => n.id === c.slug);
       return { slug: c.slug, title: c.title, tags: note?.data.tags ?? [] };
     }),
-  };
+  }];
 });
 
 const totalNotes = cards.reduce((acc, c) => acc + c.chapters.length, 0);
