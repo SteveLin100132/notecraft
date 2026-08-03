@@ -92,6 +92,10 @@ function tokenizeLine(line: string): HastNode[] {
   );
 }
 
+// 複製鈕要給出「可直接執行」的原始碼，故把 `(n)!` sentinel（連同其前方空白）剔除；
+// 否則貼進終端機會多出 `(1)!`，且無法用 `\` 換行的長指令標註參數（註解不能放在續行內）。
+const ANNO_SENTINEL_RE = /[ \t]*\(\d+\)!/g;
+
 // ── annotation 標記：`(n)!` sentinel → 可互動的註解標記節點 ──
 function markerSpan(n: string): HastElement {
   return h(
@@ -138,7 +142,7 @@ function buildCodeBlock(node: MdNode): void {
       {
         type: "button",
         className: ["nc-cb__copy"],
-        "data-code": raw,
+        "data-code": raw.replace(ANNO_SENTINEL_RE, ""),
         "aria-label": "複製程式碼",
       },
       [
