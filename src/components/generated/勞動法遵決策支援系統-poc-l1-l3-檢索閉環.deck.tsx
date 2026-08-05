@@ -1,8 +1,9 @@
 // deck 資料模組：對應筆記 勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx。
 //
-// 主線：「總表到手之後，PoC 不是變大，是變小 —— 整條路徑上唯一的模型是 embedding，
-// 分類是檢索的副產物。」七個 custom 頁各自承載一個完整論證（收斂階梯 / 反查走查 /
-// 三件選型 / 兩表 join / 扇出統計 / CHECK 矩陣 / 任務線），一頁 full-visual 原樣沿用
+// 主線：「總表到手之後，PoC 不是變大，是變小 —— 分類是檢索的副產物，主線（檢索＋分類）
+// 全程不碰生成式模型；唯一的例外是最末端的風險分析報告，且是 L4~L8 規格未到的暫代做法。」
+// 八個 custom 頁各自承載一個完整論證（收斂階梯 / 報告例外的決策記錄 / 反查走查 /
+// 四組選型 / 兩表 join / 扇出統計 / CHECK 矩陣 / 六條任務線），一頁 full-visual 原樣沿用
 // 筆記既有的 @ai-visualize 元件 poc-l1l3-retrieval-architecture（播放時可縮放探索）。
 //
 // 反查走查頁（PART 01 最後一頁）建立的「問句 → embedding → Top-K → join → L1/L2/L3」
@@ -10,7 +11,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ArrowRight, X as XIcon, User } from "lucide-react";
 import type { CustomSlideProps, Deck } from "@/lib/decks";
-import { Cards, Chart, Code, Kpi, Rows, Stages, Table } from "@/components/deck/blocks";
+import { Cards, Chart, Code, Decision, Kpi, Rows, Stages, Table } from "@/components/deck/blocks";
 import { DGAP, DS, DTRACK } from "@/components/deck/scale";
 import { dkt } from "@/components/deck/theme";
 import type { DeckThemeTokens } from "@/components/deck/theme";
@@ -269,15 +270,61 @@ function CondensePage({ dark }: CustomSlideProps) {
           },
           {
             k: "生成式 LLM",
-            v: "原設計：Claude 或同級模型",
-            desc: "整條路徑上唯一的模型是 embedding",
-            noteLabel: "完全不用",
-            note: "連 API key 都不需要",
-            tone: "good",
+            v: "原設計：Claude 或同級模型，貫穿全流程",
+            desc: "現在只留在最末端風險分析報告一段，模型尚未定案",
+            noteLabel: "限縮",
+            note: "主線（檢索＋分類）不碰，只留報告例外",
+            tone: "warning",
+          },
+          {
+            k: "風險分析報告",
+            v: "原設計：L9 受控報告（依規格模板）",
+            desc: "自撰 prompt 出報告，規格到位後整段換掉",
+            noteLabel: "暫代",
+            note: "L4~L8 規格未到的權宜做法",
+            tone: "warning",
+          },
+          {
+            k: "前端 UI",
+            v: "原設計：無（只有 API）",
+            desc: "一頁看完：問句、條文、分類、報告",
+            noteLabel: "新增",
+            note: "讓檢索品質可被肉眼檢查",
+            tone: "blue",
           },
         ]}
       />
     </div>
+  );
+}
+
+// ── PART 01 · 為什麼報告那一步還要生成式模型：ADR ───────────────────────────
+// L4~L8 規格顧問師還沒交，等規格到位才做報告會讓這一版停在「回傳一包 JSON」。
+// 這裡是唯一碰生成式模型的節點的決策記錄 —— 說明為什麼是暫代，而不是走回頭路。
+
+function DecisionPage({ dark }: CustomSlideProps) {
+  return (
+    <Decision
+      dark={dark}
+      context="L4~L8（事實追問、地雷判定、介入程度）規格顧問師還沒交，等規格到位才做報告，這一版就只能回傳一包 JSON，看不出東西。"
+      options={[
+        { label: "等規格到位再做報告", note: "最乾淨，但這一版會停在「回傳一包 JSON」，看不出東西" },
+        { label: "先手刻規則判定", note: "沒有規格就是憑空編邏輯，規格一到大概率整段重寫" },
+        {
+          label: "自撰 prompt 餵生成式模型",
+          note: "先把檢索結果餵給 LLM 出一份報告，讓 PoC 看得出價值",
+          chosen: true,
+        },
+        { label: "只留 API，不做報告", note: "退回到只做檢索與分類，UI 沒有東西可以展示" },
+      ]}
+      decision="先自己寫一段 prompt，把檢索到的條文與總表對應結果餵進生成式模型，產出風險分析報告——不是 L9 的受控報告，只是規格到位前的出口。"
+      consequences={[
+        "換模型不影響向量庫與 L1~L3 反查結果",
+        "規格到位後這段 prompt 要整個換掉、不疊功能",
+        "生成式模型選型可以晚一點決定",
+        "UI 把報告攤開，讓檢索品質可被肉眼檢查",
+      ]}
+    />
   );
 }
 
@@ -519,7 +566,7 @@ function StackPage({ dark }: CustomSlideProps) {
     <>
       <Cards
         dark={dark}
-        columns={3}
+        columns={4}
         style={{ flex: 1, minHeight: 0 }}
         items={[
           {
@@ -534,26 +581,37 @@ function StackPage({ dark }: CustomSlideProps) {
             tone: "blue",
           },
           {
-            title: "Indexer",
-            desc: "LangChain + Mistral mistral-embed",
+            title: "API（含 Indexer）",
+            desc: "NestJS + TypeScript + LangChain",
             points: [
-              "離線 CLI，不隨 API 一起部署",
-              "Data Loader 先寫列、Indexer 再回填向量",
-              "唯一鍵帶 clause_no，重跑可 ON CONFLICT DO UPDATE",
+              "Indexer 模組收進 API：管理端 command／endpoint 觸發，不再是獨立 CLI",
+              "embedding 設定只有一份，建庫與查詢共用",
+              "條文檢索、總表整合兩步都不碰生成式模型",
             ],
-            chips: ["可重跑"],
+            chips: ["Indexer 模組化"],
             tone: "blue",
           },
           {
-            title: "API",
-            desc: "NestJS + TypeScript + LangChain",
+            title: "UI",
+            desc: "Vite + React + TypeScript",
             points: [
-              "常駐服務，收白話問句",
-              "API 1：回傳 Top-K 相近條文",
-              "API 2：與總表整合後回傳，先 output 就好",
+              "一頁展示：問句 → 條文清單 → L1~L3 分類 → 風險分析報告",
+              "目的是讓檢索品質可被肉眼檢查，不做登入、不做多頁",
+              "純前端讀 API 回傳的 JSON 攤開顯示",
             ],
-            chips: ["不接生成式模型"],
+            chips: ["肉眼可查"],
             tone: "orange",
+          },
+          {
+            title: "生成式 LLM",
+            desc: "只用在風險分析報告那一段",
+            points: [
+              "換掉不影響向量庫，也不影響 L1~L3 的反查結果",
+              "規格到位前的暫代 prompt，規格到位後整段換掉",
+              "候選：Claude 或同級模型（待定）",
+            ],
+            chips: ["尚未定案"],
+            tone: "warning",
           },
         ]}
       />
@@ -563,7 +621,7 @@ function StackPage({ dark }: CustomSlideProps) {
         items={[
           { label: "向量維度", value: "1024", sub: "mistral-embed 固定，換模型要一起改", tone: "blue" },
           { label: "TOP-K", value: "5", sub: "常數設定，先設 5", tone: "blue" },
-          { label: "生成式模型", value: "0", unit: "個", sub: "整條路徑只有 embedding", tone: "good" },
+          { label: "生成式模型", value: "1", unit: "處", sub: "只掛在風險分析報告，模型尚未定案", tone: "warning" },
         ]}
       />
     </>
@@ -672,7 +730,7 @@ function SchemaJoinPage({ dark }: CustomSlideProps) {
             { name: "article_code", type: "text", note: "對得起總表的 L6 條文代碼" },
             { name: "clause_no", type: "text", note: "長條文按項切時才填" },
             { name: "content", type: "text", note: "法條原文，留著才 debug 得動", mark: true },
-            { name: "embedding", type: "vector(1024)", note: "允許 NULL：Loader 先寫、Indexer 再回填", mark: true },
+            { name: "embedding", type: "vector(1024)", note: "允許 NULL：Indexer 模組先載入條文列、再回填向量", mark: true },
             { name: "embedding_model", type: "text", note: "換模型時可辨識殘留資料" },
             { name: "l1_codes", type: "text[]", note: "多值", mark: true },
             { name: "l2_codes", type: "text[]", note: "多值", mark: true },
@@ -964,7 +1022,7 @@ function TasksPage({ dark }: CustomSlideProps) {
         dark={dark}
         variant="rail"
         alternate
-        size={414}
+        size={460}
         style={{ flex: "none" }}
         items={[
           {
@@ -976,25 +1034,39 @@ function TasksPage({ dark }: CustomSlideProps) {
             variant: "active",
           },
           {
-            tag: "接著",
+            tag: "API 1",
             icon: "settings",
-            title: "Indexer CLI",
-            desc: "把法條與總表轉成向量寫入 Vector Database，可重跑",
+            title: "Indexer 模組",
+            desc: "收進 NestJS，管理端 command／endpoint 觸發，可重跑（ON CONFLICT DO UPDATE）",
             tone: "blue",
           },
           {
-            tag: "API 1",
+            tag: "API 2",
             icon: "plug",
             title: "條文檢索",
             desc: "依用戶問句回傳最相近的勞基法條文及解釋",
-            tone: "orange",
+            tone: "blue",
           },
           {
-            tag: "API 2",
+            tag: "API 3",
             icon: "layers",
             title: "總表整合",
             desc: "把檢索結果與 L1~L3+L6 總表整合，找到匹配後回傳",
             tone: "orange",
+          },
+          {
+            tag: "API 4",
+            icon: "trend-up",
+            title: "風險分析報告",
+            desc: "撰寫 prompt 把條文與分類結果餵進生成式模型，輸出報告——這一步是暫代，規格到位後整段換掉",
+            tone: "warning",
+          },
+          {
+            tag: "UI",
+            icon: "user",
+            title: "UI",
+            desc: "Vite + React 一頁：問句 → 條文清單 → L1~L3 分類 → 風險分析報告",
+            tone: "muted",
           },
         ]}
       />
@@ -1012,7 +1084,7 @@ function TasksPage({ dark }: CustomSlideProps) {
           background: c.sunken,
         }}
       >
-        <span style={{ flex: "none", fontSize: DS.small, fontWeight: 800, color: c.muted }}>四步做完＝這條線通了</span>
+        <span style={{ flex: "none", fontSize: DS.small, fontWeight: 800, color: c.muted }}>問句到分類，這條線已經打通</span>
         <div style={{ flex: 1, display: "flex", alignItems: "center", gap: DGAP.xs, flexWrap: "wrap" }}>
           {steps.map((s, i) => (
             <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: DGAP.xs }}>
@@ -1044,13 +1116,13 @@ const deck: Deck = {
       nav: "封面",
       eyebrow: "PoC · 勞動法遵決策支援系統",
       title: "收斂到 L1–L3",
-      subtitle: "問句進來、撈相近法條、與總表整合、回傳 —— 中間不需要任何生成式 LLM",
+      subtitle: "問句進來、撈相近法條、與總表整合 —— 主線不碰生成式 LLM，只有末端報告是暫代例外",
       meta: ["2026-07-31", "檢核機制_工程師初檢表_A段_L1-L3+L6 v1", "說明書 v1"],
       agenda: [
         { n: "01", title: "收斂", sub: "缺口補上之後，範圍為什麼變小" },
-        { n: "02", title: "架構", sub: "兩段式檢索閉環與三件選型" },
+        { n: "02", title: "架構", sub: "三層架構（UI／API／PostgreSQL）與四件技術選型" },
         { n: "03", title: "資料", sub: "兩張表、85 列決策樹、一條 join" },
-        { n: "04", title: "落地", sub: "四條任務線，現在在第一條" },
+        { n: "04", title: "落地", sub: "六條任務線，現在在第一條" },
       ],
     },
 
@@ -1060,7 +1132,7 @@ const deck: Deck = {
       num: "01",
       eyebrow: "SCOPE",
       title: "缺口補上之後，PoC 變小了",
-      subtitle: "L4 以後全部不做，這一版連生成式模型都不需要",
+      subtitle: "L4 以後全部不做；生成式模型只留在最末端一段暫代報告",
     },
     {
       layout: "custom",
@@ -1074,7 +1146,22 @@ const deck: Deck = {
       callout: {
         icon: "target",
         tone: "blue",
-        text: "整條路徑上唯一的模型是 embedding。沒有生成式 LLM，就沒有 prompt、沒有 structured output、沒有幻覺要防。",
+        text: "分類與檢索用不到生成式模型；生成式 LLM 只留在最末端一段暫代報告，規格到位就整段換掉。",
+      },
+    },
+    {
+      layout: "custom",
+      nav: "報告例外：為什麼還要生成式模型",
+      num: "01",
+      eyebrow: "PART 01 · 為什麼是暫代",
+      title: "為什麼報告那一步還要生成式模型",
+      titleNote: "規格沒到位前的暫代出口，不是走回頭路",
+      render: DecisionPage,
+      pill: { text: "暫代，非受控報告", tone: "orange" },
+      callout: {
+        icon: "info",
+        tone: "warning",
+        text: "這一步是暫代：L4~L8 規格交付後，這段 prompt 要整個換掉，不要在上面疊功能。",
       },
     },
     {
@@ -1097,28 +1184,28 @@ const deck: Deck = {
       nav: "章節：架構",
       num: "02",
       eyebrow: "ARCHITECTURE",
-      title: "離線建庫、線上查詢，中間用 PostgreSQL 交棒",
-      subtitle: "兩段共用同一個資料庫，也共用同一個 embedding 模型",
+      title: "UI 進、API 出，一個服務內交棒",
+      subtitle: "建庫與查詢都收在同一個 NestJS 服務裡，中間用 PostgreSQL 交棒",
     },
     {
       layout: "full-visual",
       nav: "技術架構圖",
       num: "02",
       eyebrow: "PART 02 · 技術架構",
-      title: "兩段式架構：右邊離線建庫，左邊線上查詢",
+      title: "UI、API、PostgreSQL：三層一次看完",
       viz: PocL1L3RetrievalArchitecture,
       vizWidth: 1160,
       vizLabel: "@ai-visualize · poc-l1l3-retrieval-architecture",
       vizHint:
-        "右側 Indexer 與 Data Loader 是離線 CLI，把勞基法條文與 L1~L3+L6 總表分別寫成向量與結構化資料；左側 NestJS API 收下白話問句、做向量相似度查詢、再以條文代碼 join 回總表。中間的 PostgreSQL + pgvector 是兩段唯一的交棒點。",
+        "最上層 UI（Vite + React）送出白話問句；左側 API（NestJS 常駐服務）內部並排 Indexer 模組（管理端觸發、非常駐流程，把法條與總表寫入向量與結構化資料）與查詢流程（Question → Embedding → Top-K 檢索 → Mapping → 風險分析報告）；右側 PostgreSQL + pgvector 是建庫與查詢共用的唯一交棒點。查詢流程前四步只用 mistral-embed，只有最後一步的風險分析報告碰生成式 LLM——那是 L4~L8 規格未到的暫代做法。",
     },
     {
       layout: "custom",
-      nav: "三件選型",
+      nav: "四件選型",
       num: "02",
       eyebrow: "PART 02 · 技術選型",
-      title: "三個元件，三組選型",
-      titleNote: "Indexer 與 API 必須用同一個 embedding 模型",
+      title: "四個元件，四組選型",
+      titleNote: "Indexer 收進 API 模組；UI 只是把 API 回傳攤開顯示",
       render: StackPage,
       callout: {
         icon: "alert",
@@ -1185,16 +1272,16 @@ const deck: Deck = {
       nav: "章節：落地",
       num: "04",
       eyebrow: "NEXT",
-      title: "四條任務線，現在在第一條",
+      title: "六條任務線，現在在第一條",
       subtitle: "Runbook 不是最後才補的文件",
     },
     {
       layout: "custom",
-      nav: "四條任務線",
+      nav: "六條任務線",
       num: "04",
       eyebrow: "PART 04 · 任務拆解",
-      title: "四步走完，就是這一版的全部",
-      titleNote: "Vector Database → Indexer → API 1 → API 2",
+      title: "六步走完，就是這一版的全部",
+      titleNote: "Vector Database → Indexer → 檢索 → 總表整合 → 報告 → UI",
       render: TasksPage,
       callout: {
         icon: "file",
@@ -1216,8 +1303,8 @@ const deck: Deck = {
         },
         {
           n: "02",
-          k: "唯一的模型是 embedding",
-          v: "pgvector 存向量、mistral-embed 建庫與查詢共用同一個模型、NestJS 回傳結果 —— 整條路徑沒有生成式 LLM。",
+          k: "主線不碰生成式模型，只有一處例外",
+          v: "檢索與分類全程只用 mistral-embed；生成式 LLM 只掛在最末端的風險分析報告，且是 L4~L8 規格未到的暫代做法。",
         },
         {
           n: "03",
