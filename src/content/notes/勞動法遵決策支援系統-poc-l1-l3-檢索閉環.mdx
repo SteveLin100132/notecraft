@@ -1,6 +1,6 @@
 ---
 title: "收斂到 L1–L3：勞動法遵 PoC 的第一版範圍與技術選型"
-description: "「L1~L3+L6 總表」到手後，PoC 收斂成一條檢索閉環：問句進來、撈相近法條、與總表整合、回傳，中間不需要 LLM 介入。這篇記錄這一版的範圍、目標、技術選型（pgvector／LangChain + mistral-embed／NestJS）、技術架構、資料結構與任務拆解。"
+description: "「L1~L3+L6 總表」到手後，PoC 收斂成一條檢索閉環：問句進來、撈相近法條、與總表整合、再交給一段自撰 prompt 產出風險分析報告。這篇記錄這一版的範圍、目標、技術選型（pgvector／LangChain + mistral-embed／NestJS／Vite + React／self-host Langfuse）、技術架構、資料結構與任務拆解。"
 tags:
   - AI 陪跑筆記
   - PoC
@@ -8,107 +8,134 @@ tags:
   - AI 技術
 category: 技術筆記
 createdAt: "2026-07-31"
-updatedAt: "2026-07-31"
+updatedAt: "2026-08-05"
 ---
 
 前兩篇卡在同一個地方：**法條對不到四大類與主題**。現在那張表來了——《檢核機制_工程師初檢表_A段_L1-L3+L6》，四大類、22 個 L2 主題、85 個 L3 題型，每一列都掛好了對應的勞基法條文。
 
-缺口補上之後，PoC 不是變大，是**變小**。
+缺口補上之後，PoC 的核心不是變大，是**變小**——分類這件事被反查掉了，不必再讓模型去猜。
+
+真正長出來的是外圍的兩塊：一個讓檢索結果**看得見**的 UI，以及一段替尚未交付的 L4~L8 規格暫時頂著的報告 prompt。
 
 :::info{title="本文前提"}
-承接[〈先別急著接 RAG：勞動法遵決策系統的 PoC 怎麼匡〉](/notes/勞動法遵決策支援系統-poc-範圍與技術選型)與[〈三條線，三個介面〉](/notes/勞動法遵決策支援系統-poc-任務拆解與分工)的範圍與 Phase 定義。本篇記錄的是**收斂後的第一版 PoC**：範圍只到 L1–L3，資料以顧問師交付的「L1~L3+L6 總表」為準。
+承接[〈先別急著接 RAG：勞動法遵決策系統的 PoC 怎麼匡〉](/notes/勞動法遵決策支援系統-poc-範圍與技術選型)與[〈三條線，三個介面〉](/notes/勞動法遵決策支援系統-poc-任務拆解與分工)的範圍與 Phase 定義。本篇記錄的是**收斂後的第一版 PoC**：範圍只到 L1–L3，外加一段暫代的風險分析報告，資料以顧問師交付的「L1~L3+L6 總表」為準。
 :::
 
 ---
 
 ## PoC 範圍
 
-**只先做 L1~L3。**
+**只先做 L1~L3，加上一段暫代的風險分析報告。**
 
-L4 以後的必要事實追問、地雷判定、受控報告全部不在這一版。而且這一版連生成式模型都不需要——整條路徑上唯一的模型是 embedding。
+分類這段照舊是反查出來的，不需要模型。真正的變數在後半段：**L4~L8 的規格顧問師還沒交**——必要事實追問、地雷判定、介入程度的判定邏輯目前都還是空的。等規格是一種選擇，但那會讓這一版 PoC 停在「回傳一包 JSON」，看不出東西。
+
+所以這一版改成：**先自己寫一段 prompt**，把檢索到的條文與總表對應結果餵進生成式模型，產出一份風險分析報告。它不是 L9 的受控報告，只是規格到位前的出口。
 
 | | 原設計（範圍那篇） | 這一版 |
 |---|---|---|
 | L1–L3 分類 | LLM 分類 ＋ structured output | :badge[反查]{variant="success"} 由 L6 條文回推總表 |
 | L6 條文檢索 | 向量檢索 ＋ rerank | 向量檢索（rerank 延後） |
-| L4–L9 | 事實追問、地雷判定、受控報告 | :badge[不做]{variant="neutral" outline} |
-| 生成式 LLM | Claude 或同級 | :badge[完全不用]{variant="success"} 只有 embedding |
+| L4–L8 | 事實追問、地雷判定、介入程度 | :badge[規格未到]{variant="warning" outline} 不照規格實作 |
+| 報告輸出 | L9 受控報告（依規格模板） | :badge[暫代]{variant="warning"} 自撰 prompt 產出風險分析報告 |
+| 生成式 LLM | Claude 或同級 | :badge[只用在報告]{variant="neutral"} Codex 5.6 Luna；檢索與分類仍不經 LLM |
+| 前端 | 無（只有 API） | :badge[新增]{variant="success"} Vite + React 展示用 UI |
+| 可觀測性 | 無 | :badge[新增]{variant="success"} self-host Langfuse 記 AI 足跡與 token |
 
 ---
 
 ## PoC 目標
 
-三個元件，各自要達成的事：
+三個元件，各自要達成的事。跟前一版最大的差別是 **Indexer 不再是獨立的離線 CLI，而是收進 API**：
 
 ::::steps
 :::step{title="Vector Database"}
 鎖定勞基法，結合當前對應的「L1~L3+L6 總表」資料建立 Embedding Database。
 :::
-:::step{title="Indexer"}
-先以**離線 CLI** 形式實現，負責將文本轉換成向量。
-:::
-:::step{title="API"}
-常駐服務，對外提供兩件事：
+:::step{title="API（NestJS）"}
+常駐服務，內含四件事——前三件不碰生成式模型，第四件才碰：
 
-1. 根據用戶的問題，從 Vector Database 檢索相關的勞基法條文及解釋，取最相關的內容以 **Top-K** 返回，K 先設為 **5**
-2. 將檢索到的內容與「L1~L3+L6 總表」整合後返回——**此段不需要 LLM 介入**，先把結果 output 回來就好
+1. **Indexer 模組** — 將法條文本與總表資料轉換成向量寫入 Vector Database。以 NestJS 的 command / 管理端 endpoint 觸發，不再是獨立進程
+2. **條文檢索** — 依用戶問句從 Vector Database 撈相關的勞基法條文及解釋，取最相關的內容以 **Top-K** 返回，K 先設為 **5**
+3. **總表整合** — 將檢索到的內容與「L1~L3+L6 總表」整合後返回，**此段不需要 LLM 介入**
+4. **風險分析報告** — 把前兩步的結果餵進一段自撰 prompt，交給生成式模型輸出報告。這一段的呼叫全程掛 **Langfuse** trace，記下問句、token 用量、延遲與模型版本
+:::
+:::step{title="UI"}
+**Vite + React（TypeScript）**。一頁就好：輸入白話問句 → 看到撈回來的條文、反查到的 L1~L3 分類、以及最後那份風險分析報告。
+
+UI 的作用不是產品雛形，是**讓檢索品質變得可被肉眼檢查**。純 API 回傳的 JSON 看不出「這五條撈得準不準」，攤在畫面上就看得出來。
 :::
 ::::
 
+:::note{title="Indexer 收進 API 的取捨"}
+獨立 CLI 的好處是建庫與查詢完全解耦；收進 API 的好處是**embedding 設定只有一份**——模型名稱、維度、切塊規則不會在兩支程式裡各寫一次然後悄悄長歪。這一版資料量小、只有一個人在跑，選後者。
+:::
+
 ---
 
-## PoC 技術選型
+## 技術棧
 
 | 元件 | 選型 |
 |---|---|
 | **Vector Database** | PostgreSQL + `pgvector` |
-| **Indexer** | LangChain + Mistral `mistral-embed` |
-| **API** | NestJS + TypeScript + LangChain + Mistral `mistral-embed` |
+| **API（含 Indexer）** | NestJS + TypeScript + LangChain + Mistral `mistral-embed` |
+| **UI** | Vite + React + TypeScript |
+| **生成式 LLM** | **Codex 5.6 Luna**，只用在風險分析報告那一段 |
+| **可觀測性** | **Langfuse（self-host）**，追蹤報告生成的 AI 足跡與 token 用量 |
 
-Indexer 與 API 用同一個 embedding 模型，這一點要在設定層就綁死——建庫與查詢用不同模型，向量空間對不上，檢索結果會是隨機的，而且**不會報錯**。
+Indexer 收進 API 之後，建庫與查詢天然共用同一份 embedding 設定——這正是收進來的主要理由。但仍有一件事要盯：**換 embedding 模型時整庫要重建**。建庫與查詢用不同模型，向量空間對不上，檢索結果會是隨機的，而且**不會報錯**。`labor_articles.embedding_model` 這欄就是為了讓殘留資料被看見。
+
+報告生成這一段用 **Codex 5.6 Luna**。它只掛在最後一段，換掉不影響向量庫，也不影響 L1~L3 的反查結果——這是這條路徑上唯一可以晚點再換的元件。
+
+Langfuse 走 **self-host**，跟資料庫一樣放在 GCP。法遵問句帶得動公司名、人名與薪資數字，這種東西不往外送；自架也讓「換模型後回頭比對前後輸出」這件事有地方查。它只掛在報告生成那一段——embedding 呼叫量大、單價低，記了只會把 trace 洗掉重點，所以不記。
 
 ---
 
-## PoC 技術架構
+## 系統邊界
 
-離線建庫、線上查詢兩段，中間用 PostgreSQL 交棒。
+UI 進、API 出，建庫與查詢都收在同一個 NestJS 服務裡，中間用 PostgreSQL 交棒；報告那一段的呼叫另外側掛 Langfuse。
 
 {/* @ai-visualize
 id: poc-l1l3-retrieval-architecture
 type: diagram
 prompt: |
-  以手寫 SVG 畫出這一版 PoC 的技術架構圖。核心洞察是「這條路徑上唯一的模型是 embedding——沒有任何生成式 LLM 介入；分類不是算出來的，是拿檢索到的條文回總表反查出來的」。
+  以手寫 SVG 畫出這一版 PoC 的技術架構圖。核心洞察是「整條主線只有 embedding 一個模型：檢索是向量算的、分類是拿檢索到的條文回總表反查的，都不需要生成式模型；生成式模型只掛在最末端那一段風險分析報告上，而且是因為 L4~L8 規格未到的暫代做法」。
 
-  版面分左右兩大區塊，中間用一個 PostgreSQL 圓柱（標註 `PostgreSQL + pgvector`）當交棒點，離線段與線上段共用同一個資料庫。頂端小字標註「Framework: LangChain ／ Embedding: Mistral」。
+  版面分左右兩大區塊，中間用一個 PostgreSQL 圓柱（標註 `PostgreSQL + pgvector`）當交棒點，建庫段與查詢段共用同一個資料庫。頂端小字標註「Framework: LangChain ／ Embedding: Mistral `mistral-embed`」。
 
-  右側大框「Indexer & Data Loader · 離線 CLI」，內含兩個虛線子框：
-  - 「Indexer」：勞基法法條（文件圖示）→ Embedding → 寫入「法條 Vector Data」
-  - 「Data Loader」：L1~L3+L6 總表（Excel 圖示）→ ETL → 寫入「決策樹分類 Structured Data」
-  右側拉一張便利貼樣式的註記：「PoC 資料來源：勞基法條文 ＋ L1~L3+L6 總表（可先用 Excel）」，用虛線連到兩個資料來源。
+  左側最上方先放一個獨立小框「UI · Vite + React (TS)」：人形圖示 ＋ 輸入框，內容寫「公司可以不給特休嗎」，並在框內以縮圖示意回傳結果（條文清單、L1~L3 標籤、報告卡片）。這個框用一組往下、一組往上的雙向箭頭連到下方的 API 大框，分別標「提問」與「條文 ＋ 分類 ＋ 報告」。
 
-  左側大框「API · NestJS 常駐服務」，由上而下一條垂直流程：
-  1. 使用者提問（人形圖示 ＋ 對話框，內容寫「公司可以不給特休嗎」）
-  2. Question —— 收下白話問句
-  3. Embedding —— 標註「與 Indexer 同一個模型」
-  4. 檢索近似條文（Top-K）—— 標註「K：常數設定，先設 5」
-  5. 將檢索到的近似條文與決策樹分類表 Mapping
-  節點 4 與 5 各拉一條箭頭到中間的 PostgreSQL，分別標「向量相似度查詢」與「條文代碼 join」。
+  左側大框「API · NestJS 常駐服務」，內部再分成兩個虛線子區：
+
+  子區 A「Indexer 模組（管理端觸發，非常駐流程）」——強調它現在住在 API 裡面，不再是獨立 CLI：
+  - 勞基法法條（文件圖示）→ Embedding → 寫入「法條 Vector Data」
+  - L1~L3+L6 總表（Excel 圖示）→ ETL → 寫入「決策樹分類 Structured Data」
+  這個子區拉一張便利貼樣式的註記：「PoC 資料來源：勞基法條文 ＋ L1~L3+L6 總表（可先用 Excel）」，用虛線連到兩個資料來源。
+
+  子區 B「查詢流程」，由上而下一條垂直流程：
+  1. Question —— 收下白話問句
+  2. Embedding —— 標註「與 Indexer 模組同一份設定」
+  3. 檢索近似條文（Top-K）—— 標註「K：常數設定，先設 5」
+  4. 將檢索到的近似條文與決策樹分類表 Mapping
+  5. 風險分析報告 —— 節點內標「自撰 prompt ＋ Codex 5.6 Luna」，並用與前四步明顯不同的色調（唯一碰生成式模型的節點）
+  節點 3 與 4 各拉一條箭頭到中間的 PostgreSQL，分別標「向量相似度查詢」與「條文代碼 join」。子區 A 也拉箭頭寫入 PostgreSQL。
+
+  節點 5 另外拉一條虛線往外接到一個獨立小框「Langfuse · self-host（GCP）」，線上標「trace」。這條線要明顯畫成非主資料流（虛線 ＋ 中性色），表示它是側掛的可觀測性，不在請求的回傳路徑上。Langfuse 框內列四項：問句與輸出、token 用量、延遲、模型與 Prompt 版本；框下加一行小字「只記報告生成，不記 embedding 呼叫」。
 
   中間 PostgreSQL 上下各掛一個資料表方塊，用細線連到圓柱：
   - 上方「法條 Vector Data」：metadata、決策樹 L1／L2／L3 編號、法條內容（vector）
   - 下方「決策樹分類 Structured Data」：L1：… ／ L2：… ／ L3：…
 
-  兩個必要標註：在節點 5 旁用強調色標「分類是檢索的副產物，不需要 LLM」；在整張圖上明確標示「唯一的模型：mistral-embed」。
+  三個必要標註：在節點 4 旁用強調色標「分類是檢索的副產物，不需要 LLM」；在節點 5 旁標「L4~L8 規格未到，先以自撰 prompt 暫代」；在主線（節點 1~4）上明確標示「這一段唯一的模型：mistral-embed」。
 
-  底部放圖例，說明實線（主資料流）、虛線（資料來源）與離線段／線上段兩種底色的差別。
-caption: 兩段式架構：離線 CLI 建庫、線上 API 查詢，中間以 PostgreSQL + pgvector 交棒；全程唯一的模型是 embedding。
+  底部放圖例，說明實線（主資料流）、虛線（資料來源／非常駐流程）、中性虛線（可觀測性，非主資料流），以及「不經生成式模型」與「經生成式模型」兩種節點底色的差別。
+caption: UI 進、API 出：Indexer 收進 NestJS 服務內，檢索與分類全程不碰生成式模型；只有最末端的風險分析報告例外，那一段側掛 self-host Langfuse 記錄足跡與 token。
 status: generated
 */}
 
 import GeneratedFrame from '@/components/GeneratedFrame.astro'
 import PocL1L3RetrievalArchitecture from '@/components/generated/poc-l1l3-retrieval-architecture'
 
-<GeneratedFrame id="poc-l1l3-retrieval-architecture" type="diagram" prompt={"以手寫 SVG 畫出這一版 PoC 的技術架構圖。核心洞察是「這條路徑上唯一的模型是 embedding——沒有任何生成式 LLM 介入；分類不是算出來的，是拿檢索到的條文回總表反查出來的」。\n\n版面分左右兩大區塊，中間用一個 PostgreSQL 圓柱（標註 `PostgreSQL + pgvector`）當交棒點，離線段與線上段共用同一個資料庫。頂端小字標註「Framework: LangChain ／ Embedding: Mistral」。\n\n右側大框「Indexer & Data Loader · 離線 CLI」，內含兩個虛線子框：\n- 「Indexer」：勞基法法條（文件圖示）→ Embedding → 寫入「法條 Vector Data」\n- 「Data Loader」：L1~L3+L6 總表（Excel 圖示）→ ETL → 寫入「決策樹分類 Structured Data」\n右側拉一張便利貼樣式的註記：「PoC 資料來源：勞基法條文 ＋ L1~L3+L6 總表（可先用 Excel）」，用虛線連到兩個資料來源。\n\n左側大框「API · NestJS 常駐服務」，由上而下一條垂直流程：\n1. 使用者提問（人形圖示 ＋ 對話框，內容寫「公司可以不給特休嗎」）\n2. Question —— 收下白話問句\n3. Embedding —— 標註「與 Indexer 同一個模型」\n4. 檢索近似條文（Top-K）—— 標註「K：常數設定，先設 5」\n5. 將檢索到的近似條文與決策樹分類表 Mapping\n節點 4 與 5 各拉一條箭頭到中間的 PostgreSQL，分別標「向量相似度查詢」與「條文代碼 join」。\n\n中間 PostgreSQL 上下各掛一個資料表方塊，用細線連到圓柱：\n- 上方「法條 Vector Data」：metadata、決策樹 L1／L2／L3 編號、法條內容（vector）\n- 下方「決策樹分類 Structured Data」：L1：… ／ L2：… ／ L3：…\n\n兩個必要標註：在節點 5 旁用強調色標「分類是檢索的副產物，不需要 LLM」；在整張圖上明確標示「唯一的模型：mistral-embed」。\n\n底部放圖例，說明實線（主資料流）、虛線（資料來源）與離線段／線上段兩種底色的差別。"} caption="兩段式架構：離線 CLI 建庫、線上 API 查詢，中間以 PostgreSQL + pgvector 交棒；全程唯一的模型是 embedding。">
+<GeneratedFrame id="poc-l1l3-retrieval-architecture" type="diagram" prompt={"以手寫 SVG 畫出這一版 PoC 的技術架構圖。核心洞察是「整條主線只有 embedding 一個模型：檢索是向量算的、分類是拿檢索到的條文回總表反查的，都不需要生成式模型；生成式模型只掛在最末端那一段風險分析報告上，而且是因為 L4~L8 規格未到的暫代做法」。\n\n版面分左右兩大區塊，中間用一個 PostgreSQL 圓柱（標註 `PostgreSQL + pgvector`）當交棒點，建庫段與查詢段共用同一個資料庫。頂端小字標註「Framework: LangChain ／ Embedding: Mistral `mistral-embed`」。\n\n左側最上方先放一個獨立小框「UI · Vite + React (TS)」：人形圖示 ＋ 輸入框，內容寫「公司可以不給特休嗎」，並在框內以縮圖示意回傳結果（條文清單、L1~L3 標籤、報告卡片）。這個框用一組往下、一組往上的雙向箭頭連到下方的 API 大框，分別標「提問」與「條文 ＋ 分類 ＋ 報告」。\n\n左側大框「API · NestJS 常駐服務」，內部再分成兩個虛線子區：\n\n子區 A「Indexer 模組（管理端觸發，非常駐流程）」——強調它現在住在 API 裡面，不再是獨立 CLI：\n- 勞基法法條（文件圖示）→ Embedding → 寫入「法條 Vector Data」\n- L1~L3+L6 總表（Excel 圖示）→ ETL → 寫入「決策樹分類 Structured Data」\n這個子區拉一張便利貼樣式的註記：「PoC 資料來源：勞基法條文 ＋ L1~L3+L6 總表（可先用 Excel）」，用虛線連到兩個資料來源。\n\n子區 B「查詢流程」，由上而下一條垂直流程：\n1. Question —— 收下白話問句\n2. Embedding —— 標註「與 Indexer 模組同一份設定」\n3. 檢索近似條文（Top-K）—— 標註「K：常數設定，先設 5」\n4. 將檢索到的近似條文與決策樹分類表 Mapping\n5. 風險分析報告 —— 節點內標「自撰 prompt ＋ Codex 5.6 Luna」，並用與前四步明顯不同的色調（唯一碰生成式模型的節點）\n節點 3 與 4 各拉一條箭頭到中間的 PostgreSQL，分別標「向量相似度查詢」與「條文代碼 join」。子區 A 也拉箭頭寫入 PostgreSQL。\n\n節點 5 另外拉一條虛線往外接到一個獨立小框「Langfuse · self-host（GCP）」，線上標「trace」。這條線要明顯畫成非主資料流（虛線 ＋ 中性色），表示它是側掛的可觀測性，不在請求的回傳路徑上。Langfuse 框內列四項：問句與輸出、token 用量、延遲、模型與 Prompt 版本；框下加一行小字「只記報告生成，不記 embedding 呼叫」。\n\n中間 PostgreSQL 上下各掛一個資料表方塊，用細線連到圓柱：\n- 上方「法條 Vector Data」：metadata、決策樹 L1／L2／L3 編號、法條內容（vector）\n- 下方「決策樹分類 Structured Data」：L1：… ／ L2：… ／ L3：…\n\n三個必要標註：在節點 4 旁用強調色標「分類是檢索的副產物，不需要 LLM」；在節點 5 旁標「L4~L8 規格未到，先以自撰 prompt 暫代」；在主線（節點 1~4）上明確標示「這一段唯一的模型：mistral-embed」。\n\n底部放圖例，說明實線（主資料流）、虛線（資料來源／非常駐流程）、中性虛線（可觀測性，非主資料流），以及「不經生成式模型」與「經生成式模型」兩種節點底色的差別。"} caption="UI 進、API 出：Indexer 收進 NestJS 服務內，檢索與分類全程不碰生成式模型；只有最末端的風險分析報告例外，那一段側掛 self-host Langfuse 記錄足跡與 token。">
   <PocL1L3RetrievalArchitecture />
 </GeneratedFrame>
 
@@ -117,6 +144,10 @@ import PocL1L3RetrievalArchitecture from '@/components/generated/poc-l1l3-retrie
 ## PoC 資料結構
 
 兩張表：`labor_articles` 存法條與向量，`decision_tree` 存總表的 85 列決策樹。決策樹的部分參考總表的「L1~L3+L6總表」分頁。
+
+風險分析報告**不進 PostgreSQL**——PoC 階段直接回傳給 UI，不建表。等 L4~L8 規格到位、報告結構定下來再談儲存。
+
+但**歷程不是沒有留**：報告生成的每一次呼叫都寫進 self-host 的 Langfuse——問句、輸出、token 用量、延遲與模型版本都在裡面。應用資料庫乾淨，可觀測性平台留痕，兩件事分開看。
 
 :::::tabs
 ::::tab{label="資料表 Schema"}
@@ -129,7 +160,7 @@ import PocL1L3RetrievalArchitecture from '@/components/generated/poc-l1l3-retrie
 | `article_code` | `text` | ✔ | — | 條文代碼，如 `第38條`，與總表的「全部 L6 條文代碼」對得起來 |
 | `clause_no` | `text` | — | `NULL` | 項次。長條文（如第 84-1 條）按項切時才填 |
 | `content` | `text` | ✔ | — | 法條原文，embedding 的來源；保留原文才 debug 得動 |
-| `embedding` | `vector(1024)` | — | `NULL` | `mistral-embed` 固定 1024 維。Data Loader 先寫入列、Indexer 再回填，所以允許 `NULL` |
+| `embedding` | `vector(1024)` | — | `NULL` | `mistral-embed` 固定 1024 維。Indexer 模組先載入條文列、再回填向量，兩段可分開跑，所以允許 `NULL` |
 | `embedding_model` | `text` | ✔ | `'mistral-embed'` | 記下產生這個向量的模型，換模型時可辨識殘留資料 |
 | `l1_codes` | `text[]` | ✔ | `'{}'` | 決策樹 L1 編號（**多值**） |
 | `l2_codes` | `text[]` | ✔ | `'{}'` | 決策樹 L2 編號（**多值**） |
@@ -255,10 +286,10 @@ CREATE INDEX IF NOT EXISTS idx_tree_l2 ON decision_tree (l1_code, l2_code);
 ```
 
 1. `pgvector` 的 extension 名稱是 `vector` 不是 `pgvector`，這行放在 Runbook 的第一步。
-2. 允許 `NULL`：Data Loader 先把條文寫進來，Indexer 再回填向量，兩支程式可以分開跑。維度 1024 對應 `mistral-embed`，換模型要一起改。
+2. 允許 `NULL`：Indexer 模組先把條文列載進來，向量再回填，載入與向量化可以分開跑。維度 1024 對應 `mistral-embed`，換模型要一起改，而且整庫都得重跑。
 3. 唯一鍵帶 `clause_no`，讓「同一條按項切成多個 chunk」不會互相衝突；重跑 Indexer 時可以 `ON CONFLICT DO UPDATE`。
 4. HNSW ＋ cosine。資料量只有百來筆，其實全表掃也夠快，但索引先建好，之後擴到函釋與施行細則不用改。
-5. GIN 索引給 `l3_codes`，API 2 就是拿檢索回來的條文 `l3_codes` 去比對總表。
+5. GIN 索引給 `l3_codes`，總表整合那一步就是拿檢索回來的條文 `l3_codes` 去比對總表。
 6. **初始地雷數不是獨立資料，是算出來的**：地雷數 = 頻率分（低 1／中 2／高 3）＋ 風險分（低 0／中 1／高 2）。總表 85 列全部吻合、零例外，所以用 `CHECK` 守住——之後顧問師改了風險等級卻忘了改地雷數，載入當下就會被擋下來。
 7. 介入程度同理，就是說明書 L8 的門檻：1 顆低、2–3 顆中、4 顆高、5 顆以上急迫。85 列同樣零例外。
 :::
@@ -276,16 +307,180 @@ CREATE INDEX IF NOT EXISTS idx_tree_l2 ON decision_tree (l1_code, l2_code);
 
 Runbook 別留到最後補——它的價值不在文件本身，在逼你把手動做過的每一步寫下來。沒寫下來的那幾步，就是之後重建環境時卡住的地方。
 :::
-:::step{title="Indexer"}
-- 撰寫 **Indexer CLI**，將「L1~L3+L6 總表」資料轉換成向量，並存入 Vector Database
+:::step{title="API 1｜Indexer 模組"}
+- 在 NestJS 服務內實作 **Indexer 模組**，將勞基法條文與「L1~L3+L6 總表」資料轉換成向量／結構化資料，存入 Vector Database
+- 以管理端 command／endpoint 觸發，可重跑（`ON CONFLICT DO UPDATE`）
 :::
-:::step{title="API 1｜條文檢索"}
-- 根據用戶問題，從 Vector Database 檢索相近的勞基法條文及解釋，回傳給用戶
+:::step{title="API 2｜條文檢索"}
+- 根據用戶問題，從 Vector Database 檢索相近的勞基法條文及解釋，Top-K = 5，回傳給用戶
 :::
-:::step{title="API 2｜總表整合"}
+:::step{title="API 3｜總表整合"}
 - 將檢索到的勞基法條文及解釋與「L1~L3+L6 總表」整合，找到匹配的資料後回傳給用戶
 :::
+:::step{title="API 4｜風險分析報告"}
+- 撰寫 prompt，把前兩步的條文與 L1~L3 對應結果餵入生成式模型，輸出風險分析報告
+- **這一步是暫代**：L4~L8 規格交付後，這段 prompt 要整個換掉，不要在上面疊功能
+:::
+:::step{title="API 5｜可觀測性接線"}
+- 在 **GCP** 架設 self-host **Langfuse**（含自己的 PostgreSQL），撰寫建置 Runbook
+- 報告生成的呼叫掛上 trace：記問句、輸出、token 用量、延遲、模型版本與 Prompt 版本
+- 降級事件一併上報，標上降級原因
+:::
+:::step{title="UI"}
+- 以 **Vite + React（TypeScript）** 做一頁展示介面：輸入問句 → 條文清單 → L1~L3 分類 → 風險分析報告
+- 目的是讓檢索品質可被肉眼檢查，不做登入、不做多頁
+:::
 ::::
+
+---
+
+## 帳號與權限
+
+---
+
+## AI 介入
+
+整條流程只有兩個地方允許模型介入：**L1–L3 分類**與 **L9 報告**。其餘全部走規則引擎——L4–L8、L6 條文對照、L10 顧問推薦，以及使用者輸入的守門。這條界線要寫進規格，不然實作時很容易被一句「這裡順便叫模型判斷一下」慢慢侵蝕掉。
+
+### 介入點與硬限制
+
+| 層次 | 這一版怎麼做 | 方式 | 硬限制 |
+|---|---|---|---|
+| 使用者輸入 | 主題範圍檢查、長度／次數／檔案限制 | :badge[規則]{variant="neutral" outline} | 拒絕無關任務、濫用與超量上傳 |
+| L1–L3 分類 | 由檢索到的 L6 條文回推總表 | :badge[反查]{variant="success"} | 見下方三處待拍板 |
+| L4–L8 | 不做 | :badge[規格未到]{variant="warning" outline} | — |
+| L6 條文對照 | 向量檢索 Top-K = 5 ＋ 條文代碼 join | :badge[規則]{variant="neutral" outline} | 未經顧問核准，AI 不得自行擴寫法律結論 |
+| L9 報告 | 自撰 prompt 產出風險分析報告 | :badge[暫代 AI]{variant="warning"} | 固定章節與欄位；不得新增事實、條文或法律結論 |
+| L10 顧問推薦 | 不做 | :badge[規格未到]{variant="warning" outline} | — |
+
+`decision_tree` 裡有四個欄位是**規則的產物，不是模型的產物**：`frequency`／`risk` 是 L3 題型的預設頻率與風險，由顧問師人工設定；`initial_mines`／`initial_intervention` 是 L7 地雷數與 L8 介入程度的**初始值**，由前兩欄用公式算出、有 `CHECK` 守著（實際值要等 L5 追問加減地雷後才算得出來，這一版不做）。模型只能讀它們寫進報告，不能自己生一個地雷數或介入程度出來。
+
+:::warning{title="三處與顧問建議不同，需要拍板"}
+- **L1–L3 該不該用 AI**：顧問建議限定 AI 語意分類，這一版做的是零 AI 反查。兩者可並存——反查為主、無命中時才叫模型——但要先決定
+- **這份報告不是 L9**：L4–L8 規格未到，現在產出的是暫代，規格到位後整段換掉
+- **RAG 的定位**：向量檢索是拿來**選條文**的工具，不是餵給模型自由生成的知識庫。規格要寫明，否則會被讀成「已經做了完整 RAG」
+:::
+
+### 模型與 API
+
+| 用途 | 選型 | 呼叫方式 | 追蹤 |
+|---|---|---|---|
+| 語意檢索 embedding | Mistral `mistral-embed`（1024 維） | 直接 API | :badge[不記]{variant="neutral" outline} 量大、單價低 |
+| 報告生成 | **Codex 5.6 Luna** | 直接 API ＋ System Prompt | :badge[Langfuse]{variant="success"} 問句、token、延遲、模型版本 |
+
+第一版不接 agent 框架、不做完整 RAG。輸入、參數與輸出統一以 JSON Schema 定義，**禁止模型自由新增欄位**——一旦模型能自己長欄位，前端就得防禦性解析，稽核也對不起來。報告模型只掛在最後一段，換掉不影響向量庫，也不影響 L1–L3 的反查結果。
+
+規則版本、Prompt 版本與模型版本記在 Langfuse 的 trace metadata 上，不另外建表。換 prompt 或換模型之後回頭比對輸出差異，靠的就是這幾個欄位。
+
+### 固定輸出格式
+
+*尚未定案，以下為草案。*
+
+- *分類輸出：候選題型清單（`l3_code`／`l3_title`／`l1_code`／`l2_code`／命中分數／命中理由／來源條文代碼）＋ `confidence` ＋ `unclassified` 旗標。反查與 AI 分類共用同一種格式，之後換路線前端不用改*
+- *候選數：優先回一個 L3，信心不足列 2–3 個，任何情況都保留「無法分類／超出範圍」出口——目前 schema 還沒有欄位承接它*
+- *報告章節：問題摘要／命中題型／涉及條文／風險等級與地雷數／缺漏事實／建議下一步／顧問介入程度，固定不得增刪；風險用詞對齊初檢表的高／中／低尺度*
+- *每次輸出附規則版本、Prompt 版本與模型版本，寫進 Langfuse trace metadata，欄位定義見〈安全與稽核〉*
+
+### 失敗降級
+
+模型會逾時、會回傳不合 schema 的東西，這不是意外，是常態。每一種失敗都要有預先決定好的退路：
+
+| 失敗情境 | 降級行為 | 使用者看到 |
+|---|---|---|
+| 分類模型逾時或格式不合 schema | 退回純反查結果 | 條文與分類照常顯示，標示「未經語意分類」 |
+| 信心低於門檻 | 不自動選定，列 2–3 個候選 | 由使用者確認題型後才往下走 |
+| 完全無命中 | 走「無法分類／超出範圍」出口 | 明示超出範圍，並記錄為未覆蓋問題 |
+| 報告模型失敗 | 降級回「檢索 ＋ 總表整合」的結構化 JSON | 條文與分類仍在，明示報告未生成與原因 |
+
+{/* @ai-visualize
+id: fallback-degradation-switchboard
+type: motion
+prompt: |
+  做一個可互動的「故障開關 × 還剩下什麼」面板，讓讀者親手把系統弄壞，然後發現它壞得有分寸。核心洞察是「降級不是壞掉，是退到下一層仍然交得出東西的結果——最壞也只是一句誠實的『超出範圍』，而且每一次退讓都在 Langfuse 留下痕跡」。
+
+  以 HTML + Tailwind 為主（卡片、開關、trace 列表都是版面而非圖形，不要用 SVG 畫），動畫用 motion，狀態用 React useState。
+
+  版面左右兩欄，下方橫跨一條 Langfuse trace 條：
+
+  左欄「故障開關」——四個可獨立切換的 toggle，每個下方一行小字寫它自己的降級行為：
+  1. 分類模型逾時 ／ schema 驗證失敗 → 退回純反查
+  2. 信心低於門檻 → 列 2–3 個候選待確認
+  3. 完全無命中 → 走「超出範圍」出口
+  4. 報告模型失敗 → 退回結構化 JSON
+  再加一個「全部復原」的重置按鈕。
+
+  右欄「使用者實際看到」——模擬 PoC 那一頁 UI 的回傳結果，由上而下三張卡片：
+  - 條文清單（右上角小標 Top-K 5）：第38條、第39條、第23條、第79條
+  - L1~L3 分類：B · 蜜蜂 › B5 › B5-02（特別休假管理）
+  - 風險分析報告：兩三行示意文字，開頭寫「本案涉及特別休假排定與未休折現……」
+
+  開關可複選，右欄按**最嚴重者**呈現，嚴重度由輕到重是：報告模型失敗 < 分類模型逾時 < 信心低於門檻 < 完全無命中。四種降級狀態下右欄分別是：
+  - 報告模型失敗：前兩張卡片照常，報告卡片原地換成虛線占位框，內容「報告未生成：模型逾時。條文與分類仍可用，已回傳結構化 JSON」
+  - 分類模型逾時：條文照常；分類卡片加一枚「未經語意分類」標記，說明改為由條文反查得到；報告照常
+  - 信心低於門檻：條文照常；分類卡片變成 2–3 個候選（B5-02 特別休假管理／B5-03 假日出勤與工資加倍管理／D5-05 一般罰鍰與準用罰則）並標「待使用者確認」；報告卡片換成虛線占位框，內容「等待題型確認後才生成」
+  - 完全無命中：三張卡片全部收合，只剩一個中性灰的虛線框，內容「這個問題超出勞基法 L1~L3 的涵蓋範圍。已記錄為未覆蓋問題，不強制歸類」
+
+  關鍵動畫語言：**卡片不是消失，是原地換成虛線占位框**——這正是「退到下一層仍可用」的視覺語言，直接消失會被誤讀成壞掉。動畫 200–300ms ease-out，並用 useReducedMotion() 尊重 prefers-reduced-motion。
+
+  底部「Langfuse trace」條是這張圖的第二主角：預設一列成功紀錄（`report.generate` ／ 1,842 tokens ／ 2.1s ／ ok）；每扳一個開關就往下追加一列降級事件，標明降級原因（例如 `fallback.emit` ／ 降級原因：報告模型逾時），復原時清回初始狀態。用它讓「降級如果沒被記錄，事後只會看到系統好像還能用」變成看得見的東西。
+
+  配色語意要嚴格：正常卡片用中性卡片色（neutral-0 底、neutral-300 邊）；降級占位框用琥珀虛線（warning-50 底、warning-500 虛線邊）；「超出範圍」那層用中性灰虛線，**不要用紅色**——誠實拒答不是錯誤。狀態 icon 一律用 lucide（例如 TriangleAlert、Check、CircleSlash、Activity），不要用 emoji。
+caption: 扳動故障開關，看回傳結果一層層剝落——每一種失敗都退到下一層仍可用的結果，並在 Langfuse 留下降級紀錄。
+status: generated
+*/}
+
+import FallbackDegradationSwitchboard from '@/components/generated/fallback-degradation-switchboard'
+
+<GeneratedFrame id="fallback-degradation-switchboard" type="motion" prompt={"做一個可互動的「故障開關 × 還剩下什麼」面板，讓讀者親手把系統弄壞，然後發現它壞得有分寸。核心洞察是「降級不是壞掉，是退到下一層仍然交得出東西的結果——最壞也只是一句誠實的『超出範圍』，而且每一次退讓都在 Langfuse 留下痕跡」。\n\n以 HTML + Tailwind 為主（卡片、開關、trace 列表都是版面而非圖形，不要用 SVG 畫），動畫用 motion，狀態用 React useState。\n\n版面左右兩欄，下方橫跨一條 Langfuse trace 條：\n\n左欄「故障開關」——四個可獨立切換的 toggle，每個下方一行小字寫它自己的降級行為：\n1. 分類模型逾時 ／ schema 驗證失敗 → 退回純反查\n2. 信心低於門檻 → 列 2–3 個候選待確認\n3. 完全無命中 → 走「超出範圍」出口\n4. 報告模型失敗 → 退回結構化 JSON\n再加一個「全部復原」的重置按鈕。\n\n右欄「使用者實際看到」——模擬 PoC 那一頁 UI 的回傳結果，由上而下三張卡片：\n- 條文清單（右上角小標 Top-K 5）：第38條、第39條、第23條、第79條\n- L1~L3 分類：B · 蜜蜂 › B5 › B5-02（特別休假管理）\n- 風險分析報告：兩三行示意文字，開頭寫「本案涉及特別休假排定與未休折現……」\n\n開關可複選，右欄按**最嚴重者**呈現，嚴重度由輕到重是：報告模型失敗 < 分類模型逾時 < 信心低於門檻 < 完全無命中。四種降級狀態下右欄分別是：\n- 報告模型失敗：前兩張卡片照常，報告卡片原地換成虛線占位框，內容「報告未生成：模型逾時。條文與分類仍可用，已回傳結構化 JSON」\n- 分類模型逾時：條文照常；分類卡片加一枚「未經語意分類」標記，說明改為由條文反查得到；報告照常\n- 信心低於門檻：條文照常；分類卡片變成 2–3 個候選（B5-02 特別休假管理／B5-03 假日出勤與工資加倍管理／D5-05 一般罰鍰與準用罰則）並標「待使用者確認」；報告卡片換成虛線占位框，內容「等待題型確認後才生成」\n- 完全無命中：三張卡片全部收合，只剩一個中性灰的虛線框，內容「這個問題超出勞基法 L1~L3 的涵蓋範圍。已記錄為未覆蓋問題，不強制歸類」\n\n關鍵動畫語言：**卡片不是消失，是原地換成虛線占位框**——這正是「退到下一層仍可用」的視覺語言，直接消失會被誤讀成壞掉。動畫 200–300ms ease-out，並用 useReducedMotion() 尊重 prefers-reduced-motion。\n\n底部「Langfuse trace」條是這張圖的第二主角：預設一列成功紀錄（`report.generate` ／ 1,842 tokens ／ 2.1s ／ ok）；每扳一個開關就往下追加一列降級事件，標明降級原因（例如 `fallback.emit` ／ 降級原因：報告模型逾時），復原時清回初始狀態。用它讓「降級如果沒被記錄，事後只會看到系統好像還能用」變成看得見的東西。\n\n配色語意要嚴格：正常卡片用中性卡片色（neutral-0 底、neutral-300 邊）；降級占位框用琥珀虛線（warning-50 底、warning-500 虛線邊）；「超出範圍」那層用中性灰虛線，**不要用紅色**——誠實拒答不是錯誤。狀態 icon 一律用 lucide（例如 TriangleAlert、Check、CircleSlash、Activity），不要用 emoji。"} caption="扳動故障開關，看回傳結果一層層剝落——每一種失敗都退到下一層仍可用的結果，並在 Langfuse 留下降級紀錄。">
+  <FallbackDegradationSwitchboard client:visible />
+</GeneratedFrame>
+
+Schema 驗證失敗只重試一次，再失敗即降級；另設單次逾時與成本上限，避免一個壞問句把預算燒掉。信心不足時那道人工確認尤其關鍵——L3 一旦分錯，後面的必要事實、地雷數與介入程度會全部跟著錯。
+
+**每一次降級都要寫進 Langfuse**，標上降級原因（逾時／schema 驗證失敗／走 unclassified 出口）。降級如果沒被記錄，事後只會看到「系統好像還能用」，看不出它其實已經有三成的請求沒跑到報告那一步。
+
+---
+
+## 測試策略
+
+---
+
+## Token 與成本
+
+數字從 Langfuse 來——單次報告的 token 用量、延遲與失敗率都在 trace 裡，不必另外埋計數器。embedding 那段不記，所以這一節談的成本只涵蓋報告生成。
+
+*單次與月度成本估算、使用者月限額待補。*
+
+---
+
+## 安全與稽核
+
+會議紀錄要求記錄的規則版本、Prompt 版本、模型版本與輸入輸出，全部掛在 Langfuse 的 trace metadata 上，不另外建表。
+
+PoC 階段**會記完整企業問句**。問句裡可能帶公司名、人名與薪資數字，這是已知且被接受的取捨——去識別化要做，但**不在 PoC 範圍**。self-host 是這個取捨成立的前提：資料不出 GCP，不進第三方 SaaS。
+
+*使用者確認與顧問轉介的紀錄欄位待補。*
+
+---
+
+## RAG 預留
+
+---
+
+## 下次會議交付清單
+
+依 2026/8/3 李總線上顧問輔導會議紀錄〈六、建宇與技術團隊說明清單〉，工程端要在下次會議前備妥的八項：
+
+| # | 主題 | 技術任務 | 下次會議產出 | 狀態 |
+|:---:|---|---|---|---|
+| 1 | 系統邊界 | 畫出客戶前台、內部顧問後台、管理後台與對外 API 邊界 | 一張系統架構圖 | :badge[進行中]{variant="warning"} |
+| 2 | 帳號與權限 | 定義客戶、企業管理者、內部顧問、系統管理者的功能與資料權限 | 角色 × 功能 × 資料權限表（崴仁提供） | :badge[未開始]{variant="neutral" outline} |
+| 3 | 技術棧 | 提出前端、後端 API、資料庫、雲端與部署選項，並說明團隊維運能力 | 推薦方案 ＋ 備選方案 | :badge[進行中]{variant="warning"} |
+| 4 | AI 介入 | 針對 L1–L3 分類與 L9 報告，提出模型、API、固定輸出格式與失敗降級方案 | AI 介面規格草案 | :badge[進行中]{variant="warning"} |
+| 5 | 測試策略 | 分別定義規則引擎的單元測試、AI 分類評測集與 L9 內容約束測試 | 評測指標與 20 個代表性案例 | :badge[未開始]{variant="neutral" outline} |
+| 6 | Token 與成本 | 評估單次分類、單次 L9 報告、使用者月限額與濫用防護 | 單次與月度成本估算 | :badge[進行中]{variant="warning"} |
+| 7 | 安全與稽核 | 記錄規則版本、Prompt 版本、模型版本、輸入輸出、使用者確認與顧問轉介 | 紀錄與稽核欄位清單 | :badge[進行中]{variant="warning"} |
+| 8 | RAG 預留 | 第一版不建完整 RAG，但保留法規版本、文件出處、無法分類與未覆蓋問題 | 後續知識庫欄位與事件紀錄 | :badge[未開始]{variant="neutral" outline} |
 
 ---
 
@@ -299,4 +494,4 @@ Runbook 別留到最後補——它的價值不在文件本身，在逼你把手
 
 ---
 
-*依《檢核機制_工程師初檢表_A段_L1-L3+L6》（2026/7/1 v1）與說明書 v1 整理*
+*依《檢核機制_工程師初檢表_A段_L1-L3+L6》（2026/7/1 v1）、說明書 v1 與《顧問輔導_李總線上會議_會議紀錄與技術建議整理》（2026/8/3 v1）整理*

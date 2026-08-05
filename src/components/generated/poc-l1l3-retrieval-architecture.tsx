@@ -1,66 +1,113 @@
 /**
- * PoC L1-L3 檢索閉環技術架構圖（手寫 SVG，純靜態，無 motion／無 state）。
+ * PoC L1~L3 檢索閉環技術架構圖（v2，手寫 SVG，純靜態，無 motion／無 state）。
  *
- * 核心洞察：這條路徑上唯一的模型是 embedding —— 沒有任何生成式 LLM 介入；
- * L1/L2/L3 分類不是算出來的，是拿檢索到的近似條文回「L1~L3+L6 總表」反查
- * 出來的。版面因此刻意做成左右對稱、中間交棒的形狀：左側「API 常駐服務」
- * 由上而下跑一條線上查詢流程，右側「Indexer & Data Loader 離線 CLI」由外
- * 而內跑兩條離線建庫流程，兩側都只透過中間唯一的 PostgreSQL + pgvector
- * 交換資料，彼此不直接呼叫。
+ * Core insight：主線（建庫＋檢索＋分類）從頭到尾只認一個模型 mistral-embed；
+ * 生成式模型只在最末端「風險分析報告」這一步例外登場，而且是因為 L4~L8
+ * 規格還沒交付的暫代做法。版面因此把「查詢流程」畫成五個由上而下的節點，
+ * 前四個共用同一種中性配色，只有第五個（風險分析報告）單獨換成琥珀色，
+ * 讓讀者一眼看出「LLM 被刻意隔離在最後一格」。
  *
- * 畫布尺度刻意對齊同系列 poc-system-architecture（viewBox 寬度 ~1160、
- * 外層 min-w ~1000px，scale ≈ 0.86），避免筆記內文欄寬把字級壓得太小；
- * 節點內文一律拆成「標題（14）＋ 說明行（12）」兩層，不把長句硬塞進單行
- * 標題，圖例／核心洞察摘要的字級也一併調大，最小 fontSize 不低於 11。
+ * 版面骨架：頂端標註／主題橫幅 → 左側 UI 小框（對齊查詢流程欄位）→
+ * 雙向箭頭 → 左側「API · NestJS 常駐服務」大框（內部左右並排 Indexer 模組
+ * 與查詢流程兩個虛線子區）→ 右側共用 PostgreSQL 欄（上下兩張 DataTable
+ * 夾住 pgvector 圓柱）→ 底部圖例與核心洞察 callout。Indexer 模組的兩條
+ * 寫入路徑用直角折線（elbow）繞到 API 大框標題下方與虛線子區上緣之間的
+ * 空白走廊，避免視覺穿越查詢流程子區或 UI 小框；查詢流程節點 3／4 則直接
+ * 水平連到 PostgreSQL 圓柱，代表這是唯一會即時查詢資料庫的路徑。
  *
- * 刻意不用 motion：這個元件在 MDX 裡未必掛 client 指令可以 hydrate（純靜態
- * 結構圖，讀者要一眼看完整條資料流，不需要逐步播放或互動揭露）。若加上
- * motion 的 initial 動畫狀態，SSR 會把它序列化成 opacity="0" 之類的靜態屬性，
- * 在沒有 hydration 的情況下會永遠停在那個狀態——這與同系列 poc-* 元件
- * （poc-system-architecture、poc-phase-roadmap）採取的策略一致。
+ * 刻意不用 motion：純靜態結構圖，讀者要一眼看完整條資料流，不需要逐步
+ * 播放或互動揭露；純 SVG 元件也不掛 client 指令即可渲染完整畫面。
  */
 
 import type { LucideIcon } from 'lucide-react'
-import { Database, FileText, GitMerge, HelpCircle, Search, Sparkles, StickyNote as StickyNoteIcon, Table2, User } from 'lucide-react'
+import {
+  Activity,
+  Bot,
+  ClipboardList,
+  Database,
+  FileText,
+  GitMerge,
+  HelpCircle,
+  Search,
+  Settings2,
+  Sparkles,
+  StickyNote,
+  Table2,
+  Tags,
+  User,
+} from 'lucide-react'
 
-/* ── 版面常數（對齊 poc-system-architecture 的畫布尺度）───────── */
-const VIEW_W = 1160
-const VIEW_H = 870
+/* ── 版面常數 ──────────────────────────────────────────────────── */
+const VIEW_W = 1200
+const VIEW_H = 1210
 
-const FRAME_TOP = 88
-const FRAME_BOTTOM = 654
+/* Langfuse 側掛觀測小框（非主資料流，往外接在節點 5「風險分析報告」旁） */
+const LF_X = 470
+const LF_Y = 850
+const LF_W = 260
+const LF_H = 108
+const LF_CX = LF_X + LF_W / 2 // 600
+const LF_BOTTOM = LF_Y + LF_H // 958
+const CX = 600
 
-const LEFT_X = 24
-const LEFT_W = 350
-const RIGHT_X = 786
-const RIGHT_W = 350
+/* UI 小框（對齊查詢流程子區） */
+const UI_X = 364
+const UI_Y = 96
+const UI_W = 300
+const UI_H = 130
+const UI_BOTTOM = UI_Y + UI_H // 226
 
-const MID_CX = 580
-const TABLE_W = 280
-const TABLE_X = MID_CX - TABLE_W / 2 // 440
-const TABLE_RIGHT = TABLE_X + TABLE_W // 720
+/* UI ↔ API 雙向箭頭 */
+const API_Y = 278
 
-const VTABLE_Y = 150
-const VTABLE_H = 100
-const STABLE_Y = 530
-const STABLE_H = 100
+/* API 大框 */
+const API_X = 24
+const API_W = 660
+const SUBA_X = 44
+const SUBA_W = 300
+const SUBB_X = 364
+const SUBB_W = 300
+const SUBBOX_Y = 334
+const SUBBOX_BOTTOM = 780
+const API_BOTTOM = 800
 
-const CYL_RX = 100
+/* Indexer 子區內容欄位 */
+const SUBA_CONTENT_X = SUBA_X + 16 // 60
+const SUBA_CONTENT_W = SUBA_W - 32 // 268
+const SUBA_CONTENT_CENTER = SUBA_CONTENT_X + SUBA_CONTENT_W / 2 // 194
+const SUBA_CONTENT_RIGHT = SUBA_CONTENT_X + SUBA_CONTENT_W // 328
+
+/* 查詢流程節點欄位 */
+const NODE_X = SUBB_X + 16 // 380
+const NODE_W = SUBB_W - 32 // 268
+const NODE_RIGHT = NODE_X + NODE_W // 648
+const NODE_CENTER = NODE_X + NODE_W / 2 // 514
+
+/* 共用 PostgreSQL 欄 */
+const MID_CX = 958
+const TABLE_W = 360
+const TABLE_X = MID_CX - TABLE_W / 2 // 778
+const TOP_TABLE_Y = 150
+const TOP_TABLE_H = 90
+const BOTTOM_TABLE_Y = 740
+const BOTTOM_TABLE_H = 90
+
+const CYL_RX = 110
 const CYL_RY = 16
-const CYL_TOP_CY = 350
-const CYL_BODY_H = 140
-const CYL_BOTTOM_CY = CYL_TOP_CY + CYL_BODY_H // 490
-const CYL_OUTER_TOP = CYL_TOP_CY - CYL_RY // 334
-const CYL_OUTER_BOTTOM = CYL_BOTTOM_CY + CYL_RY // 506
-const CYL_LEFT_X = MID_CX - CYL_RX // 480
-const CYL_RIGHT_X = MID_CX + CYL_RX // 680
+const CYL_TOP_CY = 520
+const CYL_BODY_H = 170
+const CYL_BOTTOM_CY = CYL_TOP_CY + CYL_BODY_H // 690
+const CYL_OUTER_TOP = CYL_TOP_CY - CYL_RY // 504
+const CYL_OUTER_BOTTOM = CYL_BOTTOM_CY + CYL_RY // 706
+const CYL_LEFT_X = MID_CX - CYL_RX // 848
+const CYL_RIGHT_X = MID_CX + CYL_RX // 1068
 
-/* ── 左側：API 常駐服務，由上而下五個節點 ─────────────────────── */
-const CONTENT_X = LEFT_X + 20 // 44
-const CONTENT_W = LEFT_W - 40 // 310
-const CONTENT_RIGHT = CONTENT_X + CONTENT_W // 354
-const CONTENT_CENTER = CONTENT_X + CONTENT_W / 2 // 199
+/* Indexer 兩條寫入路徑走廊車道（title 文字下方、虛線子區上緣之間） */
+const LANE_1_Y = 318
+const LANE_2_Y = 326
+const LANE_TURN_X = 770
 
+/* ── 型別 ─────────────────────────────────────────────────────── */
 interface NodeLine {
   text: string
   color?: string
@@ -71,43 +118,40 @@ interface FlowNodeData {
   key: string
   icon: LucideIcon
   title: string
+  titleColor?: string
   lines: NodeLine[]
   y: number
   h: number
+  fill?: string
+  stroke?: string
+  iconColor?: string
 }
 
-const API_NODES: FlowNodeData[] = [
-  {
-    key: 'question-in',
-    icon: User,
-    title: '使用者提問',
-    lines: [{ text: '「公司可以不給特休嗎」' }],
-    y: 140,
-    h: 60,
-  },
+/* 查詢流程五個節點（節點 5：風險分析報告，唯一碰生成式模型、唯一暖色底） */
+const QUERY_NODES: FlowNodeData[] = [
   {
     key: 'question',
     icon: HelpCircle,
     title: 'Question',
     lines: [{ text: '收下白話問句' }],
-    y: 216,
-    h: 60,
+    y: 402,
+    h: 46,
   },
   {
     key: 'embedding',
     icon: Sparkles,
     title: 'Embedding',
-    lines: [{ text: 'mistral-embed（與 Indexer 同一模型）', color: 'var(--blue-600)' }],
-    y: 292,
-    h: 60,
+    lines: [{ text: '與 Indexer 模組同一份設定', color: 'var(--blue-600)' }],
+    y: 464,
+    h: 46,
   },
   {
     key: 'retrieval',
     icon: Search,
     title: '檢索近似條文（Top-K）',
-    lines: [{ text: 'K ＝ 5（先設常數）' }],
-    y: 368,
-    h: 60,
+    lines: [{ text: 'K：常數設定，先設 5' }],
+    y: 526,
+    h: 56,
   },
   {
     key: 'mapping',
@@ -117,38 +161,71 @@ const API_NODES: FlowNodeData[] = [
       { text: '近似條文 × 決策樹分類表' },
       { text: '分類是檢索的副產物，不需要 LLM', color: 'var(--orange-600)', weight: 700 },
     ],
-    y: 444,
-    h: 84,
+    y: 598,
+    h: 68,
+  },
+  {
+    key: 'report',
+    icon: Bot,
+    title: '風險分析報告',
+    titleColor: 'var(--orange-600)',
+    lines: [
+      { text: '自撰 prompt ＋ Codex 5.6 Luna', color: 'var(--orange-600)' },
+      { text: 'L4~L8 規格未到，先以自撰 prompt 暫代', color: 'var(--orange-600)', weight: 700 },
+    ],
+    y: 682,
+    h: 80,
+    fill: 'var(--warning-50)',
+    stroke: 'var(--warning-500)',
+    iconColor: 'var(--orange-600)',
   },
 ]
 
-const RESULT_Y = 544
-const RESULT_H = 44
+const NODE3 = QUERY_NODES[2]
+const NODE4 = QUERY_NODES[3]
+const NODE3_MID_Y = NODE3.y + NODE3.h / 2 // 554
+const NODE4_MID_Y = NODE4.y + NODE4.h / 2 // 632
 
-const NODE4 = API_NODES[3]
-const NODE5 = API_NODES[4]
-const NODE4_MID_Y = NODE4.y + NODE4.h / 2 // 398
-const NODE5_MID_Y = NODE5.y + NODE5.h / 2 // 486
+const UI_CHIPS: { icon: LucideIcon; label: string }[] = [
+  { icon: FileText, label: '條文清單' },
+  { icon: Tags, label: 'L1~L3' },
+  { icon: ClipboardList, label: '報告卡片' },
+]
 
-/* ── 子元件 ─────────────────────────────────────────────────── */
-function ArrowDown({ x, y1, y2 }: { x: number; y1: number; y2: number }) {
-  return <line x1={x} y1={y1} x2={x} y2={y2} stroke="var(--neutral-400)" strokeWidth={1.75} markerEnd="url(#l1l3-arrow)" />
+/* Langfuse 側掛小框內列項（只記報告生成這一段的觀測欄位） */
+const LANGFUSE_ITEMS = ['問句與輸出', 'token 用量', '延遲', '模型與 Prompt 版本']
+
+/* ── 子元件 ─────────────────────────────────────────────────────── */
+function ArrowV({ x, y1, y2, color = 'var(--neutral-400)', width = 1.75 }: { x: number; y1: number; y2: number; color?: string; width?: number }) {
+  return <line x1={x} y1={y1} x2={x} y2={y2} stroke={color} strokeWidth={width} markerEnd="url(#pocv2-arrow)" />
 }
 
-function FlowNode({ node }: { node: FlowNodeData }) {
+function ArrowH({ x1, x2, y, color = 'var(--blue-700)', width = 2 }: { x1: number; x2: number; y: number; color?: string; width?: number }) {
+  return <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth={width} markerEnd="url(#pocv2-arrow-blue)" />
+}
+
+function ElbowArrow({ points }: { points: [number, number][] }) {
+  const d = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')
+  return <path d={d} fill="none" stroke="var(--neutral-400)" strokeWidth={1.5} markerEnd="url(#pocv2-arrow)" />
+}
+
+function QueryFlowNode({ node }: { node: FlowNodeData }) {
   const Icon = node.icon
-  const titleY = node.y + 24
+  const titleY = node.y + 22
+  const fill = node.fill ?? 'var(--neutral-0)'
+  const stroke = node.stroke ?? 'var(--neutral-300)'
+  const iconColor = node.iconColor ?? 'var(--blue-600)'
   return (
     <g>
-      <rect x={CONTENT_X} y={node.y} width={CONTENT_W} height={node.h} rx={12} fill="var(--neutral-0)" stroke="var(--neutral-300)" strokeWidth={1.25} />
-      <g transform={`translate(${CONTENT_X + 16} ${node.y + 10})`}>
-        <Icon width={26} height={26} strokeWidth={1.75} color="var(--blue-600)" />
+      <rect x={NODE_X} y={node.y} width={NODE_W} height={node.h} rx={12} fill={fill} stroke={stroke} strokeWidth={1.25} />
+      <g transform={`translate(${NODE_X + 14} ${node.y + 9})`}>
+        <Icon width={22} height={22} strokeWidth={1.75} color={iconColor} />
       </g>
-      <text x={CONTENT_X + 58} y={titleY} fontSize={14} fontWeight={700} fill="var(--text-strong)">
+      <text x={NODE_X + 46} y={titleY} fontSize={13} fontWeight={700} fill={node.titleColor ?? 'var(--text-strong)'}>
         {node.title}
       </text>
       {node.lines.map((line, i) => (
-        <text key={i} x={CONTENT_X + 58} y={titleY + 20 * (i + 1)} fontSize={12} fontWeight={line.weight ?? 400} fill={line.color ?? 'var(--neutral-600)'}>
+        <text key={i} x={NODE_X + 46} y={titleY + 18 * (i + 1)} fontSize={11} fontWeight={line.weight ?? 400} fill={line.color ?? 'var(--neutral-600)'}>
           {line.text}
         </text>
       ))}
@@ -160,39 +237,61 @@ function SubFrame({ x, y, w, h, title }: { x: number; y: number; w: number; h: n
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} rx={14} fill="var(--neutral-0)" stroke="var(--neutral-400)" strokeWidth={1.25} strokeDasharray="7 5" />
-      <text x={x + 16} y={y + 26} fontSize={14} fontWeight={700} fill="var(--text-strong)">
+      <text x={x + 16} y={y + 22} fontSize={14} fontWeight={700} fill="var(--text-strong)">
         {title}
       </text>
     </g>
   )
 }
 
-function MiniPill({ x, y, w, h, label, caption }: { x: number; y: number; w: number; h: number; label: string; caption?: string }) {
+function Badge({ x, y, w, icon: Icon, label }: { x: number; y: number; w: number; icon: LucideIcon; label: string }) {
   return (
     <g>
-      <rect x={x} y={y} width={w} height={h} rx={h / 2} fill="var(--neutral-50)" stroke="var(--neutral-400)" strokeWidth={1.25} />
-      <text x={x + w / 2} y={y + h / 2 + 4.5} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--text-strong)">
+      <rect x={x} y={y} width={w} height={20} rx={10} fill="var(--neutral-100)" stroke="var(--neutral-500)" strokeWidth={1} />
+      <g transform={`translate(${x + 8} ${y + 3})`}>
+        <Icon width={14} height={14} strokeWidth={1.75} color="var(--neutral-500)" />
+      </g>
+      <text x={x + 28} y={y + 14} fontSize={11} fill="var(--neutral-600)">
         {label}
       </text>
-      {caption && (
-        <text x={x + w / 2} y={y + h + 18} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--orange-600)">
-          {caption}
-        </text>
-      )}
     </g>
   )
 }
 
-function SourceIcon({ icon: Icon, x, y, label }: { icon: LucideIcon; x: number; y: number; label: string }) {
+function IndexerFlowRow({
+  icon: Icon,
+  label,
+  iconY,
+  pillLabel,
+  pillY,
+  caption,
+}: {
+  icon: LucideIcon
+  label: string
+  iconY: number
+  pillLabel: string
+  pillY: number
+  caption?: string
+}) {
+  const iconCenter = SUBA_CONTENT_X + 8
   return (
     <g>
-      <rect x={x} y={y} width={26} height={26} rx={7} fill="var(--neutral-50)" stroke="var(--neutral-400)" strokeWidth={1.25} />
-      <g transform={`translate(${x + 3} ${y + 3})`}>
-        <Icon width={20} height={20} strokeWidth={1.75} color="var(--neutral-600)" />
+      <g transform={`translate(${SUBA_CONTENT_X} ${iconY})`}>
+        <Icon width={16} height={16} strokeWidth={1.75} color="var(--neutral-600)" />
       </g>
-      <text x={x + 13} y={y + 44} textAnchor="middle" fontSize={12} fontWeight={700} fill="var(--text-strong)">
+      <text x={SUBA_CONTENT_X + 22} y={iconY + 13} fontSize={11.5} fill="var(--neutral-700)">
         {label}
       </text>
+      <line x1={iconCenter} y1={iconY + 20} x2={iconCenter} y2={pillY - 2} stroke="var(--neutral-400)" strokeWidth={1.5} markerEnd="url(#pocv2-arrow)" />
+      <rect x={SUBA_CONTENT_X} y={pillY} width={SUBA_CONTENT_W} height={26} rx={13} fill="var(--neutral-50)" stroke="var(--neutral-400)" strokeWidth={1.25} />
+      <text x={SUBA_CONTENT_CENTER} y={pillY + 17} textAnchor="middle" fontSize={11.5} fontWeight={700} fill="var(--text-strong)">
+        {pillLabel}
+      </text>
+      {caption && (
+        <text x={SUBA_CONTENT_CENTER} y={pillY + 41} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--orange-600)">
+          {caption}
+        </text>
+      )}
     </g>
   )
 }
@@ -218,29 +317,18 @@ function LegendLine({ x, y, dashed }: { x: number; y: number; dashed?: boolean }
     <line
       x1={x}
       y1={y}
-      x2={x + 42}
+      x2={x + 40}
       y2={y}
       stroke="var(--neutral-400)"
       strokeWidth={1.75}
       strokeDasharray={dashed ? '5 4' : undefined}
-      markerEnd={dashed ? undefined : 'url(#l1l3-arrow)'}
+      markerEnd={dashed ? undefined : 'url(#pocv2-arrow)'}
     />
   )
 }
 
-function LegendSwatch({ x, y, kind }: { x: number; y: number; kind: 'hatch' | 'solid' }) {
-  return (
-    <rect
-      x={x}
-      y={y - 10}
-      width={42}
-      height={20}
-      rx={5}
-      fill={kind === 'hatch' ? 'url(#l1l3-hatch)' : 'var(--neutral-100)'}
-      stroke="var(--neutral-300)"
-      strokeWidth={1}
-    />
-  )
+function LegendSwatch({ x, y, fill, stroke }: { x: number; y: number; fill: string; stroke: string }) {
+  return <rect x={x} y={y - 9} width={40} height={18} rx={5} fill={fill} stroke={stroke} strokeWidth={1.25} />
 }
 
 export default function PocL1L3RetrievalArchitecture() {
@@ -252,69 +340,146 @@ export default function PocL1L3RetrievalArchitecture() {
         role="img"
         className="min-w-[1000px]"
         style={{ fontFamily: 'inherit' }}
-        aria-label="勞動法遵 PoC L1 至 L3 檢索閉環技術架構圖：頂端標註 Framework 為 LangChain、Embedding 為 Mistral，並以強調色標示整條路徑唯一的模型是 mistral-embed。左側是素色淡底的線上段方框「API，NestJS 常駐服務」，由上而下依序是使用者提問（人形圖示與對話框，內容為公司可以不給特休嗎）、Question 收下白話問句、Embedding 標註與 Indexer 同一個模型、檢索近似條文 Top-K 標註 K 常數設定先設 5、Mapping 將近似條文與決策樹分類表整合並以強調色標示分類是檢索的副產物不需要 LLM，最後回傳整合結果給使用者。右側是斜紋淡底的離線段方框「Indexer 與 Data Loader，離線 CLI」，內含兩個虛線子框：Indexer 子框中勞基法法條經 Embedding 寫入法條 Vector Data；Data Loader 子框中 L1 至 L3 加 L6 總表經 ETL 寫入決策樹分類 Structured Data；旁邊有一張便利貼樣式的註記，寫著 PoC 資料來源為勞基法條文加 L1 至 L3 加 L6 總表，可先用 Excel，並以虛線連到兩個資料來源圖示。中間是共用的 PostgreSQL 加 pgvector 圓柱，上方掛著法條 Vector Data 資料表方塊，下方掛著決策樹分類 Structured Data 資料表方塊，以細線連接圓柱。左側檢索近似條文與 Mapping 兩個節點各拉一條藍色箭頭到圓柱，分別標示向量相似度查詢與條文代碼 join。底部圖例說明實線含箭頭為主資料流、虛線為資料來源、斜紋淡底為離線段、素色淡底為線上段；並有核心洞察摘要：分類不是算出來的，是拿檢索到的條文回總表反查出來的，整條路徑上唯一的模型是 embedding，沒有任何生成式 LLM 介入。"
+        aria-label="勞動法遵決策支援系統 PoC L1 至 L3 檢索閉環技術架構圖 v2。頂端小字標註 Framework 為 LangChain、Embedding 為 Mistral mistral-embed，下方主題橫幅寫著主線只認一個模型 mistral-embed、生成式模型只在最末端的風險分析報告例外登場。左上是 UI 小框，標題 UI 使用 Vite 加 React TypeScript，內含人形圖示與輸入框寫著公司可以不給特休嗎，下方三個縮圖標籤分別是條文清單、L1 至 L3 標籤、報告卡片。UI 框與下方 API 大框之間有一組往下的箭頭標示提問、一組往上的箭頭標示條文加分類加報告。左側大框標題 API NestJS 常駐服務，內部左右並排兩個虛線子區：左半是 Indexer 模組，旁邊有徽章寫著管理端觸發非常駐流程，內含兩條垂直小流程，勞基法法條經 Embedding 寫入法條 Vector Data，L1 至 L3 加 L6 總表經 ETL 寫入決策樹分類 Structured Data，中間夾一張便利貼樣式的虛線註記寫著 PoC 資料來源為勞基法條文加 L1 至 L3 加 L6 總表可先用 Excel，兩條流程末端各以直角折線繞到右側寫入對應的 PostgreSQL 資料表；右半是查詢流程，標題下方有藍色藥丸標籤寫著唯一模型 mistral-embed 節點一到四，由上而下五個節點：Question 收下白話問句、Embedding 標註與 Indexer 模組同一份設定、檢索近似條文 Top-K 標註 K 為常數設定先設五、Mapping 將近似條文與決策樹分類表整合並以強調色標示分類是檢索的副產物不需要 LLM、最後風險分析報告節點單獨換成琥珀色底標示自撰 prompt 加 Codex 5.6 Luna 以及 L4 至 L8 規格未到先以自撰 prompt 暫代，是全圖唯一碰生成式模型的節點。風險分析報告節點另外拉出一條中性色虛線側掛連到獨立小框 Langfuse self-host GCP，線上標註 trace，表示這是非主資料流的可觀測性側錄；小框內列出問句與輸出、token 用量、延遲、模型與 Prompt 版本四項，框下小字註記只記報告生成不記 embedding 呼叫。節點三檢索與節點四 Mapping 各拉一條藍色實線到右側 PostgreSQL，分別標示向量相似度查詢與條文代碼 join。右側共用 PostgreSQL 欄由上而下是法條 Vector Data 資料表，欄位為 metadata、決策樹 L1 L2 L3 編號、法條內容向量；中間是標註 PostgreSQL 加 pgvector 建庫查詢共用同一庫的圓柱；下方是決策樹分類 Structured Data 資料表，欄位為 L1 L2 L3 編號說明。底部圖例列出五項：中性虛線代表可觀測性且屬非主資料流、實線含箭頭為主資料流且藍色實線代表關鍵查詢介面、虛線代表資料來源與非常駐流程、素色色塊代表不經生成式模型、琥珀色塊代表經生成式模型且僅風險分析報告節點。最下方是核心洞察摘要，標題寫著主線全程不碰生成式模型只有最末端例外，副標寫著分類是檢索的副產物不需要 LLM，風險分析報告因 L4 至 L8 規格未到先用自撰 prompt 暫代生成式模型輸出。"
       >
         <defs>
-          <marker id="l1l3-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto-start-reverse">
+          <marker id="pocv2-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto-start-reverse">
             <path d="M0,0 L8,4 L0,8 Z" fill="var(--neutral-400)" />
           </marker>
-          <marker id="l1l3-arrow-blue" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto-start-reverse">
+          <marker id="pocv2-arrow-blue" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto-start-reverse">
             <path d="M0,0 L8,4 L0,8 Z" fill="var(--blue-700)" />
           </marker>
-          <pattern id="l1l3-hatch" patternUnits="userSpaceOnUse" width={8} height={8} patternTransform="rotate(45)">
-            <rect width={8} height={8} fill="var(--neutral-50)" />
-            <line x1={0} y1={0} x2={0} y2={8} stroke="var(--neutral-300)" strokeWidth={1} />
-          </pattern>
         </defs>
 
-        {/* ── 頂端：框架與模型標註 ── */}
-        <text x={MID_CX} y={22} textAnchor="middle" fontSize={12} fill="var(--neutral-500)">
-          Framework: LangChain ／ Embedding: Mistral
+        {/* ── 區塊 1：頂端標註 ── */}
+        <text x={CX} y={28} textAnchor="middle" fontSize={12} fill="var(--neutral-500)">
+          Framework: LangChain ／ Embedding: Mistral mistral-embed
         </text>
-        <rect x={MID_CX - 180} y={34} width={360} height={32} rx={16} fill="var(--orange-50)" stroke="var(--orange-400)" strokeWidth={1.25} />
-        <text x={MID_CX} y={55} textAnchor="middle" fontSize={14} fontWeight={700} fill="var(--orange-700)">
-          整條路徑唯一的模型：mistral-embed
+        <rect x={CX - 260} y={38} width={520} height={46} rx={10} fill="var(--blue-50)" stroke="var(--blue-400)" strokeWidth={1.25} />
+        <text x={CX} y={58} textAnchor="middle" fontSize={14} fontWeight={700} fill="var(--blue-700)">
+          主線只認一個模型：mistral-embed
+        </text>
+        <text x={CX} y={76} textAnchor="middle" fontSize={12} fill="var(--text-body)">
+          生成式模型只在最末端的風險分析報告例外登場
         </text>
 
-        {/* ── 左側大框：API · NestJS 常駐服務（線上段，素色淡底） ── */}
-        <rect x={LEFT_X} y={FRAME_TOP} width={LEFT_W} height={FRAME_BOTTOM - FRAME_TOP} rx={16} fill="var(--neutral-100)" stroke="var(--neutral-300)" strokeWidth={1} />
-        <text x={LEFT_X + 20} y={FRAME_TOP + 22} fontSize={15} fontWeight={700} fill="var(--text-strong)">
+        {/* ── 區塊 2：UI 小框 ── */}
+        <rect x={UI_X} y={UI_Y} width={UI_W} height={UI_H} rx={12} fill="var(--neutral-0)" stroke="var(--neutral-300)" strokeWidth={1.25} />
+        <text x={UI_X + 16} y={UI_Y + 24} fontSize={14} fontWeight={700} fill="var(--text-strong)">
+          UI · Vite + React (TS)
+        </text>
+        <g transform={`translate(${UI_X + 16} ${UI_Y + 38})`}>
+          <User width={16} height={16} strokeWidth={1.75} color="var(--blue-600)" />
+        </g>
+        <rect x={UI_X + 38} y={UI_Y + 38} width={246} height={26} rx={13} fill="var(--neutral-50)" stroke="var(--neutral-300)" strokeWidth={1.25} />
+        <text x={UI_X + 50} y={UI_Y + 55} fontSize={11.5} fill="var(--neutral-700)">
+          公司可以不給特休嗎
+        </text>
+        {UI_CHIPS.map((chip, i) => {
+          const chipX = UI_X + 16 + i * 92
+          const Icon = chip.icon
+          return (
+            <g key={chip.label}>
+              <rect x={chipX} y={UI_Y + 76} width={84} height={40} rx={8} fill="var(--neutral-50)" stroke="var(--neutral-300)" strokeWidth={1.25} />
+              <g transform={`translate(${chipX + 35} ${UI_Y + 84})`}>
+                <Icon width={14} height={14} strokeWidth={1.75} color="var(--blue-600)" />
+              </g>
+              <text x={chipX + 42} y={UI_Y + 110} textAnchor="middle" fontSize={11} fill="var(--neutral-600)">
+                {chip.label}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* ── 區塊 3：UI ↔ API 雙向箭頭 ── */}
+        <ArrowV x={440} y1={UI_BOTTOM} y2={API_Y} />
+        <text x={410} y={(UI_BOTTOM + API_Y) / 2 + 4} textAnchor="end" fontSize={11.5} fill="var(--neutral-600)">
+          提問
+        </text>
+        <ArrowV x={588} y1={API_Y} y2={UI_BOTTOM} />
+        <text x={618} y={(UI_BOTTOM + API_Y) / 2 + 4} textAnchor="start" fontSize={11.5} fill="var(--neutral-600)">
+          條文＋分類＋報告
+        </text>
+
+        {/* ── 區塊 4：API · NestJS 常駐服務 ── */}
+        <rect x={API_X} y={API_Y} width={API_W} height={API_BOTTOM - API_Y} rx={16} fill="var(--neutral-50)" stroke="var(--neutral-300)" strokeWidth={1} />
+        <text x={API_X + 20} y={API_Y + 24} fontSize={15} fontWeight={700} fill="var(--text-strong)">
           API · NestJS 常駐服務
         </text>
-        <text x={LEFT_X + 20} y={FRAME_TOP + 40} fontSize={11.5} fill="var(--neutral-500)">
-          常駐服務 · 對外提供檢索與整合
+
+        {/* 子區 A：Indexer 模組 */}
+        <SubFrame x={SUBA_X} y={SUBBOX_Y} w={SUBA_W} h={SUBBOX_BOTTOM - SUBBOX_Y} title="Indexer 模組" />
+        <Badge x={SUBA_CONTENT_X} y={SUBBOX_Y + 32} w={SUBA_CONTENT_W} icon={Settings2} label="管理端觸發．非常駐流程" />
+
+        <IndexerFlowRow icon={FileText} label="勞基法法條" iconY={SUBBOX_Y + 66} pillLabel="Embedding（mistral-embed）" pillY={SUBBOX_Y + 100} />
+
+        {/* 便利貼：PoC 資料來源（中性色，避免與節點 5 的琥珀色混淆） */}
+        <g transform={`rotate(-2 ${SUBA_CONTENT_CENTER} ${SUBBOX_Y + 188})`}>
+          <rect x={SUBA_X + 10} y={SUBBOX_Y + 148} width={SUBA_W - 20} height={80} rx={8} fill="var(--neutral-50)" stroke="var(--neutral-400)" strokeWidth={1.25} strokeDasharray="5 4" />
+          <g transform={`translate(${SUBA_CONTENT_X + 8} ${SUBBOX_Y + 162})`}>
+            <StickyNote width={16} height={16} strokeWidth={1.75} color="var(--neutral-500)" />
+          </g>
+          <text x={SUBA_CONTENT_X + 30} y={SUBBOX_Y + 174} fontSize={11.5} fontWeight={700} fill="var(--neutral-700)">
+            PoC 資料來源
+          </text>
+          <text x={SUBA_CONTENT_X + 8} y={SUBBOX_Y + 194} fontSize={11} fill="var(--neutral-600)">
+            勞基法條文 ＋ L1~L3+L6 總表
+          </text>
+          <text x={SUBA_CONTENT_X + 8} y={SUBBOX_Y + 210} fontSize={11} fill="var(--neutral-600)">
+            （可先用 Excel）
+          </text>
+        </g>
+
+        <IndexerFlowRow icon={Table2} label="L1~L3+L6 總表" iconY={SUBBOX_Y + 258} pillLabel="ETL" pillY={SUBBOX_Y + 292} caption="可先用 Excel" />
+
+        {/* Indexer 兩條寫入路徑：直角折線繞到走廊，再進入右側對應 DataTable */}
+        <ElbowArrow
+          points={[
+            [SUBA_CONTENT_CENTER, SUBBOX_Y + 100],
+            [SUBA_CONTENT_CENTER, LANE_1_Y],
+            [LANE_TURN_X, LANE_1_Y],
+            [LANE_TURN_X, TOP_TABLE_Y + TOP_TABLE_H / 2],
+            [TABLE_X, TOP_TABLE_Y + TOP_TABLE_H / 2],
+          ]}
+        />
+        <ElbowArrow
+          points={[
+            [SUBA_CONTENT_CENTER, SUBBOX_Y + 292],
+            [SUBA_CONTENT_CENTER, LANE_2_Y],
+            [LANE_TURN_X, LANE_2_Y],
+            [LANE_TURN_X, BOTTOM_TABLE_Y + BOTTOM_TABLE_H / 2],
+            [TABLE_X, BOTTOM_TABLE_Y + BOTTOM_TABLE_H / 2],
+          ]}
+        />
+
+        {/* 子區 B：查詢流程 */}
+        <SubFrame x={SUBB_X} y={SUBBOX_Y} w={SUBB_W} h={SUBBOX_BOTTOM - SUBBOX_Y} title="查詢流程" />
+        <rect x={NODE_X} y={SUBBOX_Y + 32} width={NODE_W} height={24} rx={12} fill="var(--blue-50)" stroke="var(--blue-300)" strokeWidth={1.25} />
+        <text x={NODE_CENTER} y={SUBBOX_Y + 48} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--blue-700)">
+          唯一模型：mistral-embed（節點 1–4）
         </text>
 
-        {/* 五個節點（使用者提問 → Question → Embedding → 檢索 → Mapping） */}
-        {API_NODES.map((node) => (
-          <FlowNode key={node.key} node={node} />
+        {QUERY_NODES.map((node) => (
+          <QueryFlowNode key={node.key} node={node} />
         ))}
-        <ArrowDown x={CONTENT_CENTER} y1={200} y2={216} />
-        <ArrowDown x={CONTENT_CENTER} y1={276} y2={292} />
-        <ArrowDown x={CONTENT_CENTER} y1={352} y2={368} />
-        <ArrowDown x={CONTENT_CENTER} y1={428} y2={444} />
-        <ArrowDown x={CONTENT_CENTER} y1={528} y2={RESULT_Y} />
+        <ArrowV x={NODE_CENTER} y1={QUERY_NODES[0].y + QUERY_NODES[0].h} y2={QUERY_NODES[1].y} />
+        <ArrowV x={NODE_CENTER} y1={QUERY_NODES[1].y + QUERY_NODES[1].h} y2={QUERY_NODES[2].y} />
+        <ArrowV x={NODE_CENTER} y1={QUERY_NODES[2].y + QUERY_NODES[2].h} y2={QUERY_NODES[3].y} />
+        <ArrowV x={NODE_CENTER} y1={QUERY_NODES[3].y + QUERY_NODES[3].h} y2={QUERY_NODES[4].y} />
 
-        {/* 回傳結果 */}
-        <rect x={CONTENT_X} y={RESULT_Y} width={CONTENT_W} height={RESULT_H} rx={RESULT_H / 2} fill="var(--neutral-0)" stroke="var(--neutral-300)" strokeWidth={1.25} />
-        <text x={CONTENT_CENTER} y={RESULT_Y + RESULT_H / 2 + 4.5} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--text-strong)">
-          回傳整合結果給使用者
-        </text>
-
-        {/* 節點 4／5 → 中間 PostgreSQL 的查詢箭頭（強調色，直線可達） */}
-        <line x1={CONTENT_RIGHT} y1={NODE4_MID_Y} x2={CYL_LEFT_X} y2={NODE4_MID_Y} stroke="var(--blue-700)" strokeWidth={2} markerEnd="url(#l1l3-arrow-blue)" />
-        <text x={(CONTENT_RIGHT + CYL_LEFT_X) / 2} y={NODE4_MID_Y - 10} textAnchor="middle" fontSize={12} fontWeight={700} fill="var(--blue-700)">
+        {/* 節點 3／4 → PostgreSQL（唯一即時查詢介面，藍色實線） */}
+        <ArrowH x1={NODE_RIGHT} x2={CYL_LEFT_X} y={NODE3_MID_Y} />
+        <text x={(NODE_RIGHT + CYL_LEFT_X) / 2} y={NODE3_MID_Y - 8} textAnchor="middle" fontSize={11.5} fontWeight={700} fill="var(--blue-700)">
           向量相似度查詢
         </text>
-
-        <line x1={CONTENT_RIGHT} y1={NODE5_MID_Y} x2={CYL_LEFT_X} y2={NODE5_MID_Y} stroke="var(--blue-700)" strokeWidth={2} markerEnd="url(#l1l3-arrow-blue)" />
-        <text x={(CONTENT_RIGHT + CYL_LEFT_X) / 2} y={NODE5_MID_Y - 10} textAnchor="middle" fontSize={12} fontWeight={700} fill="var(--blue-700)">
+        <ArrowH x1={NODE_RIGHT} x2={CYL_LEFT_X} y={NODE4_MID_Y} />
+        <text x={(NODE_RIGHT + CYL_LEFT_X) / 2} y={NODE4_MID_Y - 8} textAnchor="middle" fontSize={11.5} fontWeight={700} fill="var(--blue-700)">
           條文代碼 join
         </text>
 
-        {/* ── 中間：共用 PostgreSQL + pgvector（交棒點） ── */}
-        <DataTable y={VTABLE_Y} h={VTABLE_H} title="法條 Vector Data" lines={['metadata', '決策樹 L1／L2／L3 編號', '法條內容（vector）']} />
-        <line x1={MID_CX} y1={VTABLE_Y + VTABLE_H} x2={MID_CX} y2={CYL_OUTER_TOP} stroke="var(--neutral-400)" strokeWidth={1.25} />
+        {/* ── 區塊 5：右側共用 PostgreSQL ── */}
+        <DataTable y={TOP_TABLE_Y} h={TOP_TABLE_H} title="法條 Vector Data" lines={['metadata', '決策樹 L1／L2／L3 編號', '法條內容（vector）']} />
+        <line x1={MID_CX} y1={TOP_TABLE_Y + TOP_TABLE_H} x2={MID_CX} y2={CYL_OUTER_TOP} stroke="var(--neutral-400)" strokeWidth={1.25} />
 
         <path
           d={`M ${CYL_LEFT_X} ${CYL_TOP_CY} L ${CYL_LEFT_X} ${CYL_BOTTOM_CY} A ${CYL_RX} ${CYL_RY} 0 0 0 ${CYL_RIGHT_X} ${CYL_BOTTOM_CY} L ${CYL_RIGHT_X} ${CYL_TOP_CY} Z`}
@@ -324,96 +489,88 @@ export default function PocL1L3RetrievalArchitecture() {
           strokeLinejoin="round"
         />
         <ellipse cx={MID_CX} cy={CYL_TOP_CY} rx={CYL_RX} ry={CYL_RY} fill="var(--neutral-50)" stroke="var(--neutral-400)" strokeWidth={1.5} />
-        <g transform={`translate(${MID_CX - 12} 366)`}>
+        <g transform={`translate(${MID_CX - 12} ${CYL_TOP_CY - 4})`}>
           <Database width={24} height={24} strokeWidth={1.75} color="var(--neutral-600)" />
         </g>
-        <text x={MID_CX} y={408} textAnchor="middle" fontSize={15} fontWeight={700} fill="var(--text-strong)">
+        <text x={MID_CX} y={CYL_TOP_CY + 38} textAnchor="middle" fontSize={15} fontWeight={700} fill="var(--text-strong)">
           PostgreSQL
         </text>
-        <text x={MID_CX} y={424} textAnchor="middle" fontSize={12} fill="var(--neutral-600)">
+        <text x={MID_CX} y={CYL_TOP_CY + 56} textAnchor="middle" fontSize={12} fill="var(--neutral-600)">
           + pgvector
         </text>
-        <text x={MID_CX} y={440} textAnchor="middle" fontSize={11} fill="var(--neutral-500)">
-          離線／線上共用同一庫
+        <text x={MID_CX} y={CYL_TOP_CY + 72} textAnchor="middle" fontSize={11} fill="var(--neutral-500)">
+          建庫／查詢共用同一庫
         </text>
 
-        <line x1={MID_CX} y1={CYL_OUTER_BOTTOM} x2={MID_CX} y2={STABLE_Y} stroke="var(--neutral-400)" strokeWidth={1.25} />
-        <DataTable y={STABLE_Y} h={STABLE_H} title="決策樹分類 Structured Data" lines={['L1：四大類編號', 'L2：主題編號', 'L3：企業端問題類型編號']} />
+        <line x1={MID_CX} y1={CYL_OUTER_BOTTOM} x2={MID_CX} y2={BOTTOM_TABLE_Y} stroke="var(--neutral-400)" strokeWidth={1.25} />
+        <DataTable y={BOTTOM_TABLE_Y} h={BOTTOM_TABLE_H} title="決策樹分類 Structured Data" lines={['L1：四大類編號', 'L2：主題編號', 'L3：企業端問題類型編號']} />
 
-        {/* ── 右側大框：Indexer & Data Loader（離線段，斜紋淡底） ── */}
-        <rect x={RIGHT_X} y={FRAME_TOP} width={RIGHT_W} height={FRAME_BOTTOM - FRAME_TOP} rx={16} fill="url(#l1l3-hatch)" stroke="var(--neutral-300)" strokeWidth={1} />
-        <text x={RIGHT_X + 20} y={FRAME_TOP + 22} fontSize={15} fontWeight={700} fill="var(--text-strong)">
-          Indexer &amp; Data Loader
+        {/* ── 區塊 5.5：Langfuse 側掛觀測（非主資料流，僅掛在節點 5） ── */}
+        <path
+          d={`M ${NODE_CENTER} ${QUERY_NODES[4].y + QUERY_NODES[4].h} L ${NODE_CENTER} 820 L ${LF_CX} 820 L ${LF_CX} ${LF_Y}`}
+          fill="none"
+          stroke="var(--neutral-400)"
+          strokeWidth={1.5}
+          strokeDasharray="6 4"
+        />
+        <text x={(NODE_CENTER + LF_CX) / 2} y={814} textAnchor="middle" fontSize={11} fill="var(--neutral-500)">
+          trace
         </text>
-        <text x={RIGHT_X + 20} y={FRAME_TOP + 40} fontSize={11.5} fill="var(--neutral-500)">
-          離線 CLI · 批次跑完即結束
-        </text>
 
-        {/* Indexer 子框：勞基法法條 → Embedding → 法條 Vector Data */}
-        <SubFrame x={806} y={140} w={310} h={150} title="Indexer" />
-        <SourceIcon icon={FileText} x={1060} y={202} label="勞基法法條" />
-        <MiniPill x={880} y={199} w={110} h={32} label="Embedding" caption="mistral-embed" />
-        <line x1={1058} y1={215} x2={992} y2={215} stroke="var(--neutral-400)" strokeWidth={1.5} markerEnd="url(#l1l3-arrow)" />
-        <line x1={878} y1={215} x2={TABLE_RIGHT} y2={215} stroke="var(--neutral-400)" strokeWidth={1.5} markerEnd="url(#l1l3-arrow)" />
-
-        {/* Data Loader 子框：L1~L3+L6 總表 → ETL → 決策樹分類 Structured Data */}
-        <SubFrame x={806} y={310} w={310} h={338} title="Data Loader" />
-        <SourceIcon icon={Table2} x={1060} y={567} label="L1~L3+L6 總表" />
-        <MiniPill x={880} y={564} w={110} h={32} label="ETL" caption="可先用 Excel" />
-        <line x1={1058} y1={580} x2={992} y2={580} stroke="var(--neutral-400)" strokeWidth={1.5} markerEnd="url(#l1l3-arrow)" />
-        <line x1={878} y1={580} x2={TABLE_RIGHT} y2={580} stroke="var(--neutral-400)" strokeWidth={1.5} markerEnd="url(#l1l3-arrow)" />
-
-        {/* 便利貼：PoC 資料來源（放在 Data Loader 子框內的空白處） */}
-        <g transform="rotate(-2 961 435)">
-          <rect x={826} y={380} width={270} height={110} rx={6} fill="var(--warning-50)" stroke="var(--warning-500)" strokeWidth={1.25} />
-          <path d="M 1076 380 L 1096 380 L 1096 400 Z" fill="var(--orange-200)" />
-          <g transform="translate(838 392)">
-            <StickyNoteIcon width={18} height={18} strokeWidth={1.75} color="var(--warning-700)" />
-          </g>
-          <text x={864} y={406} fontSize={12.5} fontWeight={700} fill="var(--warning-700)">
-            PoC 資料來源
-          </text>
-          <text x={838} y={430} fontSize={11.5} fill="var(--neutral-700)">
-            勞基法條文 ＋ L1~L3+L6 總表
-          </text>
-          <text x={838} y={450} fontSize={11.5} fill="var(--neutral-700)">
-            （可先用 Excel）
-          </text>
+        <rect x={LF_X} y={LF_Y} width={LF_W} height={LF_H} rx={12} fill="var(--neutral-0)" stroke="var(--neutral-300)" strokeWidth={1.25} strokeDasharray="6 4" />
+        <g transform={`translate(${LF_X + 14} ${LF_Y + 12})`}>
+          <Activity width={16} height={16} strokeWidth={1.75} color="var(--neutral-500)" />
         </g>
-
-        {/* 便利貼虛線連到兩個資料來源圖示（資料來源關係，無箭頭） */}
-        <line x1={1000} y1={490} x2={1073} y2={567} stroke="var(--neutral-400)" strokeWidth={1.25} strokeDasharray="5 4" />
-        <line x1={900} y1={380} x2={1073} y2={228} stroke="var(--neutral-400)" strokeWidth={1.25} strokeDasharray="5 4" />
-
-        {/* ── 圖例 ── */}
-        <LegendLine x={40} y={696} />
-        <text x={98} y={700} fontSize={12} fill="var(--text-body)">
-          實線（含箭頭）＝ 主資料流；藍色實線＝關鍵查詢介面
+        <text x={LF_X + 40} y={LF_Y + 24} fontSize={13} fontWeight={700} fill="var(--text-strong)">
+          Langfuse · self-host（GCP）
+        </text>
+        {LANGFUSE_ITEMS.map((item, i) => (
+          <g key={item}>
+            <circle cx={LF_X + 20} cy={LF_Y + 42 + i * 15} r={2.5} fill="var(--neutral-500)" />
+            <text x={LF_X + 28} y={LF_Y + 46 + i * 15} fontSize={11} fill="var(--neutral-600)">
+              {item}
+            </text>
+          </g>
+        ))}
+        <text x={LF_CX} y={LF_BOTTOM + 22} textAnchor="middle" fontSize={11} fill="var(--neutral-500)">
+          只記報告生成，不記 embedding 呼叫
         </text>
 
-        <LegendLine x={40} y={730} dashed />
-        <text x={98} y={734} fontSize={12} fill="var(--text-body)">
-          虛線 ＝ 資料來源（便利貼與兩個原始資料來源的關係）
+        {/* ── 區塊 6：圖例 ── */}
+        <LegendLine x={40} y={1002} dashed />
+        <text x={90} y={1006} fontSize={12} fill="var(--text-body)">
+          可觀測性（非主資料流）
         </text>
 
-        <LegendSwatch x={610} y={696} kind="hatch" />
-        <text x={668} y={700} fontSize={12} fill="var(--text-body)">
-          斜紋淡底 ＝ 離線段（Indexer ／ Data Loader）
+        <LegendLine x={40} y={1032} />
+        <text x={90} y={1036} fontSize={12} fill="var(--text-body)">
+          實線＋箭頭 ＝ 主資料流；藍色實線 ＝ 關鍵查詢介面
+        </text>
+        <LegendLine x={620} y={1032} dashed />
+        <text x={670} y={1036} fontSize={12} fill="var(--text-body)">
+          虛線 ＝ 資料來源／非常駐流程
         </text>
 
-        <LegendSwatch x={610} y={730} kind="solid" />
-        <text x={668} y={734} fontSize={12} fill="var(--text-body)">
-          素色淡底 ＝ 線上段（API 常駐服務）
+        <LegendSwatch x={40} y={1062} fill="var(--neutral-0)" stroke="var(--neutral-300)" />
+        <text x={90} y={1066} fontSize={12} fill="var(--text-body)">
+          不經生成式模型
+        </text>
+        <LegendSwatch x={620} y={1062} fill="var(--warning-50)" stroke="var(--warning-500)" />
+        <text x={670} y={1066} fontSize={12} fill="var(--text-body)">
+          經生成式模型（僅風險分析報告節點）
         </text>
 
-        {/* ── 核心洞察摘要 ── */}
-        <rect x={40} y={764} width={1080} height={70} rx={12} fill="var(--blue-50)" stroke="var(--blue-100)" strokeWidth={1} />
-        <rect x={40} y={764} width={4} height={70} fill="var(--blue-700)" />
-        <text x={64} y={792} fontSize={15} fontWeight={700} fill="var(--blue-700)">
-          分類不是算出來的，是拿檢索到的條文回總表反查出來的
+        {/* ── 區塊 7：核心洞察 callout ── */}
+        <rect x={40} y={1094} width={1120} height={90} rx={12} fill="var(--blue-50)" stroke="var(--blue-100)" strokeWidth={1} />
+        <rect x={40} y={1094} width={4} height={90} fill="var(--blue-700)" />
+        <text x={64} y={1124} fontSize={15} fontWeight={700} fill="var(--blue-700)">
+          主線全程不碰生成式模型，只有最末端例外
         </text>
-        <text x={64} y={814} fontSize={12.5} fill="var(--text-body)">
-          整條路徑上唯一的模型是 embedding（mistral-embed）—— 沒有任何生成式 LLM 介入
+        <text x={64} y={1150} fontSize={12.5} fill="var(--text-body)">
+          分類是檢索的副產物，不需要 LLM；
+        </text>
+        <text x={64} y={1170} fontSize={12.5} fill="var(--text-body)">
+          風險分析報告因 L4~L8 規格未到，先用自撰 prompt 暫代生成式模型輸出。
         </text>
       </svg>
     </div>
