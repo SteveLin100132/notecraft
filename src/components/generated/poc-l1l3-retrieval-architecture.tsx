@@ -21,6 +21,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import {
+  Activity,
   Bot,
   ClipboardList,
   Database,
@@ -38,7 +39,15 @@ import {
 
 /* ── 版面常數 ──────────────────────────────────────────────────── */
 const VIEW_W = 1200
-const VIEW_H = 1040
+const VIEW_H = 1210
+
+/* Langfuse 側掛觀測小框（非主資料流，往外接在節點 5「風險分析報告」旁） */
+const LF_X = 470
+const LF_Y = 850
+const LF_W = 260
+const LF_H = 108
+const LF_CX = LF_X + LF_W / 2 // 600
+const LF_BOTTOM = LF_Y + LF_H // 958
 const CX = 600
 
 /* UI 小框（對齊查詢流程子區） */
@@ -161,7 +170,7 @@ const QUERY_NODES: FlowNodeData[] = [
     title: '風險分析報告',
     titleColor: 'var(--orange-600)',
     lines: [
-      { text: '自撰 prompt ＋ 生成式 LLM', color: 'var(--orange-600)' },
+      { text: '自撰 prompt ＋ Codex 5.6 Luna', color: 'var(--orange-600)' },
       { text: 'L4~L8 規格未到，先以自撰 prompt 暫代', color: 'var(--orange-600)', weight: 700 },
     ],
     y: 682,
@@ -182,6 +191,9 @@ const UI_CHIPS: { icon: LucideIcon; label: string }[] = [
   { icon: Tags, label: 'L1~L3' },
   { icon: ClipboardList, label: '報告卡片' },
 ]
+
+/* Langfuse 側掛小框內列項（只記報告生成這一段的觀測欄位） */
+const LANGFUSE_ITEMS = ['問句與輸出', 'token 用量', '延遲', '模型與 Prompt 版本']
 
 /* ── 子元件 ─────────────────────────────────────────────────────── */
 function ArrowV({ x, y1, y2, color = 'var(--neutral-400)', width = 1.75 }: { x: number; y1: number; y2: number; color?: string; width?: number }) {
@@ -328,7 +340,7 @@ export default function PocL1L3RetrievalArchitecture() {
         role="img"
         className="min-w-[1000px]"
         style={{ fontFamily: 'inherit' }}
-        aria-label="勞動法遵決策支援系統 PoC L1 至 L3 檢索閉環技術架構圖 v2。頂端小字標註 Framework 為 LangChain、Embedding 為 Mistral mistral-embed，下方主題橫幅寫著主線只認一個模型 mistral-embed、生成式模型只在最末端的風險分析報告例外登場。左上是 UI 小框，標題 UI 使用 Vite 加 React TypeScript，內含人形圖示與輸入框寫著公司可以不給特休嗎，下方三個縮圖標籤分別是條文清單、L1 至 L3 標籤、報告卡片。UI 框與下方 API 大框之間有一組往下的箭頭標示提問、一組往上的箭頭標示條文加分類加報告。左側大框標題 API NestJS 常駐服務，內部左右並排兩個虛線子區：左半是 Indexer 模組，旁邊有徽章寫著管理端觸發非常駐流程，內含兩條垂直小流程，勞基法法條經 Embedding 寫入法條 Vector Data，L1 至 L3 加 L6 總表經 ETL 寫入決策樹分類 Structured Data，中間夾一張便利貼樣式的虛線註記寫著 PoC 資料來源為勞基法條文加 L1 至 L3 加 L6 總表可先用 Excel，兩條流程末端各以直角折線繞到右側寫入對應的 PostgreSQL 資料表；右半是查詢流程，標題下方有藍色藥丸標籤寫著唯一模型 mistral-embed 節點一到四，由上而下五個節點：Question 收下白話問句、Embedding 標註與 Indexer 模組同一份設定、檢索近似條文 Top-K 標註 K 為常數設定先設五、Mapping 將近似條文與決策樹分類表整合並以強調色標示分類是檢索的副產物不需要 LLM、最後風險分析報告節點單獨換成琥珀色底標示自撰 prompt 加生成式 LLM 以及 L4 至 L8 規格未到先以自撰 prompt 暫代，是全圖唯一碰生成式模型的節點。節點三檢索與節點四 Mapping 各拉一條藍色實線到右側 PostgreSQL，分別標示向量相似度查詢與條文代碼 join。右側共用 PostgreSQL 欄由上而下是法條 Vector Data 資料表，欄位為 metadata、決策樹 L1 L2 L3 編號、法條內容向量；中間是標註 PostgreSQL 加 pgvector 建庫查詢共用同一庫的圓柱；下方是決策樹分類 Structured Data 資料表，欄位為 L1 L2 L3 編號說明。底部圖例列出四項：實線含箭頭為主資料流且藍色實線代表關鍵查詢介面、虛線代表資料來源與非常駐流程、素色色塊代表不經生成式模型、琥珀色塊代表經生成式模型且僅風險分析報告節點。最下方是核心洞察摘要，標題寫著主線全程不碰生成式模型只有最末端例外，副標寫著分類是檢索的副產物不需要 LLM，風險分析報告因 L4 至 L8 規格未到先用自撰 prompt 暫代生成式模型輸出。"
+        aria-label="勞動法遵決策支援系統 PoC L1 至 L3 檢索閉環技術架構圖 v2。頂端小字標註 Framework 為 LangChain、Embedding 為 Mistral mistral-embed，下方主題橫幅寫著主線只認一個模型 mistral-embed、生成式模型只在最末端的風險分析報告例外登場。左上是 UI 小框，標題 UI 使用 Vite 加 React TypeScript，內含人形圖示與輸入框寫著公司可以不給特休嗎，下方三個縮圖標籤分別是條文清單、L1 至 L3 標籤、報告卡片。UI 框與下方 API 大框之間有一組往下的箭頭標示提問、一組往上的箭頭標示條文加分類加報告。左側大框標題 API NestJS 常駐服務，內部左右並排兩個虛線子區：左半是 Indexer 模組，旁邊有徽章寫著管理端觸發非常駐流程，內含兩條垂直小流程，勞基法法條經 Embedding 寫入法條 Vector Data，L1 至 L3 加 L6 總表經 ETL 寫入決策樹分類 Structured Data，中間夾一張便利貼樣式的虛線註記寫著 PoC 資料來源為勞基法條文加 L1 至 L3 加 L6 總表可先用 Excel，兩條流程末端各以直角折線繞到右側寫入對應的 PostgreSQL 資料表；右半是查詢流程，標題下方有藍色藥丸標籤寫著唯一模型 mistral-embed 節點一到四，由上而下五個節點：Question 收下白話問句、Embedding 標註與 Indexer 模組同一份設定、檢索近似條文 Top-K 標註 K 為常數設定先設五、Mapping 將近似條文與決策樹分類表整合並以強調色標示分類是檢索的副產物不需要 LLM、最後風險分析報告節點單獨換成琥珀色底標示自撰 prompt 加 Codex 5.6 Luna 以及 L4 至 L8 規格未到先以自撰 prompt 暫代，是全圖唯一碰生成式模型的節點。風險分析報告節點另外拉出一條中性色虛線側掛連到獨立小框 Langfuse self-host GCP，線上標註 trace，表示這是非主資料流的可觀測性側錄；小框內列出問句與輸出、token 用量、延遲、模型與 Prompt 版本四項，框下小字註記只記報告生成不記 embedding 呼叫。節點三檢索與節點四 Mapping 各拉一條藍色實線到右側 PostgreSQL，分別標示向量相似度查詢與條文代碼 join。右側共用 PostgreSQL 欄由上而下是法條 Vector Data 資料表，欄位為 metadata、決策樹 L1 L2 L3 編號、法條內容向量；中間是標註 PostgreSQL 加 pgvector 建庫查詢共用同一庫的圓柱；下方是決策樹分類 Structured Data 資料表，欄位為 L1 L2 L3 編號說明。底部圖例列出五項：中性虛線代表可觀測性且屬非主資料流、實線含箭頭為主資料流且藍色實線代表關鍵查詢介面、虛線代表資料來源與非常駐流程、素色色塊代表不經生成式模型、琥珀色塊代表經生成式模型且僅風險分析報告節點。最下方是核心洞察摘要，標題寫著主線全程不碰生成式模型只有最末端例外，副標寫著分類是檢索的副產物不需要 LLM，風險分析報告因 L4 至 L8 規格未到先用自撰 prompt 暫代生成式模型輸出。"
       >
         <defs>
           <marker id="pocv2-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto-start-reverse">
@@ -493,35 +505,71 @@ export default function PocL1L3RetrievalArchitecture() {
         <line x1={MID_CX} y1={CYL_OUTER_BOTTOM} x2={MID_CX} y2={BOTTOM_TABLE_Y} stroke="var(--neutral-400)" strokeWidth={1.25} />
         <DataTable y={BOTTOM_TABLE_Y} h={BOTTOM_TABLE_H} title="決策樹分類 Structured Data" lines={['L1：四大類編號', 'L2：主題編號', 'L3：企業端問題類型編號']} />
 
+        {/* ── 區塊 5.5：Langfuse 側掛觀測（非主資料流，僅掛在節點 5） ── */}
+        <path
+          d={`M ${NODE_CENTER} ${QUERY_NODES[4].y + QUERY_NODES[4].h} L ${NODE_CENTER} 820 L ${LF_CX} 820 L ${LF_CX} ${LF_Y}`}
+          fill="none"
+          stroke="var(--neutral-400)"
+          strokeWidth={1.5}
+          strokeDasharray="6 4"
+        />
+        <text x={(NODE_CENTER + LF_CX) / 2} y={814} textAnchor="middle" fontSize={11} fill="var(--neutral-500)">
+          trace
+        </text>
+
+        <rect x={LF_X} y={LF_Y} width={LF_W} height={LF_H} rx={12} fill="var(--neutral-0)" stroke="var(--neutral-300)" strokeWidth={1.25} strokeDasharray="6 4" />
+        <g transform={`translate(${LF_X + 14} ${LF_Y + 12})`}>
+          <Activity width={16} height={16} strokeWidth={1.75} color="var(--neutral-500)" />
+        </g>
+        <text x={LF_X + 40} y={LF_Y + 24} fontSize={13} fontWeight={700} fill="var(--text-strong)">
+          Langfuse · self-host（GCP）
+        </text>
+        {LANGFUSE_ITEMS.map((item, i) => (
+          <g key={item}>
+            <circle cx={LF_X + 20} cy={LF_Y + 42 + i * 15} r={2.5} fill="var(--neutral-500)" />
+            <text x={LF_X + 28} y={LF_Y + 46 + i * 15} fontSize={11} fill="var(--neutral-600)">
+              {item}
+            </text>
+          </g>
+        ))}
+        <text x={LF_CX} y={LF_BOTTOM + 22} textAnchor="middle" fontSize={11} fill="var(--neutral-500)">
+          只記報告生成，不記 embedding 呼叫
+        </text>
+
         {/* ── 區塊 6：圖例 ── */}
-        <LegendLine x={40} y={862} />
-        <text x={90} y={866} fontSize={12} fill="var(--text-body)">
+        <LegendLine x={40} y={1002} dashed />
+        <text x={90} y={1006} fontSize={12} fill="var(--text-body)">
+          可觀測性（非主資料流）
+        </text>
+
+        <LegendLine x={40} y={1032} />
+        <text x={90} y={1036} fontSize={12} fill="var(--text-body)">
           實線＋箭頭 ＝ 主資料流；藍色實線 ＝ 關鍵查詢介面
         </text>
-        <LegendLine x={620} y={862} dashed />
-        <text x={670} y={866} fontSize={12} fill="var(--text-body)">
+        <LegendLine x={620} y={1032} dashed />
+        <text x={670} y={1036} fontSize={12} fill="var(--text-body)">
           虛線 ＝ 資料來源／非常駐流程
         </text>
 
-        <LegendSwatch x={40} y={892} fill="var(--neutral-0)" stroke="var(--neutral-300)" />
-        <text x={90} y={896} fontSize={12} fill="var(--text-body)">
+        <LegendSwatch x={40} y={1062} fill="var(--neutral-0)" stroke="var(--neutral-300)" />
+        <text x={90} y={1066} fontSize={12} fill="var(--text-body)">
           不經生成式模型
         </text>
-        <LegendSwatch x={620} y={892} fill="var(--warning-50)" stroke="var(--warning-500)" />
-        <text x={670} y={896} fontSize={12} fill="var(--text-body)">
+        <LegendSwatch x={620} y={1062} fill="var(--warning-50)" stroke="var(--warning-500)" />
+        <text x={670} y={1066} fontSize={12} fill="var(--text-body)">
           經生成式模型（僅風險分析報告節點）
         </text>
 
         {/* ── 區塊 7：核心洞察 callout ── */}
-        <rect x={40} y={924} width={1120} height={90} rx={12} fill="var(--blue-50)" stroke="var(--blue-100)" strokeWidth={1} />
-        <rect x={40} y={924} width={4} height={90} fill="var(--blue-700)" />
-        <text x={64} y={954} fontSize={15} fontWeight={700} fill="var(--blue-700)">
+        <rect x={40} y={1094} width={1120} height={90} rx={12} fill="var(--blue-50)" stroke="var(--blue-100)" strokeWidth={1} />
+        <rect x={40} y={1094} width={4} height={90} fill="var(--blue-700)" />
+        <text x={64} y={1124} fontSize={15} fontWeight={700} fill="var(--blue-700)">
           主線全程不碰生成式模型，只有最末端例外
         </text>
-        <text x={64} y={980} fontSize={12.5} fill="var(--text-body)">
+        <text x={64} y={1150} fontSize={12.5} fill="var(--text-body)">
           分類是檢索的副產物，不需要 LLM；
         </text>
-        <text x={64} y={1000} fontSize={12.5} fill="var(--text-body)">
+        <text x={64} y={1170} fontSize={12.5} fill="var(--text-body)">
           風險分析報告因 L4~L8 規格未到，先用自撰 prompt 暫代生成式模型輸出。
         </text>
       </svg>
