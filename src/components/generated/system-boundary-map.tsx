@@ -4,6 +4,7 @@ import {
   Activity,
   BookText,
   Braces,
+  Database,
   Lock,
   ShieldCheck,
   TriangleAlert,
@@ -14,30 +15,30 @@ import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 
 /**
- * 系統邊界圖：四個模組 × 誰在用 × 暴露面 × PoC 覆蓋到哪。
+ * 系統邊界圖：模組 × 誰在用 × 暴露面 × PoC 覆蓋到哪。
  *
- * 核心洞察：主角不是「四個模組」，是中間那條信任邊界。線的上方公開在
- * internet，每一次跨越都得驗身分；線的下方靠網路層擋在門外，根本走不到
- * 驗證那一步。四個模組是被這條線分配到兩側的結果，不是四個並列的框。
+ * 核心洞察：這條信任邊界切開的不是模組，是**讀跟寫**。線上方公開在
+ * internet，但只讀得到東西，每一次跨越都得驗身分；會改動向量庫的入口一個
+ * 都不在線上方，全被關在線下靠網路層擋，根本走不到驗證那一步。
  *
  * 版面採泳道圖 × use case 的混血：每一列讀作「誰在用 → 閘門 → 模組」，
  * 閘門刻意畫在**線上而不是框裡**——擋的是「跨越邊界」這個動作。上下泳道
- * 的閘門本質不同（身分 vs 網路層），用 icon 與語彙分開。
+ * 的閘門本質不同（身分 vs 網路層），用 icon 與語彙分開；Embedding 寫入那
+ * 列是兩層疊加（網路層 ＋ 管理端 key），icon 兩顆並列。
  *
- * 全圖唯一穿過邊界的線：「對外 API · 寫」→「法條管理後台」，兩者是改動
- * 向量庫的同一件事的兩個入口。這兩張卡片刻意排成上下相鄰（公開泳道的最後
- * 一列、限定 IP 泳道的第一列），線就從信任邊界帶內垂直穿過去——跨越畫在
- * 它真正發生的位置，也不必為它另闢走廊擠掉正文欄寬。
+ * 這張圖的論點畫成限定 IP 泳道裡的一個橙色群組框：「法條管理後台」與
+ * 「Embedding API · 寫」是改動向量庫的同一件事的兩個入口——一個給人、一個
+ * 給程式——兩條路都在線下方。邊界帶右側那枚標籤把它講白：沒有一條線穿過去。
  *
  * 第四維（PoC 覆蓋到哪）做成 full / poc 兩種模式的切換，而不是塞進第五欄
- * 徽章：切到 PoC 時前台的登入閘門原地變成缺口，兩列對外 API 淡出，
+ * 徽章：切到 PoC 時前台的登入閘門原地變成缺口，對外 API · 讀淡出，
  * 每張卡片浮出一條琥珀註記說明只做了半格。
  */
 
 type Mode = 'full' | 'poc'
 type GateTone = 'pending' | 'breach'
 
-const GRID_COLS = 'grid-cols-[118px_22px_180px_22px_minmax(0,1fr)]'
+const GRID_COLS = 'grid-cols-[132px_22px_186px_22px_minmax(0,1fr)]'
 
 /* ── 小元件 ────────────────────────────────────────────────── */
 
@@ -86,14 +87,15 @@ function Gate({
   status,
   tone,
 }: {
-  kind: 'identity' | 'network'
+  kind: 'identity' | 'network' | 'both'
   name: string
   detail: string
   status?: string
   tone: GateTone
 }) {
-  const KindIcon = kind === 'identity' ? Lock : ShieldCheck
   const breach = tone === 'breach'
+  const kindLabel =
+    kind === 'identity' ? '身分閘門' : kind === 'network' ? '網路層閘門' : '網路層 ＋ 身分'
   return (
     <div
       className={clsx(
@@ -104,8 +106,9 @@ function Gate({
       )}
     >
       <div className="flex items-center gap-1.5 text-[10px] tracking-[var(--tracking-wide)] text-[var(--text-muted)]">
-        <KindIcon size={12} strokeWidth={2} />
-        {kind === 'identity' ? '身分閘門' : '網路層閘門'}
+        {kind !== 'identity' && <ShieldCheck size={12} strokeWidth={2} className="shrink-0" />}
+        {kind !== 'network' && <Lock size={12} strokeWidth={2} className="shrink-0" />}
+        {kindLabel}
       </div>
       <div
         className={clsx(
@@ -308,7 +311,7 @@ export default function SystemBoundaryMap() {
               <b className="text-[var(--orange-600)]">前台那道門還沒裝上</b>。
             </>
           ) : (
-            '四個模組——三個有介面，一組是對外 API，各自的閘門與暴露面。'
+            '公開那側只讀得到東西；會改動向量庫的兩個入口都在線下方。'
           )}
         </p>
       </div>
@@ -318,8 +321,10 @@ export default function SystemBoundaryMap() {
         <div className="relative flex min-w-[720px] flex-col">
           {/* ── 公開 internet ── */}
           <section className="flex flex-col gap-3 rounded-[var(--radius-2xl)] border border-[var(--border-default)] bg-[var(--neutral-0)] px-4 pb-4 pt-4">
-            <LaneLabel title="公開 internet" sub="誰都碰得到 · 靠身分擋" />
+            <LaneLabel title="公開 internet" sub="誰都碰得到 · 靠身分擋 · 只有讀" />
 
+            {/* px-3 對齊下方泳道群組框的內縮，讓五列的欄位維持同一條垂直線 */}
+            <div className="flex flex-col gap-3 px-3">
             {/* 客戶前台 */}
             <Row>
               <Actor icon={UserRound} name="會員" sub="自行註冊／HRM 訂閱" />
@@ -366,41 +371,11 @@ export default function SystemBoundaryMap() {
                 </div>
               </ModuleCard>
             </Row>
-
-            {/* 對外 API：寫（管理端 key） */}
-            <Row dimmed={isPoc} accent>
-              <Actor icon={UserCog} name="API 串接方" sub="管理端 key" accent />
-              <Connector accent />
-              <Gate
-                kind="identity"
-                name="管理端驗證"
-                detail="不該與會員 key 共用"
-                status="未定案"
-                tone="pending"
-              />
-              <Connector accent />
-              <ModuleCard
-                title="對外 API · 寫"
-                accent
-                chips={
-                  <>
-                    <Chip tone="write">唯一會改動向量庫</Chip>
-                    <Chip tone="none">PoC：不對外</Chip>
-                  </>
-                }
-              >
-                <div className="mt-0.5">
-                  <ApiItem mode="寫" label="法條與決策樹主題 Embedding" quota="僅管理員" />
-                </div>
-                <PocNote show={isPoc}>
-                  PoC 的 Embedding 只由 API 內的 <b>Indexer 元件</b>觸發，還沒開成對外 API。
-                </PocNote>
-              </ModuleCard>
-            </Row>
+            </div>
           </section>
 
-          {/* ── 信任邊界：全圖唯一穿過它的線也畫在這一帶 ── */}
-          <div className={clsx('relative z-10 grid h-[86px] items-center', GRID_COLS)}>
+          {/* ── 信任邊界：公開側完全碰不到寫入，沒有任何一條線穿過去 ── */}
+          <div className={clsx('relative z-10 grid h-[76px] items-center', GRID_COLS)}>
             <div
               className="absolute inset-x-0 top-1/2 border-t-[3px] border-dashed border-[var(--orange-500)] opacity-90"
               aria-hidden="true"
@@ -411,15 +386,10 @@ export default function SystemBoundaryMap() {
               </span>
             </div>
             <div aria-hidden="true" />
-            {/* 「對外 API · 寫」→「法條管理後台」：改動向量庫的同一件事，兩個入口 */}
-            <div className="relative h-full">
-              <div
-                className="absolute -bottom-4 -top-4 left-8 border-l-2 border-dashed border-[var(--orange-500)]"
-                aria-hidden="true"
-              />
-              <div className="absolute left-[68px] top-1/2 -translate-y-1/2 rounded-[var(--radius-xl)] border border-dashed border-[var(--orange-500)] bg-[var(--neutral-0)] px-3 py-1.5 text-[11.5px] leading-normal text-[var(--orange-600)]">
-                <b className="block text-[12.5px]">同一件事的兩個入口</b>
-                全圖唯一穿過邊界的線
+            <div className="flex h-full items-center">
+              <div className="relative rounded-[var(--radius-xl)] border border-dashed border-[var(--orange-500)] bg-[var(--neutral-0)] px-3 py-1.5 text-[11.5px] leading-normal text-[var(--orange-600)]">
+                <b className="block text-[12.5px]">沒有一條線穿過去</b>
+                會改動向量庫的入口全在線下
               </div>
             </div>
           </div>
@@ -428,35 +398,79 @@ export default function SystemBoundaryMap() {
           <section className="flex flex-col gap-3 rounded-[var(--radius-2xl)] border border-dashed border-[var(--neutral-400)] bg-[var(--neutral-100)] px-4 pb-4 pt-4">
             <LaneLabel title="限定 IP（不公開）" sub="走不到驗證那一步 · 靠網路層擋" muted />
 
-            {/* 法條管理後台 */}
-            <Row>
-              <Actor icon={BookText} name="顧問師" sub="內容制定與編修" />
-              <Connector />
-              <Gate
-                kind="network"
-                name="限定 IP"
-                detail="VPN／IAP／allowlist"
-                status={isPoc ? 'PoC 尚未設定' : '手段未定'}
-                tone="pending"
-              />
-              <Connector />
-              <ModuleCard
-                title="法條管理後台"
-                chips={
-                  <>
-                    <Chip tone="write">會改動向量庫</Chip>
-                    <Chip tone="partial">PoC：部分</Chip>
-                  </>
-                }
-                desc={isPoc ? undefined : '法條與決策樹分類的制定編修 → Embedding 進庫'}
-              >
-                <PocNote show={isPoc}>
-                  PoC 只有 Indexer 那一段；<b>制定與編修先用 Excel 頂著</b>，沒有後台介面。
-                </PocNote>
-              </ModuleCard>
-            </Row>
+            {/* 改動向量庫的兩個入口：一個給人（後台）、一個給程式（Embedding API） */}
+            <div className="flex flex-col gap-3 rounded-[var(--radius-2xl)] border border-dashed border-[var(--orange-500)] bg-[var(--orange-50)] px-3 py-3">
+              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-[var(--orange-600)]">
+                <Database size={14} strokeWidth={2} className="shrink-0 self-center" />
+                <strong className="text-[13px]">會改動向量庫的兩個入口</strong>
+                <span className="text-[12px] text-[var(--text-muted)]">
+                  一個給人、一個給程式——兩條路都在線下方
+                </span>
+              </div>
 
-            {/* 運維管理後台 */}
+              {/* 法條管理後台 */}
+              <Row>
+                <Actor icon={BookText} name="顧問師" sub="內容制定與編修" />
+                <Connector accent />
+                <Gate
+                  kind="network"
+                  name="限定 IP"
+                  detail="VPN／IAP／allowlist"
+                  status={isPoc ? 'PoC 尚未設定' : '手段未定'}
+                  tone="pending"
+                />
+                <Connector accent />
+                <ModuleCard
+                  title="法條管理後台"
+                  accent
+                  chips={
+                    <>
+                      <Chip tone="write">會改動向量庫</Chip>
+                      <Chip tone="partial">PoC：部分</Chip>
+                    </>
+                  }
+                  desc={isPoc ? undefined : '法條與決策樹分類的制定編修 → Embedding 進庫'}
+                >
+                  <PocNote show={isPoc}>
+                    PoC 只有 Indexer 那一段；<b>制定與編修先用 Excel 頂著</b>，沒有後台介面。
+                  </PocNote>
+                </ModuleCard>
+              </Row>
+
+              {/* Embedding API · 寫（管理端 key） */}
+              <Row accent>
+                <Actor icon={UserCog} name="管理端串接方" sub="管理端 key" accent />
+                <Connector accent />
+                <Gate
+                  kind="both"
+                  name="限定 IP ＋ 管理端 key"
+                  detail="網路層第一層，key 是進門後的第二層"
+                  status={isPoc ? 'PoC 尚未設定' : '手段未定'}
+                  tone="pending"
+                />
+                <Connector accent />
+                <ModuleCard
+                  title="Embedding API · 寫"
+                  accent
+                  chips={
+                    <>
+                      <Chip tone="write">會改動向量庫</Chip>
+                      <Chip tone="none">不對外</Chip>
+                    </>
+                  }
+                >
+                  <div className="mt-0.5">
+                    <ApiItem mode="寫" label="法條與決策樹主題 Embedding" quota="管理端 key" />
+                  </div>
+                  <PocNote show={isPoc}>
+                    PoC 的 Embedding 只由 API 內的 <b>Indexer 元件</b>觸發，還沒開成 API。
+                  </PocNote>
+                </ModuleCard>
+              </Row>
+            </div>
+
+            {/* 運維管理後台：px-3 對齊上方群組框的內縮，讓五列的欄位維持同一條垂直線 */}
+            <div className="px-3">
             <Row>
               <Actor icon={Activity} name="系統管理者" sub="運維" />
               <Connector />
@@ -483,6 +497,7 @@ export default function SystemBoundaryMap() {
                 </PocNote>
               </ModuleCard>
             </Row>
+            </div>
           </section>
 
         </div>
@@ -492,7 +507,7 @@ export default function SystemBoundaryMap() {
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-x-6 gap-y-2.5 rounded-[var(--radius-2xl)] border border-[var(--border-subtle)] bg-[var(--neutral-0)] px-4 py-3.5 text-[12.5px] text-[var(--text-muted)]">
         <li className="flex items-center gap-2.5">
           <span className="w-6 shrink-0 border-t-[3px] border-dashed border-[var(--orange-500)]" />
-          信任邊界：跨越它就換一套擋法
+          信任邊界：跨越它就換一套擋法，且沒有一條線穿過去
         </li>
         <li className="flex items-center gap-2.5">
           <span className="w-6 shrink-0 border-t-2 border-[var(--neutral-400)]" />
