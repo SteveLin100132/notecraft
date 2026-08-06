@@ -584,11 +584,11 @@ function StackPage({ dark }: CustomSlideProps) {
             title: "API（含 Indexer）",
             desc: "NestJS + TypeScript + LangChain",
             points: [
-              "Indexer 模組收進 API：管理端 command／endpoint 觸發，不再是獨立 CLI",
+              "Indexer 元件收進 API：管理端 command／endpoint 觸發，不再是獨立 CLI",
               "embedding 設定只有一份，建庫與查詢共用",
               "條文檢索、總表整合兩步都不碰生成式模型",
             ],
-            chips: ["Indexer 模組化"],
+            chips: ["Indexer 元件化"],
             tone: "blue",
           },
           {
@@ -730,7 +730,7 @@ function SchemaJoinPage({ dark }: CustomSlideProps) {
             { name: "article_code", type: "text", note: "對得起總表的 L6 條文代碼" },
             { name: "clause_no", type: "text", note: "長條文按項切時才填" },
             { name: "content", type: "text", note: "法條原文，留著才 debug 得動", mark: true },
-            { name: "embedding", type: "vector(1024)", note: "允許 NULL：Indexer 模組先載入條文列、再回填向量", mark: true },
+            { name: "embedding", type: "vector(1024)", note: "允許 NULL：Indexer 元件先載入條文列、再回填向量", mark: true },
             { name: "embedding_model", type: "text", note: "換模型時可辨識殘留資料" },
             { name: "l1_codes", type: "text[]", note: "多值", mark: true },
             { name: "l2_codes", type: "text[]", note: "多值", mark: true },
@@ -1036,7 +1036,7 @@ function TasksPage({ dark }: CustomSlideProps) {
           {
             tag: "API 1",
             icon: "settings",
-            title: "Indexer 模組",
+            title: "Indexer 元件",
             desc: "收進 NestJS，管理端 command／endpoint 觸發，可重跑（ON CONFLICT DO UPDATE）",
             tone: "blue",
           },
@@ -1197,7 +1197,7 @@ const deck: Deck = {
       vizWidth: 1160,
       vizLabel: "@ai-visualize · poc-l1l3-retrieval-architecture",
       vizHint:
-        "最上層 UI（Vite + React）送出白話問句；左側 API（NestJS 常駐服務）內部並排 Indexer 模組（管理端觸發、非常駐流程，把法條與總表寫入向量與結構化資料）與查詢流程（Question → Embedding → Top-K 檢索 → Mapping → 風險分析報告）；右側 PostgreSQL + pgvector 是建庫與查詢共用的唯一交棒點。查詢流程前四步只用 mistral-embed，只有最後一步的風險分析報告碰生成式 LLM——那是 L4~L8 規格未到的暫代做法。",
+        "最上層 UI（Vite + React）送出白話問句；左側 API（NestJS 常駐服務）內部並排 Indexer 元件（管理端觸發、非常駐流程，把法條與總表寫入向量與結構化資料）與查詢流程（Question → Embedding → Top-K 檢索 → Mapping → 風險分析報告）；右側 PostgreSQL + pgvector 是建庫與查詢共用的唯一交棒點。查詢流程前四步只用 mistral-embed，只有最後一步的風險分析報告碰生成式 LLM——那是 L4~L8 規格未到的暫代做法。",
     },
     {
       layout: "custom",

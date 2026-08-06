@@ -4,23 +4,23 @@ import {
   Activity,
   BookText,
   Braces,
-  Building2,
   Lock,
   ShieldCheck,
   TriangleAlert,
   UserCog,
+  UserRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 
 /**
- * 系統邊界圖：四個面 × 誰在用 × 暴露面 × PoC 覆蓋到哪。
+ * 系統邊界圖：四個模組 × 誰在用 × 暴露面 × PoC 覆蓋到哪。
  *
- * 核心洞察：主角不是「四個面」，是中間那條信任邊界。線的上方公開在
+ * 核心洞察：主角不是「四個模組」，是中間那條信任邊界。線的上方公開在
  * internet，每一次跨越都得驗身分；線的下方靠網路層擋在門外，根本走不到
- * 驗證那一步。四個面是被這條線分配到兩側的結果，不是四個並列的框。
+ * 驗證那一步。四個模組是被這條線分配到兩側的結果，不是四個並列的框。
  *
- * 版面採泳道圖 × use case 的混血：每一列讀作「誰在用 → 閘門 → 面」，
+ * 版面採泳道圖 × use case 的混血：每一列讀作「誰在用 → 閘門 → 模組」，
  * 閘門刻意畫在**線上而不是框裡**——擋的是「跨越邊界」這個動作。上下泳道
  * 的閘門本質不同（身分 vs 網路層），用 icon 與語彙分開。
  *
@@ -200,7 +200,7 @@ function PocNote({ show, children }: { show: boolean; children: React.ReactNode 
   )
 }
 
-function Face({
+function ModuleCard({
   title,
   chips,
   desc,
@@ -304,11 +304,11 @@ export default function SystemBoundaryMap() {
         <p className="m-0 text-[13.5px] text-[var(--text-muted)]">
           {isPoc ? (
             <>
-              四個面只碰到兩格，而且都只做了半格——
+              四個模組只碰到兩格，而且都只做了半格——
               <b className="text-[var(--orange-600)]">前台那道門還沒裝上</b>。
             </>
           ) : (
-            '三個介面加一組對外 API，各自的閘門與暴露面。'
+            '四個模組——三個有介面，一組是對外 API，各自的閘門與暴露面。'
           )}
         </p>
       </div>
@@ -322,7 +322,7 @@ export default function SystemBoundaryMap() {
 
             {/* 客戶前台 */}
             <Row>
-              <Actor icon={Building2} name="企業客戶" sub="業主／HR" />
+              <Actor icon={UserRound} name="會員" sub="自行註冊／HRM 訂閱" />
               <Connector />
               <Gate
                 kind="identity"
@@ -332,7 +332,7 @@ export default function SystemBoundaryMap() {
                 tone={isPoc ? 'breach' : 'pending'}
               />
               <Connector />
-              <Face
+              <ModuleCard
                 title="客戶前台"
                 chips={<Chip tone="partial">PoC：部分</Chip>}
                 desc="問句進 → 條文、L1~L3 分類、風險分析報告出"
@@ -341,12 +341,12 @@ export default function SystemBoundaryMap() {
                   PoC 只有一頁展示 UI，目的是讓檢索品質被肉眼檢查——
                   <b>不做登入</b>。
                 </PocNote>
-              </Face>
+              </ModuleCard>
             </Row>
 
-            {/* 會員 API：讀 */}
+            {/* 對外 API：讀（會員 key） */}
             <Row dimmed={isPoc}>
-              <Actor icon={Braces} name="產品會員" sub="串接方系統" />
+              <Actor icon={Braces} name="API 串接方" sub="會員 key" />
               <Connector />
               <Gate
                 kind="identity"
@@ -356,7 +356,7 @@ export default function SystemBoundaryMap() {
                 tone="pending"
               />
               <Connector />
-              <Face
+              <ModuleCard
                 title="對外 API · 讀"
                 chips={<Chip tone="none">PoC：不對外</Chip>}
               >
@@ -364,22 +364,22 @@ export default function SystemBoundaryMap() {
                   <ApiItem mode="讀" label="檢索近似條文並取得相關決策樹主題" quota="基礎／進階" />
                   <ApiItem mode="讀" label="風險分析報告" quota="基礎／進階" />
                 </div>
-              </Face>
+              </ModuleCard>
             </Row>
 
-            {/* 管理員 API：寫 */}
+            {/* 對外 API：寫（管理端 key） */}
             <Row dimmed={isPoc} accent>
-              <Actor icon={UserCog} name="產品管理員" sub="顧問師等" accent />
+              <Actor icon={UserCog} name="API 串接方" sub="管理端 key" accent />
               <Connector accent />
               <Gate
                 kind="identity"
-                name="管理員驗證"
-                detail="不該與會員 API 共用"
+                name="管理端驗證"
+                detail="不該與會員 key 共用"
                 status="未定案"
                 tone="pending"
               />
               <Connector accent />
-              <Face
+              <ModuleCard
                 title="對外 API · 寫"
                 accent
                 chips={
@@ -393,9 +393,9 @@ export default function SystemBoundaryMap() {
                   <ApiItem mode="寫" label="法條與決策樹主題 Embedding" quota="僅管理員" />
                 </div>
                 <PocNote show={isPoc}>
-                  PoC 的 Embedding 只由 API 服務內的 <b>Indexer 模組</b>觸發，還沒開成對外 API。
+                  PoC 的 Embedding 只由 API 內的 <b>Indexer 元件</b>觸發，還沒開成對外 API。
                 </PocNote>
-              </Face>
+              </ModuleCard>
             </Row>
           </section>
 
@@ -440,7 +440,7 @@ export default function SystemBoundaryMap() {
                 tone="pending"
               />
               <Connector />
-              <Face
+              <ModuleCard
                 title="法條管理後台"
                 chips={
                   <>
@@ -453,12 +453,12 @@ export default function SystemBoundaryMap() {
                 <PocNote show={isPoc}>
                   PoC 只有 Indexer 那一段；<b>制定與編修先用 Excel 頂著</b>，沒有後台介面。
                 </PocNote>
-              </Face>
+              </ModuleCard>
             </Row>
 
             {/* 運維管理後台 */}
             <Row>
-              <Actor icon={Activity} name="IT" sub="運維" />
+              <Actor icon={Activity} name="系統管理者" sub="運維" />
               <Connector />
               <Gate
                 kind="network"
@@ -468,7 +468,7 @@ export default function SystemBoundaryMap() {
                 tone="pending"
               />
               <Connector />
-              <Face
+              <ModuleCard
                 title="運維管理後台"
                 chips={
                   <>
@@ -481,7 +481,7 @@ export default function SystemBoundaryMap() {
                 <PocNote show={isPoc}>
                   PoC 只有 self-host <b>Langfuse 自己的介面</b>，沒有另做後台。
                 </PocNote>
-              </Face>
+              </ModuleCard>
             </Row>
           </section>
 
@@ -496,7 +496,7 @@ export default function SystemBoundaryMap() {
         </li>
         <li className="flex items-center gap-2.5">
           <span className="w-6 shrink-0 border-t-2 border-[var(--neutral-400)]" />
-          誰在用 → 閘門 → 面
+          誰在用 → 閘門 → 模組
         </li>
         <li className="flex items-center gap-2.5">
           <span className="h-3.5 w-5 shrink-0 rounded-[var(--radius-sm)] border border-dashed border-[var(--warning-500)] bg-[var(--warning-50)]" />
