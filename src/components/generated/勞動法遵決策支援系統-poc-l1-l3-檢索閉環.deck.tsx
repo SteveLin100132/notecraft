@@ -1,14 +1,14 @@
 // deck 資料模組：對應筆記 勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx。
 //
 // 主線：「問句進來、撈相近法條、與總表整合——AI 只在頭尾兩端出現，中間靠規則、
-// 資料庫 CHECK 與四道閘門頂住。」26 頁 / 5 個 PART：範圍目標與邊界、架構與資料結構、
-// 模型治理、驗證、成本與落地。
+// 資料庫 CHECK 與四道閘門頂住。」38 頁 / 14 個 PART —— 每個 section 對應封面 agenda
+// 的一項，標題逐字相同，description 另寫。
 // 4 頁 full-visual／chrome:false 原樣沿用筆記既有的 @ai-visualize 互動元件
 // （poc-l1l3-retrieval-architecture、fallback-degradation-switchboard、
 // system-boundary-map、question-lifecycle-swimlane），其餘 5 個互動元件以
 // CanvasViewport 混排進 custom 頁（旁欄固定 px、畫布 flex:1）。
 //
-// 整頁級原子清單（4 個，皆不重複）：Triad／Layers／Spectrum／Decision。
+// 整頁級原子清單（6 個，皆不重複）：Triad／BeforeAfter／Layers／Roster／Spectrum／Decision。
 // 另有三頁刻意自寫版面而不套整頁級原子，因為內容的形狀本身就是論點：
 //   · 資料結構三頁（兩張表一條 join／扇出統計／CHECK 矩陣）—— 兩欄 schema 卡中間
 //     夾一把一對多的扇子，這個形狀就是「反查怎麼成立」的論證，拆進通用原子會弄丟；
@@ -17,7 +17,20 @@
 //   · AI 介入頁的直立數字軌借 <Kpi> 的視覺語言（<Kpi> 只有橫排、沒有直排選項）。
 import type { CSSProperties, ReactNode } from "react";
 import type { CustomSlideProps, Deck, StatusTone } from "@/lib/decks";
-import { Cards, Chart, Code, Decision, Kpi, Layers, Spectrum, Stages, Table, Triad } from "@/components/deck/blocks";
+import {
+  BeforeAfter,
+  Cards,
+  Chart,
+  Code,
+  Decision,
+  Kpi,
+  Layers,
+  Roster,
+  Spectrum,
+  Stages,
+  Table,
+  Triad,
+} from "@/components/deck/blocks";
 import { DGAP, DS, DTRACK } from "@/components/deck/scale";
 import { dkt } from "@/components/deck/theme";
 import type { DeckThemeTokens } from "@/components/deck/theme";
@@ -190,6 +203,31 @@ function ScopeLadderPage({ dark, live, play, area, outerScale }: CustomSlideProp
   );
 }
 
+// ── PART 01 · 原設計 vs 這一版：範圍反而變小 ─────────────────────────────────
+// 對應筆記〈PoC 範圍〉那張七列對照表。值刻意壓成短詞（<BeforeAfter> 的值走 DS.h3，
+// 是為指標值設計的），語境放進 lead / takeaway / callout。
+// 原表的「前端」與「可觀測性」都是「無 → 新增」，合併成一列，六列剛好貼齊上限。
+
+function ScopeBeforeAfterPage({ dark }: CustomSlideProps) {
+  return (
+    <BeforeAfter
+      dark={dark}
+      beforeLabel="原設計（範圍那篇）"
+      afterLabel="這一版 PoC"
+      lead="缺口補上之後，PoC 的核心反而縮小了——《L1~L3+L6 總表》一到手，分類這件事被反查掉，不必再讓模型去猜。"
+      rows={[
+        { label: "L1–L3 分類", before: "LLM 分類", after: "反查總表" },
+        { label: "L6 條文檢索", before: "向量 ＋ rerank", after: "向量檢索" },
+        { label: "L4–L8", before: "照規格實作", after: "不做" },
+        { label: "報告輸出", before: "L9 受控報告", after: "自撰 prompt" },
+        { label: "生成式 LLM", before: "Claude 或同級", after: "Codex 5.6 Luna" },
+        { label: "前端與可觀測性", before: "無", after: "UI ＋ Langfuse" },
+      ]}
+      takeaway="縮小的是核心，長出來的是外圍：一個讓檢索結果看得見的 UI，加一段替尚未交付的 L4~L8 規格暫時頂著的報告 prompt。"
+    />
+  );
+}
+
 // ── PART 01 · PoC 目標：三個元件各司其職 ────────────────────────────────────
 
 function GoalsTriadPage({ dark }: CustomSlideProps) {
@@ -325,7 +363,29 @@ function PermissionPage({ dark, live, play, area, outerScale }: CustomSlideProps
   );
 }
 
-// ── PART 02 · 五個元件，五組選型 ────────────────────────────────────────────
+// ── PART 04 · 四個角色：三個是人，一個是機器 ────────────────────────────────
+// 對應筆記〈帳號與權限 › 四個角色〉。四個角色彼此沒有先後、也不是流程，
+// 是圍著同一套系統的不同入口 —— 正是 <Roster> 的「一個中心 + 一圈角色」。
+
+function RolesRosterPage({ dark, area }: CustomSlideProps) {
+  return (
+    <Roster
+      dark={dark}
+      width={area.w}
+      height={area.h}
+      center={{ label: "法遵決策系統", note: "四個角色，各自守著不同的模組" }}
+      lead="第四個是這份推估加的：API 的呼叫者是一組 credential，沒有密碼重設、沒有離職停用，卻需要輪替與撤銷。"
+      actors={[
+        { label: "會員", role: "人 · 客戶前台；PoC 無登入", icon: "user" },
+        { label: "顧問師", role: "人 · 法條管理後台；編修用 Excel", icon: "users" },
+        { label: "系統管理者", role: "人 · 運維後台；只有 Langfuse 帳號", icon: "settings" },
+        { label: "API 串接方", role: "機器 · 代表某個會員；PoC 不對外", icon: "plug" },
+      ]}
+    />
+  );
+}
+
+// ── PART 05 · 五個元件，五組選型 ────────────────────────────────────────────
 
 function StackPage({ dark }: CustomSlideProps) {
   return (
@@ -1102,45 +1162,100 @@ function TwoDecksDecisionPage({ dark }: CustomSlideProps) {
   );
 }
 
-// ── PART 04 · Token 與成本 · 下次會議交付清單 ───────────────────────────────
+// ── PART 12 · Token 與成本：還沒有數字，但知道從哪來 ─────────────────────────
+// 這一節在筆記裡大部分「待補」，所以刻意不堆字、也不編造任何金額。
+// 版面就是「已經在記的 / 還沒有的」兩欄對照，左邊一個 0 當定錨。
 
-function CostAndDeliverablesPage({ dark }: CustomSlideProps) {
+function CostLane({
+  c,
+  heading,
+  items,
+  tone,
+  dashed,
+}: {
+  c: DeckThemeTokens;
+  heading: string;
+  items: string[];
+  tone: string;
+  dashed?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        gap: DGAP.xs,
+        padding: DGAP.sm,
+        borderRadius: "var(--radius-lg)",
+        border: `1px ${dashed ? "dashed" : "solid"} ${tone}`,
+      }}
+    >
+      <span style={{ flex: "none", fontSize: DS.h4, fontWeight: 900, color: c.ink }}>{heading}</span>
+      {items.map((t) => (
+        <div key={t} style={{ display: "flex", alignItems: "baseline", gap: DGAP.xs }}>
+          <span style={{ flex: "none", width: 6, height: 6, borderRadius: 999, background: tone, marginTop: 8 }} />
+          <span style={{ fontSize: DS.body, lineHeight: 1.5, color: c.body }}>{t}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CostPage({ dark }: CustomSlideProps) {
   const c = dkt(dark);
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.lg }}>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: DGAP.sm, minHeight: 0 }}>
-        <ColHead c={c} text="Token 與成本：還沒到位的三件事" />
-        <Kpi
-          dark={dark}
-          style={{ flex: "none" }}
-          items={[{ label: "確定的成本數字", value: "0", sub: "待補", tone: "muted", emphasis: true }]}
-        />
-        <p style={{ margin: 0, fontSize: DS.body, lineHeight: 1.6, color: c.body }}>
-          數字從 Langfuse trace 來：單次報告的 token 用量、延遲、失敗率都在 trace 裡，不必另外埋計數器。
-        </p>
-        <p style={{ margin: 0, fontSize: DS.body, lineHeight: 1.6, color: c.body }}>
-          embedding 那段不記，所以這裡只涵蓋報告生成。
-        </p>
-        <p style={{ margin: 0, fontSize: DS.body, lineHeight: 1.6, color: c.body }}>
-          待補：單次與月度成本估算、使用者月限額。
-        </p>
-      </div>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: DGAP.sm, minHeight: 0 }}>
-        <ColHead c={c} text="下次會議交付清單：8 項 6 項到位" />
-        <Table
-          dark={dark}
-          style={{ flex: 1, minHeight: 0 }}
-          head={["# · 主題", "狀態"]}
-          rows={[
-            [{ text: "1 系統邊界" }, { text: "已完成", tone: "good" }],
-            [{ text: "2 帳號與權限" }, { text: "推估待對齊", tone: "warning" }],
-            [{ text: "3 技術棧 · 4 AI 介入" }, { text: "已完成", tone: "good" }],
-            [{ text: "5 測試策略 · 6 Token 與成本 · 7 安全與稽核" }, { text: "已完成", tone: "good" }],
-            [{ text: "8 RAG 預留" }, { text: "未開始", tone: "muted" }],
+      <Kpi
+        dark={dark}
+        style={{ flex: "none", width: 360 }}
+        items={[{ label: "確定的成本數字", value: "0", sub: "單次與月度估算都還沒算", tone: "muted", emphasis: true }]}
+      />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: DGAP.md, minHeight: 0 }}>
+        <CostLane
+          c={c}
+          tone={c.brand}
+          heading="已經在記的 —— 都在 Langfuse trace 裡"
+          items={[
+            "單次報告的 token 用量",
+            "延遲與失敗率，不必另外埋計數器",
+            "模型版本與 Prompt 版本，換版可回頭比對輸出差異",
           ]}
+        />
+        <CostLane
+          c={c}
+          tone={c.warning}
+          dashed
+          heading="還沒有的 —— 待補"
+          items={["單次成本估算", "月度成本估算", "使用者月限額與濫用防護"]}
         />
       </div>
     </div>
+  );
+}
+
+// ── PART 14 · 下次會議交付清單 ──────────────────────────────────────────────
+// 獨立成頁之後寬度夠了，八項各自具名、不再分組壓列。
+
+function DeliverablesPage({ dark }: CustomSlideProps) {
+  return (
+    <Table
+      dark={dark}
+      style={{ flex: 1, minHeight: 0 }}
+      head={["#", "主題", "下次會議產出", "狀態"]}
+      rows={[
+        [{ text: "1" }, { text: "系統邊界" }, { text: "一張系統架構圖" }, { text: "已完成", tone: "good" }],
+        [{ text: "2" }, { text: "帳號與權限" }, { text: "角色 × 功能 × 資料權限表（崴仁提供）" }, { text: "推估待對齊", tone: "warning" }],
+        [{ text: "3" }, { text: "技術棧" }, { text: "推薦方案 ＋ 備選方案" }, { text: "已完成", tone: "good" }],
+        [{ text: "4" }, { text: "AI 介入" }, { text: "AI 介面規格草案" }, { text: "已完成", tone: "good" }],
+        [{ text: "5" }, { text: "測試策略" }, { text: "評測指標與 20 個代表性案例" }, { text: "已完成", tone: "good" }],
+        [{ text: "6" }, { text: "Token 與成本" }, { text: "單次與月度成本估算" }, { text: "已完成", tone: "good" }],
+        [{ text: "7" }, { text: "安全與稽核" }, { text: "紀錄與稽核欄位清單" }, { text: "已完成", tone: "good" }],
+        [{ text: "8" }, { text: "RAG 預留" }, { text: "後續知識庫欄位與事件紀錄" }, { text: "未開始", tone: "muted" }],
+      ]}
+    />
   );
 }
 
@@ -1213,7 +1328,7 @@ const deck: Deck = {
       eyebrow: "PoC · 勞動法遵決策支援系統",
       title: "收斂到 L1–L3",
       subtitle: "問句進來、撈相近法條、與總表整合——AI 只在頭尾兩端出現，中間靠規則、資料庫 CHECK 與四道閘門頂住",
-      meta: ["由 勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx 生成", "26 頁 · 16:9"],
+      meta: ["由 勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx 生成", "38 頁 · 16:9"],
       agenda: [
         { n: "01", title: "PoC 範圍", sub: "只做 L1–L3，L4 以後不做" },
         { n: "02", title: "PoC 目標", sub: "三個元件各自要達成的事" },
@@ -1234,11 +1349,11 @@ const deck: Deck = {
 
     {
       layout: "section",
-      nav: "章節：範圍、目標與邊界",
+      nav: "章節：PoC 範圍",
       num: "01",
-      eyebrow: "SCOPE & BOUNDARY",
-      title: "範圍、目標與邊界，三層收斂",
-      subtitle: "L1–L3 由 L6 反查；讀寫分兩側；權限由三個『不做』撐出簡單",
+      eyebrow: "SCOPE",
+      title: "PoC 範圍",
+      subtitle: "缺口補上之後核心反而變小：總表一到手，分類被反查掉；L4 以後整段不做，生成式模型只留在最末端一段暫代報告",
     },
     {
       layout: "custom",
@@ -1256,9 +1371,33 @@ const deck: Deck = {
     },
     {
       layout: "custom",
-      nav: "PoC 目標：三個元件各司其職",
+      nav: "原設計 vs 這一版",
       num: "01",
-      eyebrow: "PART 01 · PoC 目標",
+      eyebrow: "PART 01 · PoC 範圍",
+      title: "七件事，只有兩件是加法",
+      titleNote: "其餘五件都在把原設計往回收",
+      render: ScopeBeforeAfterPage,
+      callout: {
+        icon: "info",
+        tone: "warning",
+        chip: "rerank 延後",
+        text: "L4~L8 的規格顧問師還沒交，必要事實追問、地雷判定、介入程度目前都還是空的——等規格會讓這一版停在「回傳一包 JSON」，看不出東西。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：PoC 目標",
+      num: "02",
+      eyebrow: "GOALS",
+      title: "PoC 目標",
+      subtitle: "Vector Database、API、UI 各完成一件事；UI 是拿來讓檢索品質被肉眼檢查的，談不上產品雛形",
+    },
+    {
+      layout: "custom",
+      nav: "PoC 目標：三個元件各司其職",
+      num: "02",
+      eyebrow: "PART 02 · PoC 目標",
       title: "三個元件，各自完成一件事",
       titleNote: "跟前一版最大差別：Indexer 不再是獨立 CLI，收進 API",
       render: GoalsTriadPage,
@@ -1269,6 +1408,15 @@ const deck: Deck = {
         text: "Indexer 收進 API 之後，embedding 設定只有一份——模型名稱、維度、切塊規則不會在兩支程式裡各寫一次然後悄悄長歪。",
       },
     },
+
+    {
+      layout: "section",
+      nav: "章節：系統邊界",
+      num: "03",
+      eyebrow: "BOUNDARY",
+      title: "系統邊界",
+      subtitle: "四個模組、三支 API，PoC 只碰到兩格而且都只做了半格；會改動向量庫的入口一個都不在線上方",
+    },
     {
       layout: "custom",
       nav: "系統邊界：讀寫分兩側",
@@ -1278,8 +1426,8 @@ const deck: Deck = {
     {
       layout: "custom",
       nav: "系統邊界：讀寫分兩層",
-      num: "01",
-      eyebrow: "PART 01 · 系統邊界",
+      num: "03",
+      eyebrow: "PART 03 · 系統邊界",
       title: "這條邊界切的不是模組，是讀寫",
       titleNote: "線上方只讀得到東西，會改動向量庫的入口一個都不在線上方",
       render: BoundaryLayersPage,
@@ -1291,10 +1439,37 @@ const deck: Deck = {
       footnotes: [{ n: "1", text: "前台驗證方案（JWT／OAuth／SSO）與限定 IP 的實作手段（VPN／IAP／allowlist）都未定案" }],
     },
     {
+      layout: "section",
+      nav: "章節：帳號與權限",
+      num: "04",
+      eyebrow: "ROLES & ACCESS",
+      title: "帳號與權限",
+      subtitle: "四個角色、六條資料權限，單純是三個「不做」撐出來的；崴仁的權限表還沒交，這一節整段是推估",
+    },
+    {
+      layout: "custom",
+      nav: "四個角色：三人一機",
+      num: "04",
+      eyebrow: "PART 04 · 帳號與權限",
+      title: "三個是人，一個是機器",
+      titleNote: "會員的來源可能是自行註冊或 HRM 訂閱，資料範圍完全相同，差別只在配額",
+      render: RolesRosterPage,
+      callout: {
+        icon: "lock",
+        tone: "warning",
+        chip: "全站最寬的讀取權",
+        text: "跨會員的問句只有一條路看得到：Langfuse，而只有系統管理者進得去。他改不動任何東西，卻讀得到所有人的東西——這裡的「唯讀」不是最小權限。",
+      },
+      footnotes: [
+        { n: "1", text: "沒有企業帳號層：系統評估的是外部法律、不是企業內部工作規則，問句只屬於問的那個人" },
+        { n: "2", text: "顧問師進系統提問時就是一般會員；要讓他憑會員問句協助個案，得新增一套機制，調一格權限做不到" },
+      ],
+    },
+    {
       layout: "custom",
       nav: "帳號與權限：三個『不做』撐出簡單",
-      num: "01",
-      eyebrow: "PART 01 · 帳號與權限",
+      num: "04",
+      eyebrow: "PART 04 · 帳號與權限",
       title: "單純的權限表，是設計出來的",
       titleNote: "崴仁的角色×功能×資料權限表尚未交付，這是推估版本",
       render: PermissionPage,
@@ -1307,17 +1482,17 @@ const deck: Deck = {
 
     {
       layout: "section",
-      nav: "章節：架構與資料結構",
-      num: "02",
-      eyebrow: "ARCHITECTURE & DATA",
-      title: "一個模型，兩張表",
-      subtitle: "UI 進、API 出，一庫交棒；兩張表一條 join，反查不需要模型",
+      nav: "章節：技術棧",
+      num: "05",
+      eyebrow: "STACK",
+      title: "技術棧",
+      subtitle: "PostgreSQL + pgvector、NestJS + LangChain + mistral-embed、Vite + React；生成式模型只掛在報告那一段",
     },
     {
       layout: "full-visual",
       nav: "技術架構圖",
-      num: "02",
-      eyebrow: "PART 02 · 技術架構",
+      num: "05",
+      eyebrow: "PART 05 · 技術棧",
       title: "UI 進、API 出，一庫交棒",
       viz: PocL1L3RetrievalArchitecture,
       vizLabel: "@ai-visualize · poc-l1l3-retrieval-architecture",
@@ -1327,8 +1502,8 @@ const deck: Deck = {
     {
       layout: "custom",
       nav: "五個元件，五組選型",
-      num: "02",
-      eyebrow: "PART 02 · 技術選型",
+      num: "05",
+      eyebrow: "PART 05 · 技術棧",
       title: "五個元件，五組選型",
       titleNote: "生成式模型與可觀測性都是新增，不在原設計裡",
       render: StackPage,
@@ -1340,10 +1515,18 @@ const deck: Deck = {
       },
     },
     {
+      layout: "section",
+      nav: "章節：PoC 資料結構",
+      num: "06",
+      eyebrow: "DATA",
+      title: "PoC 資料結構",
+      subtitle: "兩張表：labor_articles 存法條與向量，decision_tree 存 85 列決策樹；反查是一條 GIN 索引的陣列比對",
+    },
+    {
       layout: "custom",
       nav: "兩張表，一條 join",
-      num: "02",
-      eyebrow: "PART 02 · 資料結構",
+      num: "06",
+      eyebrow: "PART 06 · PoC 資料結構",
       title: "兩張表，一條 join",
       titleNote: "labor_articles 存法條與向量，decision_tree 存 85 列決策樹",
       render: SchemaJoinPage,
@@ -1356,8 +1539,8 @@ const deck: Deck = {
     {
       layout: "custom",
       nav: "為什麼一定得是陣列欄位",
-      num: "02",
-      eyebrow: "PART 02 · 資料結構",
+      num: "06",
+      eyebrow: "PART 06 · PoC 資料結構",
       title: "為什麼一定得是陣列欄位",
       titleNote: "把 85 列攤開之後看到的形狀",
       render: FanoutPage,
@@ -1370,8 +1553,8 @@ const deck: Deck = {
     {
       layout: "custom",
       nav: "地雷數是算出來的",
-      num: "02",
-      eyebrow: "PART 02 · 資料結構",
+      num: "06",
+      eyebrow: "PART 06 · PoC 資料結構",
       title: "地雷數不是資料，是算出來的",
       titleNote: "所以用 CHECK 守住，而不是相信載入的人",
       render: CheckPage,
@@ -1385,17 +1568,17 @@ const deck: Deck = {
 
     {
       layout: "section",
-      nav: "章節：模型治理",
-      num: "03",
+      nav: "章節：AI 介入",
+      num: "07",
       eyebrow: "AI GOVERNANCE",
-      title: "AI 只在頭尾兩端出現",
-      subtitle: "四道閘門只有一道是 AI；每一種失敗都退到下一層仍交得出東西",
+      title: "AI 介入",
+      subtitle: "十四個節點只有三個碰模型：入口的 G1 意圖判定、出口的 L9 報告與 L10 顧問推薦；中間整段走規則引擎",
     },
     {
       layout: "custom",
       nav: "AI 只在頭尾兩端",
-      num: "03",
-      eyebrow: "PART 03 · AI 介入",
+      num: "07",
+      eyebrow: "PART 07 · AI 介入",
       title: "14 個節點，只有 3 個碰模型",
       titleNote: "G1 判意圖、L9 寫報告、L10 顧問推薦（不做）",
       render: PipelinePage,
@@ -1406,10 +1589,18 @@ const deck: Deck = {
       },
     },
     {
+      layout: "section",
+      nav: "章節：安全與稽核",
+      num: "08",
+      eyebrow: "SECURITY & AUDIT",
+      title: "安全與稽核",
+      subtitle: "擋提示注入的主力是砍掉模型的權限面，禁止語句只是輔助；四道閘門裡真正兜底的 G2 與 G3 都不經模型",
+    },
+    {
       layout: "custom",
       nav: "安全：追一句話穿過四道閘門",
-      num: "03",
-      eyebrow: "PART 03 · 安全與稽核",
+      num: "08",
+      eyebrow: "PART 08 · 安全與稽核",
       title: "三類威脅，模型的權限面被砍掉",
       titleNote: "禁止語句只是輔助，真正的防線是 context 裡沒東西可洩",
       render: SecurityGatePage,
@@ -1424,8 +1615,8 @@ const deck: Deck = {
     {
       layout: "custom",
       nav: "四道閘門：只有一道是 AI",
-      num: "03",
-      eyebrow: "PART 03 · 安全與稽核",
+      num: "08",
+      eyebrow: "PART 08 · 安全與稽核",
       title: "四道閘門，只有一道是 AI",
       titleNote: "便宜的擋前面；兜底的 G2 與 G3 都不經模型",
       render: GatesSpectrumPage,
@@ -1436,15 +1627,31 @@ const deck: Deck = {
       },
     },
     {
+      layout: "section",
+      nav: "章節：失敗降級",
+      num: "09",
+      eyebrow: "FALLBACK",
+      title: "失敗降級",
+      subtitle: "模型會逾時、會回傳不合 schema 的東西——每一種失敗都要有預先決定好的退路，而且每次降級都要留下紀錄",
+    },
+    {
       layout: "full-visual",
       nav: "扳故障開關，看結果一層層剝落",
-      num: "03",
-      eyebrow: "PART 03 · 失敗降級",
+      num: "09",
+      eyebrow: "PART 09 · 失敗降級",
       title: "降級不是壞掉，是退到下一層",
       viz: FallbackDegradationSwitchboard,
       vizLabel: "@ai-visualize · fallback-degradation-switchboard",
       vizHint:
         "四個故障開關對應四種失敗情境：分類模型逾時／schema 驗證失敗 → 退回純反查；信心低於門檻 → 列 2–3 候選待確認；完全無命中 → 走 unclassified 出口；報告模型失敗 → 退回結構化 JSON。可複選，右欄按最嚴重者呈現；每一次降級都寫進 Langfuse trace，標上降級原因。",
+    },
+    {
+      layout: "section",
+      nav: "章節：一次提問的完整路徑",
+      num: "10",
+      eyebrow: "LIFECYCLE",
+      title: "一次提問的完整路徑",
+      subtitle: "把前面幾節拼回同一張圖：一次提問會走過哪些格子、在哪裡可能被攔下來、攔下來之後還剩下什麼",
     },
     {
       layout: "custom",
@@ -1455,17 +1662,17 @@ const deck: Deck = {
 
     {
       layout: "section",
-      nav: "章節：驗證",
-      num: "04",
+      nav: "章節：測試策略",
+      num: "11",
       eyebrow: "VALIDATION",
-      title: "先猜再驗證",
-      subtitle: "一半以上的『通過』是反直覺的",
+      title: "測試策略",
+      subtitle: "能測的只有兩端：L6 檢索撈得準不準、L9 報告有沒有守規矩；兩份題庫的差別不在答案，在問句的語域",
     },
     {
       layout: "custom",
       nav: "七題先猜再驗證",
-      num: "04",
-      eyebrow: "PART 04 · 測試策略",
+      num: "11",
+      eyebrow: "PART 11 · 測試策略",
       title: "一半以上的『通過』是反直覺的",
       render: QuizPage,
       callout: {
@@ -1477,8 +1684,8 @@ const deck: Deck = {
     {
       layout: "custom",
       nav: "為什麼兩份題庫都要跑",
-      num: "04",
-      eyebrow: "PART 04 · 測試策略",
+      num: "11",
+      eyebrow: "PART 11 · 測試策略",
       title: "為什麼兩份題庫都要跑",
       titleNote: "只跑 A 卷分數會很好看，然後上線第一天被打臉",
       render: TwoDecksDecisionPage,
@@ -1491,32 +1698,41 @@ const deck: Deck = {
 
     {
       layout: "section",
-      nav: "章節：成本與落地",
-      num: "05",
-      eyebrow: "COST & NEXT",
-      title: "誠實的『還沒有』，與六步落地",
-      subtitle: "Token 數字待補；六步走完，就是這一版的全部",
+      nav: "章節：Token 與成本",
+      num: "12",
+      eyebrow: "COST",
+      title: "Token 與成本",
+      subtitle: "數字從 Langfuse trace 來，不必另外埋計數器；但單次與月度估算、使用者月限額目前都還是空的",
     },
     {
       layout: "custom",
-      nav: "還沒到位的三件事 + 8 項交付狀態",
-      num: "05",
-      eyebrow: "PART 05 · Token 與成本 · 下次會議交付清單",
-      title: "還沒到位的三件事，六項已完成",
-      titleNote: "依 2026/8/3 李總線上顧問輔導會議紀錄",
-      render: CostAndDeliverablesPage,
+      nav: "還沒有數字，但知道從哪來",
+      num: "12",
+      eyebrow: "PART 12 · Token 與成本",
+      title: "還沒有數字，但知道從哪來",
+      titleNote: "這一節談的成本只涵蓋報告生成——embedding 那段不記",
+      render: CostPage,
       callout: {
-        icon: "check",
-        tone: "good",
-        chip: "6/8 已完成",
-        text: "只剩帳號與權限（等崴仁的表對齊）與 RAG 預留（下一版才開始）兩項。",
+        icon: "info",
+        tone: "warning",
+        chip: "待補",
+        text: "單次與月度成本估算、使用者月限額都還沒算。硬湊一個數字出來，不如誠實標成空的。",
       },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：PoC 任務拆解",
+      num: "13",
+      eyebrow: "NEXT",
+      title: "PoC 任務拆解",
+      subtitle: "五步走完就是這一版的全部；Runbook 不是最後才補的文件，它逼你把手動做過的每一步寫下來",
     },
     {
       layout: "custom",
       nav: "五步走完，就是這一版的全部",
-      num: "05",
-      eyebrow: "PART 05 · PoC 任務拆解",
+      num: "13",
+      eyebrow: "PART 13 · PoC 任務拆解",
       title: "五步走完，就是這一版的全部",
       titleNote: "Runbook 不是最後才補的文件",
       render: TasksRailPage,
@@ -1524,6 +1740,30 @@ const deck: Deck = {
         icon: "file",
         tone: "orange",
         text: "Runbook 的價值不在文件本身，在逼你把手動做過的每一步寫下來——沒寫下來的那幾步，就是之後重建環境時卡住的地方。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：下次會議交付清單",
+      num: "14",
+      eyebrow: "DELIVERABLES",
+      title: "下次會議交付清單",
+      subtitle: "依 2026/8/3 李總線上顧問輔導會議紀錄，工程端要備妥八項：六項已完成、一項推估待對齊、一項未開始",
+    },
+    {
+      layout: "custom",
+      nav: "8 項交付，6 項已完成",
+      num: "14",
+      eyebrow: "PART 14 · 下次會議交付清單",
+      title: "8 項交付，6 項已完成",
+      titleNote: "依 2026/8/3 李總線上顧問輔導會議紀錄",
+      render: DeliverablesPage,
+      callout: {
+        icon: "check",
+        tone: "good",
+        chip: "6/8 已完成",
+        text: "只剩帳號與權限（等崴仁的表對齊）與 RAG 預留（下一版才開始）兩項。",
       },
     },
 
