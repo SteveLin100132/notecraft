@@ -77,42 +77,71 @@ function AccentRule({ width = 120, height = 7, margin }: { width?: number; heigh
 
 // ── cover ───────────────────────────────────────────────────
 
-function CoverAgenda({ items }: { items: NonNullable<CoverSlide["agenda"]> }) {
+/**
+ * 超過這個數量的 agenda 改成兩欄（欄內由上往下讀，讀完左欄再讀右欄）。
+ * 單欄放到 8 條就會逼近 900px 版高，帶 `sub` 時更早滿。
+ */
+const AGENDA_TWO_COL_AT = 8;
+
+function CoverAgendaItem({ it }: { it: NonNullable<CoverSlide["agenda"]>[number] }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: DGAP.md, minWidth: 480 }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: DGAP.sm }}>
+      <span
+        style={{
+          flex: "none",
+          fontFamily: "var(--font-mono)",
+          fontSize: DS.h4,
+          fontWeight: 900,
+          lineHeight: 1.2,
+          color: "rgba(255,255,255,0.42)",
+        }}
+      >
+        {it.n}
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: DS.h3, fontWeight: 800, lineHeight: 1.3, color: "var(--neutral-0)" }}>{it.title}</div>
+        {it.sub && (
+          <div style={{ fontSize: DS.small, lineHeight: 1.5, color: "rgba(255,255,255,0.66)", marginTop: 4 }}>
+            {it.sub}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CoverAgenda({ items }: { items: NonNullable<CoverSlide["agenda"]> }) {
+  const twoCol = items.length >= AGENDA_TWO_COL_AT;
+  const rows = twoCol ? Math.ceil(items.length / 2) : items.length;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: DGAP.md, minWidth: twoCol ? 720 : 480 }}>
       <div style={{ fontSize: DS.eyebrow, fontWeight: 700, letterSpacing: DTRACK.label, color: "var(--orange-300)" }}>
         AGENDA
       </div>
-      {items.map((it) => (
-        <div key={it.n} style={{ display: "flex", alignItems: "flex-start", gap: DGAP.sm }}>
-          <span
-            style={{
-              flex: "none",
-              fontFamily: "var(--font-mono)",
-              fontSize: DS.h4,
-              fontWeight: 900,
-              lineHeight: 1.2,
-              color: "rgba(255,255,255,0.42)",
-            }}
-          >
-            {it.n}
-          </span>
-          <div>
-            <div style={{ fontSize: DS.h3, fontWeight: 800, lineHeight: 1.3, color: "var(--neutral-0)" }}>{it.title}</div>
-            {it.sub && (
-              <div style={{ fontSize: DS.small, lineHeight: 1.5, color: "rgba(255,255,255,0.66)", marginTop: 4 }}>
-                {it.sub}
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+      <div
+        style={{
+          display: "grid",
+          // 兩欄時走 column flow，讓 01→07 落在左欄、08→14 落在右欄（而不是左右交錯）
+          gridAutoFlow: twoCol ? "column" : "row",
+          gridTemplateRows: `repeat(${rows}, auto)`,
+          gridTemplateColumns: twoCol ? "1fr 1fr" : "1fr",
+          columnGap: DGAP.xl,
+          rowGap: DGAP.md,
+        }}
+      >
+        {items.map((it) => (
+          <CoverAgendaItem key={it.n} it={it} />
+        ))}
+      </div>
     </div>
   );
 }
 
 function LayoutCover({ s, dark }: LayoutProps<CoverSlide>) {
   const hasAgenda = Boolean(s.agenda?.length);
+  // 兩欄 agenda 要吃掉更多寬度，標題欄相應讓位（1392 可用寬 − 64 gap − 720 agenda）
+  const wideAgenda = (s.agenda?.length ?? 0) >= AGENDA_TWO_COL_AT;
   return (
     <div
       style={{
@@ -129,7 +158,7 @@ function LayoutCover({ s, dark }: LayoutProps<CoverSlide>) {
       <div style={{ position: "absolute", right: -120, top: -140, width: 560, height: 560, borderRadius: 999, background: "rgba(255,255,255,0.06)" }} />
       <div style={{ position: "absolute", right: 150, bottom: -230, width: 420, height: 420, borderRadius: 999, background: "rgba(237,155,38,0.16)" }} />
 
-      <div style={{ position: "relative", flex: 1, maxWidth: hasAgenda ? 820 : 1080 }}>
+      <div style={{ position: "relative", flex: 1, maxWidth: hasAgenda ? (wideAgenda ? 560 : 820) : 1080 }}>
         <Eyebrow text={s.eyebrow} dark={dark} onBrand />
         <h1
           style={{

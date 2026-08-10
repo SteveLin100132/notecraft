@@ -1,37 +1,84 @@
 // deck 資料模組：對應筆記 勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx。
 //
-// 主線：「總表到手之後，PoC 不是變大，是變小 —— 分類是檢索的副產物，主線（檢索＋分類）
-// 全程不碰生成式模型；唯一的例外是最末端的風險分析報告，且是 L4~L8 規格未到的暫代做法。」
-// 八個 custom 頁各自承載一個完整論證（收斂階梯 / 報告例外的決策記錄 / 反查走查 /
-// 四組選型 / 兩表 join / 扇出統計 / CHECK 矩陣 / 六條任務線），一頁 full-visual 原樣沿用
-// 筆記既有的 @ai-visualize 元件 poc-l1l3-retrieval-architecture（播放時可縮放探索）。
+// 主線：「問句進來、撈相近法條、與總表整合——AI 只在頭尾兩端出現，中間靠規則、
+// 資料庫 CHECK 與四道閘門頂住。」38 頁 / 14 個 PART —— 每個 section 對應封面 agenda
+// 的一項，標題逐字相同，description 另寫。
+// 4 頁 full-visual／chrome:false 原樣沿用筆記既有的 @ai-visualize 互動元件
+// （poc-l1l3-retrieval-architecture、fallback-degradation-switchboard、
+// system-boundary-map、question-lifecycle-swimlane），其餘 5 個互動元件以
+// CanvasViewport 混排進 custom 頁（旁欄固定 px、畫布 flex:1）。
 //
-// 反查走查頁（PART 01 最後一頁）建立的「問句 → embedding → Top-K → join → L1/L2/L3」
-// 空間記憶，在任務線頁底部以同一組 chip 重現 —— 讀者只需認一次路。
+// 整頁級原子清單（6 個，皆不重複）：Triad／BeforeAfter／Layers／Roster／Spectrum／Decision。
+// 另有三頁刻意自寫版面而不套整頁級原子，因為內容的形狀本身就是論點：
+//   · 資料結構三頁（兩張表一條 join／扇出統計／CHECK 矩陣）—— 兩欄 schema 卡中間
+//     夾一把一對多的扇子，這個形狀就是「反查怎麼成立」的論證，拆進通用原子會弄丟；
+//   · 安全稽核頁拆解 <Risk> 的三段式資訊架構（威脅／代價／緩解）自寫窄欄卡片，
+//     因為 <Risk> 原生預期全寬，塞進 52/48 分欄會破版；
+//   · AI 介入頁的直立數字軌借 <Kpi> 的視覺語言（<Kpi> 只有橫排、沒有直排選項）。
 import type { CSSProperties, ReactNode } from "react";
-import { ArrowRight, X as XIcon, User } from "lucide-react";
-import type { CustomSlideProps, Deck } from "@/lib/decks";
-import { Cards, Chart, Code, Decision, Kpi, Rows, Stages, Table } from "@/components/deck/blocks";
+import type { CustomSlideProps, Deck, StatusTone } from "@/lib/decks";
+import {
+  BeforeAfter,
+  Cards,
+  Chart,
+  Code,
+  Decision,
+  Kpi,
+  Layers,
+  Roster,
+  Spectrum,
+  Stages,
+  Table,
+  Triad,
+} from "@/components/deck/blocks";
 import { DGAP, DS, DTRACK } from "@/components/deck/scale";
 import { dkt } from "@/components/deck/theme";
 import type { DeckThemeTokens } from "@/components/deck/theme";
+import { toneColor } from "@/components/deck/SlideChrome";
+import { CanvasViewport } from "@/components/deck/CanvasViewport";
+import type { CanvasMode } from "@/components/deck/CanvasViewport";
+import PocScopeL1L10Ladder from "@/components/generated/poc-scope-l1-l10-ladder";
+import PermissionScopeSwitches from "@/components/generated/permission-scope-switches";
+import AiInterventionPipeline from "@/components/generated/ai-intervention-pipeline";
+import SecurityGatePlayground from "@/components/generated/security-gate-playground";
+import PassCriteriaQuiz from "@/components/generated/pass-criteria-quiz";
+import SystemBoundaryMap from "@/components/generated/system-boundary-map";
+import QuestionLifecycleSwimlane from "@/components/generated/question-lifecycle-swimlane";
+import FallbackDegradationSwitchboard from "@/components/generated/fallback-degradation-switchboard";
 import PocL1L3RetrievalArchitecture from "@/components/generated/poc-l1l3-retrieval-architecture";
 
 // ── 共用零件 ────────────────────────────────────────────────────────────────
 
-/** 圓角小標籤。mono 給代碼類（條文代碼、L3 編號），一般文字不等寬 */
+/** 區塊小標（比 DS.h3 收斂一階，給欄內標題用） */
+function ColHead({ c, text }: { c: DeckThemeTokens; text: string }) {
+  return (
+    <span style={{ flex: "none", fontSize: DS.h3, fontWeight: 900, color: c.ink, letterSpacing: DTRACK.tight }}>
+      {text}
+    </span>
+  );
+}
+
+function canvasMode(live: boolean, play: boolean): CanvasMode {
+  return !live ? "thumb" : play ? "play" : "view";
+}
+
+const panel = (c: DeckThemeTokens): CSSProperties => ({
+  boxSizing: "border-box",
+  borderRadius: "var(--radius-lg)",
+  border: `1px solid ${c.borderSoft}`,
+  background: c.sunken,
+});
+
 function Chip({
   c,
   text,
   tone = "muted",
   mono = false,
-  strike = false,
 }: {
   c: DeckThemeTokens;
   text: string;
   tone?: "muted" | "brand" | "accent";
   mono?: boolean;
-  strike?: boolean;
 }) {
   const fg = tone === "brand" ? c.brandInk : tone === "accent" ? c.accent : c.muted;
   const bg = tone === "brand" ? c.brandSoft : tone === "accent" ? c.accentSoft : c.sunken;
@@ -48,7 +95,6 @@ function Chip({
         fontSize: DS.micro,
         fontWeight: 700,
         fontFamily: mono ? "var(--font-mono)" : undefined,
-        textDecoration: strike ? "line-through" : undefined,
         whiteSpace: "nowrap",
       }}
     >
@@ -57,561 +103,327 @@ function Chip({
   );
 }
 
-/** 區塊小標（比 DS.h3 收斂一階，給欄內標題用） */
-function ColHead({ c, text, note }: { c: DeckThemeTokens; text: string; note?: string }) {
+/**
+ * 直立的數字軌。<Kpi> 是一列橫排、沒有直排選項，塞進 320px 窄欄會把四個數字擠爛，
+ * 所以借它的視覺語言（大數字 + unit + label + 左側狀態色條）自寫一支直排版本。
+ */
+interface StatRailItem {
+  label: string;
+  value: string;
+  unit?: string;
+  sub?: string;
+  tone?: "blue" | "orange" | "muted" | StatusTone;
+}
+
+function StatRail({ dark, width, items }: { dark: boolean; width: number; items: StatRailItem[] }) {
+  const c = dkt(dark);
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: DGAP.xs, flex: "none" }}>
-      <span style={{ fontSize: DS.h4, fontWeight: 800, color: c.ink, letterSpacing: DTRACK.tight }}>{text}</span>
-      {note && <span style={{ fontSize: DS.micro, color: c.muted }}>{note}</span>}
+    <div
+      style={{
+        flex: "none",
+        width,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: DGAP.sm,
+      }}
+    >
+      {items.map((it) => {
+        const t = toneColor(it.tone, c);
+        return (
+          <div
+            key={it.label}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: 2,
+              padding: `0 ${DGAP.sm}px`,
+              borderLeft: `3px solid ${t.fg}`,
+              borderRadius: "var(--radius-sm)",
+              background: dark ? c.sunken : "var(--neutral-50)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: DS.h2, fontWeight: 900, lineHeight: 1, color: t.fg, fontVariantNumeric: "tabular-nums" }}>
+                {it.value}
+              </span>
+              {it.unit && <span style={{ fontSize: DS.small, fontWeight: 700, color: c.muted }}>{it.unit}</span>}
+            </div>
+            <span style={{ fontSize: DS.small, fontWeight: 800, color: c.body }}>{it.label}</span>
+            {it.sub && <span style={{ fontSize: DS.micro, color: c.muted }}>{it.sub}</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/** 走查頁的步驟編號徽章 —— 內容真的是序列才用 */
-function StepBadge({ c, n, label }: { c: DeckThemeTokens; n: string; label: string }) {
+// ── PART 01 · PoC 範圍：起點在 L6 ────────────────────────────────────────────
+// 左：既有互動元件（十層階梯，可縮放探索）。右：把「反查得到什麼」攤成 2×2 KPI。
+
+function ScopeLadderPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const mode = canvasMode(live, play);
+  const sideW = 380;
+  const canvasW = area.w - sideW - DGAP.lg;
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: DGAP.xs, flex: "none" }}>
+    <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.lg }}>
+      <CanvasViewport
+        content={live ? <PocScopeL1L10Ladder /> : undefined}
+        w={canvasW}
+        h={area.h}
+        mode={mode}
+        dark={dark}
+        outerScale={outerScale}
+        emptyId="poc-scope-l1-l10-ladder"
+      />
+      <div style={{ flex: "none", width: sideW, display: "flex", flexDirection: "column", gap: DGAP.sm }}>
+        <Kpi
+          dark={dark}
+          style={{ flex: 1 }}
+          items={[
+            { label: "完整", value: "4", sub: "L1/L2/L3/L6，反查", tone: "blue" },
+            { label: "凍結·暫代", value: "3", sub: "L7/L8/L9", tone: "warning" },
+          ]}
+        />
+        <Kpi
+          dark={dark}
+          style={{ flex: 1 }}
+          items={[
+            { label: "不做", value: "3", sub: "L4/L5/L10", tone: "muted" },
+            { label: "唯一起點", value: "L6", sub: "向量檢索 Top-K=5", tone: "blue" },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── PART 01 · 原設計 vs 這一版：範圍反而變小 ─────────────────────────────────
+// 對應筆記〈PoC 範圍〉那張七列對照表。值刻意壓成短詞（<BeforeAfter> 的值走 DS.h3，
+// 是為指標值設計的），語境放進 lead / takeaway / callout。
+// 原表的「前端」與「可觀測性」都是「無 → 新增」，合併成一列，六列剛好貼齊上限。
+
+function ScopeBeforeAfterPage({ dark }: CustomSlideProps) {
+  return (
+    <BeforeAfter
+      dark={dark}
+      beforeLabel="原設計（範圍那篇）"
+      afterLabel="這一版 PoC"
+      lead="缺口補上之後，PoC 的核心反而縮小了——《L1~L3+L6 總表》一到手，分類這件事被反查掉，不必再讓模型去猜。"
+      rows={[
+        { label: "L1–L3 分類", before: "LLM 分類", after: "反查總表" },
+        { label: "L6 條文檢索", before: "向量 ＋ rerank", after: "向量檢索" },
+        { label: "L4–L8", before: "照規格實作", after: "不做" },
+        { label: "報告輸出", before: "L9 受控報告", after: "自撰 prompt" },
+        { label: "生成式 LLM", before: "Claude 或同級", after: "Codex 5.6 Luna" },
+        { label: "前端與可觀測性", before: "無", after: "UI ＋ Langfuse" },
+      ]}
+      takeaway="縮小的是核心，長出來的是外圍：一個讓檢索結果看得見的 UI，加一段替尚未交付的 L4~L8 規格暫時頂著的報告 prompt。"
+    />
+  );
+}
+
+// ── PART 01 · PoC 目標：三個元件各司其職 ────────────────────────────────────
+
+function GoalsTriadPage({ dark }: CustomSlideProps) {
+  return (
+    <Triad
+      dark={dark}
+      statement="三個元件各自要達成一件事"
+      items={[
+        {
+          label: "Vector Database",
+          desc: "鎖定勞基法，結合 L1~L3+L6 總表建立 Embedding Database",
+          icon: "database",
+        },
+        {
+          label: "API（NestJS）",
+          desc: "常駐服務：Indexer 觸發建庫、條文檢索 Top-K=5、總表整合免 LLM、風險分析報告唯一碰模型",
+          icon: "settings",
+        },
+        {
+          label: "UI（Vite + React）",
+          desc: "一頁：問句 → 條文、L1~L3 分類、風險分析報告，讓檢索品質可被肉眼檢查",
+          icon: "user",
+        },
+      ]}
+    />
+  );
+}
+
+// ── PART 01 · 系統邊界：讀寫分兩側（chrome:false 滿版）─────────────────────
+
+function BoundaryMapPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const mode = canvasMode(live, play);
+  return (
+    <CanvasViewport
+      content={live ? <SystemBoundaryMap /> : undefined}
+      w={area.w}
+      h={area.h}
+      mode={mode}
+      dark={dark}
+      outerScale={outerScale}
+      emptyId="system-boundary-map"
+    />
+  );
+}
+
+// ── PART 01 · 系統邊界：讀寫分兩層 ───────────────────────────────────────────
+
+function BoundaryLayersPage({ dark }: CustomSlideProps) {
+  return (
+    <Layers
+      dark={dark}
+      axis={["內部限定 · 寫", "對外公開 · 讀"]}
+      lead="三支 API 兩讀一寫——但只有讀的那兩支對外。寫的那支動的是整個向量庫，跟法條管理後台待在同一側。"
+      layers={[
+        {
+          label: "公開 internet",
+          desc: "誰都碰得到 · 靠身分擋 · 只有讀",
+          items: ["客戶前台 · 會員 · 讀", "對外 API · 串接方 · 讀 · PoC 不對外"],
+        },
+        {
+          label: "限定 IP（不公開）",
+          desc: "走不到驗證那一步 · 靠網路層擋",
+          items: [
+            "法條管理後台 · 顧問師 · 會改動向量庫",
+            "Embedding API · 管理端 · 寫 · 由 Indexer 觸發",
+            "運維管理後台 · 系統管理者 · Langfuse",
+          ],
+          emphasis: true,
+        },
+      ]}
+    />
+  );
+}
+
+// ── PART 01 · 帳號與權限：左導讀 + 右互動元件 ───────────────────────────────
+
+function GuideStep({ c, n, title, desc }: { c: DeckThemeTokens; n: string; title: string; desc: string }) {
+  return (
+    <div style={{ display: "flex", gap: DGAP.sm, alignItems: "flex-start" }}>
       <span
         style={{
-          display: "inline-flex",
+          flex: "none",
+          width: 26,
+          height: 26,
+          borderRadius: "var(--radius-circle)",
+          background: c.brandSoft,
+          color: c.brandInk,
+          display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 24,
-          height: 24,
-          borderRadius: "var(--radius-circle)",
-          background: c.brand,
-          color: "var(--neutral-0)",
-          fontSize: DS.micro,
+          fontSize: DS.small,
           fontWeight: 900,
           fontFamily: "var(--font-mono)",
         }}
       >
         {n}
       </span>
-      <span style={{ fontSize: DS.micro, fontWeight: 800, letterSpacing: DTRACK.label, color: c.muted }}>{label}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+        <span style={{ fontSize: DS.body, fontWeight: 800, color: c.ink, lineHeight: 1.4 }}>{title}</span>
+        <span style={{ fontSize: DS.small, color: c.body, lineHeight: 1.5 }}>{desc}</span>
+      </div>
     </div>
   );
 }
 
-const panel = (c: DeckThemeTokens): CSSProperties => ({
-  boxSizing: "border-box",
-  borderRadius: "var(--radius-lg)",
-  border: `1px solid ${c.borderSoft}`,
-  background: c.sunken,
-});
-
-// ── PART 01 · 收斂：L1–L10 只留三層 ─────────────────────────────────────────
-// 論點不是「四列對照表」，是「一座被關掉大半的階梯」：上段整片灰掉（L4 以後），
-// 下段三階亮起（L1–L3），中間唯一的例外是 L6 —— 條文借出來用，但判定不跑。
-// 左邊承載「剩下什麼」，右邊的 <Rows> 承載「哪四件事變了」。
-
-function LadderLevel({ c, code, name, value }: { c: DeckThemeTokens; code: string; name: string; value: string }) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        minHeight: 0,
-        display: "flex",
-        alignItems: "center",
-        gap: DGAP.sm,
-        padding: `0 ${DGAP.sm}px`,
-        borderRadius: "var(--radius-md)",
-        background: c.brandSoft,
-      }}
-    >
-      <span
-        style={{
-          flex: "none",
-          width: 34,
-          fontFamily: "var(--font-mono)",
-          fontSize: DS.small,
-          fontWeight: 900,
-          color: c.brandInk,
-        }}
-      >
-        {code}
-      </span>
-      <span style={{ flex: 1, fontSize: DS.body, fontWeight: 700, color: c.ink }}>{name}</span>
-      <span
-        style={{
-          flex: "none",
-          fontSize: DS.h3,
-          fontWeight: 900,
-          lineHeight: 1,
-          color: c.brandInk,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function CondensePage({ dark }: CustomSlideProps) {
+function PermissionPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
   const c = dkt(dark);
+  const mode = canvasMode(live, play);
+  const sideW = 460;
+  const canvasW = area.w - sideW - DGAP.lg;
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.lg }}>
-      {/* 左：階梯 */}
-      <div style={{ flex: "none", width: 470, display: "flex", flexDirection: "column", gap: DGAP.xs, minHeight: 0 }}>
-        <ColHead c={c} text="L1–L10 只留三層" note="範圍那篇匡的十層" />
-
-        {/* 上段：關掉的部分 */}
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: DGAP.xs,
-            padding: DGAP.sm,
-            boxSizing: "border-box",
-            borderRadius: "var(--radius-lg)",
-            border: `1.5px dashed ${c.border}`,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: DGAP.xs, flex: "none" }}>
-            <span style={{ display: "inline-flex", color: c.muted }}>
-              <XIcon size={18} strokeWidth={2.5} />
-            </span>
-            <span style={{ fontSize: DS.small, fontWeight: 800, color: c.muted }}>L4 以後 · 這一版全部不做</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, flex: "none" }}>
-            <Chip c={c} text="必要事實追問" strike />
-            <Chip c={c} text="地雷判定" strike />
-            <Chip c={c} text="受控報告" strike />
-          </div>
-
-          {/* 唯一的例外 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              marginTop: 2,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: 4,
-              padding: `${DGAP.xs}px ${DGAP.sm}px`,
-              boxSizing: "border-box",
-              borderRadius: "var(--radius-md)",
-              border: `1.5px dashed ${c.accent}`,
-              background: c.accentSoft,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "baseline", gap: DGAP.xs }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: DS.body, fontWeight: 900, color: c.accent }}>
-                L6
-              </span>
-              <span style={{ fontSize: DS.body, fontWeight: 800, color: c.ink }}>對應法條</span>
-              <span style={{ fontSize: DS.micro, fontWeight: 800, color: c.accent }}>唯一的例外</span>
-            </div>
-            <div style={{ fontSize: DS.small, lineHeight: 1.5, color: c.body }}>
-              只借條文出來做檢索，不跑 L6 的判定 —— 它是這一版反查分類的入口。
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: "none", textAlign: "center", fontSize: DS.micro, fontWeight: 800, color: c.muted }}>
-          ↓ 整段關掉之後，剩下的是
-        </div>
-
-        {/* 下段：留下的三層 */}
-        <div
-          style={{
-            flex: "none",
-            height: 176,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            padding: DGAP.sm,
-            boxSizing: "border-box",
-            borderRadius: "var(--radius-lg)",
-            border: `2px solid ${c.brand}`,
-          }}
-        >
-          <LadderLevel c={c} code="L3" name="題型" value="85" />
-          <LadderLevel c={c} code="L2" name="主題" value="22" />
-          <LadderLevel c={c} code="L1" name="大類" value="4" />
-        </div>
+      <div style={{ flex: "none", width: sideW, display: "flex", flexDirection: "column", gap: DGAP.md, minHeight: 0 }}>
+        <ColHead c={c} text="這張圖要看的三件事" />
+        <GuideStep c={c} n="1" title="扳開「加上企業帳號層」" desc="看 4 個角色怎麼長出第 5 個" />
+        <GuideStep c={c} n="2" title="扳開「讓顧問師看會員問句」" desc="看兩條可見性路線誰通誰斷" />
+        <GuideStep c={c} n="3" title="扳開「API key 併進角色表」" desc="看兩條生命週期軌對不對得齊" />
+        <span style={{ marginTop: "auto", fontSize: DS.small, color: c.muted, lineHeight: 1.5 }}>
+          13 條待決問題裡 6 條筆記已寫、7 條是推估
+        </span>
       </div>
-
-      {/* 右：四件事變了 */}
-      <Rows
+      <CanvasViewport
+        content={live ? <PermissionScopeSwitches /> : undefined}
+        w={canvasW}
+        h={area.h}
+        mode={mode}
         dark={dark}
-        heading="原設計 → 這一版"
-        noteWidth={300}
-        style={{ flex: 1, minWidth: 0 }}
-        items={[
-          {
-            k: "L1–L3 分類",
-            v: "原設計：LLM 分類 ＋ structured output",
-            desc: "現在改由檢索到的 L6 條文，拿 l3_codes 回總表反查",
-            noteLabel: "反查",
-            note: "分類是檢索的副產物",
-            tone: "blue",
-          },
-          {
-            k: "L6 條文檢索",
-            v: "原設計：向量檢索 ＋ rerank",
-            desc: "保留向量檢索，rerank 延後到資料量長大再說",
-            noteLabel: "保留",
-            note: "只砍掉 rerank",
-            tone: "blue",
-          },
-          {
-            k: "L4–L9",
-            v: "事實追問、地雷判定、受控報告",
-            desc: "整段不在這一版的驗收範圍內",
-            noteLabel: "不做",
-            note: "留給下一版",
-            tone: "muted",
-          },
-          {
-            k: "生成式 LLM",
-            v: "原設計：Claude 或同級模型，貫穿全流程",
-            desc: "現在只留在最末端風險分析報告一段，模型尚未定案",
-            noteLabel: "限縮",
-            note: "主線（檢索＋分類）不碰，只留報告例外",
-            tone: "warning",
-          },
-          {
-            k: "風險分析報告",
-            v: "原設計：L9 受控報告（依規格模板）",
-            desc: "自撰 prompt 出報告，規格到位後整段換掉",
-            noteLabel: "暫代",
-            note: "L4~L8 規格未到的權宜做法",
-            tone: "warning",
-          },
-          {
-            k: "前端 UI",
-            v: "原設計：無（只有 API）",
-            desc: "一頁看完：問句、條文、分類、報告",
-            noteLabel: "新增",
-            note: "讓檢索品質可被肉眼檢查",
-            tone: "blue",
-          },
-        ]}
+        outerScale={outerScale}
+        emptyId="permission-scope-switches"
       />
     </div>
   );
 }
 
-// ── PART 01 · 為什麼報告那一步還要生成式模型：ADR ───────────────────────────
-// L4~L8 規格顧問師還沒交，等規格到位才做報告會讓這一版停在「回傳一包 JSON」。
-// 這裡是唯一碰生成式模型的節點的決策記錄 —— 說明為什麼是暫代，而不是走回頭路。
+// ── PART 04 · 四個角色：三個是人，一個是機器 ────────────────────────────────
+// 對應筆記〈帳號與權限 › 四個角色〉。四個角色彼此沒有先後、也不是流程，
+// 是圍著同一套系統的不同入口 —— 正是 <Roster> 的「一個中心 + 一圈角色」。
 
-function DecisionPage({ dark }: CustomSlideProps) {
+function RolesRosterPage({ dark, area }: CustomSlideProps) {
   return (
-    <Decision
+    <Roster
       dark={dark}
-      context="L4~L8（事實追問、地雷判定、介入程度）規格顧問師還沒交，等規格到位才做報告，這一版就只能回傳一包 JSON，看不出東西。"
-      options={[
-        { label: "等規格到位再做報告", note: "最乾淨，但這一版會停在「回傳一包 JSON」，看不出東西" },
-        { label: "先手刻規則判定", note: "沒有規格就是憑空編邏輯，規格一到大概率整段重寫" },
-        {
-          label: "自撰 prompt 餵生成式模型",
-          note: "先把檢索結果餵給 LLM 出一份報告，讓 PoC 看得出價值",
-          chosen: true,
-        },
-        { label: "只留 API，不做報告", note: "退回到只做檢索與分類，UI 沒有東西可以展示" },
-      ]}
-      decision="先自己寫一段 prompt，把檢索到的條文與總表對應結果餵進生成式模型，產出風險分析報告——不是 L9 的受控報告，只是規格到位前的出口。"
-      consequences={[
-        "換模型不影響向量庫與 L1~L3 反查結果",
-        "規格到位後這段 prompt 要整個換掉、不疊功能",
-        "生成式模型選型可以晚一點決定",
-        "UI 把報告攤開，讓檢索品質可被肉眼檢查",
+      width={area.w}
+      height={area.h}
+      center={{ label: "法遵決策系統", note: "四個角色，各自守著不同的模組" }}
+      lead="第四個是這份推估加的：API 的呼叫者是一組 credential，沒有密碼重設、沒有離職停用，卻需要輪替與撤銷。"
+      actors={[
+        { label: "會員", role: "人 · 客戶前台；PoC 無登入", icon: "user" },
+        { label: "顧問師", role: "人 · 法條管理後台；編修用 Excel", icon: "users" },
+        { label: "系統管理者", role: "人 · 運維後台；只有 Langfuse 帳號", icon: "settings" },
+        { label: "API 串接方", role: "機器 · 代表某個會員；PoC 不對外", icon: "plug" },
       ]}
     />
   );
 }
 
-// ── PART 01 · 反查走查：分類不是算出來的 ────────────────────────────────────
-// 一個真實問句從左走到右，中途沒有任何生成式模型。底部那條被劃掉的帶子是punchline：
-// 原設計在這裡放 LLM 分類，這一版整段拿掉，分類由 join 得到。
-
-function FlowArrow({ c, label }: { c: DeckThemeTokens; label: string }) {
-  return (
-    <div
-      style={{
-        flex: "none",
-        width: 110,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-      }}
-    >
-      <span style={{ fontSize: DS.micro, fontWeight: 800, color: c.brandInk, textAlign: "center", lineHeight: 1.35 }}>
-        {label}
-      </span>
-      <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-        <span style={{ flex: 1, height: 2, background: c.brand }} />
-        <span style={{ display: "inline-flex", color: c.brand, marginLeft: -4 }}>
-          <ArrowRight size={20} strokeWidth={3} />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function ArticleCard({ c, code, snippet, codes }: { c: DeckThemeTokens; code: string; snippet: string; codes: string[] }) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        minHeight: 0,
-        ...panel(c),
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        gap: 6,
-        padding: `${DGAP.xs}px ${DGAP.sm}px`,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: DGAP.xs }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: DS.body, fontWeight: 900, color: c.ink }}>{code}</span>
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: DS.micro,
-            color: c.muted,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {snippet}
-        </span>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-        {codes.map((x) => (
-          <Chip key={x} c={c} text={x} tone="brand" mono />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LookupPage({ dark }: CustomSlideProps) {
-  const c = dkt(dark);
-
-  return (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: DGAP.sm }}>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.sm, alignItems: "stretch" }}>
-        {/* 1 問句 → 2 向量 */}
-        <div style={{ flex: "none", width: 300, display: "flex", flexDirection: "column", gap: DGAP.xs, minHeight: 0 }}>
-          <StepBadge c={c} n="1" label="使用者提問" />
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              ...panel(c),
-              display: "flex",
-              alignItems: "center",
-              gap: DGAP.sm,
-              padding: DGAP.sm,
-            }}
-          >
-            <span style={{ flex: "none", display: "inline-flex", color: c.muted }}>
-              <User size={30} strokeWidth={1.8} />
-            </span>
-            <span style={{ flex: 1, fontSize: DS.h4, fontWeight: 800, lineHeight: 1.4, color: c.ink }}>
-              「公司可以不給特休嗎」
-            </span>
-          </div>
-
-          <StepBadge c={c} n="2" label="Embedding" />
-          <div
-            style={{
-              flex: "none",
-              height: 96,
-              ...panel(c),
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: 6,
-              padding: DGAP.sm,
-            }}
-          >
-            <div style={{ fontSize: DS.body, fontWeight: 800, color: c.ink, fontFamily: "var(--font-mono)" }}>
-              mistral-embed
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: DGAP.xs }}>
-              <Chip c={c} text="vector(1024)" mono tone="brand" />
-              <span style={{ fontSize: DS.micro, color: c.muted }}>與 Indexer 同一個模型</span>
-            </div>
-          </div>
-        </div>
-
-        <FlowArrow c={c} label="向量相似度查詢" />
-
-        {/* 3 Top-K */}
-        <div style={{ flex: "none", width: 420, display: "flex", flexDirection: "column", gap: DGAP.xs, minHeight: 0 }}>
-          <StepBadge c={c} n="3" label="檢索近似條文 · Top-K = 5" />
-          <ArticleCard
-            c={c}
-            code="第38條"
-            snippet="繼續工作滿一定期間者，應給予特別休假……"
-            codes={["B5-02", "B5-03", "D5-05"]}
-          />
-          <ArticleCard
-            c={c}
-            code="第39條"
-            snippet="例假、休息日、休假及特別休假，工資照給……"
-            codes={["B5-01", "B5-02", "B5-03", "B5-04", "C3-01", "D5-05"]}
-          />
-          <div style={{ flex: "none", fontSize: DS.micro, color: c.muted }}>
-            每一條法條身上都掛著它被哪些題型引用的 l3_codes
-          </div>
-        </div>
-
-        <FlowArrow c={c} label="l3_codes join 總表" />
-
-        {/* 4 反查結果 */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: DGAP.xs, minHeight: 0 }}>
-          <StepBadge c={c} n="4" label="回 decision_tree 反查" />
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              boxSizing: "border-box",
-              borderRadius: "var(--radius-lg)",
-              border: `2px solid ${c.brand}`,
-              background: c.brandSoft,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: DGAP.xs,
-              padding: DGAP.sm,
-            }}
-          >
-            {[
-              ["L1", "B · 蜜蜂", "工時、排班、休假與加班管理"],
-              ["L2", "B5", "國定假日、特休、請假與停止假期管理"],
-              ["L3", "B5-02", "特別休假管理"],
-            ].map(([lv, code, name]) => (
-              <div key={lv} style={{ display: "flex", alignItems: "baseline", gap: DGAP.xs }}>
-                <span
-                  style={{
-                    flex: "none",
-                    width: 26,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: DS.small,
-                    fontWeight: 900,
-                    color: c.brandInk,
-                  }}
-                >
-                  {lv}
-                </span>
-                <span style={{ flex: "none", fontSize: DS.body, fontWeight: 900, color: c.ink }}>{code}</span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: DS.small, lineHeight: 1.4, color: c.body }}>{name}</span>
-              </div>
-            ))}
-            <div style={{ height: 1, background: c.border, margin: "2px 0" }} />
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              <Chip c={c} text="高頻" />
-              <Chip c={c} text="中風險" />
-              <Chip c={c} text="地雷 4 顆" tone="accent" />
-              <Chip c={c} text="介入 高" tone="accent" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* punchline：原設計在這裡放 LLM */}
-      <div
-        style={{
-          flex: "none",
-          height: 76,
-          boxSizing: "border-box",
-          display: "flex",
-          alignItems: "center",
-          gap: DGAP.md,
-          padding: `0 ${DGAP.md}px`,
-          borderRadius: "var(--radius-lg)",
-          border: `1.5px dashed ${c.border}`,
-        }}
-      >
-        <span style={{ flex: "none", display: "inline-flex", color: c.muted }}>
-          <XIcon size={26} strokeWidth={2.5} />
-        </span>
-        <span
-          style={{
-            flex: "none",
-            fontSize: DS.h4,
-            fontWeight: 800,
-            color: c.muted,
-            textDecoration: "line-through",
-          }}
-        >
-          原設計：LLM 分類 ＋ structured output
-        </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: DS.body, lineHeight: 1.5, color: c.body }}>
-          這一版整段拿掉。四個步驟走完，L1／L2／L3 已經在手上 —— 它是 join 的結果，不是模型的輸出。
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ── PART 02 · 三件選型 ──────────────────────────────────────────────────────
+// ── PART 05 · 五個元件，五組選型 ────────────────────────────────────────────
 
 function StackPage({ dark }: CustomSlideProps) {
   return (
     <>
       <Cards
         dark={dark}
-        columns={4}
+        columns={5}
         style={{ flex: 1, minHeight: 0 }}
         items={[
           {
             title: "Vector Database",
             desc: "PostgreSQL + pgvector",
-            points: [
-              "HNSW ＋ cosine 索引，之後擴到函釋不用改",
-              "GIN 索引給 l3_codes，反查靠它",
-              "建在 GCP，環境步驟寫進 Runbook",
-            ],
-            chips: ["extension 名稱是 vector"],
+            points: ["HNSW ＋ cosine 索引", "GIN 索引給 l3_codes", "建在 GCP 並寫 Runbook"],
             tone: "blue",
           },
           {
             title: "API（含 Indexer）",
-            desc: "NestJS + TypeScript + LangChain",
-            points: [
-              "Indexer 元件收進 API：管理端 command／endpoint 觸發，不再是獨立 CLI",
-              "embedding 設定只有一份，建庫與查詢共用",
-              "條文檢索、總表整合兩步都不碰生成式模型",
-            ],
-            chips: ["Indexer 元件化"],
+            desc: "NestJS + TypeScript + LangChain + mistral-embed",
+            points: ["Indexer 收進 API，管理端可重跑（ON CONFLICT DO UPDATE）"],
             tone: "blue",
           },
           {
             title: "UI",
             desc: "Vite + React + TypeScript",
-            points: [
-              "一頁展示：問句 → 條文清單 → L1~L3 分類 → 風險分析報告",
-              "目的是讓檢索品質可被肉眼檢查，不做登入、不做多頁",
-              "純前端讀 API 回傳的 JSON 攤開顯示",
-            ],
-            chips: ["肉眼可查"],
+            points: ["一頁：問句 → 條文 → 分類 → 報告", "不做登入、不做多頁"],
             tone: "orange",
           },
           {
             title: "生成式 LLM",
-            desc: "只用在風險分析報告那一段",
-            points: [
-              "換掉不影響向量庫，也不影響 L1~L3 的反查結果",
-              "規格到位前的暫代 prompt，規格到位後整段換掉",
-              "候選：Claude 或同級模型（待定）",
-            ],
-            chips: ["尚未定案"],
+            desc: "Codex 5.6 Luna，只用在風險分析報告",
+            points: ["換掉不影響向量庫與反查結果", "規格到位後整段換掉"],
             tone: "warning",
+          },
+          {
+            title: "可觀測性",
+            desc: "Langfuse（self-host，GCP）",
+            points: ["記問句／輸出／token／延遲／模型版本", "不記 embedding（量大單價低）"],
+            tone: "muted",
           },
         ]}
       />
@@ -619,18 +431,20 @@ function StackPage({ dark }: CustomSlideProps) {
         dark={dark}
         style={{ flex: "none", height: 122 }}
         items={[
-          { label: "向量維度", value: "1024", sub: "mistral-embed 固定，換模型要一起改", tone: "blue" },
-          { label: "TOP-K", value: "5", sub: "常數設定，先設 5", tone: "blue" },
-          { label: "生成式模型", value: "1", unit: "處", sub: "只掛在風險分析報告，模型尚未定案", tone: "warning" },
+          { label: "向量維度", value: "1024", tone: "blue" },
+          { label: "TOP-K", value: "5", tone: "blue" },
+          { label: "生成式模型介入點", value: "1", unit: "處", tone: "warning" },
+          { label: "可觀測性覆蓋", value: "2", unit: "段", sub: "G1 意圖判定＋L9 報告生成", tone: "muted" },
         ]}
       />
     </>
   );
 }
 
-// ── PART 03 · 兩張表，一條 join ─────────────────────────────────────────────
-// 不把 25 個欄位平鋪成兩張表格 —— 那只會很滿。左右各列一次欄位，重點欄位加底，
-// 中間那把「一對多」的扇子就是 text[] 的理由本身。
+// ── PART 02 · 資料結構：兩張表，一條 join ───────────────────────────────────
+// 這三頁（schema／扇出／CHECK）沿用改版前的版面：兩欄 schema 卡中間夾一把一對多的
+// 扇子、扇出統計的 KPI + bars、CHECK 的 SQL + 矩陣。它們是自寫版面而非整頁級原子，
+// 因為「兩張表怎麼接起來」這件事的形狀本身就是論點。
 
 interface FieldRow {
   name: string;
@@ -819,7 +633,7 @@ function SchemaJoinPage({ dark }: CustomSlideProps) {
   );
 }
 
-// ── PART 03 · 扇出統計：為什麼一定得是 text[] ───────────────────────────────
+// ── PART 02 · 扇出統計：為什麼一定得是 text[] ───────────────────────────────
 
 function FanoutPage({ dark, live }: CustomSlideProps) {
   const c = dkt(dark);
@@ -927,7 +741,7 @@ function FanoutPage({ dark, live }: CustomSlideProps) {
   );
 }
 
-// ── PART 03 · CHECK 矩陣：地雷數是算出來的 ──────────────────────────────────
+// ── PART 02 · CHECK 矩陣：地雷數是算出來的 ──────────────────────────────────
 
 const MINES_SQL = `CONSTRAINT chk_mines_derived CHECK (
   initial_mines =
@@ -1008,16 +822,448 @@ function CheckPage({ dark }: CustomSlideProps) {
   );
 }
 
-// ── PART 04 · 四條任務線 ────────────────────────────────────────────────────
-// 底部那條 chip 帶刻意重現反查走查頁的同一條路徑 —— 讀者只需要認一次路，
-// 這裡只讀「四步做完，那條線就通了」。
+// ── PART 02 · AI 介入：上畫布 + 下 Kpi 帶 ───────────────────────────────────
 
-function TasksPage({ dark }: CustomSlideProps) {
-  const c = dkt(dark);
-  const steps = ["問句", "embedding", "Top-K = 5", "l3_codes join", "L1／L2／L3"];
+function PipelinePage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const mode = canvasMode(live, play);
+  // 這個管線元件是「窄而高」的直式版面：把 KPI 壓在底部會讓畫布只剩一條扁帶，
+  // 縮放比被高度綁死（實測 29%），左右還留下大片灰。改成 KPI 直立成右側窄軌，
+  // 畫布吃滿整個內容區高度，縮放比才拉得起來。
+  const railW = 320;
+  const canvasW = area.w - railW - DGAP.md;
 
   return (
-    <>
+    <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.md }}>
+      <CanvasViewport
+        content={live ? <AiInterventionPipeline /> : undefined}
+        w={canvasW}
+        h={area.h}
+        mode={mode}
+        dark={dark}
+        outerScale={outerScale}
+        emptyId="ai-intervention-pipeline"
+      />
+      <StatRail
+        dark={dark}
+        width={railW}
+        items={[
+          { label: "節點", value: "14", unit: "格", tone: "muted" },
+          { label: "碰模型", value: "3", unit: "處", tone: "warning" },
+          { label: "閘門", value: "4", unit: "道", tone: "blue" },
+          { label: "AI 閘門", value: "1", unit: "道", sub: "只有 G1", tone: "warning" },
+        ]}
+      />
+    </div>
+  );
+}
+
+// ── PART 02 · 安全與稽核：畫布 55% + 右欄自寫威脅卡（拆解重組 <Risk>）─────────
+// <Risk> 原生預期全寬，塞進 55/45 分欄很可能破版；改借它「威脅／代價／緩解」
+// 的三段式資訊架構，自寫窄欄卡片——顏色一律取 dkt(dark)，狀態色走 toneColor()。
+
+interface ThreatCardData {
+  letter: string;
+  title: string;
+  threat: string;
+  cost: string;
+  mitigation: string;
+  tone: StatusTone;
+}
+
+/**
+ * 威脅／代價／緩解三段。標籤走**行內前綴**而不是各佔一行 —— 三張卡疊在窄欄裡，
+ * 每個標籤各佔一行會多吃掉九行的高度，直接把第三張卡的緩解那行擠出可用區。
+ *
+ * 用 grid 而不是 flex：標籤欄寬度釘死一格，換行的第二行才會整齊縮排到文字欄下方，
+ * 而不是回到標籤的位置；`alignItems: baseline` 讓小標籤與第一行文字對齊基線。
+ */
+const FIELD_LABEL_W = 38;
+
+function Field({ c, label, text }: { c: DeckThemeTokens; label: string; text: string }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `${FIELD_LABEL_W}px minmax(0, 1fr)`,
+        columnGap: DGAP.xs,
+        alignItems: "baseline",
+      }}
+    >
+      <span
+        style={{
+          fontSize: DS.micro,
+          fontWeight: 800,
+          color: c.muted,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontSize: DS.small, lineHeight: 1.4, color: c.body, textWrap: "pretty" }}>{text}</span>
+    </div>
+  );
+}
+
+function ThreatCard({ dark, c, data }: { dark: boolean; c: DeckThemeTokens; data: ThreatCardData }) {
+  const t = toneColor(data.tone, c);
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: 3,
+        padding: "6px 10px",
+        borderRadius: "var(--radius-lg)",
+        border: `1px solid ${c.borderSoft}`,
+        borderLeft: `3px solid ${t.fg}`,
+        background: dark ? c.sunken : "var(--neutral-50)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: DGAP.xs, lineHeight: 1 }}>
+        <span
+          style={{
+            flex: "none",
+            width: 20,
+            height: 20,
+            borderRadius: "var(--radius-circle)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: t.soft,
+            color: t.fg,
+            fontSize: DS.small,
+            fontWeight: 900,
+          }}
+        >
+          {data.letter}
+        </span>
+        <span style={{ fontSize: DS.body, fontWeight: 800, color: c.ink }}>{data.title}</span>
+      </div>
+      <Field c={c} label="威脅" text={data.threat} />
+      <Field c={c} label="代價" text={data.cost} />
+      <Field c={c} label="緩解" text={data.mitigation} />
+    </div>
+  );
+}
+
+function SecurityGatePage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const c = dkt(dark);
+  const mode = canvasMode(live, play);
+  // 畫布 52 / 威脅卡 48：右欄再窄一點，B 卡的「緩解」就會多折一行、把整欄擠出可用區。
+  const leftW = Math.round((area.w - DGAP.lg) * 0.52);
+
+  return (
+    <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.lg }}>
+      <CanvasViewport
+        content={live ? <SecurityGatePlayground /> : undefined}
+        w={leftW}
+        h={area.h}
+        mode={mode}
+        dark={dark}
+        outerScale={outerScale}
+        emptyId="security-gate-playground"
+      />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4, minHeight: 0 }}>
+        <ThreatCard
+          dark={dark}
+          c={c}
+          data={{
+            letter: "A",
+            title: "離題濫用",
+            threat: "拿系統當翻譯機／聊天／寫程式",
+            cost: "燒 token",
+            mitigation: "G1 判 in_scope，不與報告生成共用 context",
+            tone: "warning",
+          }}
+        />
+        <ThreatCard
+          dark={dark}
+          c={c}
+          data={{
+            letter: "B",
+            title: "提示注入／越權",
+            threat: "角色扮演、忽略指令、誘導直接給法律結論",
+            cost: "產出未經審核的法律意見，踩產品定位紅線",
+            mitigation: "砍掉模型權限面：不能決定範圍、不能引用未檢索條文、不能有副作用；出口再過 G3",
+            tone: "critical",
+          }}
+        />
+        <ThreatCard
+          dark={dark}
+          c={c}
+          data={{
+            letter: "C",
+            title: "內部資訊外洩",
+            threat: "誘導吐出 prompt 模板／其他請求內容",
+            cost: "PoC 單租戶風險低，但 trace 裡有真實企業問句",
+            mitigation: "self-host，context 只剩公開法條＋使用者輸入＋報告範本",
+            tone: "warning",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── PART 02 · 四道閘門，只有一道是 AI ───────────────────────────────────────
+
+function GatesSpectrumPage({ dark }: CustomSlideProps) {
+  return (
+    <Spectrum
+      dark={dark}
+      left="不經模型（規則）"
+      right="AI"
+      marks={[
+        { label: "G0 規則守門", at: 0.04, note: "使用者輸入層，長度／次數／檔案限制；不判斷內容" },
+        {
+          label: "G3 輸出白名單",
+          at: 0.22,
+          note: "L9 報告輸出，l3_code ∈ 候選、article_codes ⊆ 檢索集合、DB 值直取、語意對稱、矛盾偵測",
+        },
+        { label: "G2 檢索幾何", at: 0.4, note: "L3 之後進 L4 前，top1／mean@5／margin 三統計量" },
+        {
+          label: "G1 意圖判定",
+          at: 0.95,
+          note: "L1 四大類分流前，判 in_scope／has_directive，溫度 0、fail closed",
+          emphasis: true,
+        },
+      ]}
+    />
+  );
+}
+
+// ── PART 02 · 一條主幹，六個出口（chrome:false 滿版）───────────────────────
+
+function SwimlanePage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const mode = canvasMode(live, play);
+  return (
+    <CanvasViewport
+      content={live ? <QuestionLifecycleSwimlane /> : undefined}
+      w={area.w}
+      h={area.h}
+      mode={mode}
+      dark={dark}
+      outerScale={outerScale}
+      emptyId="question-lifecycle-swimlane"
+    />
+  );
+}
+
+// ── PART 03 · 測試策略：畫布縮小置中 + 四角自寫標註 ─────────────────────────
+// PassCriteriaQuiz 是可互動元件，pin 疊在畫布上會攔截點擊、也會干擾 CanvasViewport
+// 的拖曳。四個「題型」標註改放在畫布四周的留白裡，pin 與引線一律 pointerEvents:none，
+// 不蓋在畫布互動區上、也不使用 <Annotate> 元件本體。
+
+type Corner = "tl" | "tr" | "bl" | "br";
+
+function CornerLabel({
+  c,
+  corner,
+  width,
+  title,
+  text,
+}: {
+  c: DeckThemeTokens;
+  corner: Corner;
+  width: number;
+  title: string;
+  text: string;
+}) {
+  const isTop = corner === "tl" || corner === "tr";
+  const isLeft = corner === "tl" || corner === "bl";
+  const posStyle: CSSProperties = {
+    ...(isTop ? { top: 8 } : { bottom: 8 }),
+    ...(isLeft ? { left: 8 } : { right: 8 }),
+  };
+  return (
+    <div
+      style={{
+        position: "absolute",
+        ...posStyle,
+        width,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        pointerEvents: "none",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <svg width={18} height={18} viewBox="0 0 18 18" aria-hidden="true" style={{ flex: "none" }}>
+          <line
+            x1={isLeft ? 2 : 16}
+            y1={isTop ? 2 : 16}
+            x2={isLeft ? 16 : 2}
+            y2={isTop ? 16 : 2}
+            stroke={c.border}
+            strokeWidth={2}
+          />
+          <circle cx={isLeft ? 16 : 2} cy={isTop ? 16 : 2} r={2.5} fill={c.brand} />
+        </svg>
+        <span style={{ fontSize: DS.small, fontWeight: 800, color: c.ink }}>{title}</span>
+      </div>
+      <span style={{ fontSize: DS.micro, lineHeight: 1.45, color: c.muted }}>{text}</span>
+    </div>
+  );
+}
+
+function QuizPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
+  const c = dkt(dark);
+  const mode = canvasMode(live, play);
+  const canvasW = Math.min(1000, area.w);
+  const margin = (area.w - canvasW) / 2;
+  const labelW = Math.max(120, margin - 24);
+
+  return (
+    <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+      <div style={{ position: "absolute", left: margin, top: 0 }}>
+        <CanvasViewport
+          content={live ? <PassCriteriaQuiz /> : undefined}
+          w={canvasW}
+          h={area.h}
+          mode={mode}
+          dark={dark}
+          outerScale={outerScale}
+          emptyId="pass-criteria-quiz"
+        />
+      </div>
+      <CornerLabel c={c} corner="tl" width={labelW} title="基準線題" text="第 1 題：Top-5 命中第 1 名，這題掛了後面不用看" />
+      <CornerLabel c={c} corner="tr" width={labelW} title="陷阱題" text="第 2–5 題：直覺通過但正解不算通過" />
+      <CornerLabel c={c} corner="bl" width={labelW} title="known gap" text="第 6 題：G3 只檢查形式，這題該放行" />
+      <CornerLabel c={c} corner="br" width={labelW} title="不計分" text="第 7 題：答案出自函釋，標註時就該排除" />
+    </div>
+  );
+}
+
+// ── PART 03 · 為什麼兩份題庫都要跑 ───────────────────────────────────────────
+
+function TwoDecksDecisionPage({ dark }: CustomSlideProps) {
+  return (
+    <Decision
+      dark={dark}
+      context="能測的只有兩端：L6 檢索撈得準不準、L9 報告有沒有守規矩。中間 L4~L8 沒實作，測不到。"
+      options={[
+        { label: "只跑 A 卷（勞動部 FAQ）", note: "問句是法律人寫的，測不出真實使用者的白話語域" },
+        { label: "只跑 B 卷（Threads 真實貼文）", note: "沒有標準答案可自動評分，覆蓋率測不出來" },
+        { label: "兩者都跑，但都自動評分", note: "B 卷沒有官方條號可比對，自動評分做不到" },
+        { label: "A 卷自動評分測覆蓋率、B 卷人工評分測真實語域", note: "用問句語域區分兩件事", chosen: true },
+      ]}
+      decision="A 卷 20 題照 L1 四大類與 L2 22 主題鋪開（不隨機抽），主指標 Recall@5；B 卷 5~8 題由顧問師從條文對不對、風險等級合不合理、缺漏事實準不準、有沒有越線給法律結論四維度各打 1~5 分，任一項 ≤2 不及格。"
+      consequences={[
+        "A 卷另記 Hit@1、L1 與 L3 正確率分開算、unclassified 率",
+        "B 卷入題庫前公司名／人名／金額一律改寫",
+        "改 prompt 後同一批重跑，靠 prompt 版本號對回是哪一次調的",
+        "這 20 題與 G2 門檻校準共用同一批資料，換 embedding 模型時一起重跑",
+      ]}
+    />
+  );
+}
+
+// ── PART 12 · Token 與成本：還沒有數字，但知道從哪來 ─────────────────────────
+// 這一節在筆記裡大部分「待補」，所以刻意不堆字、也不編造任何金額。
+// 版面就是「已經在記的 / 還沒有的」兩欄對照，左邊一個 0 當定錨。
+
+function CostLane({
+  c,
+  heading,
+  items,
+  tone,
+  dashed,
+}: {
+  c: DeckThemeTokens;
+  heading: string;
+  items: string[];
+  tone: string;
+  dashed?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        gap: DGAP.xs,
+        padding: DGAP.sm,
+        borderRadius: "var(--radius-lg)",
+        border: `1px ${dashed ? "dashed" : "solid"} ${tone}`,
+      }}
+    >
+      <span style={{ flex: "none", fontSize: DS.h4, fontWeight: 900, color: c.ink }}>{heading}</span>
+      {items.map((t) => (
+        <div key={t} style={{ display: "flex", alignItems: "baseline", gap: DGAP.xs }}>
+          <span style={{ flex: "none", width: 6, height: 6, borderRadius: 999, background: tone, marginTop: 8 }} />
+          <span style={{ fontSize: DS.body, lineHeight: 1.5, color: c.body }}>{t}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CostPage({ dark }: CustomSlideProps) {
+  const c = dkt(dark);
+  return (
+    <div style={{ flex: 1, minHeight: 0, display: "flex", gap: DGAP.lg }}>
+      <Kpi
+        dark={dark}
+        style={{ flex: "none", width: 360 }}
+        items={[{ label: "確定的成本數字", value: "0", sub: "單次與月度估算都還沒算", tone: "muted", emphasis: true }]}
+      />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: DGAP.md, minHeight: 0 }}>
+        <CostLane
+          c={c}
+          tone={c.brand}
+          heading="已經在記的 —— 都在 Langfuse trace 裡"
+          items={[
+            "單次報告的 token 用量",
+            "延遲與失敗率，不必另外埋計數器",
+            "模型版本與 Prompt 版本，換版可回頭比對輸出差異",
+          ]}
+        />
+        <CostLane
+          c={c}
+          tone={c.warning}
+          dashed
+          heading="還沒有的 —— 待補"
+          items={["單次成本估算", "月度成本估算", "使用者月限額與濫用防護"]}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── PART 14 · 下次會議交付清單 ──────────────────────────────────────────────
+// 獨立成頁之後寬度夠了，八項各自具名、不再分組壓列。
+
+function DeliverablesPage({ dark }: CustomSlideProps) {
+  return (
+    <Table
+      dark={dark}
+      style={{ flex: 1, minHeight: 0 }}
+      head={["#", "主題", "下次會議產出", "狀態"]}
+      rows={[
+        [{ text: "1" }, { text: "系統邊界" }, { text: "一張系統架構圖" }, { text: "已完成", tone: "good" }],
+        [{ text: "2" }, { text: "帳號與權限" }, { text: "角色 × 功能 × 資料權限表（崴仁提供）" }, { text: "推估待對齊", tone: "warning" }],
+        [{ text: "3" }, { text: "技術棧" }, { text: "推薦方案 ＋ 備選方案" }, { text: "已完成", tone: "good" }],
+        [{ text: "4" }, { text: "AI 介入" }, { text: "AI 介面規格草案" }, { text: "已完成", tone: "good" }],
+        [{ text: "5" }, { text: "測試策略" }, { text: "評測指標與 20 個代表性案例" }, { text: "已完成", tone: "good" }],
+        [{ text: "6" }, { text: "Token 與成本" }, { text: "單次與月度成本估算" }, { text: "已完成", tone: "good" }],
+        [{ text: "7" }, { text: "安全與稽核" }, { text: "紀錄與稽核欄位清單" }, { text: "已完成", tone: "good" }],
+        [{ text: "8" }, { text: "RAG 預留" }, { text: "後續知識庫欄位與事件紀錄" }, { text: "未開始", tone: "muted" }],
+      ]}
+    />
+  );
+}
+
+// ── PART 04 · 五步走完，就是這一版的全部 ────────────────────────────────────
+
+function TasksRailPage({ dark }: CustomSlideProps) {
+  return (
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
       <Stages
         dark={dark}
         variant="rail"
@@ -1026,43 +1272,36 @@ function TasksPage({ dark }: CustomSlideProps) {
         style={{ flex: "none" }}
         items={[
           {
-            tag: "現在",
+            tag: "1",
             icon: "database",
             title: "Vector Database",
-            desc: "在 GCP 建 PostgreSQL + pgvector，同時把每一步寫成 Runbook",
+            desc: "GCP 建 PostgreSQL + pgvector，同步撰寫環境建置 Runbook",
             tone: "blue",
             variant: "active",
           },
           {
-            tag: "API 1",
+            tag: "2",
             icon: "settings",
-            title: "Indexer 元件",
-            desc: "收進 NestJS，管理端 command／endpoint 觸發，可重跑（ON CONFLICT DO UPDATE）",
+            title: "API（Indexer + 檢索 + 總表整合）",
+            desc: "收進 NestJS，管理端 command／endpoint 觸發，可重跑 ON CONFLICT DO UPDATE",
             tone: "blue",
           },
           {
-            tag: "API 2",
+            tag: "3",
             icon: "plug",
-            title: "條文檢索",
-            desc: "依用戶問句回傳最相近的勞基法條文及解釋",
-            tone: "blue",
-          },
-          {
-            tag: "API 3",
-            icon: "layers",
-            title: "總表整合",
-            desc: "把檢索結果與 L1~L3+L6 總表整合，找到匹配後回傳",
-            tone: "orange",
-          },
-          {
-            tag: "API 4",
-            icon: "trend-up",
-            title: "風險分析報告",
-            desc: "撰寫 prompt 把條文與分類結果餵進生成式模型，輸出報告——這一步是暫代，規格到位後整段換掉",
+            title: "API（風險分析報告）",
+            desc: "撰寫 prompt 餵 Codex 5.6 Luna；這一步是暫代，規格到位後整段換掉",
             tone: "warning",
           },
           {
-            tag: "UI",
+            tag: "4",
+            icon: "gauge",
+            title: "可觀測性接線",
+            desc: "GCP 架設 self-host Langfuse（含自己的 PostgreSQL），報告呼叫掛 trace，降級事件一併上報",
+            tone: "blue",
+          },
+          {
+            tag: "5",
             icon: "user",
             title: "UI",
             desc: "Vite + React 一頁：問句 → 條文清單 → L1~L3 分類 → 風險分析報告",
@@ -1070,35 +1309,7 @@ function TasksPage({ dark }: CustomSlideProps) {
           },
         ]}
       />
-
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          boxSizing: "border-box",
-          display: "flex",
-          alignItems: "center",
-          gap: DGAP.md,
-          padding: `0 ${DGAP.md}px`,
-          borderRadius: "var(--radius-lg)",
-          background: c.sunken,
-        }}
-      >
-        <span style={{ flex: "none", fontSize: DS.small, fontWeight: 800, color: c.muted }}>問句到分類，這條線已經打通</span>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: DGAP.xs, flexWrap: "wrap" }}>
-          {steps.map((s, i) => (
-            <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: DGAP.xs }}>
-              <Chip c={c} text={s} tone={i === steps.length - 1 ? "brand" : "muted"} />
-              {i < steps.length - 1 && (
-                <span style={{ display: "inline-flex", color: c.muted }}>
-                  <ArrowRight size={16} strokeWidth={2.5} />
-                </span>
-              )}
-            </span>
-          ))}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -1106,9 +1317,9 @@ function TasksPage({ dark }: CustomSlideProps) {
 
 const deck: Deck = {
   slug: "勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
-  title: "收斂到 L1–L3：勞動法遵 PoC 的第一版範圍與技術選型",
+  title: "收斂到 L1–L3",
   eyebrow: "PoC · 勞動法遵決策支援系統",
-  generatedAt: "2026-08-02",
+  generatedAt: "2026-08-07",
   source: "src/content/notes/勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx",
   slides: [
     {
@@ -1116,118 +1327,206 @@ const deck: Deck = {
       nav: "封面",
       eyebrow: "PoC · 勞動法遵決策支援系統",
       title: "收斂到 L1–L3",
-      subtitle: "問句進來、撈相近法條、與總表整合 —— 主線不碰生成式 LLM，只有末端報告是暫代例外",
-      meta: ["2026-07-31", "檢核機制_工程師初檢表_A段_L1-L3+L6 v1", "說明書 v1"],
+      subtitle: "問句進來、撈相近法條、與總表整合——AI 只在頭尾兩端出現，中間靠規則、資料庫 CHECK 與四道閘門頂住",
+      meta: ["由 勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx 生成", "38 頁 · 16:9"],
       agenda: [
-        { n: "01", title: "收斂", sub: "缺口補上之後，範圍為什麼變小" },
-        { n: "02", title: "架構", sub: "三層架構（UI／API／PostgreSQL）與四件技術選型" },
-        { n: "03", title: "資料", sub: "兩張表、85 列決策樹、一條 join" },
-        { n: "04", title: "落地", sub: "六條任務線，現在在第一條" },
+        { n: "01", title: "PoC 範圍", sub: "只做 L1–L3，L4 以後不做" },
+        { n: "02", title: "PoC 目標", sub: "三個元件各自要達成的事" },
+        { n: "03", title: "系統邊界", sub: "四個模組，讀寫切在兩側" },
+        { n: "04", title: "帳號與權限", sub: "四個角色，推估待對齊" },
+        { n: "05", title: "技術棧", sub: "五個元件，五組選型" },
+        { n: "06", title: "PoC 資料結構", sub: "兩張表、85 列決策樹" },
+        { n: "07", title: "AI 介入", sub: "14 個節點只有 3 個碰模型" },
+        { n: "08", title: "安全與稽核", sub: "三類威脅，四道閘門" },
+        { n: "09", title: "失敗降級", sub: "每種失敗都有預先定好的退路" },
+        { n: "10", title: "一次提問的完整路徑", sub: "一條主幹，六個出口" },
+        { n: "11", title: "測試策略", sub: "A 卷測覆蓋率，B 卷測語域" },
+        { n: "12", title: "Token 與成本", sub: "數字從 Langfuse trace 來" },
+        { n: "13", title: "PoC 任務拆解", sub: "五步走完就是這一版" },
+        { n: "14", title: "下次會議交付清單", sub: "八項，六項已完成" },
       ],
     },
 
     {
       layout: "section",
-      nav: "章節：收斂",
+      nav: "章節：PoC 範圍",
       num: "01",
       eyebrow: "SCOPE",
-      title: "缺口補上之後，PoC 變小了",
-      subtitle: "L4 以後全部不做；生成式模型只留在最末端一段暫代報告",
+      title: "PoC 範圍",
+      subtitle: "缺口補上之後核心反而變小：總表一到手，分類被反查掉；L4 以後整段不做，生成式模型只留在最末端一段暫代報告",
     },
     {
       layout: "custom",
-      nav: "L1–L10 只留三層",
+      nav: "PoC 範圍：起點在 L6",
       num: "01",
       eyebrow: "PART 01 · PoC 範圍",
-      title: "不是變大，是變小",
-      titleNote: "《L1~L3+L6 總表》到手之後的第一個決定",
-      render: CondensePage,
-      pill: { text: "L1–L3 · 85 個題型", tone: "blue" },
+      title: "起點在 L6，往回反查 L1–L3",
+      titleNote: "十層裡完整 4、凍結·暫代 3、不做 3",
+      render: ScopeLadderPage,
       callout: {
         icon: "target",
         tone: "blue",
-        text: "分類與檢索用不到生成式模型；生成式 LLM 只留在最末端一段暫代報告，規格到位就整段換掉。",
+        text: "分類是檢索的副產物：L6 條文一撈到，L1/L2/L3 就在手上，不需要模型判斷。",
       },
     },
     {
       layout: "custom",
-      nav: "報告例外：為什麼還要生成式模型",
+      nav: "原設計 vs 這一版",
       num: "01",
-      eyebrow: "PART 01 · 為什麼是暫代",
-      title: "為什麼報告那一步還要生成式模型",
-      titleNote: "規格沒到位前的暫代出口，不是走回頭路",
-      render: DecisionPage,
-      pill: { text: "暫代，非受控報告", tone: "orange" },
+      eyebrow: "PART 01 · PoC 範圍",
+      title: "七件事，只有兩件是加法",
+      titleNote: "其餘五件都在把原設計往回收",
+      render: ScopeBeforeAfterPage,
       callout: {
         icon: "info",
         tone: "warning",
-        text: "這一步是暫代：L4~L8 規格交付後，這段 prompt 要整個換掉，不要在上面疊功能。",
-      },
-    },
-    {
-      layout: "custom",
-      nav: "反查走查：一個問句走到底",
-      num: "01",
-      eyebrow: "PART 01 · 分類怎麼來的",
-      title: "分類不是算出來的，是反查出來的",
-      titleNote: "拿一個真實問句走一次",
-      render: LookupPage,
-      callout: {
-        icon: "lightbulb",
-        tone: "orange",
-        text: "L1／L2／L3 是檢索的副產物 —— 條文身上本來就掛著它被哪些題型引用，撈到條文就等於撈到分類。",
+        chip: "rerank 延後",
+        text: "L4~L8 的規格顧問師還沒交，必要事實追問、地雷判定、介入程度目前都還是空的——等規格會讓這一版停在「回傳一包 JSON」，看不出東西。",
       },
     },
 
     {
       layout: "section",
-      nav: "章節：架構",
+      nav: "章節：PoC 目標",
       num: "02",
-      eyebrow: "ARCHITECTURE",
-      title: "UI 進、API 出，一個服務內交棒",
-      subtitle: "建庫與查詢都收在同一個 NestJS 服務裡，中間用 PostgreSQL 交棒",
+      eyebrow: "GOALS",
+      title: "PoC 目標",
+      subtitle: "Vector Database、API、UI 各完成一件事；UI 是拿來讓檢索品質被肉眼檢查的，談不上產品雛形",
+    },
+    {
+      layout: "custom",
+      nav: "PoC 目標：三個元件各司其職",
+      num: "02",
+      eyebrow: "PART 02 · PoC 目標",
+      title: "三個元件，各自完成一件事",
+      titleNote: "跟前一版最大差別：Indexer 不再是獨立 CLI，收進 API",
+      render: GoalsTriadPage,
+      pill: { text: "Indexer 收進 API", tone: "blue" },
+      callout: {
+        icon: "lightbulb",
+        tone: "blue",
+        text: "Indexer 收進 API 之後，embedding 設定只有一份——模型名稱、維度、切塊規則不會在兩支程式裡各寫一次然後悄悄長歪。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：系統邊界",
+      num: "03",
+      eyebrow: "BOUNDARY",
+      title: "系統邊界",
+      subtitle: "四個模組、三支 API，PoC 只碰到兩格而且都只做了半格；會改動向量庫的入口一個都不在線上方",
+    },
+    {
+      layout: "custom",
+      nav: "系統邊界：讀寫分兩側",
+      chrome: false,
+      render: BoundaryMapPage,
+    },
+    {
+      layout: "custom",
+      nav: "系統邊界：讀寫分兩層",
+      num: "03",
+      eyebrow: "PART 03 · 系統邊界",
+      title: "這條邊界切的不是模組，是讀寫",
+      titleNote: "線上方只讀得到東西，會改動向量庫的入口一個都不在線上方",
+      render: BoundaryLayersPage,
+      callout: {
+        icon: "lock",
+        tone: "blue",
+        text: "三支 API，兩讀一寫——但只有讀的那兩支對外。寫的那支動的是整個向量庫，跟法條管理後台待在同一側：網路層擋在門外是第一層，管理端 key 是第二層。",
+      },
+      footnotes: [{ n: "1", text: "前台驗證方案（JWT／OAuth／SSO）與限定 IP 的實作手段（VPN／IAP／allowlist）都未定案" }],
+    },
+    {
+      layout: "section",
+      nav: "章節：帳號與權限",
+      num: "04",
+      eyebrow: "ROLES & ACCESS",
+      title: "帳號與權限",
+      subtitle: "四個角色、六條資料權限，單純是三個「不做」撐出來的；崴仁的權限表還沒交，這一節整段是推估",
+    },
+    {
+      layout: "custom",
+      nav: "四個角色：三人一機",
+      num: "04",
+      eyebrow: "PART 04 · 帳號與權限",
+      title: "三個是人，一個是機器",
+      titleNote: "會員的來源可能是自行註冊或 HRM 訂閱，資料範圍完全相同，差別只在配額",
+      render: RolesRosterPage,
+      callout: {
+        icon: "lock",
+        tone: "warning",
+        chip: "全站最寬的讀取權",
+        text: "跨會員的問句只有一條路看得到：Langfuse，而只有系統管理者進得去。他改不動任何東西，卻讀得到所有人的東西——這裡的「唯讀」不是最小權限。",
+      },
+      footnotes: [
+        { n: "1", text: "沒有企業帳號層：系統評估的是外部法律、不是企業內部工作規則，問句只屬於問的那個人" },
+        { n: "2", text: "顧問師進系統提問時就是一般會員；要讓他憑會員問句協助個案，得新增一套機制，調一格權限做不到" },
+      ],
+    },
+    {
+      layout: "custom",
+      nav: "帳號與權限：三個『不做』撐出簡單",
+      num: "04",
+      eyebrow: "PART 04 · 帳號與權限",
+      title: "單純的權限表，是設計出來的",
+      titleNote: "崴仁的角色×功能×資料權限表尚未交付，這是推估版本",
+      render: PermissionPage,
+      callout: {
+        icon: "info",
+        tone: "warning",
+        text: "四個角色（會員／顧問師／系統管理者／API 串接方·機器）撐起的權限表只有 6 條資料權限——單純是三個範圍決策撐出來的。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：技術棧",
+      num: "05",
+      eyebrow: "STACK",
+      title: "技術棧",
+      subtitle: "PostgreSQL + pgvector、NestJS + LangChain + mistral-embed、Vite + React；生成式模型只掛在報告那一段",
     },
     {
       layout: "full-visual",
       nav: "技術架構圖",
-      num: "02",
-      eyebrow: "PART 02 · 技術架構",
-      title: "UI、API、PostgreSQL：三層一次看完",
+      num: "05",
+      eyebrow: "PART 05 · 技術棧",
+      title: "UI 進、API 出，一庫交棒",
       viz: PocL1L3RetrievalArchitecture,
-      vizWidth: 1160,
       vizLabel: "@ai-visualize · poc-l1l3-retrieval-architecture",
       vizHint:
-        "最上層 UI（Vite + React）送出白話問句；左側 API（NestJS 常駐服務）內部並排 Indexer 元件（管理端觸發、非常駐流程，把法條與總表寫入向量與結構化資料）與查詢流程（Question → Embedding → Top-K 檢索 → Mapping → 風險分析報告）；右側 PostgreSQL + pgvector 是建庫與查詢共用的唯一交棒點。查詢流程前四步只用 mistral-embed，只有最後一步的風險分析報告碰生成式 LLM——那是 L4~L8 規格未到的暫代做法。",
+        "最上層 UI（Vite + React）送出白話問句；左側 API（NestJS 常駐服務）內部並排 Indexer 元件（管理端觸發、非常駐流程）與查詢流程（Question → Embedding → Top-K 檢索 → Mapping → 風險分析報告）；右側 PostgreSQL + pgvector 是建庫與查詢共用的唯一交棒點。查詢流程前四步只用 mistral-embed，只有最後一步的風險分析報告碰生成式 LLM（Codex 5.6 Luna）——那是 L4~L8 規格未到的暫代做法。",
     },
     {
       layout: "custom",
-      nav: "四件選型",
-      num: "02",
-      eyebrow: "PART 02 · 技術選型",
-      title: "四個元件，四組選型",
-      titleNote: "Indexer 收進 API 模組；UI 只是把 API 回傳攤開顯示",
+      nav: "五個元件，五組選型",
+      num: "05",
+      eyebrow: "PART 05 · 技術棧",
+      title: "五個元件，五組選型",
+      titleNote: "生成式模型與可觀測性都是新增，不在原設計裡",
       render: StackPage,
       callout: {
         icon: "alert",
         tone: "critical",
         chip: "設定層綁死",
-        text: "建庫與查詢用不同的 embedding 模型，向量空間對不上、檢索結果會是隨機的 —— 而且不會報錯。",
+        text: "建庫與查詢用不同 embedding 模型，向量空間對不上、檢索結果會是隨機的——而且不會報錯。",
       },
     },
-
     {
       layout: "section",
-      nav: "章節：資料",
-      num: "03",
+      nav: "章節：PoC 資料結構",
+      num: "06",
       eyebrow: "DATA",
-      title: "兩張表：一張存向量，一張存決策樹",
-      subtitle: "85 列決策樹、101 條相異法條、350 筆條文–題型對應",
+      title: "PoC 資料結構",
+      subtitle: "兩張表：labor_articles 存法條與向量，decision_tree 存 85 列決策樹；反查是一條 GIN 索引的陣列比對",
     },
     {
       layout: "custom",
       nav: "兩張表，一條 join",
-      num: "03",
-      eyebrow: "PART 03 · 資料結構",
+      num: "06",
+      eyebrow: "PART 06 · PoC 資料結構",
       title: "兩張表，一條 join",
       titleNote: "labor_articles 存法條與向量，decision_tree 存 85 列決策樹",
       render: SchemaJoinPage,
@@ -1239,9 +1538,9 @@ const deck: Deck = {
     },
     {
       layout: "custom",
-      nav: "扇出統計：為什麼是 text[]",
-      num: "03",
-      eyebrow: "PART 03 · 資料結構",
+      nav: "為什麼一定得是陣列欄位",
+      num: "06",
+      eyebrow: "PART 06 · PoC 資料結構",
       title: "為什麼一定得是陣列欄位",
       titleNote: "把 85 列攤開之後看到的形狀",
       render: FanoutPage,
@@ -1253,9 +1552,9 @@ const deck: Deck = {
     },
     {
       layout: "custom",
-      nav: "CHECK：地雷數是算出來的",
-      num: "03",
-      eyebrow: "PART 03 · 資料結構",
+      nav: "地雷數是算出來的",
+      num: "06",
+      eyebrow: "PART 06 · PoC 資料結構",
       title: "地雷數不是資料，是算出來的",
       titleNote: "所以用 CHECK 守住，而不是相信載入的人",
       render: CheckPage,
@@ -1269,24 +1568,202 @@ const deck: Deck = {
 
     {
       layout: "section",
-      nav: "章節：落地",
-      num: "04",
-      eyebrow: "NEXT",
-      title: "六條任務線，現在在第一條",
-      subtitle: "Runbook 不是最後才補的文件",
+      nav: "章節：AI 介入",
+      num: "07",
+      eyebrow: "AI GOVERNANCE",
+      title: "AI 介入",
+      subtitle: "十四個節點只有三個碰模型：入口的 G1 意圖判定、出口的 L9 報告與 L10 顧問推薦；中間整段走規則引擎",
     },
     {
       layout: "custom",
-      nav: "六條任務線",
-      num: "04",
-      eyebrow: "PART 04 · 任務拆解",
-      title: "六步走完，就是這一版的全部",
-      titleNote: "Vector Database → Indexer → 檢索 → 總表整合 → 報告 → UI",
-      render: TasksPage,
+      nav: "AI 只在頭尾兩端",
+      num: "07",
+      eyebrow: "PART 07 · AI 介入",
+      title: "14 個節點，只有 3 個碰模型",
+      titleNote: "G1 判意圖、L9 寫報告、L10 顧問推薦（不做）",
+      render: PipelinePage,
+      callout: {
+        icon: "alert",
+        tone: "warning",
+        text: "兜底的 G2（檢索幾何）與 G3（輸出白名單）都不經模型——G1 可以被說服，所以不是最後一道。",
+      },
+    },
+    {
+      layout: "section",
+      nav: "章節：安全與稽核",
+      num: "08",
+      eyebrow: "SECURITY & AUDIT",
+      title: "安全與稽核",
+      subtitle: "擋提示注入的主力是砍掉模型的權限面，禁止語句只是輔助；四道閘門裡真正兜底的 G2 與 G3 都不經模型",
+    },
+    {
+      layout: "custom",
+      nav: "安全：追一句話穿過四道閘門",
+      num: "08",
+      eyebrow: "PART 08 · 安全與稽核",
+      title: "三類威脅，模型的權限面被砍掉",
+      titleNote: "禁止語句只是輔助，真正的防線是 context 裡沒東西可洩",
+      render: SecurityGatePage,
+      callout: {
+        icon: "alert",
+        tone: "critical",
+        chip: "G3 是出口檢查，不是完整保證",
+        text: "一旦報告生成呼叫工具，G3 就看不到側門；格式合法但敘述被污染的內容，G3 也抓不到——那要靠顧問師在 B 卷測試裡抓。",
+      },
+      footnotes: [{ n: "1", text: "PoC 會記完整會員問句，去識別化不在 PoC 範圍——self-host 是這個取捨成立的前提" }],
+    },
+    {
+      layout: "custom",
+      nav: "四道閘門：只有一道是 AI",
+      num: "08",
+      eyebrow: "PART 08 · 安全與稽核",
+      title: "四道閘門，只有一道是 AI",
+      titleNote: "便宜的擋前面；兜底的 G2 與 G3 都不經模型",
+      render: GatesSpectrumPage,
+      callout: {
+        icon: "lock",
+        tone: "blue",
+        text: "G1 是 LLM、可以被說服，所以兜底的是不經模型的 G2 與 G3——這正是為什麼便宜的規則要擋在最前面，唯一的 AI 閘門被前後兩層規則包住。",
+      },
+    },
+    {
+      layout: "section",
+      nav: "章節：失敗降級",
+      num: "09",
+      eyebrow: "FALLBACK",
+      title: "失敗降級",
+      subtitle: "模型會逾時、會回傳不合 schema 的東西——每一種失敗都要有預先決定好的退路，而且每次降級都要留下紀錄",
+    },
+    {
+      layout: "full-visual",
+      nav: "扳故障開關，看結果一層層剝落",
+      num: "09",
+      eyebrow: "PART 09 · 失敗降級",
+      title: "降級不是壞掉，是退到下一層",
+      viz: FallbackDegradationSwitchboard,
+      vizLabel: "@ai-visualize · fallback-degradation-switchboard",
+      vizHint:
+        "四個故障開關對應四種失敗情境：分類模型逾時／schema 驗證失敗 → 退回純反查；信心低於門檻 → 列 2–3 候選待確認；完全無命中 → 走 unclassified 出口；報告模型失敗 → 退回結構化 JSON。可複選，右欄按最嚴重者呈現；每一次降級都寫進 Langfuse trace，標上降級原因。",
+    },
+    {
+      layout: "section",
+      nav: "章節：一次提問的完整路徑",
+      num: "10",
+      eyebrow: "LIFECYCLE",
+      title: "一次提問的完整路徑",
+      subtitle: "把前面幾節拼回同一張圖：一次提問會走過哪些格子、在哪裡可能被攔下來、攔下來之後還剩下什麼",
+    },
+    {
+      layout: "custom",
+      nav: "一條主幹，六個出口",
+      chrome: false,
+      render: SwimlanePage,
+    },
+
+    {
+      layout: "section",
+      nav: "章節：測試策略",
+      num: "11",
+      eyebrow: "VALIDATION",
+      title: "測試策略",
+      subtitle: "能測的只有兩端：L6 檢索撈得準不準、L9 報告有沒有守規矩；兩份題庫的差別不在答案，在問句的語域",
+    },
+    {
+      layout: "custom",
+      nav: "七題先猜再驗證",
+      num: "11",
+      eyebrow: "PART 11 · 測試策略",
+      title: "一半以上的『通過』是反直覺的",
+      render: QuizPage,
+      callout: {
+        icon: "info",
+        tone: "blue",
+        text: "只有第 1 題的直覺答案是對的——照『把紅燈改綠』的本能調系統，會把系統改壞。",
+      },
+    },
+    {
+      layout: "custom",
+      nav: "為什麼兩份題庫都要跑",
+      num: "11",
+      eyebrow: "PART 11 · 測試策略",
+      title: "為什麼兩份題庫都要跑",
+      titleNote: "只跑 A 卷分數會很好看，然後上線第一天被打臉",
+      render: TwoDecksDecisionPage,
+      callout: {
+        icon: "target",
+        tone: "blue",
+        text: "兩份題庫測的是兩件事：A 卷測檢索覆蓋率，B 卷測白話輸入、多爭點與範圍邊界。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：Token 與成本",
+      num: "12",
+      eyebrow: "COST",
+      title: "Token 與成本",
+      subtitle: "數字從 Langfuse trace 來，不必另外埋計數器；但單次與月度估算、使用者月限額目前都還是空的",
+    },
+    {
+      layout: "custom",
+      nav: "還沒有數字，但知道從哪來",
+      num: "12",
+      eyebrow: "PART 12 · Token 與成本",
+      title: "還沒有數字，但知道從哪來",
+      titleNote: "這一節談的成本只涵蓋報告生成——embedding 那段不記",
+      render: CostPage,
+      callout: {
+        icon: "info",
+        tone: "warning",
+        chip: "待補",
+        text: "單次與月度成本估算、使用者月限額都還沒算。硬湊一個數字出來，不如誠實標成空的。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：PoC 任務拆解",
+      num: "13",
+      eyebrow: "NEXT",
+      title: "PoC 任務拆解",
+      subtitle: "五步走完就是這一版的全部；Runbook 不是最後才補的文件，它逼你把手動做過的每一步寫下來",
+    },
+    {
+      layout: "custom",
+      nav: "五步走完，就是這一版的全部",
+      num: "13",
+      eyebrow: "PART 13 · PoC 任務拆解",
+      title: "五步走完，就是這一版的全部",
+      titleNote: "Runbook 不是最後才補的文件",
+      render: TasksRailPage,
       callout: {
         icon: "file",
         tone: "orange",
-        text: "Runbook 的價值不在文件本身，在逼你把手動做過的每一步寫下來 —— 沒寫下來的那幾步，就是之後重建環境時卡住的地方。",
+        text: "Runbook 的價值不在文件本身，在逼你把手動做過的每一步寫下來——沒寫下來的那幾步，就是之後重建環境時卡住的地方。",
+      },
+    },
+
+    {
+      layout: "section",
+      nav: "章節：下次會議交付清單",
+      num: "14",
+      eyebrow: "DELIVERABLES",
+      title: "下次會議交付清單",
+      subtitle: "依 2026/8/3 李總線上顧問輔導會議紀錄，工程端要備妥八項：六項已完成、一項推估待對齊、一項未開始",
+    },
+    {
+      layout: "custom",
+      nav: "8 項交付，6 項已完成",
+      num: "14",
+      eyebrow: "PART 14 · 下次會議交付清單",
+      title: "8 項交付，6 項已完成",
+      titleNote: "依 2026/8/3 李總線上顧問輔導會議紀錄",
+      render: DeliverablesPage,
+      callout: {
+        icon: "check",
+        tone: "good",
+        chip: "6/8 已完成",
+        text: "只剩帳號與權限（等崴仁的表對齊）與 RAG 預留（下一版才開始）兩項。",
       },
     },
 
@@ -1298,21 +1775,21 @@ const deck: Deck = {
       items: [
         {
           n: "01",
-          k: "總表補上缺口，範圍反而變小",
-          v: "只做 L1–L3，L4 以後的事實追問、地雷判定、受控報告全部不在這一版；L6 只借條文，不跑判定。",
+          k: "主線只用一個模型",
+          v: "mistral-embed 撐起檢索與分類全程；生成式模型（Codex 5.6 Luna）只掛在最末端的風險分析報告，且是 L4~L8 規格未到的暫代做法。",
         },
         {
           n: "02",
-          k: "主線不碰生成式模型，只有一處例外",
-          v: "檢索與分類全程只用 mistral-embed；生成式 LLM 只掛在最末端的風險分析報告，且是 L4~L8 規格未到的暫代做法。",
+          k: "AI 只在頭尾兩端出現",
+          v: "14 個節點只有 3 個碰模型；四道閘門裡真正兜底的 G2 與 G3 都不經模型，每一種失敗都退到下一層仍交得出東西。",
         },
         {
           n: "03",
-          k: "分類是檢索的副產物",
-          v: "撈到條文就等於撈到 l3_codes，回 decision_tree 一 join 就有 L1／L2／L3，連同頻率、風險、地雷數一起帶出來。",
+          k: "沒做完的部分，也誠實留在紙上",
+          v: "帳號與權限是推估待對齊、Token 與成本待補、RAG 預留未開始——單純不是掩飾，是設計出來的。",
         },
       ],
-      cta: "回到筆記看完整的 schema、範例資料與 Create SQL",
+      cta: "回到筆記看完整的四道閘門判定邏輯、CHECK 約束與 Create SQL",
       ctaMeta: "/notes/勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
     },
   ],
