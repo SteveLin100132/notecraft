@@ -1,5 +1,6 @@
 ---
 import Icon from "./Icon.astro";
+import VizZoom from "@/components/islands/VizZoom.tsx";
 
 export interface Props {
   id: string;
@@ -49,9 +50,13 @@ const label = TYPE_LABELS[type] ?? "視覺化";
         <script type="application/json" data-nc-prompt set:html={JSON.stringify(prompt)} />
       </span>
     )}
+    {/* 放大檢視：常駐於標題列最右側，把下方 data-nc-viz-body 的元件搬進全螢幕畫布 */}
+    <VizZoom client:visible id={id} kind={label} type={type} caption={caption} />
   </div>
   <div style="padding:18px 16px;">
-    <slot />
+    <div data-nc-viz-body>
+      <slot />
+    </div>
   </div>
   {caption && (
     <figcaption

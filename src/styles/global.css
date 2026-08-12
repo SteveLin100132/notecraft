@@ -51,6 +51,8 @@ img { max-width: 100%; display: block; }
 @keyframes ncRiseUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
 /* full-visual 畫布的偏移徽章 / 操作提示（CanvasViewport） */
 @keyframes ncBadgeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+/* 忙碌指示（VizZoom 的 PNG 匯出中）*/
+@keyframes ncSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 /* ── eyebrow / title-accent helpers (DS) ── */

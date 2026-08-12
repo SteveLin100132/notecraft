@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>視覺化元件放大檢視 — 原型</title>
+<link rel="stylesheet" href="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<link rel="stylesheet" href="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/styles.css">
+<style>
+:root{--radius-xs:2px;--radius-sm:3px;--radius-md:5px;--radius-lg:8px;--radius-xl:11px;--radius-2xl:14px}
+html,body{margin:0;padding:0;background:var(--neutral-0)}
+#root{min-height:100vh}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-thumb{background:var(--neutral-300);border-radius:999px;border:3px solid var(--neutral-0)}
+@keyframes ncFade{from{opacity:0}to{opacity:1}}
+@keyframes ncPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes ncGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes cvBadgeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important}}
+.vzhint{position:fixed;left:20px;bottom:20px;z-index:50;display:flex;flex-direction:column;gap:4px;padding:14px 18px;border-radius:var(--radius-lg);background:var(--neutral-0);border:1px solid var(--neutral-200);box-shadow:var(--shadow-md);font-size:13px;color:var(--neutral-600);line-height:1.7;max-width:280px}
+.vzhint b{color:var(--blue-700);font-size:13.5px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<rect width="100" height="100" rx="16" fill="#1b4f9c"/>
+<g fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+<rect x="26" y="30" width="48" height="40" rx="4"/>
+<path d="M62 38h8v8M38 62h-8v-8M70 38l-9 9M30 62l9-9"/>
+</g>
+</svg>
+</template>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/_ds_bundle.js"></script>
+<script>
+// 語意 token（節錄自 app/deck.jsx 的 DKT，放大檢視只用到 light）
+window.DKT={light:{stage:"var(--neutral-100)",chrome:"var(--neutral-0)",rail:"var(--neutral-50)",slide:"var(--neutral-0)",border:"var(--neutral-200)",borderSoft:"var(--neutral-100)",ink:"var(--neutral-900)",body:"var(--neutral-700)",muted:"var(--neutral-500)",brand:"var(--blue-700)",brandInk:"var(--blue-700)",brandSoft:"var(--blue-50)",accent:"var(--orange-500)",accentSoft:"var(--orange-50)",sunken:"var(--neutral-100)",hover:"var(--neutral-50)",shadow:"var(--shadow-sm)",shadowLg:"var(--shadow-lg)"},dark:{stage:"var(--neutral-900)",chrome:"var(--neutral-800)",rail:"var(--neutral-900)",slide:"var(--neutral-800)",border:"rgba(255,255,255,0.14)",borderSoft:"rgba(255,255,255,0.08)",ink:"var(--neutral-0)",body:"var(--neutral-200)",muted:"var(--neutral-400)",brand:"var(--blue-300)",brandInk:"var(--blue-200)",brandSoft:"rgba(44,110,187,0.20)",accent:"var(--orange-300)",accentSoft:"rgba(237,155,38,0.14)",sunken:"rgba(255,255,255,0.05)",hover:"rgba(255,255,255,0.07)",shadow:"0 2px 10px rgba(0,0,0,0.45)",shadowLg:"0 18px 44px rgba(0,0,0,0.55)"}};
+window.dkt=(d)=>d?window.DKT.dark:window.DKT.light;
+</script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="VizZoomOverlay.jsx"></script>
+<script type="text/babel" src="generated-samples.jsx"></script>
+<script type="text/babel" src="CanvasViewport.jsx"></script>
+<script type="text/babel">
+// 模擬筆記閱讀頁的版心：只為了讓「放大檢視」在真實情境下被驗證
+const IDS = ["rr-structure", "rr-raci", "pm-project-vs-product-concept"];
+function Demo() {
+  const G = window.GENERATED;
+  return (
+    <div style={{ maxWidth: 780, margin: "0 auto", padding: "48px 28px 140px", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: 0 }}>
+      <div>
+        <div className="tl-eyebrow" style={{ color: "var(--orange-500)" }}>PROTOTYPE</div>
+        <h1 style={{ fontSize: 40, fontWeight: 900, color: "var(--neutral-900)", margin: "6px 0 12px" }}>視覺化元件放大檢視</h1>
+        <p style={{ fontSize: 16, lineHeight: 1.85, color: "var(--neutral-700)", margin: 0 }}>
+          下面三個是筆記內文裡真實的 AI 生成互動元件。它們在內文寬度下會超出邊界或擠壓，
+          點各自圖框標題列右側的「放大檢視」，進入全螢幕畫布：可拖曳平移、滾輪縮放、fit 還原，
+          元件互動完整保留，並可匯出 PNG。
+        </p>
+      </div>
+      {IDS.map((id) => React.createElement(G[id], { key: id }))}
+    </div>
+  );
+}
+function Toast() {
+  const [t, setT] = React.useState(null);
+  React.useEffect(() => {
+    const on = (e) => { setT(e.detail.msg); setTimeout(() => setT(null), 2200); };
+    window.addEventListener("nc-toast", on);
+    return () => window.removeEventListener("nc-toast", on);
+  }, []);
+  if (!t) return null;
+  return <div style={{ position: "fixed", left: "50%", bottom: 28, transform: "translateX(-50%)", zIndex: 1000, padding: "12px 22px", borderRadius: 999, background: "var(--blue-700)", color: "#fff", fontSize: 14, fontWeight: 700, boxShadow: "var(--shadow-lg)", animation: "ncFade 180ms" }}>{t}</div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<React.Fragment><Demo /><Toast /></React.Fragment>);
+</script>
+<div class="vzhint">
+<b>操作</b>
+圖框標題列右側「放大檢視」→ 全螢幕畫布<br>
+拖曳空白處＝平移　·　滾輪＝縮放<br>
++ / − / 0＝放大 / 縮小 / fit　·　Esc＝關閉
+</div>
+</body>
+</html>

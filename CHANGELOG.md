@@ -8,6 +8,27 @@
 
 ---
 
+## [0.5.0] - 2026-08-12
+
+生成元件是為**內文欄寬**（約 720px）設計的，但並排雙欄結構圖、RACI 矩陣、寬表格在那個寬度下會被擠壓、橫向溢出，或退化成小框裡的橫向捲動。這一版給每個元件一個放大入口——把它搬進全螢幕的可拖曳縮放畫布來讀。
+
+畫布不是新做的：它就是 0.4.0 簡報 `full-visual` 版型那塊 `CanvasViewport`。當初它解的是「1600×900 固定座標系會裁掉高元件」，而筆記內文碰到的是同一個問題的另一面，所以這一版只是幫它多接一個呼叫端，元件本身零改動。
+
+### 新增
+
+- **生成元件放大檢視（Viz Zoom）** —— 每個 AI 生成內容外框卡片的標題列最右側常駐「放大檢視」鈕，點下去進入 full-bleed 覆蓋層（不是 modal，四周不留背景）：64px 標題列 / 可拖曳平移、可縮放的畫布 / 說明列。畫布尺寸由視窗扣掉標題列與說明列**實測**高度推導，`resize` 時重算
+  - **元件互動完整保留** —— 該點的照樣能點、該拖的照樣能拖；指標在元件內容上時事件交給元件，不會誤觸畫布平移（按 ⌥ 才從元件上起手拖曳）
+  - 純滾輪即縮放、拖曳空白處平移、雙擊空白處還原置中、指標在畫布上時 `+` / `−` / `0` 生效
+  - **Esc 關閉**（capture 階段攔截，不會被簡報 / modal 的 Esc handler 搶走）；開啟時鎖捲動、關閉時還原原本的 `overflow` 值
+- **匯出 PNG** —— 覆蓋層標題列可將元件匯出為 `<id>.png`：以離屏乾淨副本為來源，因此是 **100% 原尺寸、白底、2x**，**不受當下縮放與平移影響**。`html-to-image` 走動態 import，只在首次匯出時載入、不進 initial bundle
+
+### 變更
+
+- Toast 的 z-index 由 700 提到 950 —— 讓提示能蓋過放大檢視覆蓋層（900）與簡報播放（800）。先前簡報模式發出的提示同樣會被自己的底色擋住，一併修掉
+- `GeneratedFrame` 的元件本體多包一層 `data-nc-viz-body` 標記容器（放大檢視靠它找到要搬移的節點）；外框的視覺與既有互動不變
+
+---
+
 ## [0.4.0] - 2026-08-02
 
 簡報的品質瓶頸不在提示詞，在**版型存量**。這一版把原子層從 14 個補到 29 個，並把內容頁的預設從「AI 每頁重新設計版面」改成「AI 挑一個設計好的原子、把資料填進去」。
@@ -139,6 +160,8 @@ AI 視覺化管線正式可用的一版。
 > **0.1.0 之前**：2026-06-12 起本專案是一個純自用的 Astro + MDX 筆記站，AI 視覺化管線、系列與閱讀進度、Markdown 擴充語法（Admonitions / Tabs / Tooltips / Badge / Steps）、程式碼區塊增強等功能都在那個階段完成，尚未套件化，故不列入本檔。完整脈絡見 [docs/notecraft-prd.md](./docs/notecraft-prd.md) 的 Change Log 一節。
 
 [未發布]: https://github.com/SteveLin100132/notecraft/compare/main...HEAD
+[0.5.0]: https://www.npmjs.com/package/notecraftapp/v/0.5.0
+[0.4.0]: https://www.npmjs.com/package/notecraftapp/v/0.4.0
 [0.3.0]: https://www.npmjs.com/package/notecraftapp/v/0.3.0
 [0.2.4]: https://www.npmjs.com/package/notecraftapp/v/0.2.4
 [0.2.3]: https://www.npmjs.com/package/notecraftapp/v/0.2.3

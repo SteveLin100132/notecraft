@@ -45,7 +45,9 @@ export default function ToastHost() {
         bottom: 24,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 700,
+        // 全站最上層：必須蓋過簡報播放（800）與生成元件的放大檢視覆蓋層（900），
+        // 否則那兩個全螢幕情境發出的提示會被自己的底色擋住。
+        zIndex: 950,
         display: "flex",
         flexDirection: "column",
         gap: 10,

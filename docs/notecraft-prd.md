@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.10.0
+文件版本: v1.11.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-07-31
+更新日期: 2026-08-12
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -83,6 +83,7 @@ Project Name: NoteCraft
 21. \* 提供 [Markdown 擴充語法 — Badge](#markdown-擴充語法badge)：行內標籤元件，支援多種 variant（語意色 × `outline` / `solid` 樣式），重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 的 `remark-directive` 底座，純 CSS、零 JS，正式環境同樣可用
 22. \* 提供 [Markdown 擴充語法 — Steps](#markdown-擴充語法steps)：條列「步驟」內容，支援 `horizontal` 與 `vertical`（預設）兩種版型，重用 `remark-directive` 底座，純 CSS / 漸進增強，正式環境同樣可用
 23. \* 提供 [筆記轉簡報（Note → Presentation）](#筆記轉簡報note--presentation)：作者於 [筆記檢視頁面](#筆記檢視頁面) 功能列點「生成簡報」按鈕複製提示詞、貼進 Claude Code，由 AI 讀取整篇筆記（文字 ＋ 既有 [Generated 元件](#generated-元件)）重新編排為一份**多頁簡報**（每篇一份、獨立 slides 檔），並於 [簡報模式](#筆記轉簡報note--presentation)（`/present/[slug]`）以「檢視 / 播放」兩態呈現；生成為 dev-only、播放正式環境亦可用，版面遵循 [trendlink-design](#skills)。由獨立的 `content-present` Skill 與兩個新 Subagent 執行，**與既有 AI 視覺化管線完全隔離**
+24. \* 為每個 [Generated 元件](#generated-元件) 提供 [放大檢視](#ai-生成內容外框卡片--放大檢視viz-zoom)：從 [AI 生成內容外框卡片](#ai-生成內容外框卡片) 標題列點「放大檢視」，把元件搬進全螢幕可拖曳平移、可縮放的畫布閱讀（沿用簡報端既有的 `CanvasViewport`），互動完整保留、可匯出 100% 原尺寸 PNG；解決寬元件在內文欄寬下被擠壓、橫向溢出的問題，dev 與正式環境皆可用
 
 ### 4.2 非目標（Out of Scope）
 
@@ -1035,6 +1036,71 @@ flowchart TD
 - [ ] 其他
 
 > 已收斂：dev 與正式皆顯示。提示詞屬教學透明資訊，公開有助讀者理解；若日後有不想公開的筆記，再考慮以標記層級的 `private-prompt` 開關處理。
+
+#### AI 生成內容外框卡片 — 放大檢視（Viz Zoom）（\*）
+
+## 目標
+
+為每一個 [Generated 元件](#generated-元件) 提供**放大檢視**入口：把元件從內文欄寬（約 720px）搬進一塊**全螢幕、可拖曳平移、可縮放**的畫布來閱讀，並可匯出 PNG。**元件的互動在放大後完整保留**
+
+問題背景：生成元件是為內文欄寬設計的，但並排雙欄結構圖、RACI 矩陣、寬表格這類元件在該寬度下會被擠壓、橫向溢出，或退化成小框裡的橫向捲動，讀起來很吃力
+
+## 設計
+
+- **不新做畫布**：直接沿用簡報 `full-visual` 版型已有的 `CanvasViewport`（`src/components/deck/CanvasViewport.tsx`），本功能只是**新增一個呼叫端**，不改其行為
+- **一次只檢視一個元件**：不做上下切換、不做縮覽列、不做暗色舞台切換
+- **狀態屬於單一圖框**：每個 `GeneratedFrame` 自己管自己的覆蓋層，無全域 store
+
+## 規格
+
+- 新增 island `VizZoom`（`src/components/islands/VizZoom.tsx`），由 `GeneratedFrame` 以 `client:visible` 掛在 header 最右側。Props：`id` / `kind` / `type` / `caption` / `natural`（預設 880）
+- **觸發鈕**：header 最右側常駐膠囊鈕（高 26px、expand icon + 「放大檢視」）。文字須自行覆蓋 `text-transform: none` / `letter-spacing: 0`，避免繼承 header 的字距設定
+- **覆蓋層**：`position: fixed; inset: 0; z-index: 900`，portal 掛在 `document.body`，底色 `--neutral-0`。**full-bleed、不是 modal，四周不留背景**。垂直三段：
+  - 標題列固定 **64px**：sparkle + 元件類型 + `generated/<id>.tsx` + 操作提示膠囊 + 「匯出 PNG」+ 關閉鈕
+  - 畫布舞台 `flex: 1`、padding 24、底 `--neutral-50`，內放 `CanvasViewport`（`mode="play"`：純滾輪即縮放）
+  - 說明列：`caption` 文字；`caption` 為空時整段不渲染
+- **畫布尺寸**：`w = innerWidth - 48`、`h = innerHeight - 64 - <說明列實際高度> - 48`。說明列高度以 `offsetHeight` 量測回填、不寫死；`resize` 時重算
+- **元件搬移**：覆蓋層開啟時，把內文那個 DOM 節點搬進畫布、原位留一塊等高佔位以維持文件高度，關閉時搬回原位。元件是從 MDX 掛進來的 Astro island，React 這端拿不到該 element，故以節點搬移取代「再 render 一次」——代價是元件 state 會沿用而非從初始值開始
+- **關閉**：關閉鈕或 **Esc**。Esc 走 capture 階段 listener + `stopPropagation`，避免被同頁其他 Esc handler（簡報 / modal）搶走。開啟時鎖 `document.body` 捲動，關閉時還原**原本的** `overflow` 值
+- **匯出 PNG**：來源是一份**離屏乾淨副本**（`left: -99999px`、`opacity: 0`、`aria-hidden`，內層 `width = natural`、padding 24、白底），而非畫布上那份（帶 transform，會連縮放與裁切一起截）。以 `html-to-image` 的 `toPng({ pixelRatio: 2, backgroundColor: "#ffffff" })` 輸出為 `<id>.png`；函式庫走**動態 import**、不進 initial bundle；成功 / 失敗皆走既有 toast
+- 樣式只取既有 token，icon 一律 `lucide-react`；動畫（淡入 180ms、按鈕狀態 140ms）由 global.css 既有的 `prefers-reduced-motion` 規則收斂
+- 依據文件：`docs/prototype/design_handoff_viz_zoom/README.md`（hifi handoff，規格唯一來源）
+
+## 卡控機制
+
+- **不得修改 `CanvasViewport` 的行為**：平移 / 縮放 / fit / 邊界遮罩 / 「指標在元件內容上時事件交給元件」皆為既有實作事實
+- 覆蓋層 z-index 900 與簡報播放（800）、modal（600 級）不衝突；toast host 需在其之上（950）才不會被覆蓋層底色擋住
+- 觸發鈕與覆蓋層**dev 與正式環境皆顯示**（屬讀者功能，非編輯功能）
+
+## 驗收標準
+
+| Scenario                   | Given                              | When                     | Then                                                             |
+| -------------------------- | ---------------------------------- | ------------------------ | ---------------------------------------------------------------- |
+| 圖框都有放大入口           | 某標記已 `generated`               | 進入筆記頁面             | 每個圖框 header 最右側有常駐「放大檢視」鈕，文字未被 header 字距汙染 |
+| 進入全螢幕畫布             | 點「放大檢視」                     | 覆蓋層開啟               | full-bleed 淡入，標題列 64px，畫布尺寸＝視窗扣掉標題列 / 說明列 / padding |
+| 互動完整保留               | RACI 矩陣或含播放控制的動畫元件    | 在覆蓋層中操作           | 格子可點、模擬可播放；且從元件上起手拖曳不會誤觸畫布平移           |
+| 畫布操作沿用既有行為       | 覆蓋層開啟                         | 滾輪 / 拖曳 / 雙擊 / +−0 | 縮放、平移、fit 還原皆生效，行為與簡報 `full-visual` 一致          |
+| 關閉還原                   | 覆蓋層開啟且頁面原本可捲動         | 按 Esc 或關閉鈕          | 覆蓋層關閉、元件回到內文原位、`body.overflow` 還原成原本的值       |
+| 匯出不受當下視角影響       | 畫布已縮放 / 平移到任意視角        | 點「匯出 PNG」           | 輸出為 100% 原尺寸、白底、2x 的 `<id>.png`                        |
+| 說明列缺省                 | 標記未設 `caption`                 | 覆蓋層開啟               | 說明列整段不渲染，畫布高度相應變高                                 |
+
+## 待釐清
+
+### Q1. 覆蓋層裡的元件是否與內文那份共用 state？
+
+- [x] 共用（搬移同一個 DOM 節點）：放大前的操作結果會延續
+- [ ] 不共用（另起 instance）：state 從初始值開始
+- [ ] 其他
+
+> 已收斂：採搬移。元件由 MDX 掛成 Astro island，React 這端拿不到 element，另起 instance 需改動 MDX 嵌入方式；且對讀者而言「放大前選到的格子還在」更順。
+
+### Q2. 是否提供多元件之間的上下切換 / 縮覽列？
+
+- [ ] 提供
+- [x] 不提供，一次只檢視一個元件
+- [ ] 其他
+
+> 已收斂：不提供。放大檢視的訴求是「把這一張看清楚」，切換與縮覽會把它變成另一個瀏覽器，與筆記的閱讀動線重疊。
 
 #### 筆記轉簡報（Note → Presentation）（\*）
 
@@ -2476,6 +2542,21 @@ model: haiku
 
 **依據文件：** [deck-slide-contract.md](deck-slide-contract.md) v0.2（型別契約與取捨）、[deck-design-audit.md](deck-design-audit.md)（設計原則對照與實測數據）、`docs/tasks/task-31` ~ `task-37`（實作記錄）。
 
+#### Phase 4.14 — 生成元件放大檢視（v1.11.0 追加）
+
+**目標：讓內文欄寬容不下的元件，有一個能好好讀完的地方**
+
+- 新增 island `VizZoom`（`src/components/islands/VizZoom.tsx`）：`GeneratedFrame` 標題列最右側的常駐觸發鈕 + 全螢幕覆蓋層（z-index 900、portal 至 body、full-bleed）
+- 覆蓋層垂直三段：64px 標題列 / 畫布舞台 / 說明列（`caption` 為空時不渲染）；畫布尺寸由視窗扣掉標題列、說明列**實測**高度與 padding 推導，`resize` 時重算
+- 畫布**直接沿用 `CanvasViewport`**（`mode="play"`、`natural=880`），**零改動**——平移 / 縮放 / fit / 邊界遮罩 / 「指標在元件上時事件交給元件」全部沿用
+- 元件以**搬移內文 DOM 節點**的方式進畫布（原位留等高佔位），互動 100% 保留；MDX 掛進來的是 Astro island，React 這端拿不到 element，這是取代「再 render 一次」的作法
+- PNG 匯出以離屏乾淨副本為來源（2x、白底、`<id>.png`），不受當下縮放平移影響；`html-to-image` 走動態 import、不進 initial bundle
+- `ToastHost` z-index 700 → 950，讓匯出提示能蓋過覆蓋層（900）與簡報播放（800）
+
+**理由：** 這是 v1.10.0 簡報改制的**外溢紅利**——`CanvasViewport` 當初是為 `full-visual` 版型解決「1600×900 固定座標系會裁掉高元件」而做的，而筆記內文面對的是同一個問題的另一面（欄寬容不下寬元件）。與其在筆記端另做一套縮放，不如讓既有畫布多一個呼叫端。
+
+**依據文件：** `docs/prototype/design_handoff_viz_zoom/README.md`（hifi handoff，規格唯一來源）、`docs/prototype/design_handoff_canvas_viewport/README.md`（前置依賴）。
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2635,6 +2716,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.11.0] - 2026-08-12
+- **Added**: 新增生成元件放大檢視（Viz Zoom）規格與 Phase 4.14
 
 ### [1.10.0] - 2026-07-31
 - **Added**: 新增 Phase 4.13 簡報版型改制：內容頁改為 custom 自由頁、版型收成 6 種
