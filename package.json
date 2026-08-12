@@ -74,6 +74,7 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "gray-matter": "^4.0.3",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.469.0",
     "motion": "^11.15.0",
     "pagefind": "^1.2.0",
