@@ -63,6 +63,7 @@ status: pending | generated | locked | failed
 - **孤兒元件**（標記已刪、元件還在）由 note-scanner 回報，**必須作者明確同意才可刪除**
 - 驗證未通過前**不寫回 MDX**，避免引用到壞元件
 - 只有含互動 / 動畫時加 `client:visible`；純靜態 SVG 不加
+- `GeneratedFrame` 的元件本體外面那層 `data-nc-viz-body` 是「放大檢視」的搬移目標，**不可拿掉**（見 [VizZoom.tsx](src/components/islands/VizZoom.tsx)）
 
 ### 元件白名單
 
