@@ -33,6 +33,24 @@ const PAD = 24;
 /** 畫布尺寸下限，避免極小視窗算出負值 */
 const MIN_W = 320;
 const MIN_H = 260;
+/**
+ * 紙張寬度的上下限。
+ *
+ * 下限 880：修正前的固定值，窄視窗不該比以前更糟。
+ * 上限 1600：生成元件本是為約 720px 的內文欄寬設計的，攤到超寬螢幕的全寬會出現
+ *   大片留白與過長行寬，反而更難讀。
+ */
+const PAPER_MIN = 880;
+const PAPER_MAX = 1600;
+/** CanvasViewport 的紙張內距（INSET）—— 紙張左右各一次、fit 的呼吸左右各一次，共四次 */
+const CANVAS_INSET = 24;
+/**
+ * 匯出 PNG 的離屏副本寬度：固定值，刻意不跟著視窗跑。
+ *
+ * 響應式元件會依寬度重排，若沿用畫布上那個動態寬度，同一張圖在 27 吋螢幕與筆電上
+ * 匯出的 PNG 會不一樣寬、排版也不同 —— 匯出結果必須可重現。
+ */
+const SHOT_W = 1600;
 /** 淡入 180ms、按鈕狀態 140ms，皆 var(--ease-out) */
 const FADE_MS = 180;
 const BTN_MS = 140;
@@ -48,11 +66,14 @@ export interface VizZoomProps {
   /** @ai-visualize 的 type 欄位 */
   type?: string;
   caption?: string;
-  /** 紙張內容寬度：生成元件的原設計版心 */
+  /**
+   * 紙張內容寬度。指定時原樣採用（某張圖自己知道它需要多寬）；
+   * 未指定時依畫布可用寬度動態計算，見 `paperW`。
+   */
   natural?: number;
 }
 
-export default function VizZoom({ id, kind, type, caption, natural = 880 }: VizZoomProps) {
+export default function VizZoom({ id, kind, type, caption, natural }: VizZoomProps) {
   const c = dkt(false); // 覆蓋層恆為亮色：與簡報端共用同一組語意 token 定義
   const [zoom, setZoom] = useState(false);
   const [node, setNode] = useState<HTMLElement | null>(null);
@@ -120,6 +141,20 @@ export default function VizZoom({ id, kind, type, caption, natural = 880 }: VizZ
     w: Math.max(MIN_W, win.w - PAD * 2),
     h: Math.max(MIN_H, win.h - HEAD - footH - PAD * 2),
   };
+
+  /**
+   * 紙張寬度 —— 這是「放大檢視」對寬型元件真正有效的那一刀。
+   *
+   * 縮放是對舞台套 CSS `transform: scale()`，**不會改變版面寬度**：紙張固定 880 的話，
+   * 響應式元件在放大檢視裡量到的父層寬度永遠是 880，只排得出跟內文差不多的欄數，被迫
+   * 往下堆成又窄又高的形狀。而 fit 取寬高比例的較小者，於是高度成為瓶頸、整張圖反而
+   * 縮得比不放大還小。把紙張加寬，元件才有機會攤成又寬又矮 —— 正好貼合橫向的視窗。
+   *
+   * 扣 4 個 INSET：紙張自身內距左右各一次、fit 計算保留的呼吸左右各一次，扣完寬度方向
+   * 才剛好 fit 到 100%。紙張寬度一變，CanvasViewport 掛在紙張上的 ResizeObserver 會
+   * 自己重算 fit，不需要另外接線。
+   */
+  const paperW = natural ?? Math.min(PAPER_MAX, Math.max(PAPER_MIN, area.w - CANVAS_INSET * 4));
 
   // PNG 匯出：來源是離屏乾淨副本，不是畫布上那份（畫布那份帶 transform，會連縮放與裁切一起截）。
   const exportPng = async () => {
@@ -284,7 +319,7 @@ export default function VizZoom({ id, kind, type, caption, natural = 880 }: VizZ
             >
               <CanvasViewport
                 content={content}
-                natural={natural}
+                natural={paperW}
                 w={area.w}
                 h={area.h}
                 mode="play"
@@ -323,11 +358,11 @@ export default function VizZoom({ id, kind, type, caption, natural = 880 }: VizZ
               aria-hidden="true"
               style={{ position: "fixed", left: -99999, top: 0, opacity: 0, pointerEvents: "none" }}
             >
-              {/* content-box：Tailwind preflight 全域是 border-box，會把 padding 吃進 natural 裡，
-                  導致元件以 832px 排版、與畫布上那份對不起來 */}
+              {/* content-box：Tailwind preflight 全域是 border-box，會把 padding 吃進寬度裡，
+                  導致元件實際以 SHOT_W - PAD * 2 排版 */}
               <div
                 ref={shot}
-                style={{ boxSizing: "content-box", width: natural, padding: PAD, background: "#ffffff" }}
+                style={{ boxSizing: "content-box", width: SHOT_W, padding: PAD, background: "#ffffff" }}
               />
             </div>
           </div>,

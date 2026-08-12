@@ -68,11 +68,13 @@
 
 ```
 content = 元件本身（與內文同一份 element）
-natural = 880          // 紙張內容寬度（px）
+natural = 880          // 紙張內容寬度（px）—— v0.5.1 起改為動態，見下方註記
 w = window.innerWidth - 48
 h = window.innerHeight - 64 - <說明列實際高度> - 48
 mode = "play"          // 全螢幕情境：純滾輪即縮放，不需 ⌘/Ctrl
 ```
+
+> **v0.5.1 修正（實作已偏離此處的原型值）**：`natural` 不再是固定的 880，改為 `clamp(w - 96, 880, 1600)`。原因是縮放走 CSS `transform: scale()`、**不改變版面寬度**，紙張固定為窄值時，會依容器寬度重排的元件在放大檢視裡只能堆高，而 fit 取寬高比例的較小者，反而把整張圖縮得更小。另外匯出 PNG 的離屏副本改用**固定 1600px**、不跟著紙張走，以保證匯出結果跨螢幕可重現。詳見 PRD §7.1 與 CHANGELOG `[0.5.1]`。
 
 `w` / `h` 隨 `resize` 重算；說明列高度用 ref 量 `offsetHeight` 後回填（不要寫死 78）。`mode="play"` 讓純滾輪就能縮放 —— 覆蓋層背後沒有頁面捲動需要保護。`outerScale` 保持預設 1（覆蓋層沒有外層 transform scale）。
 

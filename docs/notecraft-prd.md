@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.11.0
+文件版本: v1.11.1
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -1053,16 +1053,17 @@ flowchart TD
 
 ## 規格
 
-- 新增 island `VizZoom`（`src/components/islands/VizZoom.tsx`），由 `GeneratedFrame` 以 `client:visible` 掛在 header 最右側。Props：`id` / `kind` / `type` / `caption` / `natural`（預設 880）
+- 新增 island `VizZoom`（`src/components/islands/VizZoom.tsx`），由 `GeneratedFrame` 以 `client:visible` 掛在 header 最右側。Props：`id` / `kind` / `type` / `caption` / `natural`（紙張內容寬度，未指定時依畫布可用寬度動態計算）
 - **觸發鈕**：header 最右側常駐膠囊鈕（高 26px、expand icon + 「放大檢視」）。文字須自行覆蓋 `text-transform: none` / `letter-spacing: 0`，避免繼承 header 的字距設定
 - **覆蓋層**：`position: fixed; inset: 0; z-index: 900`，portal 掛在 `document.body`，底色 `--neutral-0`。**full-bleed、不是 modal，四周不留背景**。垂直三段：
   - 標題列固定 **64px**：sparkle + 元件類型 + `generated/<id>.tsx` + 操作提示膠囊 + 「匯出 PNG」+ 關閉鈕
   - 畫布舞台 `flex: 1`、padding 24、底 `--neutral-50`，內放 `CanvasViewport`（`mode="play"`：純滾輪即縮放）
   - 說明列：`caption` 文字；`caption` 為空時整段不渲染
 - **畫布尺寸**：`w = innerWidth - 48`、`h = innerHeight - 64 - <說明列實際高度> - 48`。說明列高度以 `offsetHeight` 量測回填、不寫死；`resize` 時重算
+- **紙張寬度**：`clamp(w - 96, 880, 1600)`（未指定 `natural` 時）。縮放是對舞台套 CSS `transform: scale()`，**不改變版面寬度**——紙張若固定為窄值，響應式元件在放大檢視裡量到的父層寬度不變、只能往下堆高，而 fit 取寬高比例的較小者，於是高度成為瓶頸、整張圖反被縮得更小。扣 96 是紙張自身內距與 fit 呼吸各佔左右兩側（`INSET = 24`），扣完寬度方向才剛好 fit 到 100%。下限 880 保證窄視窗不退步；上限 1600 避免超寬螢幕把為 720px 內文設計的元件攤到行寬過長。紙張寬度變動後由 `CanvasViewport` 既有的 `ResizeObserver` 自行重算 fit，不另外接線
 - **元件搬移**：覆蓋層開啟時，把內文那個 DOM 節點搬進畫布、原位留一塊等高佔位以維持文件高度，關閉時搬回原位。元件是從 MDX 掛進來的 Astro island，React 這端拿不到該 element，故以節點搬移取代「再 render 一次」——代價是元件 state 會沿用而非從初始值開始
 - **關閉**：關閉鈕或 **Esc**。Esc 走 capture 階段 listener + `stopPropagation`，避免被同頁其他 Esc handler（簡報 / modal）搶走。開啟時鎖 `document.body` 捲動，關閉時還原**原本的** `overflow` 值
-- **匯出 PNG**：來源是一份**離屏乾淨副本**（`left: -99999px`、`opacity: 0`、`aria-hidden`，內層 `width = natural`、padding 24、白底），而非畫布上那份（帶 transform，會連縮放與裁切一起截）。以 `html-to-image` 的 `toPng({ pixelRatio: 2, backgroundColor: "#ffffff" })` 輸出為 `<id>.png`；函式庫走**動態 import**、不進 initial bundle；成功 / 失敗皆走既有 toast
+- **匯出 PNG**：來源是一份**離屏乾淨副本**（`left: -99999px`、`opacity: 0`、`aria-hidden`，內層 `width = 1600` 固定值、padding 24、白底；**刻意不沿用畫布上那個隨視窗變動的紙張寬度**，否則響應式元件會依寬度重排，同一張圖在不同螢幕匯出的結果不一致），而非畫布上那份（帶 transform，會連縮放與裁切一起截）。以 `html-to-image` 的 `toPng({ pixelRatio: 2, backgroundColor: "#ffffff" })` 輸出為 `<id>.png`；函式庫走**動態 import**、不進 initial bundle；成功 / 失敗皆走既有 toast
 - 樣式只取既有 token，icon 一律 `lucide-react`；動畫（淡入 180ms、按鈕狀態 140ms）由 global.css 既有的 `prefers-reduced-motion` 規則收斂
 - 依據文件：`docs/prototype/design_handoff_viz_zoom/README.md`（hifi handoff，規格唯一來源）
 
@@ -1081,7 +1082,10 @@ flowchart TD
 | 互動完整保留               | RACI 矩陣或含播放控制的動畫元件    | 在覆蓋層中操作           | 格子可點、模擬可播放；且從元件上起手拖曳不會誤觸畫布平移           |
 | 畫布操作沿用既有行為       | 覆蓋層開啟                         | 滾輪 / 拖曳 / 雙擊 / +−0 | 縮放、平移、fit 還原皆生效，行為與簡報 `full-visual` 一致          |
 | 關閉還原                   | 覆蓋層開啟且頁面原本可捲動         | 按 Esc 或關閉鈕          | 覆蓋層關閉、元件回到內文原位、`body.overflow` 還原成原本的值       |
+| 寬元件能攤開               | 自然寬度遠大於 880 的響應式元件    | 覆蓋層開啟               | 紙張寬度依視窗算出（非固定 880），元件以該寬度重排、fit 比例不因高度被迫拉高而下降 |
+| 窄視窗不退步               | 視窗寬度縮到 900 以下              | 覆蓋層開啟或 resize      | 紙張寬度停在下限 880、不再變窄；fit 由 `ResizeObserver` 自動重算，無需手動還原 |
 | 匯出不受當下視角影響       | 畫布已縮放 / 平移到任意視角        | 點「匯出 PNG」           | 輸出為 100% 原尺寸、白底、2x 的 `<id>.png`                        |
+| 匯出結果跨螢幕一致         | 同一元件、不同視窗寬度             | 分別點「匯出 PNG」       | 離屏副本恆為 1600px 寬，兩次輸出的排版與寬度相同                   |
 | 說明列缺省                 | 標記未設 `caption`                 | 覆蓋層開啟               | 說明列整段不渲染，畫布高度相應變高                                 |
 
 ## 待釐清
@@ -1101,6 +1105,22 @@ flowchart TD
 - [ ] 其他
 
 > 已收斂：不提供。放大檢視的訴求是「把這一張看清楚」，切換與縮覽會把它變成另一個瀏覽器，與筆記的閱讀動線重疊。
+
+### Q3. 匯出 PNG 的寬度要跟著紙張走，還是固定？
+
+- [ ] 跟著紙張：畫面上看到什麼就匯出什麼
+- [x] 固定 1600px：不隨視窗變動
+- [ ] 其他
+
+> 已收斂：固定。紙張寬度改為依視窗計算後，兩者若共用同一個值，響應式元件會依寬度重排，同一張圖在 27 吋螢幕與筆電匯出的 PNG 會不一樣寬、排版也不同。「匯出可重現」比「所見即所得」重要——代價是匯出結果可能與當下畫面差一個斷點。
+
+### Q4. 是否開放每張圖自行宣告偏好寬度（`@ai-visualize` 的 `width:`）？
+
+- [ ] 開放：`GeneratedFrame` 開 `natural` prop，標記可宣告 `width: 1700`
+- [x] 暫不開放，先只做動態計算
+- [ ] 其他
+
+> 已收斂：`VizZoom` 的 `natural` prop 保留為逃生口（有傳就照傳的用），但不接到 `GeneratedFrame` 與標記格式上。開放它會連動標記 schema、`mdx-writer` 與 `content-visualize` skill 的寫入規則；先讓動態計算跑一段時間，累積真的需要例外的案例再回頭決定。
 
 #### 筆記轉簡報（Note → Presentation）（\*）
 
@@ -2548,7 +2568,7 @@ model: haiku
 
 - 新增 island `VizZoom`（`src/components/islands/VizZoom.tsx`）：`GeneratedFrame` 標題列最右側的常駐觸發鈕 + 全螢幕覆蓋層（z-index 900、portal 至 body、full-bleed）
 - 覆蓋層垂直三段：64px 標題列 / 畫布舞台 / 說明列（`caption` 為空時不渲染）；畫布尺寸由視窗扣掉標題列、說明列**實測**高度與 padding 推導，`resize` 時重算
-- 畫布**直接沿用 `CanvasViewport`**（`mode="play"`、`natural=880`），**零改動**——平移 / 縮放 / fit / 邊界遮罩 / 「指標在元件上時事件交給元件」全部沿用
+- 畫布**直接沿用 `CanvasViewport`**（`mode="play"`），**零改動**——平移 / 縮放 / fit / 邊界遮罩 / 「指標在元件上時事件交給元件」全部沿用。傳入的紙張寬度 `natural` 依畫布可用寬度計算並 clamp 於 880–1600（v0.5.1 起；初版寫死 880，導致響應式的寬元件在放大檢視裡只能排到與內文相仿的欄數、被迫堆高，反而讓 fit 縮得更小）
 - 元件以**搬移內文 DOM 節點**的方式進畫布（原位留等高佔位），互動 100% 保留；MDX 掛進來的是 Astro island，React 這端拿不到 element，這是取代「再 render 一次」的作法
 - PNG 匯出以離屏乾淨副本為來源（2x、白底、`<id>.png`），不受當下縮放平移影響；`html-to-image` 走動態 import、不進 initial bundle
 - `ToastHost` z-index 700 → 950，讓匯出提示能蓋過覆蓋層（900）與簡報播放（800）
@@ -2716,6 +2736,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.11.1] - 2026-08-12
+- **Fixed**: 修正放大檢視紙張寬度寫死 880px、匯出寬度改固定值
 
 ### [1.11.0] - 2026-08-12
 - **Added**: 新增生成元件放大檢視（Viz Zoom）規格與 Phase 4.14
