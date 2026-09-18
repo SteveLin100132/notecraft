@@ -5,7 +5,7 @@
       "id": "er-diagram-renderer",
       "title": "ER Diagram",
       "description": "把資料庫 schema JSON 渲染成可聚焦、可搜尋的實體關聯圖",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "dir": "plugins/er-diagram-renderer",
       "files": [
         "notecraft-plugin.json",
@@ -14,7 +14,10 @@
         "README.md",
         "example/schema.json"
       ],
-      "tags": ["database", "diagram"]
+      "tags": [
+        "database",
+        "diagram"
+      ]
     }
   ]
 }

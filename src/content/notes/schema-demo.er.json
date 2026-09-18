@@ -1,0 +1,2529 @@
+{
+  "$schema": "../../../plugins/er-diagram-renderer/schema.json",
+  "meta": {
+    "title": "資料表關聯圖（測試資料）",
+    "description": "36 張表、297 個欄位、69 條外鍵，用來驗證無限畫布的縮放與拖曳",
+    "source": "轉自一支資料寫死在 tsx 裡的舊版 ER 元件"
+  },
+  "options": {
+    "defaultRows": 6,
+    "hubTables": [
+      "option_item"
+    ],
+    "sectionPrefix": "§",
+    "hint": "點一張表可聚焦它的關聯，其餘變淡；再點一次、點空白處或按 Esc 取消。欄位右側的圖示 hover 可看該欄說明。",
+    "searchPlaceholder": "搜尋表名或欄位名（例：quotation、case_id）"
+  },
+  "requirement": [
+    {
+      "key": "required",
+      "label": "必填",
+      "marker": "solid"
+    },
+    {
+      "key": "condition",
+      "label": "條件",
+      "marker": "half",
+      "title": "條件必填，條件見說明"
+    },
+    {
+      "key": "nullable",
+      "label": "可空",
+      "marker": "hollow"
+    },
+    {
+      "key": "system",
+      "label": "系統",
+      "marker": "muted",
+      "title": "系統維護，應用層不可寫入"
+    }
+  ],
+  "flags": [
+    {
+      "key": "pk",
+      "badge": "PK",
+      "tone": "danger",
+      "label": "主鍵"
+    },
+    {
+      "key": "fk",
+      "badge": "FK",
+      "tone": "info",
+      "label": "外鍵"
+    },
+    {
+      "key": "unique",
+      "badge": "UQ",
+      "tone": "success",
+      "label": "唯一"
+    },
+    {
+      "key": "index",
+      "badge": "IX",
+      "tone": "neutral",
+      "label": "索引"
+    }
+  ],
+  "derivations": [
+    {
+      "key": "generated",
+      "badge": "GEN",
+      "label": "資料庫計算欄"
+    },
+    {
+      "key": "trigger",
+      "badge": "TRG",
+      "label": "由 trigger 維護"
+    },
+    {
+      "key": "encrypted",
+      "badge": "ENC",
+      "label": "加密儲存"
+    }
+  ],
+  "groups": [
+    {
+      "key": "customer",
+      "label": "客戶"
+    },
+    {
+      "key": "contract",
+      "label": "合約"
+    },
+    {
+      "key": "finance",
+      "label": "請款與收款"
+    },
+    {
+      "key": "case",
+      "label": "案件與派案"
+    },
+    {
+      "key": "intake",
+      "label": "報件"
+    },
+    {
+      "key": "consultation",
+      "label": "諮詢"
+    },
+    {
+      "key": "quotation",
+      "label": "報價"
+    },
+    {
+      "key": "execution",
+      "label": "執案"
+    },
+    {
+      "key": "core",
+      "label": "主系統"
+    },
+    {
+      "key": "notify",
+      "label": "自動化通知"
+    },
+    {
+      "key": "channel",
+      "label": "渠道人員"
+    }
+  ],
+  "layout": {
+    "columns": [
+      {
+        "key": "c1",
+        "groups": [
+          "customer"
+        ]
+      },
+      {
+        "key": "c2",
+        "groups": [
+          "contract",
+          "finance"
+        ]
+      },
+      {
+        "key": "c3",
+        "groups": [
+          "case"
+        ]
+      },
+      {
+        "key": "c4",
+        "groups": [
+          "intake",
+          "consultation",
+          "quotation",
+          "execution"
+        ]
+      },
+      {
+        "key": "c5",
+        "groups": [
+          "core",
+          "notify",
+          "channel"
+        ]
+      }
+    ]
+  },
+  "tables": [
+    {
+      "name": "customer",
+      "label": "客戶主檔",
+      "section": "2.1",
+      "group": "customer",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "name",
+          "type": "varchar(120)",
+          "required": "required",
+          "index": true,
+          "note": "合約（標題）／公司名稱；§4 #1 從合約拆出"
+        },
+        {
+          "name": "company_address",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "公司地址，保留原始字串"
+        },
+        {
+          "name": "company_city_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "縣市，type_code＝地區、指向該集合的縣市層（與 channel_person.region_id 同一批列）。行政區不做，2026-09-01 決議"
+        },
+        {
+          "name": "company_zip",
+          "type": "varchar(6)",
+          "required": "nullable",
+          "note": "公司地址郵遞區號"
+        },
+        {
+          "name": "mailing_address",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "通訊地址"
+        },
+        {
+          "name": "mailing_zip",
+          "type": "varchar(6)",
+          "required": "nullable",
+          "note": "通訊地址郵遞區號"
+        },
+        {
+          "name": "employee_count",
+          "type": "integer",
+          "required": "nullable",
+          "note": "公司員工總數；「意指上限人數」的語意待 02-customer Q5"
+        },
+        {
+          "name": "industry_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "產業類別，選項主檔歸 01-core"
+        },
+        {
+          "name": "source_type_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "客戶來源種類；分潤比例不存這裡，剝離至 11-finance"
+        },
+        {
+          "name": "source_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "客戶來源備註說明"
+        },
+        {
+          "name": "channel_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "channel_person",
+          "index": true,
+          "note": "來源渠道，渠道人員可見範圍的唯一判定依據；Q15 2026-08-11 暫定維持單一欄位（未定案），若改多對多則改為 junction table"
+        },
+        {
+          "name": "invoice_title",
+          "type": "varchar(120)",
+          "required": "nullable",
+          "note": "發票抬頭 的預設值，合約可覆寫"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": "nullable",
+          "note": "客戶備註。2026-09-07 新增：「這家客戶要注意什麼」的自由文字，與 source_note（補充「這個客戶怎麼來的」）分工不同。不進清單、不進 q=、因此也不進匯出；不做遮蔽，渠道人員在客戶詳情看得到"
+        },
+        {
+          "name": "joint_promotion",
+          "type": "joint_promotion_status",
+          "required": "required",
+          "default": "'pending'",
+          "note": "偕同推廣（Q24 2026-08-26 決議）。客戶對聯名行銷的授權，一個客戶一個值——放合約層會出現同一客戶 A 約同意、B 約不同意的矛盾值。enum：pending 待確認／agreed 同意／declined 不同意"
+        }
+      ]
+    },
+    {
+      "name": "customer_contact",
+      "label": "聯絡人子表，§4 #2",
+      "section": "2.1",
+      "group": "customer",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "customer",
+          "index": true
+        },
+        {
+          "name": "name",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "姓名"
+        },
+        {
+          "name": "title",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "note": "職稱"
+        },
+        {
+          "name": "phone",
+          "type": "varchar(30)",
+          "required": "nullable",
+          "note": "一人多支電話再拆一列，不再換行塞"
+        },
+        {
+          "name": "fax",
+          "type": "varchar(30)",
+          "required": "nullable"
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "required": "nullable"
+        }
+      ]
+    },
+    {
+      "name": "customer_contact_role",
+      "label": "聯絡人角色，可複選",
+      "section": "2.1",
+      "group": "customer",
+      "columns": [
+        {
+          "name": "contact_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "customer_contact",
+          "pk": true
+        },
+        {
+          "name": "role",
+          "type": "contact_role",
+          "required": "required",
+          "pk": true,
+          "note": "enum：owner 負責人／contact 聯絡人／authorizer 輔導授權人"
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "customer",
+          "unique": true,
+          "note": "冗餘一份，才建得出「一客戶至多一位負責人」的 partial unique index"
+        }
+      ]
+    },
+    {
+      "name": "customer_tax_id",
+      "label": "統一編號子表，§4 #3",
+      "section": "2.1",
+      "group": "customer",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "customer",
+          "unique": true,
+          "note": "與統編合為唯一鍵，同一客戶不得重複統編"
+        },
+        {
+          "name": "tax_id",
+          "type": "char(8)",
+          "required": "required",
+          "unique": true,
+          "note": "不可加全域唯一鍵——一客戶多統編後，統編不再唯一識別客戶"
+        },
+        {
+          "name": "is_primary",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "unique": true,
+          "note": "至多一個主要統編，供發票與應收帳款預設歸屬（規則待 Q18）"
+        }
+      ]
+    },
+    {
+      "name": "contract",
+      "label": "合約主檔",
+      "section": "2.2",
+      "group": "contract",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "contract_no",
+          "type": "varchar(16)",
+          "required": "required",
+          "unique": true,
+          "note": "⛭序號＋⛭編號＋編號（人工輸入） 三欄併為一欄。不是衍生欄位——編碼要跨表取簽約項目代碼、還要配號，由 01-core 的配號機制於建立時產生，之後不再變動。產生方式已於 2026-08-11 定案（系統配號、所有角色唯讀，Q7）；未定的只剩編號規則"
+        },
+        {
+          "name": "seq_no",
+          "type": "smallint",
+          "required": "required",
+          "unique": true,
+          "note": "編號裡的三位序號本體，與年份、簽約項目合為唯一鍵；配號來源見 §2.5"
+        },
+        {
+          "name": "name",
+          "type": "varchar(120)",
+          "required": "required",
+          "index": true,
+          "note": "合約自己的名稱（Notion 以公司名稱兼任）"
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "customer",
+          "index": true,
+          "note": "§4 #1"
+        },
+        {
+          "name": "customer_snapshot",
+          "type": "jsonb",
+          "required": "required",
+          "note": "§4 #1 決議的簽約當下客戶資料快照，成立時寫入後不隨客戶主檔變動；快照欄位範圍待 07-contract Q6"
+        },
+        {
+          "name": "tax_id_ref",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "customer_tax_id",
+          "index": true,
+          "note": "2026-08-14 新增（Q18）：這份合約簽給哪一個法人。建立時預設帶客戶的主要統編，發票再預設帶本欄"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "index": true,
+          "note": "2026-08-11 補上的結構缺口（Q35）。specs/07-contract.mdx 早已寫明合約「可關聯案件與報價」，但本表原本只有 customer_id——少了這一欄，Q35 的三個階段推進條件（進入合約／進入執案／結案）全部查不出來。一案多約，故此處為多對一。移轉時每份歷史合約需配一張…"
+        },
+        {
+          "name": "quotation_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "quotation",
+          "index": true,
+          "note": "2026-08-11 補上的另一半。specs/07-contract.mdx 那句「可關聯案件與報價」的後半段，先前只補了 case_id。指向被接受的那一版報價單（§2.10），是「這份約是照哪一版報價簽的」唯一追溯途徑，也是合約明細沿用報價明細的來源。可為空——續約案與歷史資料移轉沒有報價單"
+        },
+        {
+          "name": "contract_date",
+          "type": "date",
+          "required": "required",
+          "index": true,
+          "note": "合約日期"
+        },
+        {
+          "name": "valid_until",
+          "type": "date",
+          "required": "nullable",
+          "index": true,
+          "note": "有效期限"
+        },
+        {
+          "name": "contract_year",
+          "type": "smallint",
+          "required": "system",
+          "unique": true,
+          "derivation": "generated",
+          "note": "⛭合約年份＝合約日期的年份"
+        },
+        {
+          "name": "renewal_date",
+          "type": "date",
+          "required": "system",
+          "index": true,
+          "derivation": "generated",
+          "note": "⛭續約日期＝有效期限＋1 天，供續約提醒"
+        },
+        {
+          "name": "sign_item_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "unique": true,
+          "note": "簽約項目；⛭簽約類別 由選項主檔的 parent_id join 取得，該欄消失"
+        },
+        {
+          "name": "total_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "合約金額；§4 #4 改由明細的實收金額加總維護。Column Level 權限 第一批標的"
+        },
+        {
+          "name": "renewal_amount",
+          "type": "numeric(12,0)",
+          "required": "nullable",
+          "note": "次年續一年常年約之金額，同為敏感欄位"
+        },
+        {
+          "name": "status",
+          "type": "contract_status",
+          "required": "required",
+          "default": "'draft'",
+          "index": true,
+          "note": "生命週期狀態，不含紙本回收與款項收訖（Q19）。九個有效值於 2026-08-11 定案：draft 草稿／pending_review 待審核／rejected 已退回／approved 已核准／sending 待送簽／signing 簽署中／effective 生效中／terminated 已中…"
+        },
+        {
+          "name": "reject_reason",
+          "type": "text",
+          "required": "condition",
+          "note": "2026-08-11 新增。退回原因，status 轉為 rejected 時必填——PRD §3.2 註腳 § 早已寫明「退回須填原因」，但原本沒有欄位可存"
+        },
+        {
+          "name": "terminated_at",
+          "type": "timestamptz",
+          "required": "condition",
+          "note": "2026-08-11 新增。中止時間；操作者見稽核軌跡"
+        },
+        {
+          "name": "terminated_reason",
+          "type": "text",
+          "required": "condition",
+          "note": "2026-08-11 新增。中止原因，轉為 terminated 時必填。中止的已收款如何處理見 Q18"
+        },
+        {
+          "name": "sign_method",
+          "type": "sign_method",
+          "required": "required",
+          "index": true,
+          "note": "2026-08-11 新增，單選：esign 電子（點點簽）／paper 紙本。決定 待送簽 → 簽署中 → 生效中 兩個轉移由誰觸發——電子由 API 回傳與 Webhook 自動推進，紙本由 客服人員 寄出與確認收回人工推進。沒有這一欄，後端無從判斷該不該等 Webhook，走純紙本的合約會永遠…"
+        },
+        {
+          "name": "esign_task_id",
+          "type": "varchar(64)",
+          "required": "condition",
+          "index": true,
+          "note": "2026-08-11 新增。點點簽的簽署任務代號，建立任務成功時寫入。Notion 沒有點點簽，所以這三欄整組不在原盤點裡；少了它，PRD §9.1 的「Webhook 未收到時以定時查詢 API 補正」無從實作。sign_method = 'paper' 時恆為 NULL"
+        },
+        {
+          "name": "signed_at",
+          "type": "timestamptz",
+          "required": "condition",
+          "note": "2026-08-11 新增。簽署完成時間。電子由 Webhook 回寫，紙本由 客服人員 確認收回時寫入"
+        },
+        {
+          "name": "signed_pdf_uri",
+          "type": "text",
+          "required": "nullable",
+          "note": "2026-08-11 新增。已簽署 PDF 於 Cloud Storage 的位置"
+        },
+        {
+          "name": "paper_status",
+          "type": "paper_status",
+          "required": "required",
+          "default": "'pending'",
+          "index": true,
+          "note": "2026-08-11 新增，取代 make_status_id。pending 待製作／made 已製作／sent 已送出／received 已收回。status 轉為 approved 時自動建立為 pending。與合約生效的關係依 sign_method 而異：走 esign 時本欄是獨立的留…"
+        },
+        {
+          "name": "paper_maker",
+          "type": "paper_maker",
+          "required": "nullable",
+          "note": "2026-08-11 新增。cs 客服／consultant 顧問師。Notion 的 (客服)合約製作 把「做到哪」（待處理／已處理）與「誰做的」（顧問師製作）塞在同一個下拉，這裡拆成兩欄"
+        },
+        {
+          "name": "paper_received_at",
+          "type": "date",
+          "required": "nullable",
+          "note": "2026-08-11 新增。紙本回收日，paper_status 轉為 received 時寫入。取代 Notion 的 顧問已收合約 核取方塊——PRD §6 原決議「紙本回收無須記錄」已於 2026-08-11 推翻"
+        },
+        {
+          "name": "renewal_intent_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "是否續約（Q23 決議留在合約層）"
+        },
+        {
+          "name": "renewal_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "續約備註"
+        },
+        {
+          "name": "renewed_from_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "contract",
+          "index": true,
+          "note": "Q23 新增的自我關聯；軟刪除下不設 ON DELETE，續約鏈以 deleted_at 過濾"
+        },
+        {
+          "name": "addendum",
+          "type": "text",
+          "required": "nullable",
+          "note": "合約附則"
+        },
+        {
+          "name": "pay_method_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "付款方式；合約約定值，實際收款方式記在每筆收款"
+        },
+        {
+          "name": "installments",
+          "type": "smallint",
+          "required": "nullable",
+          "note": "付款期數"
+        },
+        {
+          "name": "received_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "⛭當前收款總金額＝已入帳收款加總（payment.cleared_on IS NOT NULL），收款紀錄異動時更新"
+        },
+        {
+          "name": "pending_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "2026-08-11 新增：票據在途金額＝已收到但尚未兌現的收款加總（entry_type = receipt AND cleared_on IS NULL；2026-08-27 補上 entry_type 限定，原本會把折讓與退票一起算成在途，見 Q44）。這是 Notion 支票已收/款項未入 那個選項的歸宿。刻意不做成 pay_status 的第四個值——現實會出現「款項未齊，而且手上還有一張票沒兌現」，做成狀態就表達不出來，那正是 Q19…"
+        },
+        {
+          "name": "unpaid_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "index": true,
+          "derivation": "generated",
+          "note": "⛭未收款項＝合約金額 − 已入帳金額 − 已折讓（Q44 2026-08-27 補第三項）。三個來源都在同一列，仍然可以是真的 generated column；這是清單頁篩選與排序的主要條件，索引建在它身上。溢收時為負數，見下方"
+        },
+        {
+          "name": "pay_status",
+          "type": "payment_status",
+          "required": "system",
+          "index": true,
+          "derivation": "generated",
+          "note": "Q19 自 (客服)合約狀態 拆出的收款狀態，由同列金額推導。三個主要值於 2026-08-11 定名：unpaid 款項未收／partial 款項未齊／paid 款項已收。第四個值 overpaid 溢收 待拍板——現行推導式會把溢收吞進 paid 且 unpaid_amount 轉負數，而它是應…"
+        },
+        {
+          "name": "invoice_terms",
+          "type": "smallint",
+          "required": "nullable",
+          "note": "發票開立期數"
+        },
+        {
+          "name": "waived_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "2026-08-27 新增（Q44）：已折讓金額＝entry_type = waived 的加總。刻意不併進 received_amount——該欄語意是實際收到多少錢，混進折讓會失真"
+        },
+        {
+          "name": "invoiced_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "⛭發票開立總金額，發票紀錄異動時更新"
+        },
+        {
+          "name": "invoice_send_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "發票提供方式"
+        },
+        {
+          "name": "share_rate",
+          "type": "numeric(5,2)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "⛭來源 的分潤比例，自客戶的來源種類提取。跨表 → 不能用 generated column，客戶來源異動時更新。獎金計算本身見 Q16"
+        }
+      ]
+    },
+    {
+      "name": "contract_item",
+      "label": "合約明細項目子表，§4 #4",
+      "section": "2.2",
+      "group": "contract",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "contract_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "contract",
+          "index": true
+        },
+        {
+          "name": "product_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "品項，type_code＝合約品項（兩層：父節點為商品或輔導項目）。父節點是輔導項目者於合約生效時依 quota_count 預生場次。該列已有已完成場次後本欄不得修改"
+        },
+        {
+          "name": "quota_count",
+          "type": "smallint",
+          "required": "nullable",
+          "note": "約定次數（Q22 2026-08-11 改判）。輔導項目才有值，系統導入這類一次性商品為 NULL"
+        },
+        {
+          "name": "used_count",
+          "type": "smallint",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "已完成的場次數，execution_record 狀態異動時更新；剩餘次數＝約定 − 已完成"
+        },
+        {
+          "name": "item_status",
+          "type": "item_status",
+          "required": "required",
+          "default": "'open'",
+          "index": true,
+          "note": "enum：open 進行中／done 已完成／closed_early 提前結束"
+        },
+        {
+          "name": "closed_reason",
+          "type": "text",
+          "required": "nullable",
+          "note": "提前結束的原因（例如客戶表示剩餘次數不需要）"
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "note": "提前結束的時間；操作者見稽核軌跡"
+        },
+        {
+          "name": "carried_from_item_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "contract_item",
+          "note": "2026-08-27 新增（Q42）。本列的額度自舊約哪一列結轉而來；約定次數即實際結轉次數，金額兩欄填 0，合約金額因此不受影響。全庫第二條自我關聯，第一條是 contract.renewed_from_id"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": "nullable",
+          "note": "系統使用起日。這是商品的使用期間，不是輔導排程——每一次輔導的預定日期在 execution_record.planned_on"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": "nullable",
+          "note": "系統使用迄日，同上"
+        },
+        {
+          "name": "bonus_days",
+          "type": "smallint",
+          "required": "required",
+          "default": "0",
+          "note": "贈送延長時間(單位：月)，改以天為最小單位儲存。週／月／季／年等週期由前端換算後送出，DB 只認天數。見下方說明"
+        },
+        {
+          "name": "extended_end",
+          "type": "date",
+          "required": "system",
+          "derivation": "generated",
+          "note": "⛭系統延長訖日＝迄日＋bonus_days"
+        },
+        {
+          "name": "list_amount",
+          "type": "numeric(12,0)",
+          "required": "required",
+          "note": "原金額"
+        },
+        {
+          "name": "discount_amount",
+          "type": "numeric(12,0)",
+          "required": "required",
+          "note": "優惠金額"
+        },
+        {
+          "name": "net_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "generated",
+          "note": "實收＝原金額 − 優惠金額；系統導入費 即此欄在「系統導入」那一列的值"
+        }
+      ]
+    },
+    {
+      "name": "payment",
+      "label": "收款紀錄子表",
+      "section": "2.3",
+      "group": "finance",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "contract_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "contract",
+          "index": true,
+          "note": "取代 對應合約；§4 #6"
+        },
+        {
+          "name": "paid_on",
+          "type": "date",
+          "required": "required",
+          "index": true,
+          "note": "收款日期"
+        },
+        {
+          "name": "amount",
+          "type": "numeric(12,0)",
+          "required": "required",
+          "note": "收款金額。維持只收正數，方向改由 entry_type 表達"
+        },
+        {
+          "name": "entry_type",
+          "type": "payment_entry",
+          "required": "required",
+          "default": "'receipt'",
+          "index": true,
+          "note": "2026-08-11 新增：receipt 收款／refund 退款／bounced 退票／waived 折讓（第四值為 Q44 2026-08-27 決議）。聚合時 receipt 加、其餘減。Notion 只有收款一種，退款與退票發生時無處可記，只能靠刪紀錄——那會讓稽核上看不出「收了又退」。細部規則待 11-finance Q2"
+        },
+        {
+          "name": "cleared_on",
+          "type": "date",
+          "required": "nullable",
+          "index": true,
+          "note": "2026-08-11 新增：入帳日。現金與匯款於登錄時即等於 paid_on；支票要等兌現才填，未填即計入 contract.pending_amount 而不進 received_amount。沒有這一欄，收到支票的當下就會被算成已收款，但錢還沒進帳"
+        },
+        {
+          "name": "method_id",
+          "type": "bigint",
+          "required": "condition",
+          "fk": "option_item",
+          "note": "付款方式，客戶實際付款方式，可與合約約定不同。2026-08-27 由必填改條件必填（Q44）——折讓沒有付款動作，entry_type = waived 時為空"
+        },
+        {
+          "name": "check_no",
+          "type": "varchar(20)",
+          "required": "nullable",
+          "note": "支票號碼；Notion 掛主表並換行塞多組，改掛每一筆收款才對得起來"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": "condition",
+          "note": "2026-08-27 新增（Q44）。非收款類型的原因，waived 時必填。refund 與 bounced 先前也沒地方記為什麼，一併解掉"
+        }
+      ]
+    },
+    {
+      "name": "invoice",
+      "label": "發票開立紀錄子表",
+      "section": "2.3",
+      "group": "finance",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "contract_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "contract",
+          "index": true,
+          "note": "取代 對應合約；§4 #6"
+        },
+        {
+          "name": "invoice_no",
+          "type": "varchar(20)",
+          "required": "required",
+          "unique": true,
+          "note": "發票號碼；能否加唯一鍵取決於作廢重開的處理方式（11-finance Q2）"
+        },
+        {
+          "name": "issued_on",
+          "type": "date",
+          "required": "required",
+          "index": true,
+          "note": "發票開立日期"
+        },
+        {
+          "name": "type_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "發票類型：電子發票／二聯式發票"
+        },
+        {
+          "name": "amount",
+          "type": "numeric(12,0)",
+          "required": "required",
+          "note": "發票合約金額"
+        },
+        {
+          "name": "tax_id_ref",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "customer_tax_id",
+          "pii": true,
+          "note": "§4 #3 的連帶待辦：一客戶多統編後「發票開給哪一個統編」需定規則（Q18）"
+        },
+        {
+          "name": "send_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "發票提供方式，這張發票怎麼送到對方手上。2026-09-02 新增，新增時預設帶 contract.invoice_send_id；invoice_terms 允許分期開票，逐張各自指定才表達得出第二張改寄別處"
+        }
+      ]
+    },
+    {
+      "name": "channel_person",
+      "label": "人員主檔",
+      "section": "2.4",
+      "group": "channel",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "name",
+          "type": "varchar(60)",
+          "required": "required",
+          "index": true,
+          "note": "人員名稱"
+        },
+        {
+          "name": "region_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "地區，type_code＝地區、指向縣市層。集合為兩層（分區／縣市）；介紹人代碼依縣市的 code 推導"
+        },
+        {
+          "name": "referrer_code",
+          "type": "varchar(10)",
+          "required": "condition",
+          "unique": true,
+          "derivation": "trigger",
+          "note": "⛭介紹人代碼＝縣市 code ＋ recruit_id 的 code ＋ 介紹人的 national_id 末四碼（12-Q3 2026-09-04），例 N-01G6789。三段有一段取不到就不產生、留 NULL；多個 NULL 在 UNIQUE 下互異"
+        },
+        {
+          "name": "recruit_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "從何處得知資訊，type_code＝從何處得知（14 項，code 為 A～M 與 Z）。2026-09-04 復原（12-Q4）：本欄的 code 是 referrer_code 推導規則的中段；必填性待 12-Q3"
+        },
+        {
+          "name": "referrer_person_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "channel_person",
+          "index": true,
+          "note": "哪一位渠道人員介紹了本筆（自我關聯）。2026-09-04 隨 12-Q5 新增，referrer_code 推導規則的第三段取這個人的 national_id 末四碼。非必填，既有資料一律 NULL；成環不擋，只擋指向自己"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": "required",
+          "default": "true",
+          "index": true,
+          "note": "啟用中還是已停用（12-Q6 2026-09-04）。與 deleted_at 是兩件事：停用＝不再合作但資料要留著，軟刪除＝建錯或重複建檔。停用者仍在渠道人員清單上，但不出現在其他模組的下拉"
+        },
+        {
+          "name": "mobile",
+          "type": "varchar(20)",
+          "required": "nullable",
+          "note": "行動電話"
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "required": "nullable",
+          "note": "Email"
+        },
+        {
+          "name": "ship_address",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "收件地址(含郵遞區號)"
+        },
+        {
+          "name": "company_name",
+          "type": "varchar(120)",
+          "required": "nullable",
+          "note": "公司名稱（以法人身分合作時）"
+        },
+        {
+          "name": "company_tax_id",
+          "type": "char(8)",
+          "required": "nullable",
+          "note": "公司統編"
+        },
+        {
+          "name": "company_owner",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "note": "公司負責人"
+        },
+        {
+          "name": "national_id",
+          "type": "varchar(10)",
+          "required": "nullable",
+          "note": "身分證字號。本期不加密（2026-09-04）"
+        },
+        {
+          "name": "home_address",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "戶籍地址"
+        },
+        {
+          "name": "bank_name",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "note": "銀行名稱；以下 5 欄為分潤撥款帳戶"
+        },
+        {
+          "name": "bank_code",
+          "type": "varchar(10)",
+          "required": "nullable",
+          "note": "銀行代碼"
+        },
+        {
+          "name": "bank_branch",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "note": "分行"
+        },
+        {
+          "name": "bank_account",
+          "type": "varchar(30)",
+          "required": "nullable",
+          "note": "帳號"
+        },
+        {
+          "name": "bank_holder",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "note": "戶名"
+        }
+      ]
+    },
+    {
+      "name": "channel_contract",
+      "label": "渠道合約",
+      "section": "2.4",
+      "group": "channel",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "person_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "channel_person",
+          "index": true,
+          "note": "這份約屬於誰。另建複合索引 (person_id, end_date)，取最新一份與清單排序都走它"
+        },
+        {
+          "name": "form_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "適用合約，type_code＝適用合約。是每一份約的屬性而非人的屬性：同一人這次簽渠道合作約、下次簽服務人員承攬約是合理的"
+        },
+        {
+          "name": "signed",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "note": "這一份簽了沒。拆表後語意由「這個人簽過約沒有」變成「這一份簽了沒」，洽談中的續約可先建列、待簽"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": "nullable",
+          "note": "合約起始日"
+        },
+        {
+          "name": "no_expiry",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "note": "這份約不設到期日（12-Q7 2026-09-04）。與 end_date 互斥，由 CHECK 擋；讓 end_date 的 NULL 同時表示「無期限」與「還沒填」會使一個驅動自動停用的欄位有兩種讀法"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": "condition",
+          "index": true,
+          "note": "合約到期日。與 no_expiry 互斥：勾了無期限則本欄必須為空，沒勾則必填。有效約的判定是 signed AND (no_expiry OR end_date >= CURRENT_DATE)"
+        },
+        {
+          "name": "contract_file_uri",
+          "type": "text",
+          "required": "nullable",
+          "note": "渠道合約書的 GCS 物件路徑；四欄一組，同時有值或同時為 NULL（Q28 暫定 2026-09-04）"
+        },
+        {
+          "name": "contract_file_name",
+          "type": "varchar(255)",
+          "required": "nullable",
+          "note": "原始檔名。GCS 路徑是 UUID，檔名要另存"
+        },
+        {
+          "name": "contract_mime_type",
+          "type": "varchar(120)",
+          "required": "nullable",
+          "note": "上傳白名單的檢查對象，暫定只收 application/pdf"
+        },
+        {
+          "name": "contract_size_bytes",
+          "type": "bigint",
+          "required": "nullable",
+          "note": "檔案大小，上限沿用 PRD §8.3 合約 PDF 的 20 MB"
+        }
+      ]
+    },
+    {
+      "name": "channel_person_role",
+      "label": "角色，可複選",
+      "section": "2.4",
+      "group": "channel",
+      "columns": [
+        {
+          "name": "person_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "channel_person",
+          "pk": true
+        },
+        {
+          "name": "role",
+          "type": "person_role",
+          "required": "required",
+          "pk": true,
+          "index": true,
+          "note": "enum：channel 渠道／service 服務。同一人兼任兩種角色只存一筆主檔、兩列角色。本表也是開帳號與否的判定依據：僅有 service 一列者不開系統帳號（Q26），其 app_user 不存在"
+        }
+      ]
+    },
+    {
+      "name": "option_type",
+      "label": "選項集合的登記表",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "code",
+          "type": "varchar(40)",
+          "required": "required",
+          "pk": true,
+          "note": "集合代碼，程式判斷用（sign_item、contract_product）。建立後不可改"
+        },
+        {
+          "name": "label",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "顯示名稱（簽約項目、合約品項）"
+        },
+        {
+          "name": "owner_spec",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "使用這個集合的模組"
+        },
+        {
+          "name": "is_multiple_level",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "note": "這個集合是否有階層。parent_id 吃得下任意層數，本欄只說平的還是有階層、不限制深度"
+        },
+        {
+          "name": "description",
+          "type": "varchar(200)",
+          "required": "required",
+          "note": "這個集合是做什麼的，維護介面上顯示"
+        },
+        {
+          "name": "sort_order",
+          "type": "smallint",
+          "required": "required",
+          "unique": true,
+          "note": "集合清單的顯示順序"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": "required",
+          "default": "true",
+          "note": "停用而非刪除"
+        }
+      ]
+    },
+    {
+      "name": "option_item",
+      "label": "選項主檔，支援兩層",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵；其餘各表的選項欄位都指向這裡"
+        },
+        {
+          "name": "type_code",
+          "type": "varchar(40)",
+          "required": "required",
+          "fk": "option_type",
+          "unique": true,
+          "note": "屬於哪一個集合，值域見 option_type。原為自由字串，2026-09-01 改為外鍵：拼錯不報錯是 fail-open。唯一鍵是複合的 (type_code, code)"
+        },
+        {
+          "name": "code",
+          "type": "varchar(20)",
+          "required": "required",
+          "unique": true,
+          "note": "Notion 塞在字串裡的編號（如「[地區編號]」「類別編號-」）獨立成欄，介紹人代碼與合約編號都靠它推導。唯一鍵是複合的 (type_code, code)，同集合內不重複、跨集合可重複"
+        },
+        {
+          "name": "label",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "顯示名稱"
+        },
+        {
+          "name": "parent_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "option_item",
+          "note": "階層結構，自我關聯吃得下任意層數。簽約項目與合約品項各用兩層；合約編號取根節點的 code，不是直接父節點的"
+        },
+        {
+          "name": "sort_order",
+          "type": "smallint",
+          "required": "required",
+          "default": "0"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": "required",
+          "default": "true",
+          "note": "停用而非刪除，既有資料的 FK 不會斷"
+        },
+        {
+          "name": "is_builtin",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "note": "2026-09-14 新增（01-Q14）。這一項是程式判定的一部分：true 者整列唯讀，不可編輯也不可停用，更正一律走 migration。欄位比照 role.is_builtin，沒有這一欄就寫不出那條判定式"
+        }
+      ]
+    },
+    {
+      "name": "app_user",
+      "label": "系統帳號",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "required": "required",
+          "unique": true,
+          "note": "公司 Email，首次登入時用來把 IdP 身分對映到這一筆；激活後一律認 idp_subject，改 Email 不影響登入（01-Q2 2026-09-03 決議）"
+        },
+        {
+          "name": "idp_subject",
+          "type": "varchar(255)",
+          "required": "nullable",
+          "unique": true,
+          "note": "公司 IdP 的 sub。NULL ＝ 已登記未激活：管理員先建授權那一筆，那個人第一次透過 IdP 登入時以 email 對上並寫入本欄。激活後不可改"
+        },
+        {
+          "name": "display_name",
+          "type": "varchar(60)",
+          "required": "condition",
+          "note": "條件必填：channel_person_id 為 NULL（內部員工）時 NOT NULL；綁人員主檔者恆為 NULL，畫面帶入 channel_person.name"
+        },
+        {
+          "name": "slack_id",
+          "type": "varchar(20)",
+          "required": "nullable",
+          "note": "自 §2.7「執行顧問」的「顧問師姓名<Slack 識別碼>」字串拆出"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": "required",
+          "default": "true",
+          "note": "停用而非刪除"
+        },
+        {
+          "name": "channel_person_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "channel_person",
+          "unique": true,
+          "note": "NULL 即內部員工；非 NULL 表示這是渠道人員的帳號，也是 (o) 判定「本人」的唯一依據"
+        }
+      ]
+    },
+    {
+      "name": "role",
+      "label": "角色",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "code",
+          "type": "varchar(30)",
+          "required": "required",
+          "unique": true,
+          "note": "權限判定一律比對本欄，不比對 name：admin／manager／cs／consultant／finance／channel"
+        },
+        {
+          "name": "name",
+          "type": "varchar(30)",
+          "required": "required",
+          "note": "PRD §3.1 的六個中文角色名"
+        },
+        {
+          "name": "description",
+          "type": "varchar(200)",
+          "required": "required",
+          "note": "這個角色是做什麼的。沒有它，新增出來的角色只剩代碼與名稱，三個月後沒人記得它為什麼存在"
+        },
+        {
+          "name": "sort_order",
+          "type": "smallint",
+          "required": "required",
+          "unique": true,
+          "note": "清單與權限矩陣的顯示順序。UNIQUE 讓順序無歧義——同號時排出來的結果不保證穩定"
+        },
+        {
+          "name": "is_builtin",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "note": "PRD §3.1 定義的六種為 true。沒有這一欄就寫不出「內建角色不可刪、代碼不可改」的判定式"
+        }
+      ]
+    },
+    {
+      "name": "user_role",
+      "label": "帳號 × 角色",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "app_user",
+          "pk": true,
+          "note": "兩欄合為複合主鍵，無代理鍵"
+        },
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "role",
+          "pk": true,
+          "index": true,
+          "note": "一帳號多角色，有效權限取聯集（PRD §8.1）。另建 (role_id, user_id) 反向索引，供稽核紀錄查詢依角色篩選"
+        }
+      ]
+    },
+    {
+      "name": "field_permission",
+      "label": "欄位級權限",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "role",
+          "pk": true,
+          "note": "三欄合為複合主鍵"
+        },
+        {
+          "name": "table_name",
+          "type": "varchar(63)",
+          "required": "required",
+          "pk": true,
+          "note": "字串不是 FK，欄位改名時本表不會跟著動"
+        },
+        {
+          "name": "column_name",
+          "type": "varchar(63)",
+          "required": "required",
+          "pk": true,
+          "note": "長度取 PostgreSQL 識別字上限 63"
+        },
+        {
+          "name": "access",
+          "type": "field_access",
+          "required": "required",
+          "note": "enum：read_write／read_only／masked。查不到列的欄位視為 read_write"
+        }
+      ]
+    },
+    {
+      "name": "role_permission",
+      "label": "功能級權限",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "role",
+          "pk": true,
+          "note": "三欄合為複合主鍵。存在即允許（白名單），查不到列即為 §3.2 的 N"
+        },
+        {
+          "name": "resource_code",
+          "type": "varchar(60)",
+          "required": "required",
+          "pk": true,
+          "note": "頁面 id，一個 route 一個代碼（settings-users、contract-detail）。顆粒為頁面層，Q46 2026-09-01 決議"
+        },
+        {
+          "name": "action_code",
+          "type": "varchar(40)",
+          "required": "required",
+          "pk": true,
+          "note": "read／write／edit／delete 或具名動作如 approve／reject。刻意不用 enum，具名動作塞不進 R/W/E/D。值域由後端常數目錄定義，不設 FK"
+        },
+        {
+          "name": "scope",
+          "type": "varchar(20)",
+          "required": "required",
+          "default": "all",
+          "note": "資料列可見範圍，all／own。不進主鍵：一個角色×資源×動作只有一種範圍。own 述詞掛資源不掛角色，多角色聯集取最寬（Q48）"
+        }
+      ]
+    },
+    {
+      "name": "audit_log",
+      "label": "稽核軌跡",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "occurred_at",
+          "type": "timestamptz",
+          "required": "required",
+          "index": true,
+          "note": "稽核查詢的預設排序依據。入三個索引：與 table_name、record_id 合為複合索引，另與 id、與 actor_id、與 action 各成一個"
+        },
+        {
+          "name": "actor_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "app_user",
+          "index": true,
+          "note": "稽核查詢的操作者篩選依據。本表不存角色，依角色篩選時 join user_role 取當下角色"
+        },
+        {
+          "name": "table_name",
+          "type": "varchar(63)",
+          "required": "required",
+          "index": true,
+          "note": "action 為 export 時改放該清單的 resource_code（與 role_permission 同一套頁面代碼）"
+        },
+        {
+          "name": "record_id",
+          "type": "bigint",
+          "required": "required",
+          "index": true,
+          "note": "action 為 export 時固定為 0：匯出不掛在任何一筆資料上"
+        },
+        {
+          "name": "action",
+          "type": "audit_action",
+          "required": "required",
+          "index": true,
+          "note": "enum：新增／修改／軟刪除／作廢／匯出。沒有讀取，2026-09-03 決議移除"
+        },
+        {
+          "name": "before",
+          "type": "jsonb",
+          "required": "nullable",
+          "note": "變更前值，只存本次異動到的欄位，不是整列快照。稽核查詢不套遮蔽（2026-09-03 決議）"
+        },
+        {
+          "name": "after",
+          "type": "jsonb",
+          "required": "nullable",
+          "note": "變更後值，欄位範圍同 before；action 為 export 時改放 {filters, row_count, format}"
+        },
+        {
+          "name": "source_ip",
+          "type": "inet",
+          "required": "nullable"
+        }
+      ]
+    },
+    {
+      "name": "contract_no_counter",
+      "label": "合約編號配號",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "contract_year",
+          "type": "smallint",
+          "required": "required",
+          "pk": true
+        },
+        {
+          "name": "sign_item_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "pk": true
+        },
+        {
+          "name": "next_seq",
+          "type": "smallint",
+          "required": "required",
+          "note": "以 UPDATE … RETURNING 在建立合約的同一個 transaction 內取號"
+        }
+      ]
+    },
+    {
+      "name": "attachment",
+      "label": "節點交付文件附件",
+      "section": "2.5",
+      "group": "core",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "index": true,
+          "note": "權限判定的依據——看得到案件才看得到附件"
+        },
+        {
+          "name": "node",
+          "type": "case_stage",
+          "required": "required",
+          "index": true,
+          "note": "屬於哪一個節點，沿用 §2.7 的 enum"
+        },
+        {
+          "name": "doc_type_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "諮詢登記表／派案單／報價單／輔導文件…。做成選項主檔才能表達「這個節點應交付哪些文件」"
+        },
+        {
+          "name": "object_uri",
+          "type": "text",
+          "required": "required",
+          "note": "GCS 物件路徑"
+        },
+        {
+          "name": "file_name",
+          "type": "varchar(255)",
+          "required": "required",
+          "note": "上傳時的原始檔名。GCS 路徑是 UUID，不留原檔名下載時就沒有可讀的名字"
+        },
+        {
+          "name": "mime_type",
+          "type": "varchar(120)",
+          "required": "required",
+          "note": "決定預覽或下載，也是上傳白名單的檢查對象"
+        },
+        {
+          "name": "size_bytes",
+          "type": "bigint",
+          "required": "required",
+          "note": "配額與異常偵測；GCS 查得到，但清單頁不可能逐檔去問"
+        }
+      ]
+    },
+    {
+      "name": "execution_record",
+      "label": "執案場次子表，一次輔導一列",
+      "section": "2.6",
+      "group": "execution",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "contract_item_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "contract_item",
+          "index": true,
+          "note": "扣哪一項的額度。只掛服務類型不夠——同一客戶多份合約、同一種服務時對不到該扣的那一列"
+        },
+        {
+          "name": "seq_no",
+          "type": "smallint",
+          "required": "required",
+          "unique": true,
+          "note": "第幾次，與合約明細合為唯一鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "index": true,
+          "note": "案件歸屬與 (o) 權限範圍；與 contract_item 的一致性由應用層保證"
+        },
+        {
+          "name": "planned_on",
+          "type": "date",
+          "required": "nullable",
+          "index": true,
+          "note": "預定日期，簽約時排定；尚未排定可為空"
+        },
+        {
+          "name": "performed_on",
+          "type": "date",
+          "required": "condition",
+          "index": true,
+          "note": "實際執行日期，執行後才填"
+        },
+        {
+          "name": "record_status",
+          "type": "exec_status",
+          "required": "required",
+          "default": "'pending'",
+          "index": true,
+          "note": "enum：pending 待執行／done 已完成／cancelled 已取消（＝放棄）／carried_over 已結轉。第四值為 Q42 2026-08-27 決議新增——結轉的次數還在（移到下一份約），與放棄語意不同，混用會讓取消率統計把它們算進去"
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "required": "condition",
+          "note": "取消原因（客戶不再需要、改期作廢等）"
+        },
+        {
+          "name": "consultant_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "app_user",
+          "note": "執行的顧問師，執行後才填"
+        },
+        {
+          "name": "summary",
+          "type": "text",
+          "required": "nullable"
+        }
+      ]
+    },
+    {
+      "name": "regulatory_submission",
+      "label": "送審紀錄",
+      "section": "2.6",
+      "group": "execution",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "index": true,
+          "note": "送審是整案層級的事，不逐場次"
+        },
+        {
+          "name": "doc_type_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "送審文件類型（工作規則、勞資會議、性騷擾防治辦法…），選項主檔可維護"
+        },
+        {
+          "name": "authority",
+          "type": "varchar(120)",
+          "required": "required",
+          "note": "受理的主管機關"
+        },
+        {
+          "name": "submitted_on",
+          "type": "date",
+          "required": "nullable",
+          "index": true,
+          "note": "送出日期；製作中尚未送出時為空"
+        },
+        {
+          "name": "result_status",
+          "type": "submission_status",
+          "required": "required",
+          "default": "'drafting'",
+          "index": true,
+          "note": "enum：drafting 製作中／submitted 已送審／approved 已核准／rejected 未通過"
+        },
+        {
+          "name": "result_on",
+          "type": "date",
+          "required": "nullable",
+          "note": "回函日期"
+        },
+        {
+          "name": "doc_no",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "note": "主管機關的核准文號"
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "required": "nullable",
+          "note": "未通過時的補正說明"
+        }
+      ]
+    },
+    {
+      "name": "biz_case",
+      "label": "案件主檔",
+      "section": "2.12",
+      "group": "case",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_no",
+          "type": "varchar(20)",
+          "required": "required",
+          "unique": true,
+          "pii": true,
+          "note": "案件編號；規則待 04-assignment Q1。與合約編號不同，本欄不需依年份與項目分組配號，一般序列即可"
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "customer",
+          "index": true,
+          "note": "案件必掛在唯一一份客戶主檔底下"
+        },
+        {
+          "name": "stage",
+          "type": "case_stage",
+          "required": "required",
+          "index": true,
+          "note": "目前所在階段，七個值見下方 enum。建立時寫入的值即 started_stage，之後隨推進改變，故無 DB 預設值。未成交結案不是階段——它以 lost_at 表示，stage 停在當時的階段（Q37）"
+        },
+        {
+          "name": "started_stage",
+          "type": "case_stage",
+          "required": "required",
+          "default": "'intake'",
+          "note": "建立當下指定的起點（Q37）。一般案為 intake；續約案為 contract，是目前唯一的非預設起點。執行中一律不可跳過，起點只在建立時決定"
+        },
+        {
+          "name": "progress_pct",
+          "type": "smallint",
+          "required": "system",
+          "derivation": "generated",
+          "note": "由 stage 推導的進度百分比（20／20／40／50／60／80／100），對應 PRD §6.2。同列運算，DB 自動維護"
+        },
+        {
+          "name": "opened_at",
+          "type": "timestamptz",
+          "required": "required",
+          "index": true,
+          "note": "Lead Time 起算點。一般案＝報件受理時間；續約案＝案件建立時間"
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "index": true,
+          "note": "正常結案時間＝Lead Time 終點。撤銷結案（限業務主管，Q37）時清為 NULL，歷程留在 audit_log"
+        },
+        {
+          "name": "lead_time_days",
+          "type": "integer",
+          "required": "system",
+          "derivation": "generated",
+          "note": "＝closed_at − opened_at（日曆天）；未結案時為 NULL。兩個來源都在同一列，可以是真的 generated column——但兩欄都得先 AT TIME ZONE 'Asia/Taipei' 再取 date，直接對 timestamptz 做 ::date 是 STABLE 而…"
+        },
+        {
+          "name": "lost_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "index": true,
+          "note": "未成交結案時間。非 NULL 即未成交；三個來源：諮詢聯繫不上、報價客戶回覆「不需要了」（Q5）、唯一合約作廢（Q36，系統自動寫入）"
+        },
+        {
+          "name": "lost_reason_id",
+          "type": "bigint",
+          "required": "condition",
+          "fk": "option_item",
+          "note": "未成交原因，選項主檔歸 01-core"
+        },
+        {
+          "name": "lost_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "補充說明"
+        },
+        {
+          "name": "voided_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "index": true,
+          "note": "註銷時間＝第三個終點。非 NULL 即註銷：這一筆案件不該存在（重複建立或誤建），不是沒談成。與合約的作廢是兩件事（13-Q3 2026-09-03 決議）"
+        },
+        {
+          "name": "void_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "註銷說明，例如重複於哪一件。註銷沒有原因選項可選：重複或誤建本身就是原因"
+        }
+      ]
+    },
+    {
+      "name": "case_stage_log",
+      "label": "階段進出紀錄",
+      "section": "2.12",
+      "group": "case",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "unique": true,
+          "index": true,
+          "note": "與 stage、seq_no 合為唯一鍵"
+        },
+        {
+          "name": "stage",
+          "type": "case_stage",
+          "required": "required",
+          "unique": true,
+          "note": "哪一個階段"
+        },
+        {
+          "name": "seq_no",
+          "type": "smallint",
+          "required": "required",
+          "unique": true,
+          "note": "第幾次進入該階段；退回後再進入時 +1"
+        },
+        {
+          "name": "entered_at",
+          "type": "timestamptz",
+          "required": "required",
+          "note": "進入時間"
+        },
+        {
+          "name": "exited_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "unique": true,
+          "note": "離開時間；NULL 即目前所在階段，每個案件至多一列"
+        },
+        {
+          "name": "exit_kind",
+          "type": "stage_exit",
+          "required": "condition",
+          "note": "enum：forward 推進／back 退回／lost 轉未成交／void 註銷。四種都與 exited_at 同時寫入，讓每一個終點都留得下離開時間（void 為 2026-09-03 隨 13-Q3 新增）"
+        },
+        {
+          "name": "exit_reason",
+          "type": "text",
+          "required": "condition",
+          "note": "退回時必填（Q37），由應用層依 exit_kind = 'back' 判定"
+        }
+      ]
+    },
+    {
+      "name": "case_no_counter",
+      "label": "案件編號配號",
+      "section": "2.12",
+      "group": "case",
+      "columns": [
+        {
+          "name": "case_year",
+          "type": "smallint",
+          "required": "required",
+          "pk": true,
+          "note": "西元年。以年份當主鍵，無代理鍵"
+        },
+        {
+          "name": "next_seq",
+          "type": "integer",
+          "required": "required",
+          "note": "以 INSERT … ON CONFLICT … RETURNING 在建立案件的同一個 transaction 內取號。用 integer 不用 smallint：五位序號上限 99,999，smallint 只到 32,767"
+        }
+      ]
+    },
+    {
+      "name": "case_assignment",
+      "label": "案件承辦顧問師",
+      "section": "2.7",
+      "group": "case",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵。同一位顧問師可在同一案件上有多列（派→撤→再派），複合主鍵表達不了"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "unique": true,
+          "note": "與 user_id 合為唯一鍵，僅約束未撤銷的列"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "app_user",
+          "unique": true,
+          "index": true,
+          "note": "執行顧問；Notion 存「顧問師姓名\\<Slack 識別碼\\>」字串，改為 FK，Slack ID 移到帳號主檔。索引供「我的案件」反查"
+        },
+        {
+          "name": "role",
+          "type": "assign_role",
+          "required": "required",
+          "note": "enum：owner 主辦／co_owner 協辦；是否區分權責待 04-assignment Q2"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "note": "接案確認時間（PRD §6.2 派案節點步驟 4）。掛在本表而非派案單，是因為多人共同執案時確認是每位顧問師各自的動作，掛案件層就分不出誰確認了。顧問師 E(o) 可寫的兩件事之一"
+        }
+      ]
+    },
+    {
+      "name": "case_channel_person",
+      "label": "案件的渠道／服務人員",
+      "section": "2.7",
+      "group": "case",
+      "columns": [
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "pk": true
+        },
+        {
+          "name": "person_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "channel_person",
+          "pk": true,
+          "index": true,
+          "note": "Notion 的 服務人員 與 渠道人員 兩個關聯欄位，因 Q20 合併主檔而併成一張表"
+        },
+        {
+          "name": "role",
+          "type": "person_role",
+          "required": "required",
+          "pk": true,
+          "note": "enum：channel／service，與 channel_person_role 共用型別"
+        }
+      ]
+    },
+    {
+      "name": "assignment_form",
+      "label": "派案單",
+      "section": "2.7",
+      "group": "case",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "unique": true,
+          "note": "一案一張（2026-08-11 決定），唯一鍵擋重複開單。改派不重開表單，只換 case_assignment 的列"
+        },
+        {
+          "name": "assign_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "派案交辦事項與指派理由（步驟 3「依區域及顧問師狀況派案」）。沒有這欄，派案的判斷依據只會留在 Slack"
+        },
+        {
+          "name": "consult_scheduled_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "index": true,
+          "note": "諮詢預定時間（步驟 4 交付物「諮詢安排」）。也是「已派案但遲未安排諮詢」待辦清單的唯一依據，故建索引"
+        },
+        {
+          "name": "consult_method",
+          "type": "consult_method",
+          "required": "nullable",
+          "note": "enum：onsite 實體／online 線上／phone 電話。實體要排車程、線上不用，提醒與看板的行為不同"
+        },
+        {
+          "name": "consult_location",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "實體諮詢地點；客戶指定客戶地址以外場地的情況存在"
+        }
+      ]
+    },
+    {
+      "name": "intake_form",
+      "label": "諮詢登記表",
+      "section": "2.8",
+      "group": "intake",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "unique": true,
+          "note": "一案一張"
+        },
+        {
+          "name": "source_channel_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "index": true,
+          "note": "需求來源管道（電話／Line@／Email／轉介紹），選項主檔可維護。與 customer.channel_id（§2.1）是兩件事：後者是客戶層的來源渠道、決定渠道人員看得到誰，本欄是這一次需求從哪個管道進來"
+        },
+        {
+          "name": "demand_note",
+          "type": "text",
+          "required": "required",
+          "note": "需求內容。03-intake 卡控機制明列的必填之一"
+        }
+      ]
+    },
+    {
+      "name": "consultation_form",
+      "label": "諮詢紀錄表",
+      "section": "2.9",
+      "group": "consultation",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "unique": true,
+          "note": "一案一張"
+        },
+        {
+          "name": "consulted_on",
+          "type": "date",
+          "required": "nullable",
+          "index": true,
+          "note": "實際諮詢日期；尚未談成或聯繫不上時為空"
+        },
+        {
+          "name": "method",
+          "type": "consult_method",
+          "required": "nullable",
+          "note": "沿用 §2.7 的 enum（onsite／online／phone），不另立型別"
+        },
+        {
+          "name": "location",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "實體諮詢地點"
+        },
+        {
+          "name": "attendee_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "客戶方出席者。內部承辦人看 case_assignment（§2.7），不在此重複"
+        },
+        {
+          "name": "process_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "諮詢過程與需求訪查結果"
+        },
+        {
+          "name": "conclusion_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "結論，報價的依據"
+        },
+        {
+          "name": "contact_attempt_count",
+          "type": "smallint",
+          "required": "required",
+          "default": "0",
+          "note": "聯繫嘗試次數。§6.2 補充規則「聯繫 2～3 次未果視為未成交結案」的計數依據——沒有這一欄，那條規則無從判定"
+        },
+        {
+          "name": "last_contact_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "index": true,
+          "note": "最後一次嘗試聯繫的時間，供催辦清單排序"
+        }
+      ]
+    },
+    {
+      "name": "consultation_item",
+      "label": "輔導項目建議清單",
+      "section": "2.9",
+      "group": "consultation",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "consultation_form_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "consultation_form",
+          "unique": true,
+          "index": true,
+          "note": "與 service_id 合為唯一鍵，同一種服務不重複建議"
+        },
+        {
+          "name": "service_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "unique": true,
+          "note": "建議的服務類型，與合約明細（§2.2）、執案場次（§2.6）同一組選項主檔"
+        },
+        {
+          "name": "suggest_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "建議理由與範圍說明"
+        },
+        {
+          "name": "sort_order",
+          "type": "smallint",
+          "required": "required",
+          "default": "0",
+          "note": "呈現順序"
+        }
+      ]
+    },
+    {
+      "name": "quotation",
+      "label": "報價單主檔",
+      "section": "2.10",
+      "group": "quotation",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "biz_case",
+          "unique": true,
+          "index": true,
+          "note": "與 version_no 合為唯一鍵"
+        },
+        {
+          "name": "version_no",
+          "type": "smallint",
+          "required": "required",
+          "default": "1",
+          "unique": true,
+          "note": "第幾版。議價時開新版重談，舊版不作廢（§6.1 明訂版本歷程保留）"
+        },
+        {
+          "name": "valid_until",
+          "type": "date",
+          "required": "nullable",
+          "note": "報價有效期限"
+        },
+        {
+          "name": "total_amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "明細加總。跨列彙總，generated column 做不到，依 §4 #7 由 trigger 維護並配重算工具"
+        },
+        {
+          "name": "customer_reply",
+          "type": "quote_reply",
+          "required": "nullable",
+          "index": true,
+          "note": "enum：accepted 接受／negotiating 議價／change_scope 改服務項目／declined 不需要了。§6.1 的分流依據；NULL 即尚未回覆"
+        },
+        {
+          "name": "replied_at",
+          "type": "timestamptz",
+          "required": "condition",
+          "note": "客戶回覆時間"
+        },
+        {
+          "name": "reply_note",
+          "type": "text",
+          "required": "nullable",
+          "note": "回覆補充說明；declined 時即未成交原因的來源"
+        }
+      ]
+    },
+    {
+      "name": "quotation_item",
+      "label": "報價明細",
+      "section": "2.10",
+      "group": "quotation",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "quotation_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "quotation",
+          "index": true
+        },
+        {
+          "name": "consultation_item_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "consultation_item",
+          "note": "來源的建議項目（§2.9），供「報的是不是諮詢談的那一項」追溯；未經諮詢直接報價時為空"
+        },
+        {
+          "name": "service_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "服務類型，與合約明細、執案場次同一組選項"
+        },
+        {
+          "name": "qty",
+          "type": "smallint",
+          "required": "required",
+          "note": "次數或數量，接受後即 contract_item.quota_count 的來源"
+        },
+        {
+          "name": "unit_price",
+          "type": "numeric(12,0)",
+          "required": "required",
+          "note": "單價"
+        },
+        {
+          "name": "discount_amount",
+          "type": "numeric(12,0)",
+          "required": "required",
+          "default": "0",
+          "note": "逐列折讓"
+        },
+        {
+          "name": "amount",
+          "type": "numeric(12,0)",
+          "required": "system",
+          "default": "0",
+          "derivation": "generated",
+          "note": "＝qty × unit_price − discount_amount，同列運算交給 DB"
+        }
+      ]
+    },
+    {
+      "name": "notify_preference",
+      "label": "通知偏好",
+      "section": "2.13",
+      "group": "notify",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "app_user",
+          "pk": true,
+          "note": "三欄合為複合主鍵"
+        },
+        {
+          "name": "event_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "pk": true,
+          "note": "type_code ＝ 通知事件。做成選項主檔而非 enum，新增一種通知不必 migration"
+        },
+        {
+          "name": "channel",
+          "type": "notify_channel",
+          "required": "required",
+          "pk": true,
+          "note": "enum：email／slack／in_app"
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": "required",
+          "default": "true",
+          "note": "只存關掉的那些；查不到列即視為開，因此新增事件不必替全體使用者補列"
+        }
+      ]
+    },
+    {
+      "name": "notification",
+      "label": "站內通知",
+      "section": "2.13",
+      "group": "notify",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "app_user",
+          "index": true,
+          "note": "與 created_at 合為複合索引——鈴鐺一律查「某人的最近 N 則」"
+        },
+        {
+          "name": "event_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "option_item",
+          "note": "同 notify_preference"
+        },
+        {
+          "name": "title",
+          "type": "varchar(120)",
+          "required": "required",
+          "note": "下拉列表那一行字；彙總型通知寫成「3 份合約 30 天內到期」"
+        },
+        {
+          "name": "link_path",
+          "type": "varchar(255)",
+          "required": "nullable",
+          "note": "存站內相對路徑，不存完整 URL——網域換了不必改資料"
+        },
+        {
+          "name": "read_at",
+          "type": "timestamptz",
+          "required": "nullable",
+          "index": true,
+          "note": "NULL 即未讀。保留 90 天，過期實體刪除；本表無 deleted_at"
+        }
+      ]
+    }
+  ]
+}

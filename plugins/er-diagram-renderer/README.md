@@ -4,6 +4,11 @@
 
 ## 它畫出什麼
 
+- **可縮放平移的無限畫布**（v1.1.0）：拖曳平移、⌘/Ctrl＋滾輪縮放（觸控板捏合同樣有效）、
+  雙擊空白處或按右下的還原鈕回到起點。開啟時自動 fit **寬度**（不是整張圖 ——
+  這種版面往下長，用寬高都塞得下的倍率去 fit 會被高度壓到讀不到字），
+  之後就交給你，動過視角後不會再被自動拉回。
+  單純滾輪一律放行給頁面捲動，畫布不會把滾輪吃掉讓你出不去
 - **固定欄數的版面**：模組分群由上而下堆疊，欄序自己指定 —— 相鄰欄放關係密切的模組，
   多數外鍵就只跨一欄，連線不必繞遠路
 - **關聯連線**：由欄位的 `fk` 推導，量測卡片實際位置後畫貝茲曲線
@@ -21,7 +26,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/er-diagram-renderer/schema.json",
   "meta": { "title": "…", "description": "…", "backTo": "/notes/…" },
-  "options": { "defaultRows": 6, "hubTables": ["option_item"] },
+  "options": { "defaultRows": 6, "hubTables": ["option_item"], "canvasHeight": 640 },
 
   // 語彙都是資料，不是寫死的 —— 換個專案可以改叫法
   "requirement": [{ "key": "required", "label": "必填", "marker": "solid" }],

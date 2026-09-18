@@ -8,6 +8,9 @@
  * 只抽表定義是不夠的：那些常數留著，換一個專案還是得改程式。
  *
  * 關聯（edges）由欄位的 fk 推導，不存進資料檔 —— 存了就會有兩份真相。
+ *
+ * 版面是固定欄數的無限畫布（可拖曳平移、⌘/Ctrl 加滾輪縮放）。早期版本改用橫向捲軸，
+ * 但捲軸只能左右看、看不到全貌；要「先縮小看整體、再放大看局部」就得是畫布。
  */
 
 import {
@@ -18,7 +21,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { ChevronDown, ChevronUp, Info, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Info, Maximize2, Minus, Plus, Search, X } from 'lucide-react'
 
 /* props 的型別在這裡自帶一份，不從 `@notes/plugins/_types` import。
  * 理由：官方 plugin 同時要能在主 repo（CI 驗證用）與使用者專案裡 build，
@@ -74,6 +77,8 @@ export interface ErOptions {
   sectionPrefix: string
   hint: string
   searchPlaceholder: string
+  /** 畫布高度（px）。不給就依 mode 取預設：內嵌 560、獨立頁依視窗算 */
+  canvasHeight?: number
 }
 
 export interface ErDiagramData {
@@ -106,6 +111,22 @@ interface Edge {
   self: boolean
 }
 
+/* 無限畫布的縮放範圍。下限 0.2 讓 36 張表的全圖能一眼看完，
+   上限 2.5 足以把 10px 的欄位型別看清楚，再大只是模糊放大。 */
+const MIN_ZOOM = 0.2
+const MAX_ZOOM = 2.5
+const ZOOM_STEP = 1.25
+/** fit 時四周留的呼吸空間 */
+const FIT_PAD = 28
+
+interface ViewState {
+  x: number
+  y: number
+  z: number
+}
+
+const clampZoom = (z: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z))
+
 const TIP_MAX_WIDTH = 320
 const TIP_HALF = TIP_MAX_WIDTH / 2
 
@@ -134,12 +155,27 @@ const CSS = `
 .erd-root .erd-legend { display: flex; gap: 12px; margin-left: auto; font-size: 12px; color: var(--text-muted); }
 .erd-root .erd-lg { display: inline-flex; align-items: center; gap: 5px; }
 .erd-root .erd-hint { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.6; }
+.erd-root .erd-hint-canvas { color: var(--blue-700); }
 .erd-root .erd-focusbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--surface-accent-soft); border: 1px solid var(--orange-200); font-size: 12px; line-height: 1.6; }
 .erd-root .erd-focusbar strong { font-family: var(--font-mono); color: var(--blue-800); font-size: 13px; }
 .erd-root .erd-muted { color: var(--text-muted); }
 .erd-root .erd-reset { margin-left: auto; border: 1px solid var(--orange-300); background: var(--surface-card); color: var(--orange-700); border-radius: var(--radius-pill); padding: 3px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
-.erd-root .erd-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; }
-.erd-root .erd-canvas { position: relative; width: max-content; min-width: 100%; }
+.erd-root .erd-viewport { position: relative; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background-color: var(--surface-page); background-image: radial-gradient(circle, color-mix(in srgb, var(--text-muted) 22%, transparent) 1px, transparent 1px); background-size: 22px 22px; cursor: grab; touch-action: none; outline: none; }
+.erd-root .erd-viewport:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.erd-root .erd-viewport--panning { cursor: grabbing; }
+.erd-root .erd-viewport--embed { height: 560px; }
+.erd-root .erd-viewport--page { height: clamp(420px, calc(100vh - 230px), 1200px); }
+.erd-root .erd-overlay .erd-viewport { height: calc(100vh - 150px); }
+.erd-root .erd-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: max-content; }
+.erd-root .erd-stage--animated { transition: transform var(--duration-normal) var(--ease-out); }
+.erd-root .erd-canvas { position: relative; width: max-content; }
+.erd-root .erd-zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: var(--radius-pill); background: var(--surface-card); border: 1px solid var(--border-default); box-shadow: var(--shadow-sm); }
+.erd-root .erd-zbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 0; border-radius: var(--radius-circle); background: transparent; color: var(--text-muted); cursor: pointer; }
+.erd-root .erd-zbtn:hover:not(:disabled) { background: var(--blue-50); color: var(--blue-700); }
+.erd-root .erd-zbtn:disabled { opacity: .35; cursor: default; }
+.erd-root .erd-zbtn:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.erd-root .erd-zval { min-width: 42px; text-align: center; font-family: var(--font-mono); font-size: 11.5px; font-weight: var(--weight-bold); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.erd-root .erd-zsep { width: 1px; height: 16px; margin: 0 3px; background: var(--border-subtle); }
 .erd-root .erd-svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .erd-root .erd-cols { position: relative; display: grid; gap: 34px; align-items: start; }
 .erd-root .erd-col { display: flex; flex-direction: column; gap: 26px; }
@@ -291,6 +327,147 @@ export default function ErDiagramRenderer({
   const gridRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
+
+  /* ── 無限畫布 ─────────────────────────────────────────────
+     取代原本的橫向捲軸。五欄版面在內文欄寬下必然溢出，捲軸只能左右看、
+     看不到全貌；改成可縮放平移的畫布後，「先縮小看整體、再放大看局部」
+     這件事才做得到。
+
+     座標：stage 套 translate(x, y) scale(z)，transform-origin 左上。
+     連線的量測（measure）本來就會除以當下倍率換回版面座標，不必改。 */
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const [view, setView] = useState<ViewState>({ x: 0, y: 0, z: 1 })
+  const viewRef = useRef(view)
+  viewRef.current = view
+  /* 使用者動過之後就不再自動 fit —— 否則字體載入完、或展開一張表，
+     視角會被硬拉回原點，正在看的地方就不見了。 */
+  const touchedRef = useRef(false)
+  const [animate, setAnimate] = useState(false)
+  const [panning, setPanning] = useState(false)
+  const panRef = useRef<{ px: number; py: number; ox: number; oy: number; moved: boolean } | null>(null)
+  /** 剛剛那次 pointer 互動是拖曳還是點擊 —— 拖完的 click 不該取消聚焦 */
+  const draggedRef = useRef(false)
+
+  const applyFit = useCallback(
+    (smooth: boolean) => {
+      const vp = viewportRef.current
+      if (!vp || canvasSize.w <= 0 || canvasSize.h <= 0) return
+      const vw = vp.clientWidth
+      const vh = vp.clientHeight
+      if (vw <= 0 || vh <= 0) return
+      /* fit 的是**寬度**，不是整張圖。
+         這種版面是固定欄數、往下長的形狀，用寬高都塞得下的倍率去 fit，
+         高度會成為瓶頸、把倍率壓到 20% 出頭 —— 一眼看得到輪廓，但一個字都讀不到。
+         改成填滿寬度，欄位名至少看得清楚；要看全貌就往下捲或縮小，那是一個手勢的事。
+
+         不放大超過 100%：小圖攤在大畫布上放大只會糊，維持原寸比較好讀。 */
+      const z = clampZoom(Math.min((vw - FIT_PAD * 2) / canvasSize.w, 1))
+      const scaledH = canvasSize.h * z
+      setAnimate(smooth)
+      setView({
+        x: (vw - canvasSize.w * z) / 2,
+        /* 塞得下就垂直置中；塞不下就對齊上緣 —— 從頭開始看才是對的起點 */
+        y: scaledH <= vh - FIT_PAD * 2 ? (vh - scaledH) / 2 : FIT_PAD,
+        z,
+      })
+    },
+    [canvasSize.w, canvasSize.h],
+  )
+
+  const resetView = useCallback(() => {
+    touchedRef.current = false
+    applyFit(true)
+  }, [applyFit])
+
+  /* 內容尺寸變動（首次量測、展開欄位、搜尋）→ 只在使用者還沒動過視角時自動 fit */
+  useEffect(() => {
+    if (touchedRef.current) return
+    applyFit(false)
+  }, [applyFit, wide])
+
+  useEffect(() => {
+    const vp = viewportRef.current
+    if (!vp) return undefined
+    const ro = new ResizeObserver(() => {
+      if (!touchedRef.current) applyFit(false)
+    })
+    ro.observe(vp)
+    return () => ro.disconnect()
+  }, [applyFit])
+
+  /** 以指標為錨點縮放：滑鼠底下的那張表不會跑掉 */
+  const zoomAt = useCallback((factor: number, px: number, py: number, smooth = false) => {
+    const cur = viewRef.current
+    const next = clampZoom(cur.z * factor)
+    if (Math.abs(next - cur.z) < 0.0001) return
+    touchedRef.current = true
+    setAnimate(smooth)
+    setView({
+      x: px - (px - cur.x) * (next / cur.z),
+      y: py - (py - cur.y) * (next / cur.z),
+      z: next,
+    })
+  }, [])
+
+  const zoomByButton = useCallback(
+    (factor: number) => {
+      const vp = viewportRef.current
+      if (!vp) return
+      zoomAt(factor, vp.clientWidth / 2, vp.clientHeight / 2, true)
+    },
+    [zoomAt],
+  )
+
+  /* 滾輪：⌘/Ctrl（或觸控板捏合）才縮放，單純滾輪一律放行給頁面捲動。
+     這頁底下還有系列導覽，畫布把滾輪全吃掉的話人就出不去了。
+     ⚠ React 的 onWheel 是 passive listener、preventDefault 無效 —— 必須原生 non-passive 掛。 */
+  useEffect(() => {
+    const vp = viewportRef.current
+    if (!vp) return undefined
+    const onWheel = (ev: WheelEvent) => {
+      if (!(ev.ctrlKey || ev.metaKey)) return // 放行，不 preventDefault
+      ev.preventDefault()
+      const rect = vp.getBoundingClientRect()
+      zoomAt(Math.exp(-ev.deltaY * 0.0015), ev.clientX - rect.left, ev.clientY - rect.top)
+    }
+    vp.addEventListener('wheel', onWheel, { passive: false })
+    return () => vp.removeEventListener('wheel', onWheel)
+  }, [zoomAt])
+
+  /* 拖曳平移。指標落在卡片 / 按鈕 / 輸入框上時交給它們自己處理
+     （任何倍率下表都要點得到），按住 Alt 才能從卡片上起手平移。 */
+  const onPanStart = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
+    if (ev.button !== 0) return
+    const el = ev.target as HTMLElement
+    if (!ev.altKey && el.closest('.erd-card, button, a, input, label')) return
+    const cur = viewRef.current
+    panRef.current = { px: ev.clientX, py: ev.clientY, ox: cur.x, oy: cur.y, moved: false }
+    setPanning(true)
+    setAnimate(false)
+    ;(ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId)
+  }, [])
+
+  const onPanMove = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
+    const p = panRef.current
+    if (!p) return
+    const dx = ev.clientX - p.px
+    const dy = ev.clientY - p.py
+    if (!p.moved && Math.abs(dx) + Math.abs(dy) < 3) return
+    p.moved = true
+    touchedRef.current = true
+    setView((v) => ({ ...v, x: p.ox + dx, y: p.oy + dy }))
+  }, [])
+
+  const onPanEnd = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
+    if (!panRef.current) return
+    const moved = panRef.current.moved
+    panRef.current = null
+    setPanning(false)
+    /* 拖曳結束後緊接著的 click 不該被當成「點空白處取消聚焦」 */
+    if (moved) ev.preventDefault()
+    draggedRef.current = moved
+    ;(ev.currentTarget as HTMLElement).releasePointerCapture?.(ev.pointerId)
+  }, [])
 
   const q = query.trim().toLowerCase()
 
@@ -452,6 +629,24 @@ export default function ErDiagramRenderer({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [focus, tip])
+
+  /* 指標位於畫布上時 + − 0 生效。不綁全域，免得在搜尋框裡打「-」也被吃掉。 */
+  const onViewportKey = useCallback(
+    (ev: React.KeyboardEvent<HTMLDivElement>) => {
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return
+      if (ev.key === '+' || ev.key === '=') {
+        ev.preventDefault()
+        zoomByButton(ZOOM_STEP)
+      } else if (ev.key === '-' || ev.key === '_') {
+        ev.preventDefault()
+        zoomByButton(1 / ZOOM_STEP)
+      } else if (ev.key === '0') {
+        ev.preventDefault()
+        resetView()
+      }
+    },
+    [zoomByButton, resetView],
+  )
 
   const toggleExpand = useCallback((name: string) => {
     setExpanded((prev) => {
@@ -620,14 +815,45 @@ export default function ErDiagramRenderer({
           </button>
         </div>
       ) : (
-        <p className="erd-root erd-hint">{opts.hint}</p>
+        <p className="erd-root erd-hint">
+          {opts.hint}
+          {/* 畫布的操作方式由渲染器自己講 —— 資料檔不該知道它被畫成什麼形式 */}
+          <span className="erd-root erd-hint-canvas">
+            畫布可拖曳平移，⌘/Ctrl＋滾輪縮放，雙擊空白處還原。
+          </span>
+        </p>
       )}
 
-      <div className="erd-root erd-scroll">
+      <div
+        className={`erd-root erd-viewport erd-viewport--${mode}${panning ? ' erd-viewport--panning' : ''}`}
+        ref={viewportRef}
+        style={opts.canvasHeight ? { height: opts.canvasHeight } : undefined}
+        tabIndex={0}
+        role="application"
+        aria-label="關聯圖畫布，可拖曳平移，⌘/Ctrl 加滾輪縮放"
+        onPointerDown={onPanStart}
+        onPointerMove={onPanMove}
+        onPointerUp={onPanEnd}
+        onPointerCancel={onPanEnd}
+        onKeyDown={onViewportKey}
+        onDoubleClick={(ev) => {
+          if ((ev.target as HTMLElement).closest('.erd-card, button, a, input, label')) return
+          resetView()
+        }}
+      >
+        <div
+          className={`erd-root erd-stage${animate ? ' erd-stage--animated' : ''}`}
+          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}
+        >
         <div
           className="erd-root erd-canvas"
           ref={canvasRef}
           onClick={(ev) => {
+            /* 拖曳結束後緊接著的 click 不算「點空白處取消聚焦」 */
+            if (draggedRef.current) {
+              draggedRef.current = false
+              return
+            }
             if (ev.target === ev.currentTarget) setFocus(null)
           }}
         >
@@ -802,6 +1028,35 @@ export default function ErDiagramRenderer({
               </div>
             ))}
           </div>
+        </div>
+        </div>
+
+        <div className="erd-root erd-zoombar">
+          <button
+            type="button"
+            className="erd-root erd-zbtn"
+            aria-label="縮小"
+            onClick={() => zoomByButton(1 / ZOOM_STEP)}
+            disabled={view.z <= MIN_ZOOM + 0.001}
+          >
+            <Minus size={14} aria-hidden />
+          </button>
+          <span className="erd-root erd-zval" aria-live="off">
+            {Math.round(view.z * 100)}%
+          </span>
+          <button
+            type="button"
+            className="erd-root erd-zbtn"
+            aria-label="放大"
+            onClick={() => zoomByButton(ZOOM_STEP)}
+            disabled={view.z >= MAX_ZOOM - 0.001}
+          >
+            <Plus size={14} aria-hidden />
+          </button>
+          <span className="erd-root erd-zsep" aria-hidden />
+          <button type="button" className="erd-root erd-zbtn" aria-label="還原並置中" onClick={resetView}>
+            <Maximize2 size={13} aria-hidden />
+          </button>
         </div>
       </div>
 

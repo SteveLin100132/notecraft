@@ -1,0 +1,9 @@
+{
+  "$schema": "../plugins/plugins.schema.json",
+  "plugins": [
+    {
+      "plugin": "er-diagram-renderer",
+      "files": ["**/*.er.json"]
+    }
+  ]
+}
