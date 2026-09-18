@@ -8,9 +8,14 @@ import { getAllNotes, parseMarkers } from "@/lib/notes";
 export interface Props {
   title: string;
   description?: string;
-  current: "dashboard" | "notes" | "series" | "tags" | "about";
+  current: "dashboard" | "notes" | "series" | "tags" | "about" | "data";
+  /**
+   * 滿版：不套 .nc-page-wrap 的 1120 版心與 34/40/80 padding。
+   * 給資料檔檢視頁用 —— 那些圖是橫向佈局，1120 都塞不下（見 Task 48）。
+   */
+  bleed?: boolean;
 }
-const { title, description, current } = Astro.props;
+const { title, description, current, bleed = false } = Astro.props;
 
 const notes = await getAllNotes();
 const markersPending = notes
@@ -57,9 +62,13 @@ const markersPending = notes
           </button>
           <a href="/" class="nc-mobilebar-brand">NoteCraft</a>
         </div>
-        <div class="nc-page-wrap" style="max-width:1120px;margin:0 auto;">
+        {bleed ? (
           <slot />
-        </div>
+        ) : (
+          <div class="nc-page-wrap" style="max-width:1120px;margin:0 auto;">
+            <slot />
+          </div>
+        )}
       </div>
       <ToastHost client:idle />
     </div>

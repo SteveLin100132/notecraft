@@ -7,8 +7,15 @@ export interface Props {
   type?: string;
   caption?: string;
   prompt?: string;
+  /**
+   * 資料檔模式：外框結構、間距、圓角、陰影、放大檢視全部不動，只換標示 ——
+   * 膠囊改橘色 Database、mono 改成真實資料檔路徑、dev 按鈕改「以 VS Code 編輯」
+   * 並多一顆「開啟完整檢視頁」。「重新生成」對資料檔不成立（它不是 AI 生成的）。
+   */
+  dataFile?: { relPath: string; routePath: string; pluginTitle: string; absPath: string };
 }
-const { id, type = "free", caption, prompt } = Astro.props;
+const { id, type = "free", caption, prompt, dataFile } = Astro.props;
+const isDev = import.meta.env.DEV;
 
 const TYPE_LABELS: Record<string, string> = {
   motion: "動畫",
@@ -26,16 +33,43 @@ const label = TYPE_LABELS[type] ?? "視覺化";
   <div
     style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--neutral-100);background:var(--neutral-50);"
   >
-    <span
-      style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--blue-50);color:var(--blue-700);"
-    >
-      <Icon name="sparkle" size={13} /> {label}
-      <span style="text-transform:uppercase;letter-spacing:.05em;opacity:.75;">· {type}</span>
-    </span>
+    {dataFile ? (
+      <span
+        style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--orange-50);color:var(--orange-600);"
+      >
+        <Icon name="database" size={13} /> 資料檔
+        <span style="opacity:.75;">· {dataFile.pluginTitle}</span>
+      </span>
+    ) : (
+      <span
+        style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--blue-50);color:var(--blue-700);"
+      >
+        <Icon name="sparkle" size={13} /> {label}
+        <span style="text-transform:uppercase;letter-spacing:.05em;opacity:.75;">· {type}</span>
+      </span>
+    )}
     <code style="margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted);">
-      generated/{id}.tsx
+      {dataFile ? dataFile.relPath : `generated/${id}.tsx`}
     </code>
-    {prompt && (
+    {dataFile && (
+      <a
+        href={`/view/${dataFile.routePath}`}
+        title="開啟完整檢視頁"
+        style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--neutral-200);background:#fff;color:var(--text-muted);font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;"
+      >
+        <Icon name="external" size={12} /> 開啟完整檢視頁
+      </a>
+    )}
+    {dataFile && isDev && (
+      <a
+        href={`vscode://file/${dataFile.absPath.replace(/^\/+/, "")}`}
+        title="以 VS Code 編輯這份資料"
+        style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--neutral-200);background:#fff;color:var(--text-muted);font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;"
+      >
+        <Icon name="edit" size={12} /> 以 VS Code 編輯
+      </a>
+    )}
+    {prompt && !dataFile && (
       <span style="display:inline-flex;align-items:center;position:relative;">
         <button
           type="button"
@@ -51,7 +85,15 @@ const label = TYPE_LABELS[type] ?? "視覺化";
       </span>
     )}
     {/* 放大檢視：常駐於標題列最右側，把下方 data-nc-viz-body 的元件搬進全螢幕畫布 */}
-    <VizZoom client:visible id={id} kind={label} type={type} caption={caption} />
+    <VizZoom
+      client:visible
+      id={id}
+      kind={dataFile ? "資料檔" : label}
+      type={dataFile ? undefined : type}
+      caption={caption}
+      codeLabel={dataFile?.relPath}
+      icon={dataFile ? "database" : "sparkle"}
+    />
   </div>
   <div style="padding:18px 16px;">
     <div data-nc-viz-body>

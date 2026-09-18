@@ -195,6 +195,57 @@
 > 其次是 Task 42 對 `<Stages>` 的回歸（既有三份 deck 都在用）與
 > Task 44 對 `chromeMetrics()` 的改動（算錯會讓內容被靜靜裁掉而 build 全綠）。
 
+## v1.12.0 追加功能（§8.1 Phase 4.15 待補）— Plugin System ✅ 已完成（2026-09-18 / notecraftapp v0.6.0）
+
+> 規格：[notecraft-plugin-system.md](../notecraft-plugin-system.md) v0.2.1（23 項決策已定案）
+> 設計交付：[design_handoff_plugin_system](../prototype/design_handoff_plugin_system/)（含可離線開啟的 prototype.html）
+
+讓專案裡的結構化 JSON 資料檔，被一個可安裝的渲染器畫成頁面。第一個官方 plugin 是 ER Diagram。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 46](task-46-plugin-contract-types.md) | Plugin 契約與型別 | §5、§6.1–6.3 | 兩份 JSON Schema、`PluginRendererProps`、`_types.d.ts` |
+| [Task 47](task-47-plugin-build-resolution.md) | build 期解析 | §7.1、§7.2、§7.7 | `src/lib/plugins.ts`、picomatch、ajv |
+| [Task 48](task-48-data-file-view-route.md) | `/view/<path>` 檢視頁 | §7.3-A、§7.7 | `pages/view/[...path].astro`、滿版版型、sticky 頁首、`PluginErrorCard` |
+| [Task 49](task-49-sidebar-and-data-list.md) | 側邊欄第六項與清單頁 | §7.5 | `Sidebar.astro`、`pages/view/index.astro` |
+| [Task 50](task-50-notes-list-mixed-cards.md) | `/notes` 混排卡片 | §7.5 | `NotesList.tsx`（卡片型別擴成聯集） |
+| [Task 51](task-51-er-diagram-renderer-plugin.md) | **ER Diagram Renderer** | §8 | `plugins/er-diagram-renderer/`、轉檔腳本、renderer 改吃 props |
+| [Task 52](task-52-series-entry-integration.md) | 系列整合（entry 化） | §7.6（Q6′） | `series.ts`、`SeriesDetail.tsx`、`SeriesNav.tsx`、5 處 `/notes/` 前綴 |
+| [Task 53](task-53-mdx-plugin-view-embed.md) | MDX 內嵌 `<PluginView />` | §7.3-B、Q22 | `GeneratedFrame` 標示、`VizZoom` 自訂標籤 |
+| [Task 54](task-54-install-plugin-cli.md) | `install-plugin` CLI | §9.1、9.2、9.5、9.6 | `bin/notecraftapp.mjs` 新子命令、安裝期 lint |
+| [Task 55](task-55-install-plugin-remote-sources.md) | 第三方來源與抓取 | §9.3、9.4 | 逐檔 fetch、git clone 退路、`.installed.json` |
+| [Task 56](task-56-plugin-watch-cache.md) | watch / 快取 / dev HMR | §11 | 快取失效條件、chokidar 清單、HMR 實測 |
+| [Task 57](task-57-official-store-ci.md) | 官方 store 與 CI | §10 | `plugins/registry.json`、`scripts/check-plugins.mjs` |
+| [Task 58](task-58-plugin-e2e-and-docs.md) | 端對端驗證與文件回填 | §13 P9 | TrendMile 遷移、PRD / CLAUDE.md / README / CHANGELOG |
+
+**順序**：46 → 47 是地基，先做。之後 48–50（畫面）、51（plugin）、54–55（CLI）三條可並行；
+52 依賴 47+48；53 依賴 47+48；56 依賴 47；57 依賴 51；58 最後。
+
+> **章節識別碼已定案（2026-09-18）**：採 **`view:` 前綴**（`view:planning/schema`），不靠副檔名推斷。
+> PRD〈系列資料模型〉與規格 §7.6 已同步。閱讀進度的 localStorage key 用含前綴的原字串，
+> 避免與筆記撞 key。
+>
+> **兩項後續確認亦已定案（2026-09-18）**：
+>
+> ① **進度分母 `tracked = total`** —— 不做可追蹤判定，與現行實作及 PRD Q2 收斂一致。
+> 設計原型的 `isTrackable()` 是基於不同假設寫的，**沒有搬進來**。
+> PRD 功能列表 #18 那句過時的「未發佈不可追蹤」已修正。
+>
+> ② **「篇」→「章」** —— 改了，但只改系列相關的兩處字串
+> （`SeriesOverview.tsx` 的封面 chip、`pages/series/index.astro` 的副標）。
+> `/notes` 副標、Dashboard、`TagsManager` 的「N 篇筆記」數的是筆記不是章節，維持原樣。
+>
+> **完成摘要**：46–58 全部實作完畢，隨 notecraftapp **v0.6.0** 發佈；
+> 各 Task 的實作記錄寫在各自檔案末尾，規格 [§15](../notecraft-plugin-system.md) 已回填。
+> **仍未做的三件**：`view`（astro dev）模式的 HMR 實測（Q19）、遠端安裝的端對端
+> （要等 `plugins/` 推上 GitHub）、官方 store 的 screenshot。
+
+> **本批最大風險**：[Task 56](task-56-plugin-watch-cache.md) 的 dev HMR —— 資料檔不在 Vite 模組圖裡，
+> 是整批唯一沒有既有經驗可循的部分。其次是 [Task 53](task-53-mdx-plugin-view-embed.md)：
+> `GeneratedFrame` 與 `VizZoom` 服務全站所有 AI 生成元件，改成支援兩種標示時預設值必須維持現行行為，
+> 否則是全站回歸。[Task 51](task-51-er-diagram-renderer-plugin.md) 則是唯一「已經有正確答案」的 Task——
+> 舊元件的行為就是驗收基準，任何差異都是回歸。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

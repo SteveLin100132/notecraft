@@ -11,10 +11,28 @@ import {
   ArrowUp,
   ArrowDown,
   Star,
+  Database,
+  FileJson,
 } from "lucide-react";
 import { getFavorites, toggleFavorite, FAVORITES_EVENT } from "@/lib/favorites";
 import { readingStatus, READING_EVENT, type ReadingStatus } from "@/lib/reading-progress";
 import { ReadingBadge } from "./seriesShared";
+
+/** 由 plugin 渲染的資料檔，與筆記混排在同一份列表（Q6）。 */
+export type DataFileCardData = {
+  routePath: string;
+  relPath: string;
+  title: string;
+  description: string;
+  pluginId: string;
+  /** 檔案 mtime —— 資料檔沒有 frontmatter，時間只能取自檔案系統 */
+  updatedAt: string;
+};
+
+/** 列表的一筆：筆記或資料檔。兩者的欄位差太多，用 kind 區分而不是硬湊成同一個型別。 */
+type ListItem =
+  | { kind: "note"; key: string; note: NoteCardData }
+  | { kind: "data"; key: string; file: DataFileCardData };
 
 export type NoteCardData = {
   slug: string;
@@ -42,6 +60,7 @@ const SORT_FIELDS: { key: SortField; label: string }[] = [
 
 type Props = {
   notes: NoteCardData[];
+  dataFiles?: DataFileCardData[];
   tagStats: { name: string; count: number }[];
   defaultLayout?: "grid" | "list";
   initialTag?: string | null;
@@ -55,6 +74,27 @@ function daysAgo(s: string, today = "2026-06-12") {
   if (d < 7) return `${d} 天前`;
   if (d < 30) return `${Math.floor(d / 7)} 週前`;
   return `${Math.floor(d / 30)} 個月前`;
+}
+
+/* 混排的排序鍵。資料檔沒有 createdAt（只有檔案 mtime），兩個時間欄位都用它；
+   依系列排序時資料檔一律排在最後 —— 它們可以屬於系列，但這個排序談的是筆記的章節序。 */
+function sortKey(item: ListItem, field: "updatedAt" | "createdAt" | "title"): string {
+  if (item.kind === "data") {
+    return field === "title" ? item.file.title : item.file.updatedAt.slice(0, 10);
+  }
+  return field === "title" ? item.note.title : item.note[field];
+}
+
+function compareItems(a: ListItem, b: ListItem, field: SortField): number {
+  if (field === "series") {
+    if (a.kind === "data" && b.kind === "data") return a.file.title.localeCompare(b.file.title);
+    if (a.kind === "data") return 1;
+    if (b.kind === "data") return -1;
+    return compareSeries(a.note, b.note);
+  }
+  const ka = sortKey(a, field);
+  const kb = sortKey(b, field);
+  return field === "title" ? ka.localeCompare(kb) : ka.localeCompare(kb);
 }
 
 function compareField(a: NoteCardData, b: NoteCardData, field: "updatedAt" | "createdAt" | "title") {
@@ -74,7 +114,7 @@ function compareSeries(a: NoteCardData, b: NoteCardData) {
   return oa - ob || compareField(a, b, "createdAt") || a.title.localeCompare(b.title);
 }
 
-export default function NotesList({ notes, tagStats, defaultLayout = "grid", initialTag = null }: Props) {
+export default function NotesList({ notes, dataFiles = [], tagStats, defaultLayout = "grid", initialTag = null }: Props) {
   const [q, setQ] = useState("");
   const [active, setActive] = useState<string[]>(initialTag ? [initialTag] : []);
   const [layout, setLayout] = useState<"grid" | "list">(defaultLayout);
@@ -118,9 +158,10 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
   const toggle = (tg: string) =>
     setActive((a) => (a.includes(tg) ? a.filter((x) => x !== tg) : [...a, tg]));
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<ListItem[]>(() => {
     const ql = q.trim().toLowerCase();
-    return notes
+
+    const noteItems: ListItem[] = notes
       .filter((n) => {
         if (onlyFav && !favSet.has(n.slug)) return false;
         if (active.length && !active.every((t) => n.tags.includes(t))) return false;
@@ -129,10 +170,21 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
           (n.title + n.description + n.tags.join(" ") + n.excerpt).toLowerCase().includes(ql)
         );
       })
-      .sort((a, b) => {
-        const cmp = sortField === "series" ? compareSeries(a, b) : compareField(a, b, sortField);
-        return sortDir === "asc" ? cmp : -cmp;
-      });
+      .map((note) => ({ kind: "note", key: "note:" + note.slug, note }));
+
+    // 資料檔沒有標籤、也不能收藏，因此套用標籤篩選或「只看收藏」時它們一律退出列表
+    // —— 灰掉或留著都會讓人以為是「這些沒有該標籤」，而事實是這個維度對它們不存在。
+    const dataItems: ListItem[] =
+      active.length || onlyFav
+        ? []
+        : dataFiles
+            .filter((f) => !ql || (f.title + f.description + f.relPath).toLowerCase().includes(ql))
+            .map((file) => ({ kind: "data", key: "data:" + file.routePath, file }));
+
+    return [...noteItems, ...dataItems].sort((a, b) => {
+      const cmp = compareItems(a, b, sortField);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
   }, [q, active, notes, sortField, sortDir, onlyFav, favSet]);
 
   return (
@@ -336,14 +388,20 @@ export default function NotesList({ notes, tagStats, defaultLayout = "grid", ini
         </div>
       ) : layout === "grid" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-          {filtered.map((n) => (
-            <NoteCardGrid key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} reading={reading[n.slug] ?? "not-started"} />
+          {filtered.map((it) =>
+            it.kind === "data" ? (
+              <DataCardGrid key={it.key} file={it.file} />
+            ) : (
+            <NoteCardGrid key={it.key} note={it.note} fav={favSet.has(it.note.slug)} onToggleFav={() => toggleFavorite(it.note.slug)} reading={reading[it.note.slug] ?? "not-started"} />
           ))}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {filtered.map((n) => (
-            <NoteCardList key={n.slug} note={n} fav={favSet.has(n.slug)} onToggleFav={() => toggleFavorite(n.slug)} reading={reading[n.slug] ?? "not-started"} />
+          {filtered.map((it) =>
+            it.kind === "data" ? (
+              <DataCardList key={it.key} file={it.file} />
+            ) : (
+            <NoteCardList key={it.key} note={it.note} fav={favSet.has(it.note.slug)} onToggleFav={() => toggleFavorite(it.note.slug)} reading={reading[it.note.slug] ?? "not-started"} />
           ))}
         </div>
       )}
@@ -578,6 +636,193 @@ function NoteCardList({ note, fav, onToggleFav, reading }: { note: NoteCardData;
         {reading !== "not-started" && <ReadingBadge status={reading} />}
         <MarkerBadge n={note} />
         <FavStar fav={fav} onToggle={onToggleFav} />
+        <span style={{ color: "var(--neutral-300)", display: "flex" }}>
+          <ChevronRight size={18} />
+        </span>
+      </div>
+    </a>
+  );
+}
+
+/* ── 資料檔卡片 ──────────────────────────────────────────
+   與筆記卡片同節奏（左上 42×42 icon 方塊 → 標題 → 兩行摘要 → 底部一列），只換三處：
+   icon 方塊改橘系 Database、右上徽章列只留「資料檔」膠囊與時間、
+   底部原本放標籤的那一列改成 sunken 底的 mono 路徑列。
+   mono 是筆記卡片完全沒有的質地 —— 掃視時最快的訊號。 */
+
+function DataKindPill() {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 8px",
+        borderRadius: "var(--radius-pill)",
+        background: "var(--orange-50)",
+        color: "var(--orange-600)",
+        fontSize: 11.5,
+        fontWeight: 700,
+      }}
+    >
+      <Database size={11} /> 資料檔
+    </span>
+  );
+}
+
+function DataPathRow({ file }: { file: DataFileCardData }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 9px",
+        borderRadius: "var(--radius-md)",
+        background: "var(--surface-sunken)",
+        fontFamily: "var(--font-mono)",
+        fontSize: 11.5,
+        color: "var(--text-muted)",
+        minWidth: 0,
+      }}
+    >
+      <FileJson size={12} style={{ flex: "none" }} />
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {file.relPath}
+      </span>
+      <span style={{ marginLeft: "auto", flex: "none", color: "var(--blue-700)" }}>{file.pluginId}</span>
+    </div>
+  );
+}
+
+function DataCardGrid({ file }: { file: DataFileCardData }) {
+  return (
+    <a
+      href={`/view/${file.routePath}`}
+      className="nc-card-link"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        padding: "18px 20px 16px",
+        background: "#fff",
+        border: "1px solid var(--neutral-200)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-xs)",
+        textDecoration: "none",
+        color: "inherit",
+        minHeight: 176,
+        transition: "transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 42,
+            height: 42,
+            borderRadius: 5,
+            background: "var(--orange-50)",
+            color: "var(--orange-600)",
+          }}
+        >
+          <Database size={20} />
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-muted)" }}>
+          <DataKindPill />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Clock size={14} /> {daysAgo(file.updatedAt.slice(0, 10))}
+          </span>
+        </div>
+      </div>
+      <div>
+        <h3 style={{ fontSize: 18, color: "var(--text-strong)", margin: "0 0 7px", fontWeight: 700, lineHeight: 1.35 }}>
+          {file.title}
+        </h3>
+        <p
+          style={{
+            fontSize: 13.5,
+            color: "var(--text-muted)",
+            margin: 0,
+            lineHeight: 1.7,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {file.description}
+        </p>
+      </div>
+      <div style={{ marginTop: "auto" }}>
+        <DataPathRow file={file} />
+      </div>
+    </a>
+  );
+}
+
+function DataCardList({ file }: { file: DataFileCardData }) {
+  return (
+    <a
+      href={`/view/${file.routePath}`}
+      className="nc-card-link"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 18,
+        padding: "16px 20px",
+        background: "#fff",
+        border: "1px solid var(--neutral-200)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-xs)",
+        textDecoration: "none",
+        color: "inherit",
+        transition: "transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out)",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 42,
+          height: 42,
+          borderRadius: 5,
+          background: "var(--orange-50)",
+          color: "var(--orange-600)",
+          flex: "none",
+        }}
+      >
+        <Database size={20} />
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <h3 style={{ fontSize: 16.5, color: "var(--text-strong)", margin: "0 0 4px", fontWeight: 700 }}>
+          {file.title}
+        </h3>
+        <p
+          style={{
+            fontSize: 13.5,
+            color: "var(--text-muted)",
+            margin: 0,
+            lineHeight: 1.6,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {file.description}
+        </p>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flex: "none" }}>
+        <span style={{ maxWidth: 280, minWidth: 0 }}>
+          <DataPathRow file={file} />
+        </span>
+        <DataKindPill />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, color: "var(--text-muted)" }}>
+          <Clock size={14} /> {daysAgo(file.updatedAt.slice(0, 10))}
+        </span>
         <span style={{ color: "var(--neutral-300)", display: "flex" }}>
           <ChevronRight size={18} />
         </span>

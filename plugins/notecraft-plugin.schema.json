@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/notecraft-plugin.schema.json",
+  "title": "NoteCraft plugin manifest",
+  "description": "plugin 套件自己的身分證。放在 plugin 資料夾根目錄，檔名固定 notecraft-plugin.json。",
+  "type": "object",
+  "required": ["id", "title", "description", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "type": "string",
+      "description": "必須與所在資料夾名完全一致，否則安裝時拒裝。",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": { "type": "string", "minLength": 1, "description": "顯示名，用於 CLI store 清單與 MDX 內嵌外框的膠囊。" },
+    "description": { "type": "string", "minLength": 1, "description": "一句話說明這個 plugin 畫什麼。" },
+    "version": {
+      "type": "string",
+      "description": "semver。CLI 用它比對是否有新版可升級。",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+].+)?$"
+    },
+    "author": { "type": "string" },
+    "homepage": { "type": "string", "format": "uri" },
+    "dataSchema": {
+      "type": "string",
+      "description": "相對本 manifest 的路徑，指向驗證資料檔用的 JSON Schema。省略則只做 JSON.parse。",
+      "default": "schema.json"
+    },
+    "example": {
+      "type": "string",
+      "description": "相對本 manifest 的路徑，指向可直接 build 的範例資料。CI 會拿它驗證這個 plugin 真的跑得起來。"
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "相容性宣告。安裝時檢查，不合就擋下並提示升級。",
+      "properties": {
+        "notecraftapp": { "type": "string", "description": "semver range，例：>=0.6.0" }
+      }
+    }
+  }
+}

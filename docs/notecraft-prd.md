@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.11.1
+文件版本: v1.12.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-08-12
+更新日期: 2026-09-18
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -76,8 +76,8 @@ Project Name: NoteCraft
 14. \* 為 [AI 生成內容外框卡片](#ai-生成內容外框卡片) 增加「複製提示詞」功能，讀者 / 作者可一鍵複製生成該元件的 `prompt`；對應 Skill 與 Subagent 在寫回時將 `prompt` 帶入 `GeneratedFrame`
 15. \* 提供可收合的側邊欄（[側邊欄收合](#側邊欄收合sidebar-collapse)）：桌面可在「完整 / icon 細條」間切換並記住偏好；平板與手機預設收合為 off-canvas 抽屜，靠漢堡鈕開啟
 16. \* 提供筆記收藏（[筆記收藏](#筆記收藏favorites)）：筆記卡片與檢視頁可用星號收藏 / 取消，收藏狀態存於瀏覽器 localStorage（正式環境亦可用），並在 [筆記列表頁面](#筆記列表頁面) 提供「只看收藏」篩選
-17. \* 提供「系列」功能：以集中式 [系列登錄](#系列資料模型series-data-model) 把相關筆記串成有順序的閱讀路徑，於 [系列總覽頁面](#系列總覽頁面series-overview)（`/series`）瀏覽 / 模糊查詢 / 篩選排序、於 [系列詳情頁面](#系列詳情頁面series-detail)（`/series/[id]`）檢視逐章清單與整體進度
-18. \* 提供個人化「閱讀進度」（待開始 / 閱讀中 / 已完成，存於瀏覽器 localStorage、正式環境亦可用）：筆記檢視頁可手動切換並於開啟時輕量自動轉為「閱讀中」，列表卡與 Dashboard 顯示進度，未發佈筆記不可追蹤且不計入系列進度（詳見 [閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress)）
+17. \* 提供「系列」功能：以集中式 [系列登錄](#系列資料模型series-data-model) 把相關筆記（以及由 plugin 渲染的資料檔頁）串成有順序的閱讀路徑，於 [系列總覽頁面](#系列總覽頁面series-overview)（`/series`）瀏覽 / 模糊查詢 / 篩選排序、於 [系列詳情頁面](#系列詳情頁面series-detail)（`/series/[id]`）檢視逐章清單與整體進度
+18. \* 提供個人化「閱讀進度」（待開始 / 閱讀中 / 已完成，存於瀏覽器 localStorage、正式環境亦可用）：筆記檢視頁可手動切換並於開啟時輕量自動轉為「閱讀中」，列表卡與 Dashboard 顯示進度，所有筆記與資料檔頁皆可追蹤、皆計入系列進度（詳見 [閱讀進度與系列彙總](#閱讀進度與系列彙總reading-progress)）
 19. \* 提供類 Material for MkDocs 的 [Markdown 擴充語法](#markdown-擴充語法admonitions--content-tabs--tooltips)：[Admonitions](#admonitions)（提示 / 警告框、可收合）、[Content tabs](#content-tabs)（內容分頁）、[Tooltips](#tooltips)（行內提示），以 `remark-directive` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
 20. \* 提供類 Material for MkDocs 的 [程式碼區塊增強](#程式碼區塊增強code-block-enhancements)：行號、檔名標題、一鍵複製、行 highlight、可展開的 [Code annotations](#code-annotations)（行內編號標記 → 點擊展開說明），以 `astro-expressive-code` 於 build 階段渲染、樣式遵循 [trendlink-design](#skills)，正式環境同樣可用
 21. \* 提供 [Markdown 擴充語法 — Badge](#markdown-擴充語法badge)：行內標籤元件，支援多種 variant（語意色 × `outline` / `solid` 樣式），重用 [Task 14](#markdown-擴充語法admonitions--content-tabs--tooltips) 的 `remark-directive` 底座，純 CSS、零 JS，正式環境同樣可用
@@ -469,6 +469,8 @@ flowchart TD
 ## 規格
 
 - **單系列歸屬**：一篇筆記至多屬於一個系列；系列為**有序章節清單**，章節順序即閱讀順序。
+- **章節成員的種類**：章節可以是 **md/mdx 筆記**，也可以是 **由 plugin 渲染的資料檔頁**（`/view/<path>`，見 [Plugin System 設計文件](./notecraft-plugin-system.md) §7.6）。兩者在系列導覽、詳情頁章節列、閱讀進度中**一視同仁**——系列表達的是閱讀動線，而資料檔（例：一份 schema 的 ER 圖）往往正是該動線上的一站。
+  - 與 Dashboard 的「筆記篇數」統計刻意不同調：那個數字表達的是**內容產出量**，資料檔不計入。兩者分母不同不是不一致。
 - **集中式系列登錄（registry）**：因系列帶有「系列層級」的中繼資料（標題、eyebrow、描述、封面色系、icon、章節順序），無法只靠單篇筆記的 frontmatter 表達，故以**集中登錄檔**定義系列。建議實作為新的 Content Collection `series`（每個系列一個 `.json` / `.yaml`，或單一 `src/content/series.ts` data 檔），於 `astro build` 階段被 Content Collections 解析、預計算，**無執行時 API**。系列結構（權威來源：`docs/prototype/001-series/source_reference/data.jsx`）：
 
   ```ts
@@ -483,11 +485,15 @@ flowchart TD
   }
   ```
 
-  - `slugs` 的順序即章節序；以 `noteBySlug(slug)` 對應回筆記物件。
+  - `slugs` 的順序即章節序；陣列可混放兩種識別碼，由解析器 `seriesEntry(ref)` 統一解成同一種 entry。
+  - **識別碼形式**：筆記為既有 slug（如 `oauth-101`，副檔名 `.md` / `.mdx` 會被剝除）；資料檔為 **`view:` 前綴 + 路徑去副檔名**（如 `view:planning/schema`）。前綴同時決定導覽連結指向 `/notes/<slug>` 還是 `/view/<path>`。
+    - 採前綴而非靠副檔名推斷：明確、未來可擴充第三種頁面型別、且前綴後的字串與路由同形不需二次換算。
+  - **閱讀進度的 localStorage key 一律用未經轉換的識別碼原字串**（含 `view:` 前綴），避免筆記與資料檔撞 key。
   - 與既有 `series` / `order` frontmatter（[筆記關聯導覽](#筆記關聯導覽上一篇--下一篇)）的關係見〈待釐清 Q1〉——本功能以 registry 的 `slugs` 為章節順序的權威來源。
-- **閱讀進度（個人狀態）**：三種狀態，**屬於每篇筆記**（非系列）：`not-started`（待開始）｜ `reading`（閱讀中）｜ `done`（已完成）。
+- **閱讀進度（個人狀態）**：三種狀態，**屬於每個章節項目**（筆記或資料檔頁，非系列）：`not-started`（待開始）｜ `reading`（閱讀中）｜ `done`（已完成）。
   - **儲存**：瀏覽器 `localStorage`，key 建議 `nc-reading-progress-v1`，值為 `{ [slug]: "reading" | "done" }`（`not-started` 不寫入、以「無紀錄」表示）。此為**個人狀態、每裝置獨立、不進 git、正式環境亦可用**，與 [筆記收藏](#筆記收藏favorites) 同一性質。
   - **所有筆記皆可追蹤**（見〈待釐清 Q2〉收斂）：不引入「未發佈不可追蹤」概念。
+  - **資料檔頁同樣可追蹤**：進度機制不依賴捲動或內文長度——開頁由 `markReading` 轉為「閱讀中」、「已完成」一律由使用者手動標記，此語意對資料檔頁完全成立。
   - 核心 API（client 端，建議抽 `src/lib/reading-progress.ts`）：
 
     | API | 語意 |
@@ -505,7 +511,8 @@ flowchart TD
 
 ## 卡控機制
 
-- registry 中某 `slug` 找不到對應筆記 → build log 提示、該章節跳過，不中斷 build、不產死連結。
+- registry 中某識別碼對不到對應項目 → build log 提示、該章節跳過，不中斷 build、不產死連結。提示訊息須依三種情況區分，否則作者會照著錯誤的提示去修一個沒壞的東西：① 無前綴、對不到筆記；② 帶 `view:` 前綴、對不到資料檔（提示檢查 `plugins.json` 的 `files`）；③ 帶 `view:` 前綴、檔案存在但未被任何 plugin 認領（給出要補的設定片段）。
+- 帶 `view:` 前綴但該資料檔未被任何 plugin 認領 → 視同對不到，走上一條。
 - 同一 `slug` 出現在多個系列 → build log 警示（違反單系列歸屬）；以首次出現者為準。
 - `localStorage` 不可用（隱私模式）→ try/catch 降級，僅當前 session 有效，不報錯中斷。
 
@@ -517,6 +524,8 @@ flowchart TD
 | 自動轉換不降級 | 某章已是 `done` | 開啟該章呼叫 `markReading` | 狀態維持 `done`，不被降為 `reading` |
 | next 指向正確 | 系列首章 `done`、次章 `not-started` | 取 `seriesProgress().next` | 回傳次章 |
 | 重設清空進度 | 系列數章已 `done`/`reading` | 呼叫 `resetSeriesProgress` | 該系列所有章節回 `not-started`、`pct` = 0 |
+| 資料檔可作為章節 | 系列 `slugs` 含 `view:planning/schema`，該檔已被 plugin 認領 | 開啟系列詳情頁 | 該章節出現在章節列，連結指向 `/view/planning/schema`，並計入 `total` |
+| 資料檔計入進度 | 上述章節被標記 `done` | 計算 `seriesProgress` | `done` +1、`pct` 依全部章節數換算，與筆記章節無差別 |
 
 ## 待釐清
 
@@ -2736,6 +2745,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.12.0] - 2026-09-18
+- **Added**: 新增 Plugin System 規格，系列章節可為資料檔頁
 
 ### [1.11.1] - 2026-08-12
 - **Fixed**: 修正放大檢視紙張寬度寫死 880px、匯出寬度改固定值

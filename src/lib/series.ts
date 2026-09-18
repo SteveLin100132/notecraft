@@ -9,6 +9,7 @@ import path from "node:path";
 import { z } from "astro:content";
 import type { SeriesDef } from "@/data/series";
 import { parseMarkers, type Note } from "@/lib/notes";
+import type { ResolvedDataFile } from "@/lib/plugin-types";
 
 export type { SeriesDef };
 
@@ -28,12 +29,28 @@ const SeriesFileSchema = z.object({
   series: z.array(SeriesEntrySchema),
 });
 
-// 對 series.json 裡的 slug 做寬容化：剝副檔名、開頭的 ./、多餘的 /。
-// 讓 slugs 可以寫成 "foo"、"foo.md"、"./foo.mdx"、"specs/foo.md" 都對到同一個 entry.id。
+/** 章節識別碼的前綴：資料檔頁一律寫成 `view:<路徑去副檔名>`。 */
+export const DATA_REF_PREFIX = "view:";
+
+/** 某個識別碼指的是資料檔頁還是筆記。用前綴判別而非副檔名 —— 明確勝過推斷。 */
+export function isDataRef(ref: string): boolean {
+  return ref.startsWith(DATA_REF_PREFIX);
+}
+
+/** 資料檔的路由段 → 章節識別碼。 */
+export function dataRef(routePath: string): string {
+  return DATA_REF_PREFIX + routePath;
+}
+
+// 對 series.json 裡的識別碼做寬容化：剝開頭的 ./、多餘的 /，以及副檔名。
+// 筆記可寫成 "foo"、"foo.md"、"./foo.mdx"；資料檔可寫成 "view:a/b" 或 "view:a/b.json"。
 function normalizeSlug(raw: string): string {
-  let s = raw.trim().replace(/^\.\//, "").replace(/\/+/g, "/").replace(/^\/+|\/+$/g, "");
-  s = s.replace(/\.(mdx?|MDX?)$/, "");
-  return s;
+  const trimmed = raw.trim();
+  const isData = trimmed.startsWith(DATA_REF_PREFIX);
+  let s = isData ? trimmed.slice(DATA_REF_PREFIX.length) : trimmed;
+  s = s.replace(/^\.\//, "").replace(/\/+/g, "/").replace(/^\/+|\/+$/g, "");
+  s = s.replace(isData ? /\.(json|JSON)$/ : /\.(mdx?|MDX?)$/, "");
+  return isData ? DATA_REF_PREFIX + s : s;
 }
 
 async function loadFromExternalJson(notesDir: string): Promise<SeriesDef[]> {
@@ -103,30 +120,73 @@ export async function loadSeries(): Promise<SeriesDef[]> {
   return series;
 }
 
+/**
+ * 系列的一章。可以是筆記，也可以是由 plugin 渲染的資料檔頁 —— 兩者一視同仁：
+ * 都有序號、都計入進度分母、都可被標記為已完成（見 docs/notecraft-plugin-system.md §7.6）。
+ *
+ * `ref` 是識別碼原字串，**也是閱讀進度的 localStorage key**。不要剝掉 `view:` 前綴 ——
+ * 剝掉的話筆記 `a/b` 與資料檔 `view:a/b` 會撞同一格。
+ */
 export type SeriesChapter = {
-  slug: string;
+  kind: "note" | "data";
+  ref: string;
+  /** 點下去要去哪 */
+  href: string;
   title: string;
   description: string;
+  /** 資料檔恆為 0（它沒有 @ai-visualize 標記） */
   markersTotal: number;
   markersGenerated: number;
+  /** 只有資料檔有：原始檔路徑與渲染它的 plugin */
+  relPath?: string;
+  pluginId?: string;
 };
 
 function noteBySlug(notes: Note[], slug: string): Note | undefined {
   return notes.find((n) => n.id === slug);
 }
 
-/** 依 registry 順序，把某系列的 slug 解析為章節靜態資料；找不到的 slug 會警示並跳過。 */
-export function getSeriesChapters(notes: Note[], series: SeriesDef): SeriesChapter[] {
+/** 依 registry 順序解析章節；對不到的識別碼會警示並跳過（三種情況分開講，見 §7.6.2）。 */
+export function getSeriesChapters(
+  notes: Note[],
+  series: SeriesDef,
+  dataFiles: ResolvedDataFile[] = [],
+): SeriesChapter[] {
   const chapters: SeriesChapter[] = [];
-  for (const slug of series.slugs) {
-    const note = noteBySlug(notes, slug);
+  for (const ref of series.slugs) {
+    if (isDataRef(ref)) {
+      const routePath = ref.slice(DATA_REF_PREFIX.length);
+      const file = dataFiles.find((f) => f.routePath === routePath);
+      if (!file) {
+        console.warn(
+          `[series] 系列 "${series.id}" 的章節 "${ref}" 找不到對應的資料檔。` +
+            `請確認 .notecraft/plugins.json 的 files 有涵蓋 ${routePath}.json，且該檔已被 plugin 認領。`,
+        );
+        continue;
+      }
+      chapters.push({
+        kind: "data",
+        ref,
+        href: `/view/${file.routePath}`,
+        title: file.title,
+        description: file.description,
+        markersTotal: 0,
+        markersGenerated: 0,
+        relPath: file.relPath,
+        pluginId: file.pluginId,
+      });
+      continue;
+    }
+    const note = noteBySlug(notes, ref);
     if (!note) {
-      console.warn(`[series] 系列 "${series.id}" 的章節 slug "${slug}" 找不到對應筆記，已跳過。`);
+      console.warn(`[series] 系列 "${series.id}" 的章節 slug "${ref}" 找不到對應筆記，已跳過。`);
       continue;
     }
     const ms = parseMarkers(note.body);
     chapters.push({
-      slug: note.id,
+      kind: "note",
+      ref: note.id,
+      href: `/notes/${note.id}`,
       title: note.data.title,
       description: note.data.description,
       markersTotal: ms.length,
@@ -136,7 +196,7 @@ export function getSeriesChapters(notes: Note[], series: SeriesDef): SeriesChapt
   return chapters;
 }
 
-export type SeriesLink = { slug: string; title: string };
+export type SeriesLink = { ref: string; href: string; title: string; kind: "note" | "data"; relPath?: string };
 
 export type SeriesOf = {
   series: SeriesDef;
@@ -152,14 +212,20 @@ export type SeriesOf = {
  * 取得某筆記所屬系列的導覽資訊；不在任何系列則回傳 null（取代 seriesNav）。
  * P4：多一個 seriesList 參數，避免每次呼叫都重複載入外部 JSON。呼叫端一次 await loadSeries() 後把結果傳進來。
  */
-export function seriesOf(notes: Note[], slug: string, seriesList: SeriesDef[]): SeriesOf | null {
+export function seriesOf(
+  notes: Note[],
+  ref: string,
+  seriesList: SeriesDef[],
+  dataFiles: ResolvedDataFile[] = [],
+): SeriesOf | null {
   for (const series of seriesList) {
-    const i = series.slugs.indexOf(slug);
+    const i = series.slugs.indexOf(ref);
     if (i === -1) continue;
-    const chapters = getSeriesChapters(notes, series);
-    const ci = chapters.findIndex((c) => c.slug === slug);
-    if (ci === -1) continue; // slug 在 registry 但筆記不存在（已警示）
-    const toLink = (c?: SeriesChapter): SeriesLink | null => (c ? { slug: c.slug, title: c.title } : null);
+    const chapters = getSeriesChapters(notes, series, dataFiles);
+    const ci = chapters.findIndex((c) => c.ref === ref);
+    if (ci === -1) continue; // 識別碼在 registry 但對應項目不存在（已警示）
+    const toLink = (c?: SeriesChapter): SeriesLink | null =>
+      c ? { ref: c.ref, href: c.href, title: c.title, kind: c.kind, relPath: c.relPath } : null;
     return {
       series,
       index: ci,

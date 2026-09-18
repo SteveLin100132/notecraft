@@ -4,7 +4,7 @@ import { ACCENT, type SeriesAccent, type SeriesIconName } from "@/data/series";
 import { seriesProgress } from "@/lib/reading-progress";
 import { SeriesIcon, StatusDot, ProgressBar, ProgStat, truncate, useReadingVersion } from "./seriesShared";
 
-export type SeriesChapterLite = { slug: string; title: string; tags: string[] };
+export type SeriesChapterLite = { ref: string; title: string; tags: string[] };
 export type SeriesCardData = {
   id: string;
   title: string;
@@ -39,7 +39,7 @@ export default function SeriesOverview({ series }: { series: SeriesCardData[] })
   const version = useReadingVersion();
 
   const rows = useMemo(() => {
-    return series.map((s) => ({ s, prog: seriesProgress(s.chapters.map((c) => c.slug), version > 0) }));
+    return series.map((s) => ({ s, prog: seriesProgress(s.chapters.map((c) => c.ref), version > 0) }));
   }, [series, version]);
 
   const view = useMemo(() => {
@@ -243,7 +243,7 @@ export default function SeriesOverview({ series }: { series: SeriesCardData[] })
 
 function SeriesCard({ s, prog }: { s: SeriesCardData; prog: ReturnType<typeof seriesProgress> }) {
   const accent = ACCENT[s.accent];
-  const nextTitle = prog.nextSlug ? s.chapters.find((c) => c.slug === prog.nextSlug)?.title ?? "" : "";
+  const nextTitle = prog.nextSlug ? s.chapters.find((c) => c.ref === prog.nextSlug)?.title ?? "" : "";
   const cta = prog.completed
     ? { label: "重新閱讀", Icon: RotateCcw }
     : prog.started
@@ -325,7 +325,7 @@ function SeriesCard({ s, prog }: { s: SeriesCardData; prog: ReturnType<typeof se
               fontWeight: 700,
             }}
           >
-            <FileText size={12} /> {prog.total} 篇
+            <FileText size={12} /> {prog.total} 章
           </span>
         </div>
         <div style={{ position: "absolute", left: 18, bottom: 14, right: 18 }}>

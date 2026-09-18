@@ -126,7 +126,7 @@ notecraftapp view ./docs
 
 ---
 
-## 四個子命令
+## 五個子命令
 
 ### `notecraftapp init-skill`
 
@@ -142,6 +142,35 @@ npx notecraftapp init-skill --dir <path> # 指定安裝目標 root
 衝突處理：有本地手改過的檔案時，走互動 prompt（`overwrite / skip / overwrite-all / skip-all / abort`）；非 TTY 環境（CI）且未帶 `--force` → 直接拒絕、exit 1。
 
 適合：**第一次要在自己專案跑 AI 視覺化的時候跑一次即可**。
+
+### `notecraftapp install-plugin [source]`
+
+裝一個 **plugin** —— 把專案裡的結構化 JSON 資料檔畫成頁面的渲染器。不帶參數時列出官方 store 讓你選。
+
+```bash
+npx notecraftapp install-plugin                          # 列官方 store、互動選擇
+npx notecraftapp install-plugin er-diagram-renderer      # 裝官方 plugin
+npx notecraftapp install-plugin owner/repo/plugins/foo   # 裝第三方（可帶 #v1.2.0 指定版本）
+npx notecraftapp install-plugin ./my-plugin              # 本地開發中的 plugin
+npx notecraftapp install-plugin --list                   # 只看清單
+npx notecraftapp install-plugin --remove er-diagram-renderer
+```
+
+裝完在 `.notecraft/plugins.json` 加一條映射，符合的檔案就會變成 `/view/<路徑>` 的頁面：
+
+```json
+{ "plugins": [{ "plugin": "er-diagram-renderer", "files": ["**/*.er.json"] }] }
+```
+
+（帶 `--apply "**/*.er.json"` 可以讓它直接幫你寫進去。）
+
+**安裝前一律要你確認一次。** 這是在你的 build 與瀏覽器裡執行別人寫的前端程式碼，
+所以確認前會先擋下：白名單外的 `import`、`dangerouslySetInnerHTML`、
+可執行檔（`*.sh`、`*.mjs`、`package.json`…）、路徑逃脫，以及 `engines` 不相容的版本。
+**不會執行任何安裝腳本。** CI 環境用 `--yes` 略過確認。
+
+資料檔可以和筆記一起排進系列（`series.json` 的 `slugs` 寫 `view:<路徑去副檔名>`），
+也可以用 `<PluginView src="..." />` 嵌在 MDX 內文裡。
 
 ### `notecraftapp view <dir>`
 
@@ -290,6 +319,19 @@ MDX 或 md 內 `![](./cover.png)` / `![](../shared/logo.svg)` 都會被自動 re
 | `--force`      | false  | 衝突檔直接覆寫，不 prompt                       |
 | `--check`      | false  | 只印安裝狀態與版本比對，不寫檔                  |
 | `--dir <path>` | cwd    | 安裝目標 root（一般不用）                       |
+
+### `install-plugin`
+
+| Flag             | 預設           | 說明                                      |
+| :--------------- | :------------- | :---------------------------------------- |
+| `--list`         | false          | 只列官方 store，不安裝                    |
+| `--remove <id>`  | —              | 移除已安裝的 plugin（會檢查設定是否殘留） |
+| `--apply <glob>` | —              | 安裝後把映射寫進 `plugins.json`           |
+| `--ref <tag>`    | 預設分支       | 指定 tag / branch / commit                |
+| `--as <id>`      | manifest 的 id | 改用別的目錄名安裝                        |
+| `--dir <path>`   | cwd            | 安裝目標 root                             |
+| `--force`        | false          | 目標已存在時覆寫，不 prompt               |
+| `--yes`          | false          | 略過安裝確認（CI 用）                     |
 
 ---
 

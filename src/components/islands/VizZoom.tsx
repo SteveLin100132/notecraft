@@ -23,7 +23,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Hand, Image as ImageIcon, Loader2, Maximize2, MousePointer, Sparkles, X } from "lucide-react";
+import { Database, Hand, Image as ImageIcon, Loader2, Maximize2, MousePointer, Sparkles, X } from "lucide-react";
 import CanvasViewport from "@/components/deck/CanvasViewport";
 import { dkt } from "@/components/deck/theme";
 
@@ -71,9 +71,16 @@ export interface VizZoomProps {
    * 未指定時依畫布可用寬度動態計算，見 `paperW`。
    */
   natural?: number;
+  /**
+   * 標題列 mono 標籤的覆寫。預設是 `generated/<id>.tsx`（AI 生成元件的來源檔），
+   * 但由 plugin 渲染的資料檔來源是一份 .json，用預設值會指向一個不存在的東西。
+   */
+  codeLabel?: string;
+  /** 標題列的 icon 語意。預設 sparkle（AI 生成）；資料檔用 database。 */
+  icon?: "sparkle" | "database";
 }
 
-export default function VizZoom({ id, kind, type, caption, natural }: VizZoomProps) {
+export default function VizZoom({ id, kind, type, caption, natural, codeLabel, icon = "sparkle" }: VizZoomProps) {
   const c = dkt(false); // 覆蓋層恆為亮色：與簡報端共用同一組語意 token 定義
   const [zoom, setZoom] = useState(false);
   const [node, setNode] = useState<HTMLElement | null>(null);
@@ -214,7 +221,7 @@ export default function VizZoom({ id, kind, type, caption, natural }: VizZoomPro
               }}
             >
               <span style={{ display: "flex", color: "var(--orange-500)" }}>
-                <Sparkles size={18} />
+                {icon === "database" ? <Database size={18} /> : <Sparkles size={18} />}
               </span>
               <span style={{ fontSize: 16, fontWeight: 800, color: "var(--blue-700)" }}>
                 {kind}
@@ -226,7 +233,7 @@ export default function VizZoom({ id, kind, type, caption, natural }: VizZoomPro
                 )}
               </span>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: c.muted }}>
-                generated/{id}.tsx
+                {codeLabel ?? `generated/${id}.tsx`}
               </span>
 
               <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8 }}>

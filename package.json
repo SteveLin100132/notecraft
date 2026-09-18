@@ -1,7 +1,7 @@
 {
   "name": "notecraftapp",
   "type": "module",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。用 npx 一行指令在任何 md/mdx 資料夾啟動漂亮 UI。",
   "keywords": [
     "notecraft",
@@ -33,6 +33,7 @@
   },
   "files": [
     "bin/",
+    "plugins/",
     "src/components/*.astro",
     "src/components/islands/",
     "src/components/deck/",
@@ -59,7 +60,8 @@
     "typecheck": "astro check",
     "new-note": "node scripts/new-note.mjs",
     "sync-skill": "node scripts/sync-skill-template.mjs",
-    "prepublishOnly": "npm run sync-skill",
+    "check-plugins": "node scripts/check-plugins.mjs",
+    "prepublishOnly": "npm run sync-skill && npm run check-plugins",
     "viewer:view": "node bin/notecraftapp.mjs view",
     "viewer:build": "node bin/notecraftapp.mjs build",
     "viewer:serve": "node bin/notecraftapp.mjs serve"
@@ -68,6 +70,7 @@
     "@astrojs/mdx": "^4.0.3",
     "@astrojs/react": "^4.1.2",
     "@astrojs/tailwind": "^5.1.4",
+    "ajv": "^8.20.0",
     "astro": "^5.0.5",
     "chokidar": "^5.0.0",
     "citty": "^0.2.2",
@@ -78,6 +81,7 @@
     "lucide-react": "^0.469.0",
     "motion": "^11.15.0",
     "pagefind": "^1.2.0",
+    "picomatch": "^4.0.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.15.0",
@@ -87,6 +91,7 @@
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/picomatch": "^4.0.3",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "typescript": "^5.7.2"

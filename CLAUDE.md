@@ -84,6 +84,53 @@ status: pending | generated | locked | failed
 
 色票、字級、間距、圓角、陰影一律遵循外部 **`trendlink-design` Skill**。生成元件前先讀取其 SKILL.md，優先使用其 token / class，**不要硬編碼色碼**。僅在 prompt 明確要求跳脫設計系統時例外，並在對話中說明。
 
+## Plugin System（v0.6.0）
+
+讓結構化 JSON 資料檔被「可安裝的渲染器」畫成頁面。與 `@ai-visualize` 的分界：
+**同一種形狀的資料會反覆出現 → plugin；只為這一段文字服務 → `@ai-visualize`。**
+
+完整設計見 [docs/notecraft-plugin-system.md](docs/notecraft-plugin-system.md)。
+
+```
+<專案根>/.notecraft/
+├── plugins.json                    映射：哪些檔案交給哪個 plugin
+└── plugins/
+    ├── _types.d.ts                 安裝時產生，供 renderer 取 PluginRendererProps
+    └── <id>/
+        ├── notecraft-plugin.json   身分證（id / title / version / dataSchema / engines）
+        ├── renderer.tsx            入口，檔名固定
+        └── schema.json             資料的 JSON Schema
+```
+
+### 幾條不會變的規則
+
+- **入口固定 `renderer.tsx`**，manifest 不放 `entry`；吃哪些檔完全由 `plugins.json` 的 `files` 決定，manifest 也不放 `accepts`
+- **`files` 的基準是 notesDir** —— 資料檔必須放在筆記資料夾內；不允許比對 `.md` / `.mdx`
+- **一檔被多條規則命中 → 第一條勝**，build 印 warn
+- **失敗一律 build fail**（plugin 未裝、JSON 壞、schema 不符）。只有「渲染器在瀏覽器 throw」才走錯誤卡片
+- **plugin 只能 import 既有白名單**（與 AI 生成元件共用 `src/lib/generated-component-whitelist.ts`），安裝時就擋、不拖到 build
+- **資料一律 inline 成 island props**；超過 256 KB 印警告（注意 Astro 的 props 編碼會讓 HTML 約為 JSON 的 3 倍）
+
+### 渲染器要透過 `PluginHost` 掛載
+
+**不要**從 `getPlugins()` 取出元件直接掛 `client:load` —— build 會以 `NoMatchingImport` 失敗。
+Astro 的 hydration 指令要在編譯期就知道元件來自哪個模組。渲染器的 glob 在
+`src/components/islands/PluginHost.tsx` 裡（會進 client chunk），
+`src/lib/plugins.ts` 只做 build 期解析（它用 `node:fs`，不能進 client）。
+既有的簡報頁是同一個形狀。
+
+### 系列
+
+章節識別碼可以是筆記 slug，也可以是 `view:<路徑去副檔名>`。兩者一視同仁：有序號、
+計入進度分母、可標記已完成。**閱讀進度的 localStorage key 用未經轉換的識別碼原字串**
+（含 `view:` 前綴），否則筆記 `a/b` 與資料檔 `view:a/b` 會撞同一格。
+
+### 官方 store
+
+repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就等於發佈**。
+因此 `npm run check-plugins` 是必要的護欄：驗 manifest、registry 無漂移、
+example 通過自己的 schema，並實際配 example 資料 build 一次。`prepublishOnly` 會跑它。
+
 ## dev-only API（僅 `astro dev` 期間存在，build 時不輸出）
 
 - `POST /api/notes` — 新增筆記（建檔 + 預設 frontmatter + AI 標記範本）

@@ -11,6 +11,7 @@ import type { ContinueSeries } from "@/components/islands/ContinueReading.tsx";
 import { getAllNotes, buildDashboardStats } from "@/lib/notes";
 import { allDeckSlugs } from "@/lib/decks";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
+import { getDataFiles } from "@/lib/plugins";
 import { daysAgo } from "@/lib/dates";
 
 const TODAY = "2026-06-12";
@@ -27,7 +28,7 @@ const continueSeries: ContinueSeries[] = series
     id: sr.id,
     title: sr.title,
     accent: sr.accent,
-    chapters: getSeriesChapters(notes, sr).map((c) => ({ slug: c.slug, title: c.title })),
+    chapters: getSeriesChapters(notes, sr, getDataFiles()).map((c) => ({ ref: c.ref, href: c.href, title: c.title })),
   }))
   .filter((sr) => sr.chapters.length > 0);
 const tagMax = s.tags[0]?.count ?? 1;
