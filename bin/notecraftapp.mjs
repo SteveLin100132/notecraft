@@ -17,6 +17,7 @@ import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
 import { tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
+import { installPlugin, listStore, removePlugin } from "./install-plugin.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(__filename), "..");
@@ -170,6 +171,57 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   }
   await walkMdx(notesDir);
 
+  // Pass 1.5（Task 56）：被 plugin 渲染的資料檔。
+  // 與 md/mdx 同一趟走訪會更省，但這支函式的結構是一 pass 一件事，
+  // 維持一致比省幾毫秒重要。
+  let jsonCount = 0;
+  let latestJson = { mtime: 0, path: "" };
+  async function walkJson(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      if (e.isDirectory()) {
+        if (e.name.startsWith(".") || e.name === "node_modules") continue;
+        await walkJson(path.join(dir, e.name));
+      } else if (e.name.endsWith(".json")) {
+        jsonCount += 1;
+        const p = path.join(dir, e.name);
+        const st = statSync(p);
+        if (st.mtimeMs > latestJson.mtime) latestJson = { mtime: st.mtimeMs, path: p };
+      }
+    }
+  }
+  await walkJson(notesDir);
+
+  // Pass 1.6（Task 56）：已安裝的 plugin 套件
+  let pluginFileCount = 0;
+  let latestPlugin = { mtime: 0, path: "" };
+  async function walkPlugins(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        await walkPlugins(p);
+      } else if (/\.(tsx|ts|json)$/.test(e.name)) {
+        pluginFileCount += 1;
+        const st = statSync(p);
+        if (st.mtimeMs > latestPlugin.mtime) latestPlugin = { mtime: st.mtimeMs, path: p };
+      }
+    }
+  }
+  for (const base of [userCwd, notesDir].filter(Boolean)) {
+    await walkPlugins(path.join(base, ".notecraft", "plugins"));
+  }
+
   // Pass 2：.notecraft/*.json 設定檔（可能在 notes 資料夾或使用者 cwd）
   let latestConfig = { mtime: 0, path: "" };
   const configDirs = [path.join(notesDir, ".notecraft")];
@@ -200,21 +252,72 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   if (mdxCount !== meta.fileCount) {
     return { should: true, why: `md/mdx 數量從 ${meta.fileCount} 變成 ${mdxCount}` };
   }
-  return { should: false, meta: { fileCount: mdxCount } };
+  if (latestJson.mtime > lastBuildMs) {
+    return { should: true, why: `資料檔有變動（最新：${path.relative(notesDir, latestJson.path)}）` };
+  }
+  if (meta.jsonCount !== undefined && jsonCount !== meta.jsonCount) {
+    return { should: true, why: `資料檔數量從 ${meta.jsonCount} 變成 ${jsonCount}` };
+  }
+  if (latestPlugin.mtime > lastBuildMs) {
+    return { should: true, why: `plugin 有變動（最新：${latestPlugin.path}）` };
+  }
+  if (meta.pluginFileCount !== undefined && pluginFileCount !== meta.pluginFileCount) {
+    return { should: true, why: `plugin 檔案數量從 ${meta.pluginFileCount} 變成 ${pluginFileCount}` };
+  }
+  return { should: false, meta: { fileCount: mdxCount, jsonCount, pluginFileCount } };
 }
 
-async function writeMeta(cacheDir, notesDir, fileCount) {
+async function writeMeta(cacheDir, notesDir, fileCount, extra = {}) {
   const metaPath = path.join(cacheDir, "meta.json");
   const meta = {
     notesDir,
     lastBuildAt: new Date().toISOString(),
     fileCount,
+    ...extra,
     tool: `notecraftapp@${pkgJson.version}`,
   };
   await fs.mkdir(cacheDir, { recursive: true });
   await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
   const stalePath = path.join(cacheDir, ".stale");
   if (existsSync(stalePath)) await fs.unlink(stalePath);
+}
+
+// Task 56：快取失效要比對的兩個新計數 —— 資料檔與 plugin 檔案。
+// 與 shouldRebuild 的 walkJson / walkPlugins 規則保持一致（跳過 . 開頭與 node_modules）。
+async function countPluginInputs(notesDir, userCwd) {
+  let jsonCount = 0;
+  let pluginFileCount = 0;
+  async function walkJson(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      if (e.isDirectory()) {
+        if (e.name.startsWith(".") || e.name === "node_modules") continue;
+        await walkJson(path.join(dir, e.name));
+      } else if (e.name.endsWith(".json")) jsonCount += 1;
+    }
+  }
+  async function walkPlugins(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      if (e.isDirectory()) await walkPlugins(path.join(dir, e.name));
+      else if (/\.(tsx|ts|json)$/.test(e.name)) pluginFileCount += 1;
+    }
+  }
+  await walkJson(notesDir);
+  for (const base of [userCwd, notesDir].filter(Boolean)) {
+    await walkPlugins(path.join(base, ".notecraft", "plugins"));
+  }
+  return { jsonCount, pluginFileCount };
 }
 
 async function countMdx(dir) {
@@ -438,7 +541,7 @@ async function atomicRebuild(cwd, notesDir, cacheDir, userCwd) {
 
   // meta + 背景清理 prev（不 await，失敗也不影響 UX）
   const count = await countMdx(notesDir);
-  await writeMeta(cacheDir, notesDir, count);
+  await writeMeta(cacheDir, notesDir, count, await countPluginInputs(notesDir, userCwd));
   fs.rm(prevDir, { recursive: true, force: true }).catch(() => {});
 }
 
@@ -641,16 +744,20 @@ function isWatchedFile(notesDir, userCwd, filePath) {
   const relToNc = path.relative(ncRoot, filePath);
   if (!relToNc.startsWith("..") && !path.isAbsolute(relToNc)) {
     const parts = relToNc.split(path.sep);
-    if (parts.length === 1 && parts[0].endsWith(".json")) return true;
+    if (parts.length === 1 && parts[0].endsWith(".json")) return true; // series.json / plugins.json
     if (parts.length === 2 && parts[0] === "components" && parts[1].endsWith(".tsx")) return true;
+    // Task 56：plugin 套件整棵子樹（renderer.tsx / manifest / schema）
+    if (parts[0] === "plugins" && /\.(tsx|ts|json)$/.test(filePath)) return true;
     return false;
   }
-  // 不在 .notecraft/ 內 → 看是不是 notesDir 底下的 md/mdx
+  // 不在 .notecraft/ 內 → notesDir 底下的 md/mdx，或被 plugin 渲染的資料檔（.json）
   const rel = path.relative(notesDir, filePath);
   if (rel.startsWith("..") || path.isAbsolute(rel)) return false;
   const parts = rel.split(path.sep);
   if (parts.some((p) => p.startsWith("."))) return false;
-  return filePath.endsWith(".md") || filePath.endsWith(".mdx");
+  // 資料檔用副檔名粗篩就好：這裡只決定「要不要重 build」，
+  // 真正命中哪些檔是 src/lib/plugins.ts 的事，在這裡重算一次 glob 只會有兩份真相。
+  return filePath.endsWith(".md") || filePath.endsWith(".mdx") || filePath.endsWith(".json");
 }
 
 function startBackgroundRebuild({ cwd, notesDir, cacheDir, userCwd, broadcast, setLastError }) {
@@ -905,9 +1012,61 @@ const initSkillCmd = defineCommand({
   },
 });
 
+// ── Task 54/55: install-plugin ───────────────────────────────────
+// 只加一個子命令，列表與移除收在 flag 底下；升級＝重跑 --force，
+// 與既有 init-skill --force 的語意一致（詳見 docs/notecraft-plugin-system.md §9）。
+const installPluginCmd = defineCommand({
+  meta: {
+    name: "install-plugin",
+    description: "安裝 plugin 到當前專案的 .notecraft/plugins/（不帶參數時列出官方 store）",
+  },
+  args: {
+    source: {
+      type: "positional",
+      required: false,
+      description: "官方 id / owner/repo / owner/repo/子目錄 / owner/repo#tag / 完整網址 / 本地路徑",
+    },
+    list: { type: "boolean", description: "只列出官方 store，不安裝" },
+    remove: { type: "string", description: "移除已安裝的 plugin（給 id）" },
+    apply: { type: "string", description: "安裝後把映射寫進 plugins.json（給 glob）" },
+    dir: { type: "string", description: "安裝目標 root（預設 cwd）" },
+    ref: { type: "string", description: "指定 tag / branch / commit" },
+    as: { type: "string", description: "改用別的目錄名安裝" },
+    force: { type: "boolean", description: "目標已存在時覆寫，不 prompt" },
+    yes: { type: "boolean", description: "略過安裝確認（CI 用）" },
+  },
+  async run({ args }) {
+    const targetRoot = path.resolve(args.dir || process.cwd());
+    if (args.list) {
+      await listStore();
+      return;
+    }
+    if (args.remove) {
+      await removePlugin(targetRoot, args.remove);
+      return;
+    }
+    const source = args.source && args.ref ? `${args.source}#${args.ref}` : args.source;
+    await installPlugin(source, {
+      targetRoot,
+      packageRoot,
+      appVersion: pkgJson.version,
+      force: !!args.force,
+      yes: !!args.yes,
+      apply: args.apply || null,
+      as: args.as || null,
+    });
+  },
+});
+
 const main = defineCommand({
   meta: { name: pkgJson.name, version: pkgJson.version, description: "NoteCraft viewer CLI" },
-  subCommands: { view: viewCmd, build: buildCmd, serve: serveCmd, "init-skill": initSkillCmd },
+  subCommands: {
+    view: viewCmd,
+    build: buildCmd,
+    serve: serveCmd,
+    "init-skill": initSkillCmd,
+    "install-plugin": installPluginCmd,
+  },
 });
 
 runMain(main);

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/plugins.schema.json",
+  "title": "NoteCraft plugins.json",
+  "description": "專案級映射表：哪些資料檔交給哪個 plugin 渲染。放在 <專案根>/.notecraft/plugins.json。",
+  "type": "object",
+  "required": ["plugins"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "plugins": {
+      "type": "array",
+      "description": "由上而下比對，第一條命中的規則勝；同一檔被多條命中時 build 會印 warn。",
+      "items": { "$ref": "#/$defs/mapping" }
+    }
+  },
+  "$defs": {
+    "mapping": {
+      "type": "object",
+      "required": ["plugin", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "plugin": {
+          "type": "string",
+          "description": "plugin id，對應 .notecraft/plugins/<id>/ 的資料夾名。未安裝會讓 build 失敗。",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "description": "glob 陣列，picomatch 語意（* ** ? {a,b}）。基準為 notesDir——資料檔必須放在筆記資料夾內。不允許比對 .md / .mdx，那是 notes collection 的地盤。",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "exclude": {
+          "type": "array",
+          "description": "從 files 的命中結果中排除的 glob。",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "options": {
+          "type": "object",
+          "description": "原封不動傳給 renderer 的設定；每個 plugin 自行定義可用的鍵。",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

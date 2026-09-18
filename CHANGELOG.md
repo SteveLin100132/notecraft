@@ -8,6 +8,50 @@
 
 ---
 
+## [0.6.0] - 2026-09-18
+
+**Plugin System** —— 讓專案裡的結構化 JSON 資料檔，被一個可安裝的渲染器畫成頁面。
+
+起因是一支 751 行的 ER Diagram 元件，其中 48 KB 是寫死的表定義：那 600 行渲染邏輯對任何一份
+資料庫 schema 都通用，卻和某個專案的 36 張表焊死在同一個檔案裡。換一個專案要畫 ER 圖，
+只能整份 copy 再改資料。
+
+### 新增
+
+- **`.notecraft/plugins.json`** —— 一份映射說明「哪些檔案由哪個 plugin 渲染」，`files` 支援
+  `**/*.json` 萬用比對。沒有這個檔，整個功能零成本停用。
+- **`/view/<path>` 資料檔檢視頁** —— 滿版版型（不套 1120 版心），sticky 頁首帶原始檔路徑、
+  渲染它的 plugin 與更新時間。
+- **側邊欄新增「資料 Data」** 與資料檔清單頁 `/view`；裝兩個以上 plugin 時才出現篩選列。
+- **`/notes` 列表混排** —— 資料檔與筆記同節奏、橘系 Database icon 與 mono 路徑列可一眼分辨；
+  套用標籤篩選時退出列表（它們沒有標籤）。
+- **系列的一章可以是資料檔頁** —— `series.json` 的 `slugs` 混放 `view:<path>` 與筆記 slug，
+  一視同仁：有序號、計入進度分母、可標記為已完成。
+- **MDX 內嵌 `<PluginView src="..." />`** —— 沿用 `GeneratedFrame` 外框與放大檢視，只換標示。
+- **`notecraftapp install-plugin`** —— 不帶參數列出官方 store；支援 `owner/repo`、子目錄、
+  `#tag` 與本地路徑。安裝前一律確認，並擋下白名單外的 import、`dangerouslySetInnerHTML`、
+  可執行檔與路徑逃脫。`--list` / `--remove` / `--apply` / `--as` / `--force` / `--yes`。
+- **官方 plugin store**（repo 的 `plugins/`）與第一個 plugin **er-diagram-renderer**，
+  含轉檔腳本 `scripts/er-schema-from-tsx.mjs`。
+- **`npm run check-plugins`** —— 驗證 manifest、registry 無漂移、example 通過自己的 schema，
+  並實際配 example 資料 build 一次。`prepublishOnly` 會跑它。
+
+### 變更
+
+- 系列的章節識別碼從「筆記 slug」放寬為 slug 或 `view:<路徑>`；閱讀進度的 localStorage key
+  一律用未經轉換的識別碼原字串，避免筆記與資料檔撞 key。
+- 系列相關文案的量詞由「篇」改為「章」（一章可以不是文章之後，「篇」就是錯字）。
+- `GeneratedFrame` 與 `VizZoom` 支援自訂標示；預設行為與既有 AI 生成元件完全相同。
+- 新增依賴：`picomatch`（glob 比對）、`ajv`（資料驗證，同時讓資料檔能用 `$schema` 取得
+  編輯器補全）。
+
+### 修正
+
+- `series.json` 裡對不到的章節識別碼，警示訊息現在會區分「找不到筆記」「找不到資料檔」
+  與「檔案存在但沒有 plugin 認領」——三者要修的東西完全不同。
+
+---
+
 ## [0.5.1] - 2026-08-12
 
 放大檢視對**寬型元件**沒有發揮作用——這一版把紙張寬度從寫死的 880px 改為依視窗計算。

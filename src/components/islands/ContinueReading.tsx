@@ -7,7 +7,7 @@ export type ContinueSeries = {
   id: string;
   title: string;
   accent: SeriesAccent;
-  chapters: { slug: string; title: string }[];
+  chapters: { ref: string; href: string; title: string }[];
 };
 
 export default function ContinueReading({ series }: { series: ContinueSeries[] }) {
@@ -15,7 +15,7 @@ export default function ContinueReading({ series }: { series: ContinueSeries[] }
 
   if (series.length === 0) return null;
 
-  const rows = series.map((s) => ({ s, prog: seriesProgress(s.chapters.map((c) => c.slug), version > 0) }));
+  const rows = series.map((s) => ({ s, prog: seriesProgress(s.chapters.map((c) => c.ref), version > 0) }));
   const active = rows
     .filter(({ prog }) => prog.started && !prog.completed)
     .sort((a, b) => b.prog.pct - a.prog.pct)
@@ -54,7 +54,8 @@ export default function ContinueReading({ series }: { series: ContinueSeries[] }
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {list.map(({ s, prog }) => {
           const accent = ACCENT[s.accent];
-          const nextTitle = prog.nextSlug ? s.chapters.find((c) => c.slug === prog.nextSlug)?.title ?? "" : "";
+          const next = prog.nextSlug ? s.chapters.find((c) => c.ref === prog.nextSlug) : undefined;
+          const nextTitle = next?.title ?? "";
           return (
             <div key={s.id}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 7 }}>
@@ -72,7 +73,7 @@ export default function ContinueReading({ series }: { series: ContinueSeries[] }
                 <ProgressBar total={prog.total} done={prog.done} reading={prog.reading} accent={accent} height={6} />
               </div>
               <a
-                href={prog.nextSlug ? `/notes/${prog.nextSlug}` : `/series/${s.id}`}
+                href={next ? next.href : `/series/${s.id}`}
                 style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--blue-600)", textDecoration: "none" }}
               >
                 <Play size={12} />

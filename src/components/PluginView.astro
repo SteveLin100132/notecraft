@@ -1,0 +1,66 @@
+---
+// MDX 內嵌的資料檔（Task 53）。
+//
+//   <PluginView src="planning/schema.json" />
+//
+// 與獨立頁的差別在版心：內文只有 760px，寬元件在這裡會被擠壓，
+// 因此**要**包 GeneratedFrame（外框卡片 + 放大檢視）。獨立頁本來就是全寬，不包（Q22）。
+//
+// src 的基準與 plugins.json 的 files 一致（notesDir）。找不到對應資料檔、
+// 或該檔未被任何 plugin 認領 → build fail，與規格 §7.7 的其餘失敗模式一致。
+import path from "node:path";
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
+import PluginHost from "@/components/islands/PluginHost.tsx";
+import { getDataFiles, getPlugins } from "@/lib/plugins";
+
+export interface Props {
+  /** 相對 notesDir 的資料檔路徑，含副檔名 */
+  src: string;
+  caption?: string;
+}
+const { src, caption } = Astro.props;
+
+const wanted = src.trim().replace(/^\.\//, "").replace(/^\/+/, "");
+const file =
+  getDataFiles().find((f) => f.relPath === wanted) ??
+  getDataFiles().find((f) => f.routePath === wanted.replace(/\.json$/i, ""));
+
+if (!file) {
+  throw new Error(
+    `[PluginView] 找不到資料檔 "${src}"。\n` +
+      `  基準為筆記資料夾（與 plugins.json 的 files 相同）。\n` +
+      `  請確認該檔存在、且 .notecraft/plugins.json 有規則涵蓋它。`,
+  );
+}
+
+const plugin = getPlugins().get(file.pluginId);
+const isDev = import.meta.env.DEV;
+const rendererPath = plugin ? path.join(plugin.dir, "renderer.tsx") : undefined;
+---
+
+{/* data-pagefind-ignore：這塊長在 .nc-prose（筆記的 pagefind body）裡面，
+    不排除的話整張圖的文字會灌進該篇筆記的索引 —— 實測一篇 38 字的筆記
+    會因此變成 6648 字，把真正的內文淹掉。 */}
+<div data-pagefind-ignore>
+<GeneratedFrame
+  id={file.routePath}
+  caption={caption}
+  dataFile={{
+    relPath: file.relPath,
+    routePath: file.routePath,
+    pluginTitle: plugin?.manifest.title ?? file.pluginId,
+    absPath: file.absPath,
+  }}
+>
+  <PluginHost
+    client:visible
+    pluginId={file.pluginId}
+    data={file.data}
+    file={{ path: file.relPath, name: path.basename(file.relPath), updatedAt: file.updatedAt }}
+    options={file.options}
+    mode="embed"
+    rendererPath={rendererPath}
+    isDev={isDev}
+  />
+</GeneratedFrame>
+</div>

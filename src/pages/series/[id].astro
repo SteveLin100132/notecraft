@@ -5,13 +5,15 @@ import SeriesDetail from "@/components/islands/SeriesDetail.tsx";
 import type { SeriesDetailData } from "@/components/islands/SeriesDetail.tsx";
 import { getAllNotes } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
+import { getDataFiles } from "@/lib/plugins";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
   const series = await loadSeries();
+  const dataFiles = getDataFiles();
   // 與 /series 一致：零章節的系列不產頁（章節全為 private 筆記時，正式站不會有此路由）。
   return series.flatMap((s) => {
-    const chapters = getSeriesChapters(notes, s);
+    const chapters = getSeriesChapters(notes, s, dataFiles);
     if (chapters.length === 0) return [];
     const data: SeriesDetailData = {
       id: s.id,
@@ -21,11 +23,14 @@ export async function getStaticPaths() {
       accent: s.accent,
       icon: s.icon,
       chapters: chapters.map((c) => ({
-        slug: c.slug,
+        kind: c.kind,
+        ref: c.ref,
+        href: c.href,
         title: c.title,
         description: c.description,
         markersTotal: c.markersTotal,
         markersGenerated: c.markersGenerated,
+        relPath: c.relPath,
       })),
     };
     return [{ params: { id: s.id }, props: { data } }];

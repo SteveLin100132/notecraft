@@ -1,9 +1,17 @@
-import { ChevronLeft, ChevronRight, ArrowRight, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, BookOpen, Database } from "lucide-react";
 import { ACCENT, type SeriesAccent, type SeriesIconName } from "@/data/series";
 import { seriesProgress } from "@/lib/reading-progress";
 import { SeriesIcon, ProgressBar, useReadingVersion } from "./seriesShared";
 
-export type SeriesNavChapter = { slug: string; title: string };
+export type SeriesNavChapter = {
+  /** 識別碼原字串，也是閱讀進度的 key */
+  ref: string;
+  href: string;
+  title: string;
+  kind: "note" | "data";
+  /** 只有資料檔有 */
+  relPath?: string;
+};
 export type SeriesNavData = {
   id: string;
   title: string;
@@ -16,9 +24,9 @@ export type SeriesNavData = {
 
 export default function SeriesNav({ series }: { series: SeriesNavData }) {
   const accent = ACCENT[series.accent];
-  const slugs = series.chapters.map((c) => c.slug);
+  const refs = series.chapters.map((c) => c.ref);
   const version = useReadingVersion();
-  const prog = seriesProgress(slugs, version > 0);
+  const prog = seriesProgress(refs, version > 0);
   const cur = series.currentIndex;
   const prev = cur > 0 ? series.chapters[cur - 1] : null;
   const next = cur < series.chapters.length - 1 ? series.chapters[cur + 1] : null;
@@ -87,8 +95,8 @@ export default function SeriesNav({ series }: { series: SeriesNavData }) {
             const st = prog.statuses[i] ?? "not-started";
             return (
               <a
-                key={c.slug}
-                href={`/notes/${c.slug}`}
+                key={c.ref}
+                href={c.href}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -122,6 +130,11 @@ export default function SeriesNav({ series }: { series: SeriesNavData }) {
                 <span style={{ minWidth: 0, flex: 1, fontSize: 13, fontWeight: isCurrent ? 700 : 600, color: isCurrent ? "var(--blue-700)" : "var(--text-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {c.title}
                 </span>
+                {c.kind === "data" && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 700, color: "var(--orange-600)", whiteSpace: "nowrap", flex: "none" }}>
+                    <Database size={11} /> 資料檔
+                  </span>
+                )}
                 {isCurrent && (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--blue-600)", whiteSpace: "nowrap", flex: "none" }}>
                     <BookOpen size={12} /> 閱讀中的章節
@@ -136,21 +149,25 @@ export default function SeriesNav({ series }: { series: SeriesNavData }) {
       {/* 上一章 / 下一章 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {prev ? (
-          <a href={`/notes/${prev.slug}`} className="nc-card-link" style={cardStyle()}>
+          <a href={prev.href} className="nc-card-link" style={cardStyle()}>
             <span style={dirStyle()}>
               <ChevronLeft size={15} /> 上一章
+              {prev.kind === "data" && <DataMark />}
             </span>
             <span style={titleStyle()}>{prev.title}</span>
+            {prev.relPath && <span style={pathStyle()}>{prev.relPath}</span>}
           </a>
         ) : (
           <span />
         )}
         {next ? (
-          <a href={`/notes/${next.slug}`} className="nc-card-link" style={{ ...cardStyle(), textAlign: "right", alignItems: "flex-end" }}>
+          <a href={next.href} className="nc-card-link" style={{ ...cardStyle(), textAlign: "right", alignItems: "flex-end" }}>
             <span style={dirStyle()}>
+              {next.kind === "data" && <DataMark />}
               下一章 <ChevronRight size={15} />
             </span>
             <span style={titleStyle()}>{next.title}</span>
+            {next.relPath && <span style={pathStyle()}>{next.relPath}</span>}
           </a>
         ) : (
           <span />
@@ -158,6 +175,28 @@ export default function SeriesNav({ series }: { series: SeriesNavData }) {
       </div>
     </nav>
   );
+}
+
+/* 讓人在點下去之前就知道會看到圖而不是文章 —— 標題本身的處理不變。 */
+function DataMark() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--orange-600)", fontWeight: 700 }}>
+      · <Database size={12} /> 資料檔
+    </span>
+  );
+}
+
+function pathStyle(): React.CSSProperties {
+  return {
+    display: "block",
+    maxWidth: "100%",
+    fontFamily: "var(--font-mono)",
+    fontSize: 11.5,
+    color: "var(--text-muted)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  };
 }
 
 function cardStyle(): React.CSSProperties {

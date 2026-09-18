@@ -1,14 +1,21 @@
-import { Layers, Play, RotateCcw, Check, Sparkles, ChevronRight } from "lucide-react";
+import { Layers, Play, RotateCcw, Check, Sparkles, ChevronRight, Database, FileJson } from "lucide-react";
 import { ACCENT, type SeriesAccent, type SeriesIconName } from "@/data/series";
 import { seriesProgress, resetSeriesProgress, type ReadingStatus } from "@/lib/reading-progress";
 import { SeriesIcon, ReadingBadge, ProgressBar, ProgStat, truncate, useReadingVersion } from "./seriesShared";
 
 export type DetailChapter = {
-  slug: string;
+  /** 筆記或資料檔頁；兩者一視同仁，只有型別標示不同 */
+  kind: "note" | "data";
+  /** 識別碼原字串，也是閱讀進度的 key */
+  ref: string;
+  href: string;
   title: string;
   description: string;
+  /** 資料檔恆為 0 */
   markersTotal: number;
   markersGenerated: number;
+  /** 只有資料檔有 */
+  relPath?: string;
 };
 export type SeriesDetailData = {
   id: string;
@@ -26,10 +33,11 @@ function toast(msg: string, icon = "check") {
 
 export default function SeriesDetail({ series }: { series: SeriesDetailData }) {
   const accent = ACCENT[series.accent];
-  const slugs = series.chapters.map((c) => c.slug);
+  const refs = series.chapters.map((c) => c.ref);
   const version = useReadingVersion();
-  const prog = seriesProgress(slugs, version > 0);
-  const nextTitle = prog.nextSlug ? series.chapters.find((c) => c.slug === prog.nextSlug)?.title ?? "" : "";
+  const prog = seriesProgress(refs, version > 0);
+  const nextChapter = prog.nextSlug ? series.chapters.find((c) => c.ref === prog.nextSlug) : undefined;
+  const nextTitle = nextChapter?.title ?? "";
   const cta = prog.completed
     ? { label: "重新閱讀", Icon: RotateCcw }
     : prog.started
@@ -37,11 +45,12 @@ export default function SeriesDetail({ series }: { series: SeriesDetailData }) {
       : { label: "開始閱讀", Icon: Play };
 
   const openNext = () => {
-    if (prog.nextSlug) window.location.href = `/notes/${prog.nextSlug}`;
+    // 依章節種類決定去 /notes/ 還是 /view/
+    if (nextChapter) window.location.href = nextChapter.href;
   };
   const reset = () => {
     if (window.confirm("確定要重設這個系列所有章節的閱讀進度嗎？")) {
-      resetSeriesProgress(slugs);
+      resetSeriesProgress(refs);
       toast("已重設系列進度", "check");
     }
   };
@@ -168,7 +177,7 @@ export default function SeriesDetail({ series }: { series: SeriesDetailData }) {
         }}
       >
         {series.chapters.map((c, i) => (
-          <ChapterRow key={c.slug} chapter={c} index={i} status={prog.statuses[i] ?? "not-started"} accent={series.accent} />
+          <ChapterRow key={c.ref} chapter={c} index={i} status={prog.statuses[i] ?? "not-started"} accent={series.accent} />
         ))}
       </div>
     </div>
@@ -190,7 +199,7 @@ function ChapterRow({
   const done = status === "done";
   return (
     <a
-      href={`/notes/${chapter.slug}`}
+      href={chapter.href}
       className="nc-chapter-row"
       style={{
         display: "flex",
@@ -222,7 +231,39 @@ function ChapterRow({
         {done ? <Check size={17} /> : String(index + 1).padStart(2, "0")}
       </span>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--text-strong)", lineHeight: 1.4 }}>{chapter.title}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <span
+            style={{
+              fontSize: 15.5,
+              fontWeight: 700,
+              color: "var(--text-strong)",
+              lineHeight: 1.4,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {chapter.title}
+          </span>
+          {chapter.kind === "data" && (
+            <span
+              style={{
+                flex: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 8px",
+                borderRadius: "var(--radius-pill)",
+                background: "var(--orange-50)",
+                color: "var(--orange-600)",
+                fontSize: 11.5,
+                fontWeight: 700,
+              }}
+            >
+              <Database size={12} /> 資料檔
+            </span>
+          )}
+        </div>
         {chapter.description && (
           <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {chapter.description}
@@ -230,11 +271,26 @@ function ChapterRow({
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "none" }}>
-        {chapter.markersTotal > 0 && (
+        {/* 筆記在這一格放 @ai-visualize 計數；資料檔沒有那個東西，改放原始檔路徑。
+            是「換一種資訊」而不是「少一格」—— 它是正式的一章。 */}
+        {chapter.kind === "data" && chapter.relPath ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              color: "var(--text-muted)",
+            }}
+          >
+            <FileJson size={13} /> {chapter.relPath}
+          </span>
+        ) : chapter.markersTotal > 0 ? (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>
             <Sparkles size={13} /> {chapter.markersGenerated}/{chapter.markersTotal}
           </span>
-        )}
+        ) : null}
         <ReadingBadge status={status} />
         <span style={{ color: "var(--neutral-300)", display: "flex" }}>
           <ChevronRight size={18} />

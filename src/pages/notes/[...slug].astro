@@ -16,6 +16,7 @@ import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
 import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
+import { getDataFiles } from "@/lib/plugins";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -39,7 +40,7 @@ const vscodeHref = `vscode://file/${noteAbsPath.replace(/\\/g, "/").replace(/^\/
 const allNotes = await getAllNotes();
 const stats = tagStats(allNotes).map((t) => ({ name: t.name, count: t.count }));
 const seriesList = await loadSeries();
-const series = seriesOf(allNotes, note.id, seriesList);
+const series = seriesOf(allNotes, note.id, seriesList, getDataFiles());
 const seriesNavData = series
   ? {
       id: series.series.id,
@@ -47,7 +48,7 @@ const seriesNavData = series
       eyebrow: series.series.eyebrow,
       accent: series.series.accent,
       icon: series.series.icon,
-      chapters: series.chapters.map((c) => ({ slug: c.slug, title: c.title })),
+      chapters: series.chapters.map((c) => ({ ref: c.ref, href: c.href, title: c.title, kind: c.kind, relPath: c.relPath })),
       currentIndex: series.index,
     }
   : null;
