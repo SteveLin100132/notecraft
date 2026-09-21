@@ -872,7 +872,7 @@ Prototype 在這塊著墨很少，正式版的底線：
 | **P12** | 響應式三段 + 無障礙收尾 | P4–P11 | |
 | **P13** | 清理：刪舊元件、更新 CLAUDE.md／PRD／README、plugin 設計文件補三筆修訂（Q6「`/notes` 列表：進」→ 移出，見 Q14；§8.2 `meta.backTo` 升格為 app 層約定，見 Q21；§15 pagefind 一項實際已完成，見 §8.7）、`package.json` `files`、viewer 端對端實測、pre-push build | 全部 | v0.7.0 |
 
-**交付節奏（Q30 已定案）**：全程在 `feat/workbench-redesign` 單一分支上進行，依上表分 Phase 逐步 commit，**P13 完成後才併回 main**，期間正式站不受影響。每個 commit 都必須能通過 `astro build`（pre-push hook 本來就會擋）。Task 文件接續既有編號，自 **Task 59** 起，原則上一個 Phase 對應一份 `docs/tasks/task-NN-*.md`。不做新舊 layout 並存、不以旗標切換。
+**交付節奏（Q30 已定案）**：全程在 `feat/workbench-redesign` 單一分支上進行，依上表分 Phase 逐步 commit，**P13 完成後才併回 main**，期間正式站不受影響。每個 commit 都必須能通過 `npx tsc --noEmit && npx astro build`，**要自己手動跑** —— CLAUDE.md 寫的「pre-push hook 跑 `astro build`」實際上不存在（`.git/hooks` 只有 sample、也沒有 husky；展開 Task 時查證，2026-09-21 更正）。Task 文件接續既有編號，已展開為 **Task 59–75 共 17 份**（索引與依賴圖見 [tasks/README.md](tasks/README.md)）。13 個 Phase 中 P4 拆成 Task 62／63、P8 拆成 67／68、P10 拆成 70／71／72，其餘一個 Phase 對應一份。不做新舊 layout 並存、不以旗標切換。
 
 P3 刻意安排成「先換殼、內容原樣」：這是唯一一個必須全站同時切換的步驟，把它與各頁改版拆開，出問題時才分得清是殼的問題還是頁面的問題。
 

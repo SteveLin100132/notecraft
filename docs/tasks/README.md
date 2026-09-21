@@ -246,6 +246,86 @@
 > 否則是全站回歸。[Task 51](task-51-er-diagram-renderer-plugin.md) 則是唯一「已經有正確答案」的 Task——
 > 舊元件的行為就是驗收基準，任何差異都是回歸。
 
+## v1.13.0 追加功能（§8.1 Phase 4.16 待補）— Workbench 改版（notecraftapp v0.7.0）
+
+> 規格：[notecraft-workbench.md](../notecraft-workbench.md) **v0.2.0**（30 項決策已於 2026-09-21 定案，紀錄見該文件 §16）
+> 設計交付：[design_handoff_workbench](../prototype/design_handoff_workbench/)（`README.md` 是像素級規格、`prototype/wb/pt.css` 是視覺定稿、
+> `NoteCraft-Workbench-standalone.html` 可離線開啟）
+> **PRD §8.1 尚未有對應 Phase 條目** —— 待補（可用 `/bump-prd`；Phase 4.13–4.15 也還欠著）。
+
+把外殼從「248px navy 側邊欄 + 卡片式頁面」換成**三欄工作台**（Rail + 檔案樹 Sidebar + 壓縮頁首／工具列／內容），
+並新增 `/notes` 四種 view、Drawer 預覽、⌘K 指令面板、Dashboard widget grid、Plugin 管理頁、設定頁與平板／手機響應式。
+
+> **規格與設計稿不一致時，一律以規格為準。** 設計稿是單頁 React prototype，codebase 是 Astro 多頁靜態站；
+> 另有十餘處刻意偏離（Board 三欄、字數與版型庫不做、資料檔移出筆記列表、收藏保留、常駐「開啟」圖示、
+> 外掛的「渲染錯誤」「不相容」狀態不做、觸控不做拖曳…），全部記在規格 §1.3 與各節。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 59](task-59-workbench-style-foundation.md) | 樣式地基 | §7、§4.5 | `styles/workbench.css`（移植 `pt.css`）、`--wb-*` token、`Icon.astro`、`wb/Logo.astro`、`wb/ui.tsx`、`package.json` `files` |
+| [Task 60](task-60-workbench-index.md) | 工作台索引 | §5 | `lib/workbench.ts`、`pages/wb-index.json.ts`、`lib/wb-time.ts`、`GET /api/folders` 改遞迴 |
+| [Task 61](task-61-workbench-shell.md) | **三欄殼、全站換殼** | §4、§2.1 | `layouts/WorkbenchLayout.astro`、`wb/{Rail,Sidebar,Header}.astro`、`SidebarLive.tsx`、9 個頁面搬家；刪 `BaseLayout`／`Sidebar`／`PageHead` |
+| [Task 62](task-62-notes-list-toolbar-filters.md) | `/notes`：List、Toolbar、篩選參數 | §8.2、§8.2.1、§6 | `wb/NotesWorkbench.tsx`、`NoteRow.tsx`、`lib/wb-filter.ts`、`lib/wb-prefs.ts`；刪 `NotesList.tsx` |
+| [Task 63](task-63-note-drawer.md) | 筆記 Drawer | §8.2 | `wb/NoteDrawer.tsx`、`lib/prompts.ts`、`useWbIndex()` |
+| [Task 64](task-64-board-table-timeline.md) | Board／Table／Timeline | §8.2 | `wb/views/*`、HTML5 DnD、`readingMeta()` 文案 |
+| [Task 65](task-65-command-palette.md) | 指令面板 ⌘K（含全文搜尋） | §8.9 | `wb/Palette.tsx`、pagefind 延遲載入；刪 `PagefindSearch.tsx` |
+| [Task 66](task-66-dashboard-widgets.md) | Dashboard widget grid + 三 Tab | §8.1、§5.4 | `wb/DashboardWorkbench.tsx`、`pages/index.astro`；刪 `ContinueReading.tsx`、寫死的 `TODAY` |
+| [Task 67](task-67-series-rows.md) | 系列總覽與詳情改版 | §8.4 | `SeriesOverview.tsx`、`SeriesDetail.tsx` |
+| [Task 68](task-68-tags-rows.md) | 標籤頁改版 + inline 改名 | §8.5 | `TagsManager.tsx`（確認流程不動） |
+| [Task 69](task-69-note-page-header-actions.md) | 筆記頁：頁首接手標題與動作 | §8.3 | `pages/notes/[...slug].astro`、`wb/MoreMenu.tsx`；刪 `RegenerateButton.tsx` |
+| [Task 70](task-70-plugins-pages.md) | Plugin 頁與 Plugin Drawer | §8.6 | `pages/plugins/**`、`wb/PluginsWorkbench.tsx`、`PluginDrawer.tsx`；刪 `view/index.astro`、`DataFilesList.tsx` |
+| [Task 71](task-71-plugin-enable-disable.md) | Plugin 啟用／停用 | §8.6.1 | `plugins.schema.json`（`disabled`）、`lib/plugins.ts`、`lib/series.ts`、`PUT /api/plugins/:id`、Switch |
+| [Task 72](task-72-view-page-header.md) | 資料檔渲染頁換頁首 | §8.7 | `pages/view/[...path].astro`、`meta.backTo` 檢查、pagefind 標記搬家 |
+| [Task 73](task-73-settings-about-redirects.md) | 設定與關於、舊網址轉址 | §8.8、§6 | `pages/settings.astro`、`wb/SettingsView.tsx`、`astro.config.mjs` `redirects`；刪 `about.astro` |
+| [Task 74](task-74-responsive-a11y.md) | 響應式三段 + 無障礙收尾 | §9、§10 | `workbench.css`、各元件 `aria-*`、TOC 斷點 |
+| [Task 75](task-75-cleanup-docs-release.md) | 清理、文件回填、viewer 端對端、發版 | §12、§13 P13 | 刪舊元件、CLAUDE.md／PRD／plugin 規格／CHANGELOG、`npm pack --dry-run`、v0.7.0 |
+
+**順序**：59、60 是地基，可並行，先做。**61 是唯一必須全站同時切換的一步** —— 它只換殼、各頁內容原樣搬進來，
+完成後畫面會是「新殼 + 舊卡片版面」，這是預期中的中間態。
+之後建議 **65 → 62 → 63 → 64**（先做 Palette，拿掉舊的全文搜尋框時新入口已經在，沒有空窗）；
+66 依賴 63；67、68、70 只依賴 61，可與上面那條線並行；69 依賴 61+63；71、72 依賴 70；73 依賴 62+70；74、75 最後。
+
+```
+59 ─┐
+    ├─ 61 ─┬─ 65 ─ 62 ─ 63 ─┬─ 64
+60 ─┘      │                ├─ 66
+           │                └─ 69
+           ├─ 67
+           ├─ 68
+           └─ 70 ─┬─ 71
+                  ├─ 72
+                  └─ 73（另需 62）          … 74 → 75
+```
+
+> **交付節奏（規格 Q30）**：全程在 `feat/workbench-redesign` 單一分支上，依 Task 逐步 commit，**Task 75 完成後才併回 main**，
+> 期間正式站不受影響。每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`。
+> 注意：CLAUDE.md 寫的「pre-push hook 跑 `astro build`」**實際上不存在**（`.git/hooks` 只有 sample、也沒有 husky），
+> build 要自己手動跑。Task 75 會處理 CLAUDE.md 這句。
+>
+> **四個規格標為「待驗證」的項目**，各自在對應 Task 的驗收表裡，結論由 Task 75 彙整回填規格：
+> ① viewer 模式下 `entry.filePath` 是否變成一長串 `../`（Task 60）；
+> ② 移除筆記內文 h1 後，pagefind 搜尋結果的標題來源（Task 69）；
+> ③ 刪掉 `/view` 列表頁後，該網址是落到 redirect 還是被 `[...path]` rest 路由接走（Task 73）；
+> ④ `astro dev` 下改 `plugins.json` 是否即時反映 —— plugin 規格 Q19 的遺留項（Task 71）。
+>
+> **幾條貫穿整批的規則**（各 Task 都會引用，集中列一次）：
+> - **連結不可包在按鈕裡。** 列、系列項目、章節列都是「容器內並排的 `<button>`／`<a>`」，不巢狀（規格 §8.2.1）
+> - **資料夾與路徑一律來自真實檔案路徑，不是 `entry.id`。** Astro 會把 id slug 化；slug 只用於 `/notes/<slug>` 與 localStorage key
+> - **本機絕對路徑不得出現在任何輸出的 HTML／JSON。** 唯一例外是 dev-only 的 `vscode://` 連結
+> - **相對於「今天」的數字在瀏覽器算、首繪以「—」佔位**；靠 localStorage 的東西（閱讀進度、收藏、偏好）SSR 一律當作沒有
+> - **`id="nc-scroll"` 要留在新的捲動容器上**，`Toc` 與筆記頁 inline script 靠它
+> - **樣式規則不出現 hex 或裸 `rgba()`**，只引用 `--wb-*` token
+> - 驗畫面前確認 Browser pane **可見**，否則 `client:visible` 的 island 不會 hydrate
+
+> **本批最大風險**：[Task 61](task-61-workbench-shell.md) —— 捲動容器從整個右半邊變成 `.wb-body`，
+> `Toc` 的 scroll spy、`client:visible` 的觸發、`VizZoom` 的定位都可能受影響，而且它是全站同時切換、沒有漸進上線的路。
+> 其次是 [Task 72](task-72-view-page-header.md) 的 pagefind 標記：頁內 `<header>` 一移除標記就跟著消失，
+> 資料檔頁會**整頁掉出全文索引而 build 全綠**，只有實際搜尋才看得出來。
+> 再其次是 [Task 69](task-69-note-page-header-actions.md) 搬動 `DeleteNoteButton`：它「先導頁、不 await 刪除回應」的寫法是為了避開
+> Astro dev 刪檔後的 HMR 競態，看起來像可以整理的程式碼，**整理了就會閃 404**。
+> [Task 71](task-71-plugin-enable-disable.md) 則是唯一會改動 `plugins.json` 格式與 build 期解析的 Task，
+> 改完務必跑 `npm run check-plugins`。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。
