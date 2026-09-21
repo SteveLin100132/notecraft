@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteCraft 工作台 — Prototype</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%231b4f9c'/%3E%3Cpath d='M14 30h20M14 36h13' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'/%3E%3Cpath d='M24 11c1 5.6 2.6 7.2 8.2 8.2-5.6 1-7.2 2.6-8.2 8.2-1-5.6-2.6-7.2-8.2-8.2 5.6-1 7.2-2.6 8.2-8.2z' fill='%23ed9b26'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/styles.css">
+<link rel="stylesheet" href="wb/pt.css">
+<style>
+:root{--radius-xs:2px;--radius-sm:3px;--radius-md:5px;--radius-lg:8px;--radius-xl:11px;--radius-2xl:14px}
+@keyframes ncFade{from{opacity:0}to{opacity:1}}
+@keyframes ncRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes ncPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes ncGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes ncSlideIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes cvBadgeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes ncRiseUp{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#1b4f9c"/><rect x="16" y="24" width="14" height="52" rx="3" fill="#fff" opacity=".5"/><rect x="36" y="24" width="48" height="18" rx="3" fill="#fff"/><rect x="36" y="48" width="48" height="8" rx="3" fill="#ed9b26"/><rect x="36" y="62" width="32" height="8" rx="3" fill="#fff" opacity=".7"/></svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/_ds_bundle.js"></script>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="app/icons.jsx"></script>
+<script type="text/babel" src="app/data.jsx"></script>
+<script type="text/babel" src="app/dashboard.jsx"></script>
+<script type="text/babel" src="app/states.jsx"></script>
+<script type="text/babel" src="app/vizzoom.jsx"></script>
+<script type="text/babel" src="app/generated.jsx"></script>
+<script type="text/babel" src="app/canvasviewport.jsx"></script>
+<script type="text/babel" src="app/deck.jsx"></script>
+<script type="text/babel" src="app/present.jsx"></script>
+<script type="text/babel" src="app/decklib.jsx"></script>
+<script type="text/babel" src="app/noteview.jsx"></script>
+<script type="text/babel" src="app/views.jsx"></script>
+<script type="text/babel" src="app/plugins.jsx"></script>
+<script type="text/babel" src="app/series.jsx"></script>
+<script type="text/babel" src="app/tags.jsx"></script>
+<script type="text/babel" src="app/modal.jsx"></script>
+<script type="text/babel" src="wb/pt-data.jsx"></script>
+<script type="text/babel" src="wb/pt-shell.jsx"></script>
+<script type="text/babel" src="wb/pt-views.jsx"></script>
+<script type="text/babel" src="wb/pt-dash.jsx"></script>
+<script type="text/babel" src="wb/pt-views2.jsx"></script>
+<script type="text/babel" src="wb/pt-plugins.jsx"></script>
+<script type="text/babel" src="wb/pt-app.jsx"></script>
+</body>
+</html>
