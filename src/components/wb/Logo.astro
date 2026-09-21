@@ -1,0 +1,16 @@
+---
+// NoteCraft 標誌：藍底圓角方形 + 金色四芒星 + 兩條白線（prototype 的 NcLogo）。
+// Rail 用 28、平板／手機的 Sidebar 頭用 30。填色一律走 token。
+export interface Props {
+  size?: number;
+}
+const { size = 28 } = Astro.props;
+---
+<svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <rect x="1" y="1" width="46" height="46" rx="9" fill="var(--wb-blue)" />
+  <path d="M14 30h20M14 36h13" stroke="var(--wb-on)" stroke-width="3.2" stroke-linecap="round" />
+  <path
+    d="M24 11c1 5.6 2.6 7.2 8.2 8.2-5.6 1-7.2 2.6-8.2 8.2-1-5.6-2.6-7.2-8.2-8.2 5.6-1 7.2-2.6 8.2-8.2z"
+    fill="var(--wb-gold)"
+  />
+</svg>

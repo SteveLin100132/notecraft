@@ -34,9 +34,11 @@
   "files": [
     "bin/",
     "plugins/",
+    "public/favicon.svg",
     "src/components/*.astro",
     "src/components/islands/",
     "src/components/deck/",
+    "src/components/wb/",
     "src/content/config.ts",
     "src/data/series.ts",
     "src/dev-api/",

@@ -1,0 +1,61 @@
+---
+// 工作台樣式對照頁（僅 dev）。getStaticPaths 在正式 build 回傳空陣列 → dist/ 不會有這一頁。
+// 用途：與 docs/prototype/design_handoff_workbench/NoteCraft-Workbench-standalone.html 並排比對。
+import "@/styles/global.css";
+import "@/styles/workbench.css";
+import Icon from "@/components/Icon.astro";
+import Logo from "@/components/wb/Logo.astro";
+import StyleSamples from "@/components/wb/StyleSamples";
+
+export function getStaticPaths() {
+  return import.meta.env.DEV ? [{ params: { wb: "wb" } }] : [];
+}
+---
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Workbench 樣式頁</title>
+  </head>
+  <body>
+    <div class="wb-app" style="height:auto;min-height:100vh;overflow:visible">
+      <div class="wb-rail">
+        <div class="wb-rail-mark"><Logo size={28} /></div>
+        <div class="wb-rail-group">
+          <a class="wb-rail-btn on" href="#" title="儀表板"><Icon name="home" size={17} stroke={1.7} /></a>
+          <button class="wb-rail-btn" title="搜尋"><Icon name="search" size={17} stroke={1.7} /></button>
+          <a class="wb-rail-btn" href="#" title="AI"><Icon name="sparkle" size={17} stroke={1.7} /><span class="wb-rail-dot"></span></a>
+          <a class="wb-rail-btn" href="#" title="Plugin"><Icon name="plug" size={17} stroke={1.7} /></a>
+          <a class="wb-rail-btn" href="#" title="設定"><Icon name="settings" size={17} stroke={1.7} /></a>
+        </div>
+      </div>
+      <div class="wb-main" style="overflow:visible">
+        <div class="wb-hd">
+          <div class="wb-hd-top">
+            <div style="min-width:0">
+              <div class="wb-crumb"><a href="/">NoteCraft</a>  /  <span>dev</span>  /  <span>樣式頁</span></div>
+              <div class="wb-hd-title-row">
+                <a class="wb-dw-x" href="#" title="返回"><Icon name="arrowLeft" size={15} stroke={1.7} /></a>
+                <h1 class="wb-hd-title">Workbench 樣式頁</h1>
+                <span class="wb-pill muted">僅 dev</span>
+              </div>
+            </div>
+            <div class="wb-hd-actions">
+              <button class="wb-btn-ghost"><Icon name="presentation" size={13} stroke={1.7} /> ghost</button>
+              <button class="wb-btn-solid"><Icon name="notes" size={13} stroke={1.7} /> solid</button>
+              <button class="wb-btn-gold"><Icon name="plus" size={13} stroke={1.7} /> gold</button>
+            </div>
+          </div>
+          <div class="wb-tabs">
+            <button class="wb-tab on">List</button><button class="wb-tab">Board</button>
+            <button class="wb-tab">Table</button><button class="wb-tab">Timeline</button>
+          </div>
+        </div>
+        <StyleSamples client:load />
+      </div>
+    </div>
+  </body>
+</html>
