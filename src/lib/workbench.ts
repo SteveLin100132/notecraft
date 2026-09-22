@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getAllNotes, parseMarkers, tagStats, type Note } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
-import { getDataFiles } from "@/lib/plugins";
+import { getDataFiles, getPlugins, getPluginsConfig } from "@/lib/plugins";
 import { hasDeck } from "@/lib/decks";
 import type {
   WbChapter,
@@ -21,6 +21,8 @@ import type {
   WbIndex,
   WbNoteRow,
   WbNoteSeriesRef,
+  WbPlugin,
+  WbPluginAssetRole,
   WbSeries,
 } from "@/lib/wb-types";
 
@@ -117,6 +119,91 @@ function buildFolderTree(rows: WbNoteRow[]): WbFolderNode[] {
   return root.children;
 }
 
+/** app 版本：讀 package.json（astro 的 cwd 就是 app 根，viewer 亦然）。 */
+function appVersion(): string {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf-8")) as { version?: string };
+    return typeof pkg.version === "string" ? pkg.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function assetRole(rel: string, manifest: { dataSchema?: string; example?: string }): WbPluginAssetRole {
+  if (rel === "notecraft-plugin.json") return "manifest";
+  if (rel === "renderer.tsx") return "renderer";
+  if (manifest.dataSchema && rel === manifest.dataSchema.replace(/^\.\//, "")) return "data schema";
+  if (manifest.example && rel === manifest.example.replace(/^\.\//, "")) return "範例資料";
+  if (/^readme(\.md)?$/i.test(rel)) return "說明";
+  return "";
+}
+
+function listAssets(dir: string): string[] {
+  const out: string[] = [];
+  const walk = (d: string, prefix: string) => {
+    let ents: fs.Dirent[];
+    try {
+      ents = fs.readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (e.name.startsWith(".") || e.name === "node_modules") continue;
+      const rel = prefix ? `${prefix}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(path.join(d, e.name), rel);
+      else if (e.isFile()) out.push(rel);
+    }
+  };
+  walk(dir, "");
+  return out;
+}
+
+/** 已安裝外掛的摘要（規格 §8.6）。全是 build 期已知；「不相容」「渲染錯誤」都不做（Q23、Q24）。 */
+function buildPlugins(): WbPlugin[] {
+  const config = getPluginsConfig();
+  const files = getDataFiles();
+  const disabled = new Set(config?.disabled ?? []);
+  const out: WbPlugin[] = [];
+  for (const rec of getPlugins().values()) {
+    const m = rec.manifest;
+    const builtin = rec.dir.startsWith(path.resolve(process.cwd(), "plugins") + path.sep);
+    let source: WbPlugin["source"] = { kind: builtin ? "builtin" : "installed" };
+    if (!builtin) {
+      try {
+        const info = JSON.parse(fs.readFileSync(path.join(rec.dir, ".installed.json"), "utf-8")) as Record<string, unknown>;
+        source = {
+          kind: "installed",
+          ...(typeof info.origin === "string" ? { origin: info.origin } : {}),
+          ...(typeof info.commit === "string" ? { commit: info.commit.slice(0, 7) } : {}),
+        };
+      } catch {
+        /* 手動複製進來的 plugin 沒有這個檔 */
+      }
+    }
+    out.push({
+      id: rec.id,
+      title: m.title,
+      version: m.version,
+      author: m.author ?? "",
+      description: m.description,
+      homepage: m.homepage ?? "",
+      engines: m.engines?.notecraftapp ?? "",
+      dataSchema: m.dataSchema ?? "",
+      example: m.example ?? "",
+      source,
+      dir: builtin ? `plugins/${rec.id}/` : `.notecraft/plugins/${rec.id}/`,
+      mappings: (config?.plugins ?? [])
+        .filter((x) => x.plugin === rec.id)
+        .map((x) => ({ files: x.files, ...(x.exclude?.length ? { exclude: x.exclude } : {}), ...(x.options ? { options: x.options } : {}) })),
+      matched: files.filter((f) => f.pluginId === rec.id).map((f) => f.routePath),
+      inactiveMatches: [],
+      assets: listAssets(rec.dir).map((rel) => ({ path: rel, role: assetRole(rel, m) })),
+      enabled: !disabled.has(rec.id),
+    });
+  }
+  return out.sort((a, b) => a.id.localeCompare(b.id));
+}
+
 async function build(): Promise<WbIndex> {
   const notes = await getAllNotes();
   const seriesList = await loadSeries();
@@ -208,6 +295,9 @@ async function build(): Promise<WbIndex> {
     series,
     tags: tagStats(notes),
     dataFiles,
+    plugins: buildPlugins(),
+    pluginSystem: getPluginsConfig() !== null,
+    appVersion: appVersion(),
     pending: { markers: pendingMarkers, notes: pendingNotes },
     workspaceLabel: workspaceLabel(),
   };

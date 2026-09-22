@@ -418,6 +418,13 @@ export function getDataFile(routePath: string): ResolvedDataFile | undefined {
   return resolve().files.find((f) => f.routePath === routePath);
 }
 
+let configCache: PluginsConfig | null | undefined;
+/** 已驗證的 plugins.json 內容；沒有設定檔時 null。供 /plugins 頁顯示映射規則與 options。 */
+export function getPluginsConfig(): PluginsConfig | null {
+  if (configCache === undefined) configCache = readConfig();
+  return configCache;
+}
+
 /** 實際被用到的 plugin（供清單頁的篩選列決定要不要出現）。 */
 export function getUsedPlugins(): PluginRecord[] {
   const ids = new Set(resolve().files.map((f) => f.pluginId));

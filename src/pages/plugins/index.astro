@@ -1,0 +1,19 @@
+---
+// /plugins：資料檔（依資料夾分組）與已安裝外掛。整個主區是同一個 island。
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
+import PluginsWorkbench from "@/components/wb/PluginsWorkbench.tsx";
+import { getWorkbenchIndex } from "@/lib/workbench";
+
+const isDev = import.meta.env.DEV;
+const index = await getWorkbenchIndex();
+---
+<WorkbenchLayout title="Plugin 資料檔" rail="plugins" description="由 plugin 渲染的結構化資料檔" bare>
+  <PluginsWorkbench
+    client:load
+    files={index.dataFiles}
+    plugins={index.plugins}
+    enabledSystem={index.pluginSystem}
+    appVersion={index.appVersion}
+    isDev={isDev}
+  />
+</WorkbenchLayout>

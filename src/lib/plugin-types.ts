@@ -28,6 +28,8 @@ export interface PluginMapping {
 /** <專案根>/.notecraft/plugins.json 的形狀。 */
 export interface PluginsConfig {
   $schema?: string;
+  /** 已停用的 plugin id；省略或空陣列 = 全部啟用（規格 §8.6.1，Task 71 實作語意）。 */
+  disabled?: string[];
   /** 由上而下比對，第一條命中的勝（Q8）。 */
   plugins: PluginMapping[];
 }

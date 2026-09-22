@@ -86,6 +86,38 @@ export interface WbDataFile {
   updatedAt: string;
 }
 
+export interface WbPluginMapping {
+  files: string[];
+  exclude?: string[];
+  options?: Record<string, unknown>;
+}
+
+export type WbPluginAssetRole = "manifest" | "renderer" | "data schema" | "範例資料" | "說明" | "";
+
+export interface WbPlugin {
+  id: string;
+  title: string;
+  version: string;
+  author: string;
+  description: string;
+  homepage: string;
+  /** 原字串，app 不做相容性判斷（Q24） */
+  engines: string;
+  dataSchema: string;
+  example: string;
+  /** 顯示用來源：內建（官方 store）／已安裝（含來源網址與 commit） */
+  source: { kind: "builtin" | "installed"; origin?: string; commit?: string };
+  /** 顯示用的資料夾路徑（相對專案根），不含本機絕對路徑 */
+  dir: string;
+  mappings: WbPluginMapping[];
+  /** 命中的資料檔（routePath） */
+  matched: string[];
+  /** 已停用時「若啟用會命中」的檔（Task 71）；啟用中恆為 [] */
+  inactiveMatches: string[];
+  assets: { path: string; role: WbPluginAssetRole }[];
+  enabled: boolean;
+}
+
 export interface WbTagStat {
   name: string;
   count: number;
@@ -100,6 +132,11 @@ export interface WbIndex {
   series: WbSeries[];
   tags: WbTagStat[];
   dataFiles: WbDataFile[];
+  plugins: WbPlugin[];
+  /** 沒有 plugins.json 時 false：/plugins 顯示空狀態 */
+  pluginSystem: boolean;
+  /** package.json 的 version */
+  appVersion: string;
   pending: { markers: number; notes: number };
   /** 顯示用的工作區名稱；不含本機絕對路徑、不含 ../。 */
   workspaceLabel: string;

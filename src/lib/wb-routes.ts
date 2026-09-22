@@ -15,13 +15,11 @@ export const ROUTES = {
   aiQueue: "/notes?pending=1",
   series: "/series",
   tags: "/tags",
-  /** Task 70 之前暫時指向舊的資料檔列表頁 */
-  plugins: "/view",
+  plugins: "/plugins",
   /** Task 73 之前暫時指向舊的關於頁 */
   settings: "/about",
 } as const;
 
-export function dataFolderHref(_dir: string): string {
-  // Task 70 之前還沒有 /plugins/folder/*，先一律回到資料檔列表
-  return ROUTES.plugins;
+export function dataFolderHref(dir: string): string {
+  return dir === "" ? `/plugins/folder/${DATA_ROOT_SEGMENT}` : `/plugins/folder/${dir.split("/").map(encodeURIComponent).join("/")}`;
 }

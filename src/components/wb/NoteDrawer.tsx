@@ -1,9 +1,9 @@
 // 筆記 Drawer（規格 §8.2；README §5.2）。右側 480px 預覽，選取不進網址、換頁即關。
 // 這裡**不放**閱讀狀態控制（Q26）、不放「筆記狀態」pill（Q7）、沒有字數（Q9）。
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileText } from "lucide-react";
+import DrawerShell from "./DrawerShell";
 import type { WbNoteRow, WbSeries } from "@/lib/wb-types";
-import { pushEscape } from "@/lib/wb-escape";
 import { daysAgoLabel, ymd } from "@/lib/wb-time";
 import { AiPill, SeriesPill } from "./ui";
 import { CopyPromptAction, DeckAction, FavoriteIcon } from "./actions";
@@ -23,46 +23,14 @@ export default function NoteDrawer({
   isDev?: boolean;
   onClose?: () => void;
 }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
   const [ago, setAgo] = useState<string | null>(null); // 相對量在瀏覽器算；SSR 不輸出
 
   useEffect(() => {
     setAgo(daysAgoLabel(row.updatedAt));
   }, [row.updatedAt]);
 
-  // 開啟時焦點移到關閉鈕；Escape 走共用堆疊；Tab 在 Drawer 內循環
-  useEffect(() => {
-    const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    closeRef.current?.focus();
-    const pop = pushEscape(onClose);
-    return () => {
-      pop();
-      prev?.focus();
-    };
-    // 只在掛載／卸載時處理焦點；換一列（row 變）時 Drawer 不重掛
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const pendingIds = useMemo(() => row.markers.filter((m) => m.status !== "generated").map((m) => m.id), [row.markers]);
   const chapters = series?.chapters ?? [];
-
-  const onTrapTab = (e: React.KeyboardEvent) => {
-    if (e.key !== "Tab" || !panelRef.current) return;
-    const f = Array.from(
-      panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'),
-    );
-    if (f.length === 0) return;
-    const first = f[0];
-    const last = f[f.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
 
   const meta: [string, React.ReactNode][] = [
     ["路徑", row.path],
@@ -73,25 +41,8 @@ export default function NoteDrawer({
   ];
 
   return (
-    <>
-      <button type="button" className="wb-scrim" onClick={onClose} aria-label="關閉預覽" tabIndex={-1} />
-      <aside
-        className="wb-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="wb-dw-title"
-        ref={panelRef}
-        onKeyDown={onTrapTab}
-      >
-        <div className="wb-dw-h">
-          <span className="wb-crumb" title={`${workspaceLabel}/${row.path}`}>
-            {workspaceLabel}/{row.path}
-          </span>
-          <button type="button" className="wb-dw-x" onClick={onClose} aria-label="關閉" ref={closeRef}>
-            <X size={14} strokeWidth={1.7} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="wb-dw-body">
+    <DrawerShell crumb={`${workspaceLabel}/${row.path}`} labelledBy="wb-dw-title" onClose={onClose}>
+      <>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
             <h2 className="wb-dw-t" id="wb-dw-title" style={{ flex: 1, minWidth: 0 }}>
               {row.title}
@@ -194,8 +145,7 @@ export default function NoteDrawer({
               </div>
             </>
           ) : null}
-        </div>
-      </aside>
-    </>
+      </>
+    </DrawerShell>
   );
 }
