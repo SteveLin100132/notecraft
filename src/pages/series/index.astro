@@ -25,7 +25,7 @@ const cards: SeriesCardData[] = index.series
   description="把相關筆記串成有順序的閱讀路徑"
   crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列" }]}
   pills={[{ label: `${cards.length} 個系列`, tone: "muted" }]}
-  bare
+  bareBody
 >
   <SeriesOverview client:load series={cards} />
 </WorkbenchLayout>

@@ -1,19 +1,11 @@
 import { useState } from "react";
-import { Hash, Edit3, Trash2, ArrowRight, Layers } from "lucide-react";
+import { Edit3, Trash2, ArrowRight, Layers, Search, Tag } from "lucide-react";
+import { GroupHeader, Ic, MiniButton, Progress, SearchBox, Seg, StatStrip } from "@/components/wb/ui";
+import { ymd } from "@/lib/wb-time";
 
 export type TagRow = { name: string; count: number; lastUsed: string };
 
-type Props = { initial: TagRow[]; devMode: boolean };
-
-function daysAgo(s: string, today = "2026-06-12") {
-  const ms = new Date(today + "T00:00:00").getTime() - new Date(s + "T00:00:00").getTime();
-  const d = Math.round(ms / 86400000);
-  if (d <= 0) return "今天";
-  if (d === 1) return "昨天";
-  if (d < 7) return `${d} 天前`;
-  if (d < 30) return `${Math.floor(d / 7)} 週前`;
-  return `${Math.floor(d / 30)} 個月前`;
-}
+type Props = { initial: TagRow[]; devMode: boolean; noteCount?: number };
 
 function toast(msg: string, icon = "tag") {
   window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg, icon } }));
@@ -25,8 +17,9 @@ const SORTS: Array<{ k: "count" | "recent" | "alpha"; label: string }> = [
   { k: "alpha", label: "字母序" },
 ];
 
-export default function TagsManager({ initial, devMode }: Props) {
+export default function TagsManager({ initial, devMode, noteCount = 0 }: Props) {
   const [tags, setTags] = useState<TagRow[]>(initial);
+  const [q, setQ] = useState("");
   const [sort, setSort] = useState<"count" | "recent" | "alpha">("count");
   const [editing, setEditing] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
@@ -38,6 +31,9 @@ export default function TagsManager({ initial, devMode }: Props) {
   else if (sort === "recent") stats.sort((a, b) => b.lastUsed.localeCompare(a.lastUsed));
   else stats.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
   const max = Math.max(...stats.map((s) => s.count), 1);
+  const used = tags.reduce((a, t) => a + t.count, 0);
+  const ql = q.trim().toLowerCase();
+  if (ql) stats = stats.filter((t) => t.name.toLowerCase().includes(ql));
 
   const startEdit = (name: string) => {
     setEditing(name);
@@ -104,146 +100,64 @@ export default function TagsManager({ initial, devMode }: Props) {
   };
 
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{stats.length} 個標籤</span>
-        <div style={{ display: "flex", gap: 4, padding: 4, background: "var(--neutral-100)", borderRadius: 999, marginLeft: "auto" }}>
-          {SORTS.map((s) => (
-            <button
-              key={s.k}
-              onClick={() => setSort(s.k)}
-              style={{
-                height: 34,
-                padding: "0 14px",
-                border: "none",
-                borderRadius: 999,
-                cursor: "pointer",
-                fontFamily: "var(--font-sans)",
-                fontSize: 13,
-                fontWeight: 700,
-                background: sort === s.k ? "#fff" : "transparent",
-                color: sort === s.k ? "var(--blue-700)" : "var(--text-muted)",
-                boxShadow: sort === s.k ? "var(--shadow-xs)" : "none",
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
+    <>
+      <div className="wb-tb">
+        <Seg label="排序" value={sort} options={SORTS.map((x) => ({ value: x.k, label: x.label }))} onChange={setSort} />
+        <div className="wb-tb-right">
+          <SearchBox value={q} onChange={setQ} icon={Search} placeholder="搜尋標籤…" />
+          <span className="wb-count tnum">{stats.length} 個</span>
         </div>
       </div>
-
-      <div
-        style={{
-          padding: 0,
-          background: "var(--surface-card)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "var(--radius-lg)",
-          overflow: "visible",
-        }}
-      >
-        {stats.map((s, i) => {
+      <div id="nc-scroll" className="wb-body flush">
+        <StatStrip
+          items={[
+            { label: "標籤", value: tags.length },
+            { label: "標記次數", value: used },
+            { label: "平均每篇", value: (used / Math.max(noteCount, 1)).toFixed(1) },
+          ]}
+        />
+        <GroupHeader name="全部標籤" count={stats.length} icon={Tag} gc="wb-gc-ink3" stats="點一列以該標籤篩選筆記" />
+        {stats.length === 0 ? <div className="wb-empty">沒有符合條件的標籤。</div> : null}
+        {stats.map((s) => {
           const isEdit = editing === s.name;
           return (
-            <div
-              key={s.name}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-                padding: "14px 20px",
-                borderTop: i === 0 ? "none" : "1px solid var(--neutral-100)",
-              }}
-            >
-              <div style={{ width: 220, flex: "none" }}>
-                {isEdit ? (
+            // 列是容器：名稱區是連結、mini button 是並排的兄弟（規格 §8.2.1）
+            <div key={s.name} className="wb-row">
+              {isEdit ? (
+                <>
+                  <Ic icon={Tag} size={13} color="var(--wb-ink-3)" />
                   <input
+                    className="wb-inline"
                     autoFocus
                     value={editVal}
+                    aria-label="新的標籤名稱"
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setEditVal(e.target.value)}
                     onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing) return;
                       if (e.key === "Enter") submitEdit(s.name);
                       if (e.key === "Escape") setEditing(null);
                     }}
                     onBlur={() => submitEdit(s.name)}
-                    style={{
-                      width: "100%",
-                      height: 34,
-                      padding: "0 12px",
-                      border: "1.5px solid var(--blue-500)",
-                      borderRadius: "var(--radius-md)",
-                      fontFamily: "var(--font-sans)",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "var(--text-strong)",
-                      outline: "none",
-                      boxShadow: "0 0 0 3px color-mix(in srgb, var(--sky-500) 22%, transparent)",
-                    }}
                   />
-                ) : (
-                  <a
-                    href={`/notes?tag=${encodeURIComponent(s.name)}`}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 7,
-                      textDecoration: "none",
-                      color: "inherit",
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 30,
-                        height: 30,
-                        borderRadius: 8,
-                        background: "var(--orange-50)",
-                        color: "var(--orange-500)",
-                        flex: "none",
-                      }}
-                    >
-                      <Hash size={16} />
-                    </span>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{s.name}</span>
-                  </a>
-                )}
-              </div>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                <span
-                  style={{
-                    flex: 1,
-                    height: 8,
-                    borderRadius: 999,
-                    background: "var(--neutral-100)",
-                    overflow: "hidden",
-                    maxWidth: 220,
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "block",
-                      height: "100%",
-                      width: `${(s.count / max) * 100}%`,
-                      background: "var(--blue-500)",
-                      borderRadius: 999,
-                    }}
-                  />
-                </span>
-                <span style={{ fontSize: 13, color: "var(--text-body)", fontWeight: 700, width: 52 }}>{s.count} 篇</span>
-              </div>
-              <span style={{ fontSize: 12.5, color: "var(--text-muted)", width: 96, flex: "none", textAlign: "right" }}>
-                最近 {daysAgo(s.lastUsed)}
-              </span>
+                  <span className="wb-row-p" />
+                </>
+              ) : (
+                <a className="wb-row-main" href={`/notes?tag=${encodeURIComponent(s.name)}`}>
+                  <Ic icon={Tag} size={13} color="var(--wb-ink-3)" />
+                  <span className="wb-row-t">{s.name}</span>
+                  <span className="wb-row-p">最後使用 {ymd(s.lastUsed)}</span>
+                </a>
+              )}
+              <Progress pct={(s.count / max) * 100} gc="wb-gc-blue-l" />
+              <span className="wb-row-d tnum">{s.count} 篇</span>
               {devMode && (
-                <div style={{ display: "flex", gap: 4, flex: "none", marginLeft: 8 }}>
-                  <IconBtn label="重新命名" onClick={() => startEdit(s.name)}>
-                    <Edit3 size={17} />
-                  </IconBtn>
-                  <IconBtn label="刪除" danger onClick={() => setPendingDelete({ name: s.name, affected: s.count })}>
-                    <Trash2 size={17} />
-                  </IconBtn>
-                </div>
+                <>
+                  <MiniButton onClick={() => startEdit(s.name)}>重新命名</MiniButton>
+                  <MiniButton danger onClick={() => setPendingDelete({ name: s.name, affected: s.count })}>
+                    刪除
+                  </MiniButton>
+                </>
               )}
             </div>
           );
@@ -298,35 +212,7 @@ export default function TagsManager({ initial, devMode }: Props) {
           <strong style={{ color: "var(--danger-500)" }}>{pendingDelete.name}</strong>」。此操作無法復原。
         </ConfirmDialog>
       )}
-    </div>
-  );
-}
-
-function IconBtn({ children, danger, onClick, label }: { children: React.ReactNode; danger?: boolean; onClick: () => void; label: string }) {
-  const [h, setH] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 34,
-        height: 34,
-        border: "none",
-        borderRadius: 9,
-        cursor: "pointer",
-        background: h ? (danger ? "var(--danger-50)" : "var(--blue-50)") : "transparent",
-        color: h ? (danger ? "var(--danger-500)" : "var(--blue-700)") : "var(--text-muted)",
-        transition: "all 130ms",
-      }}
-    >
-      {children}
-    </button>
+    </>
   );
 }
 

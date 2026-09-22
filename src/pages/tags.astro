@@ -1,24 +1,17 @@
 ---
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagsManager from "@/components/islands/TagsManager.tsx";
-import { getAllNotes, tagStats } from "@/lib/notes";
+import { getWorkbenchIndex } from "@/lib/workbench";
 
 const isDev = import.meta.env.DEV;
-const notes = await getAllNotes();
-const stats = tagStats(notes);
+const index = await getWorkbenchIndex();
 ---
 <WorkbenchLayout
   title="標籤"
   description="依標籤瀏覽筆記"
   crumbs={[{ label: "NoteCraft", href: "/" }, { label: "標籤" }]}
-  pills={[{ label: `${stats.length} 個標籤`, tone: "muted" }]}
+  pills={[{ label: `${index.tags.length} 個標籤`, tone: "muted" }]}
+  bareBody
 >
-  <div slot="toolbar" class="wb-tb">
-    <span class="wb-tb-lbl">{isDev
-      ? "瀏覽、重新命名或刪除標籤 — 寫入動作僅 dev 環境可用。"
-      : "依標籤瀏覽筆記，點擊任一標籤進入過濾後的列表。"}</span>
-  </div>
-  <div class="wb-host legacy">
-  <TagsManager client:load initial={stats} devMode={isDev} />
-  </div>
+  <TagsManager client:load initial={index.tags} devMode={isDev} noteCount={index.notes.length} />
 </WorkbenchLayout>

@@ -33,6 +33,8 @@ export interface Props {
   flush?: boolean;
   /** 頁首、工具列、Body 由頁內 island 自己渲染 */
   bare?: boolean;
+  /** 頁首由 layout 靜態畫，工具列與 Body（含 #nc-scroll）由 island 輸出 */
+  bareBody?: boolean;
   /** 目前頁面所屬的資料夾路徑（筆記頁）：Sidebar 會展開它的祖先鏈並標為目前項目 */
   folderPath?: string;
   clampTwo?: boolean;
@@ -49,6 +51,7 @@ const {
   tabs = [],
   flush = false,
   bare = false,
+  bareBody = false,
   folderPath = "",
   clampTwo = false,
   pagefindTitle = false,
@@ -117,10 +120,16 @@ const index = await getWorkbenchIndex();
               <slot name="pills" slot="pills" />
               <slot name="actions" slot="actions" />
             </Header>
-            <slot name="toolbar" />
-            <div id="nc-scroll" class:list={["wb-body", { flush }]}>
+            {bareBody ? (
               <slot />
-            </div>
+            ) : (
+              <>
+                <slot name="toolbar" />
+                <div id="nc-scroll" class:list={["wb-body", { flush }]}>
+                  <slot />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
