@@ -246,7 +246,7 @@
 > 否則是全站回歸。[Task 51](task-51-er-diagram-renderer-plugin.md) 則是唯一「已經有正確答案」的 Task——
 > 舊元件的行為就是驗收基準，任何差異都是回歸。
 
-## v1.13.0 追加功能（§8.1 Phase 4.16）— Workbench 改版（notecraftapp v0.7.0）
+## v1.13.0 追加功能（§8.1 Phase 4.16）— Workbench 改版（notecraftapp v1.0.0）
 
 > **已完成（2026-09-22）**：Task 59–75 全部實作並逐 Task commit 於 `feat/workbench-redesign`。四個待驗證項的結論回填於規格 §17；各 Task 檔末有「實作記錄」。
 > 完成摘要：殼全換、`/notes` 四種 view + Drawer、`⌘K`、Dashboard widget grid、`/plugins`（含啟用／停用）、`/settings`、舊網址轉址、三段響應式與無障礙；刪除 8 個舊 island／元件。偏離原計畫的三處：`bare`／`bareBody` 兩種 layout 模式取代 `noHeader`；TOC 斷點改 container query；預設與 muted pill 文字色為對比而微調。
@@ -281,7 +281,7 @@
 | [Task 72](task-72-view-page-header.md) | 資料檔渲染頁換頁首 | §8.7 | `pages/view/[...path].astro`、`meta.backTo` 檢查、pagefind 標記搬家 |
 | [Task 73](task-73-settings-about-redirects.md) | 設定與關於、舊網址轉址 | §8.8、§6 | `pages/settings.astro`、`wb/SettingsView.tsx`、`astro.config.mjs` `redirects`；刪 `about.astro` |
 | [Task 74](task-74-responsive-a11y.md) | 響應式三段 + 無障礙收尾 | §9、§10 | `workbench.css`、各元件 `aria-*`、TOC 斷點 |
-| [Task 75](task-75-cleanup-docs-release.md) | 清理、文件回填、viewer 端對端、發版 | §12、§13 P13 | 刪舊元件、CLAUDE.md／PRD／plugin 規格／CHANGELOG、`npm pack --dry-run`、v0.7.0 |
+| [Task 75](task-75-cleanup-docs-release.md) | 清理、文件回填、viewer 端對端、發版 | §12、§13 P13 | 刪舊元件、CLAUDE.md／PRD／plugin 規格／CHANGELOG、`npm pack --dry-run`、v1.0.0 |
 
 **順序**：59、60 是地基，可並行，先做。**61 是唯一必須全站同時切換的一步** —— 它只換殼、各頁內容原樣搬進來，
 完成後畫面會是「新殼 + 舊卡片版面」，這是預期中的中間態。

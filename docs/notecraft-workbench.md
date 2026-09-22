@@ -4,7 +4,7 @@ Project Name: NoteCraft Workbench
 文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件）
-文件狀態: 已實作（notecraftapp v0.7.0，Task 59–75，2026-09-22）—— §15 的 30 題已於 2026-09-21 逐題確認（紀錄見 §16）；實作後回填見 §17
+文件狀態: 已實作（notecraftapp v1.0.0，Task 59–75，2026-09-22）—— §15 的 30 題已於 2026-09-21 逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-09-21
 更新日期: 2026-09-22
@@ -291,7 +291,7 @@ export async function getWorkbenchIndex(): Promise<WbIndex>   // 模組層快取
 
 - 專案根 = `NOTECRAFT_USER_CWD`，沒有則 `process.cwd()`；notesDir = `NOTECRAFT_NOTES_DIR`，沒有則 `src/content/notes`
 - notesDir 不在專案根底下時（相對路徑以 `..` 開頭），`workspaceLabel` 退回只顯示 notesDir 的資料夾名，不輸出 `../`
-- `WbNoteRow.path` = `path.relative(notesDir, path.resolve(process.cwd(), entry.filePath))`，統一成正斜線。**不直接顯示 `entry.filePath`**：它是相對於 app 根目錄的路徑，viewer 模式下 app 位於 `~/.notecraft/app-<版本>/`，**實測確為一長串 `../`**（例：`../../../../../private/tmp/…/docs/plain.md`，Task 60 驗證）；舊筆記頁頁尾直接輸出它就會洩漏目錄結構，v0.7.0 起改顯示 `path`
+- `WbNoteRow.path` = `path.relative(notesDir, path.resolve(process.cwd(), entry.filePath))`，統一成正斜線。**不直接顯示 `entry.filePath`**：它是相對於 app 根目錄的路徑，viewer 模式下 app 位於 `~/.notecraft/app-<版本>/`，**實測確為一長串 `../`**（例：`../../../../../private/tmp/…/docs/plain.md`，Task 60 驗證）；舊筆記頁頁尾直接輸出它就會洩漏目錄結構，v1.0.0 起改顯示 `path`
 - **也不能用 entry id 反推路徑**：Astro glob loader 預設會把 id slug 化（轉小寫、空白變連字號），`My Notes/ER Diagram.md` 的 id 是 `my-notes/er-diagram`。主專案的檔名本來就是 slug 形式所以看不出差別，viewer 使用者的資料夾就會對不上。**§5.2 的資料夾樹同樣要從真實相對路徑切段**，顯示真實的資料夾名；`?folder=` 的值也用真實路徑。slug（entry id）只用於 `/notes/<slug>` 網址與 localStorage key
 
 各處顯示什麼：
@@ -850,7 +850,7 @@ Prototype 在這塊著墨很少，正式版的底線：
 | 筆記量 | 上千篇時 List 不做虛擬捲動會卡。首版先不做，但 row 要保持輕量（不在每列掛 island） |
 | 工作區名稱與路徑 | 一律相對路徑；viewer 顯示「專案資料夾名／相對 notesDir」（Q25 已定案，§5.2.2） |
 | `serve` 模式 | 是 build 產物（`import.meta.env.DEV` 為 false），dev-only UI 一律隱藏，行為與現況相同 |
-| 版號 | 暫定 **v0.7.0**（外殼全換屬 minor 以上） |
+| 版號 | 原暫定 v0.7.0，實際定為 **v1.0.0**（外殼與所有列表頁重寫，作者定為大版號） |
 
 ---
 
@@ -870,7 +870,7 @@ Prototype 在這塊著墨很少，正式版的底線：
 | **P10** | `/plugins`、`/plugins/folder/*`、Plugin Drawer、`/view` 頁首、Switch 與 dev API | P3、Q19 Q21–Q24 | |
 | **P11** | `/settings`（設定／關於）、`/about` 與 `/view` 轉址 | P3、Q20 Q25 Q29 | |
 | **P12** | 響應式三段 + 無障礙收尾 | P4–P11 | |
-| **P13** | 清理：刪舊元件、更新 CLAUDE.md／PRD／README、plugin 設計文件補三筆修訂（Q6「`/notes` 列表：進」→ 移出，見 Q14；§8.2 `meta.backTo` 升格為 app 層約定，見 Q21；§15 pagefind 一項實際已完成，見 §8.7）、`package.json` `files`、viewer 端對端實測、pre-push build | 全部 | v0.7.0 |
+| **P13** | 清理：刪舊元件、更新 CLAUDE.md／PRD／README、plugin 設計文件補三筆修訂（Q6「`/notes` 列表：進」→ 移出，見 Q14；§8.2 `meta.backTo` 升格為 app 層約定，見 Q21；§15 pagefind 一項實際已完成，見 §8.7）、`package.json` `files`、viewer 端對端實測、pre-push build | 全部 | v1.0.0 |
 
 **交付節奏（Q30 已定案）**：全程在 `feat/workbench-redesign` 單一分支上進行，依上表分 Phase 逐步 commit，**P13 完成後才併回 main**，期間正式站不受影響。每個 commit 都必須能通過 `npx tsc --noEmit && npx astro build`，**要自己手動跑** —— CLAUDE.md 寫的「pre-push hook 跑 `astro build`」實際上不存在（`.git/hooks` 只有 sample、也沒有 husky；展開 Task 時查證，2026-09-21 更正）。Task 文件接續既有編號，已展開為 **Task 59–75 共 17 份**（索引與依賴圖見 [tasks/README.md](tasks/README.md)）。13 個 Phase 中 P4 拆成 Task 62／63、P8 拆成 67／68、P10 拆成 70／71／72，其餘一個 Phase 對應一份。不做新舊 layout 並存、不以旗標切換。
 
@@ -1102,7 +1102,7 @@ P3 刻意安排成「先換殼、內容原樣」：這是唯一一個必須全�
 
 ## 17. 實作後回填
 
-Task 59–75 已全部實作（2026-09-22，隨 notecraftapp v0.7.0）。四個標為「待驗證」的項目與實測結果：
+Task 59–75 已全部實作（2026-09-22，隨 notecraftapp v1.0.0）。四個標為「待驗證」的項目與實測結果：
 
 | 待驗證項 | 結論 | 寫在 |
 | :-- | :-- | :-- |

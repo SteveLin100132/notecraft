@@ -18,6 +18,27 @@
 
 ![Dashboard](./docs/screenshots/dashboard.png)
 
+<details>
+<summary>更多畫面：筆記列表、Drawer 預覽、Board、Plugin 管理</summary>
+
+**筆記列表（List view）** — 依資料夾／系列／標籤／月份分組，篩選全在網址參數，`⌘K` 隨時跨頁跳轉。
+
+![Notes list](./docs/screenshots/notes-list.png)
+
+**Drawer 預覽** — 單擊一列在右側預覽摘要、Metadata、`@ai-visualize` 標記與同系列章節；雙擊或列尾的箭頭才進筆記。
+
+![Note drawer](./docs/screenshots/notes-drawer.png)
+
+**Board view** — 依閱讀狀態分三欄，拖曳卡片就改狀態。
+
+![Board view](./docs/screenshots/notes-board.png)
+
+**Plugin 管理** — 已安裝外掛、映射規則、命中的資料檔，dev 下可一鍵啟用／停用。
+
+![Plugins](./docs/screenshots/plugins.png)
+
+</details>
+
 ---
 
 ## 為什麼要 NoteCraftApp
@@ -28,7 +49,7 @@
 - **放大檢視** — 內文欄寬容不下的元件（並排結構圖、RACI 矩陣、寬表格），一鍵搬進全螢幕的可拖曳平移、可縮放畫布來讀，**互動完整保留**，還能匯出 100% 原尺寸 PNG
 - **筆記轉簡報** — 一篇筆記一鍵變成 16:9 多頁簡報，`/present/<slug>` 可全螢幕播放。**筆記裡的互動元件原樣搬進投影片，播放時照樣能點、能拖**
 - **即時 preview** — `serve` 內建背景 rebuild + SSE auto reload：Claude Code 在另一個 terminal 寫檔、viewer 這邊瀏覽器自動刷新，全程免手動重啟
-- **工作台（v0.7.0）** — 三欄殼：Rail + 檔案樹 Sidebar + 主區。筆記列表有 List／Board／Table／Timeline 四種 view 與側邊 Drawer 預覽，Board 拖曳即改閱讀狀態；`⌘K` 指令面板跨頁跳轉並含 pagefind 全文搜尋
+- **工作台（v1.0.0）** — 三欄殼：Rail + 檔案樹 Sidebar + 主區。筆記列表有 List／Board／Table／Timeline 四種 view 與側邊 Drawer 預覽，Board 拖曳即改閱讀狀態；`⌘K` 指令面板跨頁跳轉並含 pagefind 全文搜尋
 - **儀表板** — widget grid：筆記總數、近 8 週寫作頻率、最近更新、系列進度（一鍵繼續閱讀）、標籤分布、待生成標記；另有「本週」「AI 佇列」兩個 Tab
 - **系列** — 多份筆記串成有順序的閱讀路徑，含進度條與單鍵推進；資料檔頁也能是一章
 - **Plugin** — 結構化 JSON 交給可安裝的渲染器畫成頁面；`/plugins` 看得到映射規則、命中檔與外掛檔案，可在 dev 一鍵啟用／停用

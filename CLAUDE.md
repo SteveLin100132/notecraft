@@ -92,7 +92,7 @@ status: pending | generated | locked | failed
 
 色票、字級、間距、圓角、陰影一律遵循外部 **`trendlink-design` Skill**。生成元件前先讀取其 SKILL.md，優先使用其 token / class，**不要硬編碼色碼**。僅在 prompt 明確要求跳脫設計系統時例外，並在對話中說明。
 
-## Workbench 工作台（v0.7.0）
+## Workbench 工作台（v1.0.0）
 
 殼是 Rail 52 + Sidebar 240 + 主區（Header／Toolbar 40／Body），**整頁不捲動**，只有 `#nc-scroll.wb-body` 與 Sidebar 內部捲動。
 完整設計見 [docs/notecraft-workbench.md](docs/notecraft-workbench.md)，像素級規格在 `docs/prototype/design_handoff_workbench/`。
@@ -129,7 +129,7 @@ status: pending | generated | locked | failed
 
 ### 幾條不會變的規則
 
-- **`plugins.json` 頂層 `disabled: string[]`**（v0.7.0）：停用的 plugin 其所有規則在比對前就略過、等同不存在，也不參與安裝檢查（壞掉的 plugin 先停用，站仍 build 得出來）。停用不是解除安裝，renderer 仍在 client chunk
+- **`plugins.json` 頂層 `disabled: string[]`**（v1.0.0）：停用的 plugin 其所有規則在比對前就略過、等同不存在，也不參與安裝檢查（壞掉的 plugin 先停用，站仍 build 得出來）。停用不是解除安裝，renderer 仍在 client chunk
 - **`meta.backTo` 是 app 層約定的第三個 meta 欄位**（與 `meta.title`、`meta.description` 並列）：「回到來源筆記」的站內路徑，只接受單一 `/` 開頭，不符者忽略並 warn
 - **入口固定 `renderer.tsx`**，manifest 不放 `entry`；吃哪些檔完全由 `plugins.json` 的 `files` 決定，manifest 也不放 `accepts`
 - **`files` 的基準是 notesDir** —— 資料檔必須放在筆記資料夾內；不允許比對 `.md` / `.mdx`

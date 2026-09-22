@@ -147,7 +147,7 @@ notecraft/
 ```jsonc
 {
   "$schema": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/plugins.schema.json",
-  "disabled": ["timeline-renderer"],    // 可選（v0.7.0，Workbench Q22）：停用的 plugin，其所有規則等同不存在
+  "disabled": ["timeline-renderer"],    // 可選（v1.0.0，Workbench Q22）：停用的 plugin，其所有規則等同不存在
   "plugins": [
     {
       "plugin": "er-diagram-renderer",   // 對應 .notecraft/plugins/<id>/
@@ -164,7 +164,7 @@ notecraft/
 }
 ```
 
-**`disabled`（v0.7.0 追加，Workbench 規格 §8.6.1）**：頂層字串陣列，一顆開關對應一個 plugin id，規則本身原封不動。
+**`disabled`（v1.0.0 追加，Workbench 規格 §8.6.1）**：頂層字串陣列，一顆開關對應一個 plugin id，規則本身原封不動。
 停用 plugin 的所有規則在比對前就略過、等同不存在 —— 命中的資料檔不產頁、不進 Sidebar／`/plugins`／Palette，也**不參與「是否已安裝」的檢查**
 （壞掉的 plugin 先停用，站還是 build 得出來）。一檔同時被停用與啟用的規則命中時啟用的那條勝、不印多重命中 warn；
 `disabled` 裡的 id 既沒安裝也沒被引用則 warn；不是字串陣列則 build fail。停用**不是**解除安裝，renderer 仍會被 `PluginHost` 的 eager glob 打包。
@@ -324,7 +324,7 @@ manifest 用 `import.meta.glob("@notes/plugins/*/notecraft-plugin.json", { eager
 | series 系列 | **進**（Q6 修訂，見 §7.6） | 可寫進 `series.json` 的 `slugs`，並參與閱讀進度 |
 | Dashboard 統計 | **不進** | 「我寫了幾篇」是內容產出量，資料檔不算在內 |
 
-~~進 `/notes` 列表衍生兩件實作事項（§15）：卡片要與筆記卡片有可辨識的區別、排序用的時間欄位取檔案 mtime。~~（v0.7.0 已移出，見上表）
+~~進 `/notes` 列表衍生兩件實作事項（§15）：卡片要與筆記卡片有可辨識的區別、排序用的時間欄位取檔案 mtime。~~（v1.0.0 已移出，見上表）
 
 ### 7.6 系列與閱讀進度（Q6 修訂）
 
@@ -750,7 +750,7 @@ Task 46–58 已全部實作（2026-09-18，隨 notecraftapp v0.6.0）。原本�
 | `/notes` 列表的資料檔卡片怎麼區分 | 橘系 `Database` icon 方塊、右上「資料檔」膠囊、底部原本放標籤的那一列改成 sunken 底的 mono 路徑列。mono 是筆記卡片沒有的質地，掃視時最快 |
 | 混排的排序時間 | 用檔案 mtime，與筆記的 `updatedAt` 同軸；套用標籤篩選或「只看收藏」時資料檔退出列表（那些維度對它們不存在） |
 | `/notes` 副標 | 有資料檔時改成「N 篇筆記、M 個資料檔」 |
-| pagefind 索引範圍 | **已實作**（Task 48 就標在頁首 `<header>` 上；本表先前寫「未實作」是過時的）。v0.7.0 換殼後標記搬到頁首 `h1` 與 Toolbar 說明文字，實測標題與描述搜得到、欄位名搜不到 |
+| pagefind 索引範圍 | **已實作**（Task 48 就標在頁首 `<header>` 上；本表先前寫「未實作」是過時的）。v1.0.0 換殼後標記搬到頁首 `h1` 與 Toolbar 說明文字，實測標題與描述搜得到、欄位名搜不到 |
 | registry 抓取的快取 | 未做。每次 `install-plugin` 都打網路；`--list` 與安裝各一次請求 |
 | GitHub API 限流 | `registry.json` 的 `files` 清單讓官方 plugin 完全不打目錄列表 API；第三方來源限流時自動退回 `git clone --depth 1` 並印出切換原因 |
 | `--remove` 的殘留檢查 | 只警告不自動清 —— 動使用者的設定檔要有明確意圖，而 Q9 已定案殘留會讓 build fail，警告就足以讓人知道 |
@@ -769,7 +769,7 @@ Task 46–58 已全部實作（2026-09-18，隨 notecraftapp v0.6.0）。原本�
 ### 仍未做的
 
 - ~~**pagefind 索引範圍**~~ 早已實作（見上表）
-- **`view`（astro dev）模式的 HMR**（Q19）：v0.7.0 實測 —— `plugins.ts` 的模組層快取在 dev 期間持續存活，改 `plugins.json` **不會**自動反映。
+- **`view`（astro dev）模式的 HMR**（Q19）：v1.0.0 實測 —— `plugins.ts` 的模組層快取在 dev 期間持續存活，改 `plugins.json` **不會**自動反映。
   已在 dev integration 監看 `plugins.json` 與 notesDir 底下的 `.json` 資料檔，變動時清快取並送 `full-reload`（資料檔的 `meta.*` 同樣是解析時讀進快取，實測改了不監看也不會反映）
 - **官方 store 的 screenshot**：`registry.json` 未帶 `screenshot` 欄位
 - plugin 的 i18n、`dataSchema` 改版的相容性、同一份資料被兩個 plugin 用不同視角渲染
