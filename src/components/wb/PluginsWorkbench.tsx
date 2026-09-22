@@ -1,6 +1,6 @@
 // /plugins（規格 §8.6）：資料檔 Tab（依資料夾分組、單擊即進渲染頁）與已安裝外掛 Tab（列 + Plugin Drawer）。
 // 列上只有「啟用／停用」一種狀態；「渲染錯誤」「不相容」都不做（Q23、Q24）。Switch 由 Task 71 接上。
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Folder, Plug, Search, Sparkles } from "lucide-react";
 import type { WbDataFile, WbPlugin } from "@/lib/wb-types";
 import { ROOT_GROUP } from "@/lib/wb-types";
@@ -9,6 +9,7 @@ import WbHeader from "./WbHeader";
 import DataFileRow from "./DataFileRow";
 import PluginDrawer from "./PluginDrawer";
 import { GroupHeader, Ic, Pill, SearchBox, StatStrip } from "./ui";
+import { PluginSwitch, PluginToggleButton } from "./PluginToggle";
 
 type Tab = "files" | "installed";
 
@@ -31,19 +32,21 @@ export default function PluginsWorkbench({
   enabledSystem = true,
   appVersion = "",
   isDev = false,
-  renderSwitch,
-  renderDrawerAction,
 }: {
   files?: WbDataFile[];
   plugins?: WbPlugin[];
   enabledSystem?: boolean;
   appVersion?: string;
   isDev?: boolean;
-  /** Task 71：列上的 Switch（dev） */
-  renderSwitch?: (p: WbPlugin) => ReactNode;
-  renderDrawerAction?: (p: WbPlugin) => ReactNode;
 }) {
   const [tab, setTab] = useState<Tab>("files");
+  // 樂觀更新後的啟用狀態；API 成功後整頁重載，build 期資料才會跟上
+  const [override, setOverride] = useState<Record<string, boolean>>({});
+  const isOn = (p: WbPlugin) => override[p.id] ?? p.enabled;
+  const onChanged = (id: string) => (v: boolean) => {
+    setOverride((o) => ({ ...o, [id]: v }));
+    setTimeout(() => window.location.reload(), 600);
+  };
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -75,7 +78,7 @@ export default function PluginsWorkbench({
     return out.sort((a, b) => (a.key === "" ? -1 : b.key === "" ? 1 : a.key.localeCompare(b.key, "zh-Hant")));
   }, [shown]);
 
-  const enabledCount = plugins.filter((p) => p.enabled).length;
+  const enabledCount = plugins.filter(isOn).length;
   const mappedCount = new Set(plugins.flatMap((p) => p.matched)).size;
   const selPlugin = sel ? (plugins.find((p) => p.id === sel) ?? null) : null;
 
@@ -155,25 +158,25 @@ export default function PluginsWorkbench({
                 />
                 <GroupHeader name="已安裝外掛" count={plugins.length} icon={Plug} gc="wb-gc-gold" stats="點一列看設定、映射與檔案" />
                 {plugins.map((p) => (
-                  <div key={p.id} className={"wb-row" + (sel === p.id ? " sel" : "") + (p.enabled ? "" : " dim")}>
+                  <div key={p.id} className={"wb-row" + (sel === p.id ? " sel" : "") + (isOn(p) ? "" : " dim")}>
                     <button
                       type="button"
                       className="wb-row-main"
                       aria-pressed={sel === p.id}
                       onClick={() => setSel((cur) => (cur === p.id ? null : p.id))}
                     >
-                      <Ic icon={Plug} size={13} color={p.enabled ? "var(--wb-gold)" : "var(--wb-ink-3)"} />
+                      <Ic icon={Plug} size={13} color={isOn(p) ? "var(--wb-gold)" : "var(--wb-ink-3)"} />
                       <span className="wb-row-t">{p.title}</span>
                       <span className="wb-row-p">{p.id}</span>
                       <span className="wb-tagchip tnum">v{p.version}</span>
                       <span className="wb-row-d tnum" style={{ width: 34, flex: "0 0 34px" }}>
                         {p.matched.length + p.inactiveMatches.length} 檔
                       </span>
-                      <Pill tone={p.enabled ? "ok" : "muted"} style={{ width: 44, justifyContent: "center" }}>
-                        {p.enabled ? "啟用" : "停用"}
+                      <Pill tone={isOn(p) ? "ok" : "muted"} style={{ width: 44, justifyContent: "center" }}>
+                        {isOn(p) ? "啟用" : "停用"}
                       </Pill>
                     </button>
-                    {renderSwitch?.(p)}
+                    {isDev ? <PluginSwitch id={p.id} title={p.title} enabled={isOn(p)} onChanged={onChanged(p.id)} /> : null}
                   </div>
                 ))}
                 <div className="wb-callout">
@@ -183,6 +186,7 @@ export default function PluginsWorkbench({
                     <div className="wb-callout-b">
                       執行 <span className="wb-code">npx notecraftapp install-plugin &lt;id&gt;</span>，檔案會寫入{" "}
                       <span className="wb-code">.notecraft/plugins/</span> 並產生型別定義 <span className="wb-code">_types.d.ts</span>。
+                      停用外掛不會把它移出 bundle；要解除安裝請用 <span className="wb-code">install-plugin --remove &lt;id&gt;</span>。
                     </div>
                   </div>
                 </div>
@@ -192,7 +196,12 @@ export default function PluginsWorkbench({
         </>
       )}
       {selPlugin ? (
-        <PluginDrawer plugin={selPlugin} files={files} onClose={() => setSel(null)} action={renderDrawerAction?.(selPlugin)} />
+        <PluginDrawer
+          plugin={{ ...selPlugin, enabled: isOn(selPlugin) }}
+          files={files}
+          onClose={() => setSel(null)}
+          action={isDev ? <PluginToggleButton id={selPlugin.id} enabled={isOn(selPlugin)} onChanged={onChanged(selPlugin.id)} /> : null}
+        />
       ) : null}
     </>
   );

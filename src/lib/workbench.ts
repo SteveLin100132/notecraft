@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getAllNotes, parseMarkers, tagStats, type Note } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
-import { getDataFiles, getPlugins, getPluginsConfig } from "@/lib/plugins";
+import { getDataFiles, getInactiveMatches, getPlugins, getPluginsConfig } from "@/lib/plugins";
 import { hasDeck } from "@/lib/decks";
 import type {
   WbChapter,
@@ -162,6 +162,7 @@ function listAssets(dir: string): string[] {
 function buildPlugins(): WbPlugin[] {
   const config = getPluginsConfig();
   const files = getDataFiles();
+  const inactive = getInactiveMatches();
   const disabled = new Set(config?.disabled ?? []);
   const out: WbPlugin[] = [];
   for (const rec of getPlugins().values()) {
@@ -196,7 +197,7 @@ function buildPlugins(): WbPlugin[] {
         .filter((x) => x.plugin === rec.id)
         .map((x) => ({ files: x.files, ...(x.exclude?.length ? { exclude: x.exclude } : {}), ...(x.options ? { options: x.options } : {}) })),
       matched: files.filter((f) => f.pluginId === rec.id).map((f) => f.routePath),
-      inactiveMatches: [],
+      inactiveMatches: inactive.filter((m) => m.pluginId === rec.id).map((m) => m.relPath.replace(/\.json$/i, "")),
       assets: listAssets(rec.dir).map((rel) => ({ path: rel, role: assetRole(rel, m) })),
       enabled: !disabled.has(rec.id),
     });

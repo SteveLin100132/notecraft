@@ -8,6 +8,12 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
+    "disabled": {
+      "type": "array",
+      "description": "已停用的 plugin id。它的所有映射規則在比對前就略過、等同不存在；省略或空陣列 = 全部啟用。舊版 app 會忽略此欄位。",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+    },
     "plugins": {
       "type": "array",
       "description": "由上而下比對，第一條命中的規則勝；同一檔被多條命中時 build 會印 warn。",

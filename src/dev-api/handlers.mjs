@@ -2,6 +2,7 @@
 // 都能直接 import。若後續要新增 API 或動路徑安全規則，只改這一份。
 
 import { promises as fs } from "node:fs";
+import fsSync from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 
@@ -14,6 +15,15 @@ export function resolveNotesRoot(cwd) {
 
 export function isViewerMode() {
   return Boolean(process.env.NOTECRAFT_NOTES_DIR);
+}
+
+/** .notecraft/ 的位置：與 astro.config.mjs、src/lib/plugins.ts 同一套優先序（USER_CWD > NOTES_DIR > cwd）。 */
+export function resolveNotecraftDir(cwd) {
+  const userCwd = process.env.NOTECRAFT_USER_CWD;
+  if (userCwd) return path.join(path.resolve(userCwd), ".notecraft");
+  const notesDir = process.env.NOTECRAFT_NOTES_DIR;
+  if (notesDir) return path.join(path.resolve(cwd, notesDir), ".notecraft");
+  return path.join(cwd, ".notecraft");
 }
 
 export async function assertSafePath(candidate, notesRoot) {
@@ -442,6 +452,99 @@ async function handleDeleteNote(cwd, notesRoot, slug, res) {
   });
 }
 
+// ── Plugin 啟用／停用（Workbench Task 71，規格 §8.6.1）────────────────
+// 只增刪 plugins.json 頂層 disabled 陣列的元素，其餘內容不動；鍵順序固定 $schema → disabled → plugins；
+// disabled 變空時整個鍵移除；2 空格縮排、檔尾換行；重複送同一個值回 200 且檔案不變。
+
+const PLUGIN_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// 頂層 "disabled": [ …字串… ] 這個鍵（含前後的逗號與換行）的文字範圍。陣列裡只會有字串，沒有巢狀括號。
+const DISABLED_KEY_RE = /(,?)(\s*)"disabled"\s*:\s*\[[^\]]*\]\s*(,?)/;
+
+function patchDisabledKey(text, ids) {
+  const indent = (text.match(/\n( +)"/) || [, "  "])[1];
+  const value = ids.length ? `[\n${ids.map((x) => `${indent}${indent}${JSON.stringify(x)}`).join(",\n")}\n${indent}]` : null;
+  const m = DISABLED_KEY_RE.exec(text);
+  if (m) {
+    if (value === null) {
+      // 移除整個鍵。它與相鄰鍵之間只需留一個逗號：前後都有逗號時去掉一個。
+      const before = m[1];
+      const after = m[3];
+      const sep = before && after ? "," : before || after;
+      return text.slice(0, m.index) + sep + text.slice(m.index + m[0].length);
+    }
+    return text.slice(0, m.index) + `${m[1]}${m[2]}"disabled": ${value}${m[3]}` + text.slice(m.index + m[0].length);
+  }
+  if (value === null) return text;
+  // 沒有這個鍵：放在 $schema 之後，否則放在最前面
+  const schema = /"\$schema"\s*:\s*"[^"]*"\s*,/.exec(text);
+  if (schema) {
+    const at = schema.index + schema[0].length;
+    return text.slice(0, at) + `\n${indent}"disabled": ${value},` + text.slice(at);
+  }
+  const brace = text.indexOf("{");
+  return text.slice(0, brace + 1) + `\n${indent}"disabled": ${value},` + text.slice(brace + 1);
+}
+
+async function handleSetPluginEnabled(cwd, id, req, res) {
+  if (!PLUGIN_ID_RE.test(id)) return json(res, 400, { error: "invalid plugin id" });
+  const raw = await readBody(req);
+  let payload;
+  try {
+    payload = JSON.parse(raw || "{}");
+  } catch {
+    return json(res, 400, { error: "invalid JSON" });
+  }
+  if (typeof payload.enabled !== "boolean") return json(res, 400, { error: "enabled must be boolean" });
+
+  const notecraftDir = resolveNotecraftDir(cwd);
+  const cfgPath = path.join(notecraftDir, "plugins.json");
+  let text;
+  try {
+    text = await fs.readFile(cfgPath, "utf-8");
+  } catch {
+    return json(res, 409, { error: "plugins.json not found; create a mapping first" });
+  }
+  let cfg;
+  try {
+    cfg = JSON.parse(text);
+  } catch {
+    return json(res, 500, { error: "plugins.json is not valid JSON" });
+  }
+  if (!cfg || typeof cfg !== "object" || !Array.isArray(cfg.plugins)) {
+    return json(res, 500, { error: "plugins.json missing plugins array" });
+  }
+  const referenced = cfg.plugins.some((m) => m && m.plugin === id);
+  const installed = [path.join(cwd, "plugins", id), path.join(notecraftDir, "plugins", id)].some((d) => {
+    try {
+      return fsSync.existsSync(path.join(d, "notecraft-plugin.json"));
+    } catch {
+      return false;
+    }
+  });
+  if (!referenced && !installed) return json(res, 404, { error: "plugin not installed nor referenced" });
+
+  const disabled = new Set(Array.isArray(cfg.disabled) ? cfg.disabled.filter((x) => typeof x === "string") : []);
+  const was = !disabled.has(id);
+  if (was === payload.enabled) return json(res, 200, { ok: true, id, enabled: payload.enabled, changed: false });
+  if (payload.enabled) disabled.delete(id);
+  else disabled.add(id);
+
+  // 以文字方式只動 disabled 這個鍵，其餘內容（含作者的排版）原封不動；
+  // 鍵的位置固定在 $schema 之後、plugins 之前；變空時整個鍵移除。
+  const nextText = patchDisabledKey(text, [...disabled]);
+  try {
+    JSON.parse(nextText); // 防呆：文字改寫後必須仍是合法 JSON，否則退回重新序列化
+  } catch {
+    const { $schema, disabled: _d, plugins, ...rest } = cfg;
+    const next = { ...($schema !== undefined ? { $schema } : {}), ...(disabled.size ? { disabled: [...disabled] } : {}), plugins, ...rest };
+    await fs.writeFile(cfgPath, JSON.stringify(next, null, 2) + "\n", "utf-8");
+    return json(res, 200, { ok: true, id, enabled: payload.enabled, changed: true });
+  }
+  await fs.writeFile(cfgPath, nextText, "utf-8");
+  return json(res, 200, { ok: true, id, enabled: payload.enabled, changed: true });
+}
+
 export function localhostOnly(req) {
   const addr = req.socket.remoteAddress || "";
   return addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1";
@@ -488,6 +591,10 @@ export async function tryHandleApiRequest(cwd, notesRoot, req, res) {
     }
     if (parts.length === 2 && parts[1] === "folders" && req.method === "GET") {
       await handleFolderList(cwd, notesRoot, res);
+      return true;
+    }
+    if (parts.length === 3 && parts[1] === "plugins" && req.method === "PUT") {
+      await handleSetPluginEnabled(cwd, decodeURIComponent(parts[2]), req, res);
       return true;
     }
     if (parts.length === 3 && parts[1] === "tags") {

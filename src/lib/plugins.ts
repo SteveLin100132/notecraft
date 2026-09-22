@@ -157,6 +157,9 @@ function readConfig(): PluginsConfig | null {
   if (!Array.isArray(cfg?.plugins)) {
     fail(`${CONFIG_PATH} 缺少 plugins 陣列`);
   }
+  if (cfg.disabled !== undefined && !(Array.isArray(cfg.disabled) && cfg.disabled.every((x) => typeof x === "string"))) {
+    fail(`${CONFIG_PATH} 的 disabled 必須是字串陣列（plugin id）`);
+  }
   cfg.plugins.forEach((m, i) => validateMapping(m, i));
   return cfg;
 }
@@ -246,8 +249,15 @@ export interface ScanStats {
   latestMtimeMs: number;
 }
 
+/** 已停用 plugin 的規則「若啟用會命中」的檔（規格 §8.6.1）。只供列表顯示，不產頁。 */
+export interface InactiveMatch {
+  pluginId: string;
+  relPath: string;
+}
+
 interface Resolved {
   files: ResolvedDataFile[];
+  inactive: InactiveMatch[];
   stats: ScanStats;
 }
 
@@ -270,12 +280,23 @@ function resolve(): Resolved {
 
   const config = readConfig();
   if (!config) {
-    resolvedCache = { files: [], stats: { dataFileCount: 0, latestMtimeMs: 0 } };
+    resolvedCache = { files: [], inactive: [], stats: { dataFileCount: 0, latestMtimeMs: 0 } };
     return resolvedCache;
   }
 
+  // 停用（Q22）：在 disabled 裡的 plugin，其所有規則在比對前就略過、等同不存在 ——
+  // 因此也不參與「是否已安裝」的檢查（壞掉的 plugin 先停用，站還是 build 得出來）。
+  const disabled = new Set(config.disabled ?? []);
   const plugins = getPlugins();
-  for (const m of config.plugins) {
+  for (const id of disabled) {
+    if (!plugins.has(id) && !config.plugins.some((m) => m.plugin === id)) {
+      warn(`plugins.json 的 disabled 列了 "${id}"，但它既沒安裝、也沒有任何規則引用它（是不是打錯字？）`);
+    }
+  }
+  const activeMappings = config.plugins.filter((m) => !disabled.has(m.plugin));
+  const inactiveMappings = config.plugins.filter((m) => disabled.has(m.plugin));
+
+  for (const m of activeMappings) {
     if (!plugins.has(m.plugin)) {
       fail(
         `plugins.json 指定的 plugin "${m.plugin}" 尚未安裝。\n` +
@@ -288,10 +309,10 @@ function resolve(): Resolved {
   walk(notesDir, notesDir, scanned);
 
   // 每條規則預編譯一組 matcher，避免在檔案迴圈裡重複編譯。
-  const matchers = config.plugins.map((m, i) => ({
+  const matchers = activeMappings.map((m) => ({
     mapping: m,
-    /** 1-based，用於訊息 —— 同一個 plugin 可以出現在多條規則裡，只印 plugin 名會分不出是哪條。 */
-    no: i + 1,
+    /** 1-based、以 plugins.json 原始順序計，用於訊息 —— 同一個 plugin 可以出現在多條規則裡，只印 plugin 名會分不出是哪條。 */
+    no: config.plugins.indexOf(m) + 1,
     isMatch: picomatch(m.files, { dot: false }),
     isExcluded: m.exclude?.length ? picomatch(m.exclude, { dot: false }) : () => false,
     /** glob 有比對到的檔數（不論最後是否由它接手）。 */
@@ -300,13 +321,25 @@ function resolve(): Resolved {
     won: 0,
   }));
 
+  const inactiveMatchers = inactiveMappings.map((m) => ({
+    pluginId: m.plugin,
+    isMatch: picomatch(m.files, { dot: false }),
+    isExcluded: m.exclude?.length ? picomatch(m.exclude, { dot: false }) : () => false,
+  }));
+
   const files: ResolvedDataFile[] = [];
+  const inactive: InactiveMatch[] = [];
   const byRoute = new Map<string, ResolvedDataFile>();
   let latestMtimeMs = 0;
 
   for (const file of scanned) {
     const matched = matchers.filter((x) => x.isMatch(file.relPath) && !x.isExcluded(file.relPath));
-    if (matched.length === 0) continue;
+    if (matched.length === 0) {
+      // 沒有啟用中的規則接手 → 看看是不是被停用的規則「原本會」命中（只供列表顯示）
+      const im = inactiveMatchers.find((x) => x.isMatch(file.relPath) && !x.isExcluded(file.relPath));
+      if (im) inactive.push({ pluginId: im.pluginId, relPath: file.relPath });
+      continue;
+    }
 
     // 第一條勝（Q8）。「大範圍 + 特例」是常見寫法，硬擋會讓萬用 glob 不能用；
     // warn 負責讓作者知道發生了，而不是靜靜地被前面那條吃掉。
@@ -397,7 +430,7 @@ function resolve(): Resolved {
   }
 
   files.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.routePath.localeCompare(b.routePath));
-  resolvedCache = { files, stats: { dataFileCount: files.length, latestMtimeMs } };
+  resolvedCache = { files, inactive, stats: { dataFileCount: files.length, latestMtimeMs } };
   return resolvedCache;
 }
 
@@ -413,12 +446,24 @@ export function getDataFiles(): ResolvedDataFile[] {
   return resolve().files;
 }
 
+/** 已停用 plugin 的規則若啟用會命中的檔。只供 /plugins 列表與 Plugin Drawer 顯示（灰字、不可點）。 */
+export function getInactiveMatches(): InactiveMatch[] {
+  return resolve().inactive;
+}
+
 /** 依路由段取單一資料檔（`planning/schema`，不含副檔名）。 */
 export function getDataFile(routePath: string): ResolvedDataFile | undefined {
   return resolve().files.find((f) => f.routePath === routePath);
 }
 
 let configCache: PluginsConfig | null | undefined;
+
+/** dev 用：plugins.json 變動時由 dev integration 呼叫，讓下一次請求重新解析。 */
+export function invalidatePluginCaches(): void {
+  configCache = undefined;
+  resolvedCache = null;
+  validatorCache.clear();
+}
 /** 已驗證的 plugins.json 內容；沒有設定檔時 null。供 /plugins 頁顯示映射規則與 options。 */
 export function getPluginsConfig(): PluginsConfig | null {
   if (configCache === undefined) configCache = readConfig();

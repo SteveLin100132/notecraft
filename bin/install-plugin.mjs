@@ -315,6 +315,10 @@ export async function removePlugin(targetRoot, id) {
         log(`⚠ plugins.json 還有 ${still.length} 條規則指向 "${id}"，下次 build 會失敗。`);
         log(`  請一併移除，或重新安裝這個 plugin。`);
       }
+      if (Array.isArray(cfg.disabled) && cfg.disabled.includes(id)) {
+        log("");
+        log(`⚠ plugins.json 的 disabled 仍列著 "${id}"。build 只會 warn，但建議一併清掉。`);
+      }
     } catch {
       /* 設定壞掉不是這個指令要處理的事 */
     }
