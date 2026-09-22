@@ -3,10 +3,8 @@ import { render } from "astro:content";
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
-import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
-import DeleteNoteButton from "@/components/islands/DeleteNoteButton.tsx";
-import FavoriteButton from "@/components/islands/FavoriteButton.tsx";
-import GenerateDeckButton from "@/components/islands/GenerateDeckButton.tsx";
+import MoreMenu from "@/components/wb/MoreMenu.tsx";
+import { DeckAction, FavoriteIcon } from "@/components/wb/actions.tsx";
 import ReadingControl from "@/components/islands/ReadingControl.tsx";
 import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
@@ -80,7 +78,25 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     { label: folderPath || ROOT_GROUP, href: notesFolderHref(folderPath) },
   ]}
   pills={[aiPill]}
+  clampTwo
+  pagefindTitle
 >
+  <Fragment slot="actions">
+    <DeckAction client:idle slug={note.id} hasDeck={noteHasDeck} promptPath={promptPath} isDev={isDev} />
+    <FavoriteIcon client:idle slug={note.id} />
+    {isDev && (
+      <MoreMenu
+        client:idle
+        slug={note.id}
+        title={note.data.title}
+        path={relPath}
+        promptPath={promptPath}
+        vscodeHref={vscodeHref}
+        pendingIds={pendingIds}
+        componentIds={markers.map((m) => m.id)}
+      />
+    )}
+  </Fragment>
   <div class="wb-host">
   <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
     <article class="nc-note-article" style="min-width:0;max-width:760px;">
@@ -94,9 +110,6 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         />
       </div>
 
-      <h1 class="nc-note-title" style="color:var(--text-strong);line-height:1.2;margin:0 0 14px;font-weight:900;">
-        {note.data.title}
-      </h1>
       <p style="font-size:var(--text-lg);color:var(--text-muted);line-height:1.7;margin:0 0 18px;">
         {note.data.description}
       </p>
@@ -110,46 +123,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
           <span style="display:inline-flex;align-items:center;gap:5px;">
             <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
           </span>
-          {markers.length > 0 && (
-            <span style="display:inline-flex;align-items:center;gap:5px;">
-              <Icon name="sparkle" size={15} style="color:var(--orange-500);" />
-              {genCount}/{markers.length} 視覺化已生成
-            </span>
-          )}
           <ReadingControl client:idle slug={note.id} />
         </div>
-        <span class="nc-note-actions" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
-          {noteHasDeck ? (
-            <a
-              href={`/present/${note.id.normalize("NFC")}`}
-              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
-            >
-              <Icon name="play" size={15} /> 簡報
-            </a>
-          ) : isDev ? (
-            <GenerateDeckButton client:idle promptPath={promptPath} />
-          ) : null}
-          <FavoriteButton client:idle slug={note.id} />
-          {isDev && (
-            <a
-              href={vscodeHref}
-              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
-            >
-              <Icon name="edit" size={15} /> 以 VS Code 編輯
-            </a>
-          )}
-          {isDev && pendingIds.length > 0 && (
-            <RegenerateButton client:idle promptPath={promptPath} pendingIds={pendingIds} />
-          )}
-          {isDev && (
-            <DeleteNoteButton
-              client:idle
-              slug={note.id}
-              title={note.data.title}
-              componentIds={markers.map((m) => m.id)}
-            />
-          )}
-        </span>
       </div>
 
       {/* 已生成的標記，其提示詞已由下方 GeneratedFrame 卡片（含複製按鈕）呈現，
@@ -193,14 +168,6 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     grid-template-columns: 1fr;
     gap: 40px;
     align-items: start;
-  }
-  .nc-note-title {
-    font-size: var(--text-4xl);
-  }
-  @media (max-width: 1024px) {
-    .nc-note-title {
-      font-size: var(--text-3xl);
-    }
   }
   @media (min-width: 1025px) {
     .nc-note-grid.has-toc {
@@ -266,11 +233,6 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     .nc-toc-chevron {
       display: inline-flex;
       transition: transform 200ms ease-out;
-    }
-    /* 頁首動作鈕：自成一行、靠左、可換行，不再被壓窄 */
-    .nc-note-actions {
-      margin-left: 0 !important;
-      flex-basis: 100%;
     }
   }
   @media (prefers-reduced-motion: reduce) {

@@ -541,3 +541,11 @@ html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}
 .wb-tagrow{text-decoration:none}
 /* AI 佇列 Tab 的標記列：prompt 單行省略 */
 .wb-row .wb-row-p{min-width:0}
+
+/* ── 「⋯」選單（Task 69）── */
+.wb-menu{position:absolute;top:calc(100% + 4px);right:0;min-width:180px;padding:4px;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;box-shadow:0 8px 24px var(--wb-a-blue-14);z-index:var(--wb-z-drawer)}
+.wb-menu-item{width:100%;height:32px;display:flex;align-items:center;gap:8px;padding:0 10px;border:none;border-radius:6px;background:none;font:inherit;font-size:12.5px;color:var(--wb-ink-2);text-align:left;cursor:pointer;text-decoration:none;white-space:nowrap}
+.wb-menu-item:hover,.wb-menu-item:focus-visible{background:var(--wb-bg);color:var(--wb-ink)}
+.wb-menu-item.danger{color:var(--wb-danger-ink)}
+.wb-menu-item.danger:hover{background:var(--wb-a-danger-12)}
+.wb-menu-sep{height:1px;margin:4px 0;background:var(--wb-line-2)}
