@@ -267,12 +267,26 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** 取資料檔的 meta.title / meta.description —— app 只約定這兩個欄位，其餘由 plugin 自行解讀。 */
-function readMeta(data: unknown, fallbackTitle: string): { title: string; description: string } {
+/** backTo 只接受站內路徑：單一 `/` 開頭，排除 `//host`、`http(s):`、`javascript:`。 */
+const SITE_PATH_RE = /^\/(?!\/)/;
+
+/**
+ * 取資料檔的 meta.title / meta.description / meta.backTo —— app 只約定這三個欄位，其餘由 plugin 自行解讀。
+ * backTo 不符站內路徑時忽略並 warn（不 build fail：它不影響頁面能否渲染）。
+ */
+function readMeta(data: unknown, fallbackTitle: string, relPath: string): { title: string; description: string; backTo?: string } {
   const meta = isPlainObject(data) && isPlainObject(data.meta) ? data.meta : null;
   const title = meta && typeof meta.title === "string" && meta.title.trim() ? meta.title : fallbackTitle;
   const description = meta && typeof meta.description === "string" ? meta.description : "";
-  return { title, description };
+  let backTo: string | undefined;
+  if (meta && meta.backTo !== undefined) {
+    if (typeof meta.backTo === "string" && SITE_PATH_RE.test(meta.backTo)) {
+      backTo = meta.backTo;
+    } else {
+      warn(`${relPath} 的 meta.backTo 不是站內路徑（${JSON.stringify(meta.backTo)}），已忽略。它必須以單一 / 開頭，例如 "/notes/xxx"。`);
+    }
+  }
+  return { title, description, ...(backTo ? { backTo } : {}) };
 }
 
 function resolve(): Resolved {
@@ -375,7 +389,7 @@ function resolve(): Resolved {
 
     const routePath = file.relPath.replace(/\.json$/i, "");
     const name = path.basename(file.relPath);
-    const { title, description } = readMeta(data, name);
+    const { title, description, backTo } = readMeta(data, name, file.relPath);
     const resolvedFile: ResolvedDataFile = {
       pluginId: plugin.id,
       absPath: file.absPath,
@@ -383,6 +397,7 @@ function resolve(): Resolved {
       routePath,
       title,
       description,
+      ...(backTo ? { backTo } : {}),
       data,
       options: winner.mapping.options ?? {},
       updatedAt: new Date(file.mtimeMs).toISOString(),
