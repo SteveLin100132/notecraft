@@ -503,3 +503,10 @@ button.wb-sb-caret{width:11px;flex:0 0 11px;height:100%;padding:0;border:none;ba
 .wb-pal .wb-row-p b{color:var(--wb-ink);font-weight:700}
 .wb-skel{cursor:default;pointer-events:none}
 .wb-skel::before{content:"";flex:1;height:10px;border-radius:999px;background:var(--wb-line-2)}
+
+/* ── /notes 的首屏閃動防護（Task 62）：pre-paint script 設 data-wb-filtering，island 掛載後移除 ── */
+html[data-wb-filtering] .wb-main .wb-hd-title-row,
+html[data-wb-filtering] .wb-main .wb-crumb,
+html[data-wb-filtering] .wb-main .wb-tabs,
+html[data-wb-filtering] .wb-main .wb-tb,
+html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}

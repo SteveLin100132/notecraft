@@ -65,6 +65,25 @@ const index = await getWorkbenchIndex();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} — NoteCraft</title>
     {description && <meta name="description" content={description} />}
+    <script is:inline>
+      // 首屏閃動：/notes 的靜態 HTML 畫的是「全部筆記 · List · 依資料夾」，hydrate 後才套 query 與偏好。
+      // 有 query 或偏好與預設不同時，先把主區藏起來；island 掛載完會移除這個屬性。沒有 query 時什麼都不做。
+      (function () {
+        try {
+          if (location.pathname.replace(/\/+$/, "") !== "/notes") return;
+          var hide = location.search.length > 1;
+          if (!hide) {
+            var p = JSON.parse(localStorage.getItem("nc-workbench-prefs-v1") || "{}") || {};
+            hide = (p.defaultView && p.defaultView !== "list") || (p.groupBy && p.groupBy !== "folder");
+          }
+          if (!hide) return;
+          var el = document.documentElement;
+          el.setAttribute("data-wb-filtering", "");
+          // 保險：JS 出錯時不能讓主區永遠消失
+          setTimeout(function () { el.removeAttribute("data-wb-filtering"); }, 4000);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
