@@ -196,7 +196,7 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
 | :-- | :-- | :-- |
 | Sidebar 資料夾展開 | `localStorage["nc-wb-sidebar-v1"]` | pre-paint inline script 在首次繪製前套用，沿用現行 `nc:sidebar` 防閃動的做法 |
 | Sidebar 捲動位置 | `sessionStorage` | 換頁後還原 |
-| 預設 view／預設分組 | `localStorage["nc-workbench-prefs-v1"]` | 設定頁寫、`/notes` 讀 |
+| 預設 view／預設分組／目錄預設狀態 | `localStorage["nc-workbench-prefs-v1"]` | 設定頁寫、`/notes` 與筆記頁的目錄讀 |
 | 目前篩選 | URL query | §7 |
 | 目前 view Tab | URL query `?view=`（Q3 已定案） | 切換時 `history.replaceState`，不堆疊上一頁紀錄 |
 | Drawer 選取 | island state，不進 URL | 換頁即關 |
@@ -745,14 +745,15 @@ README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實�
 
 ### 8.8 設定與關於 `/settings`
 
-- **設定只有兩項**（Q29 已定案，照 README）：
+- **設定共三項**（Q29 定案兩項，照 README；「目錄預設狀態」為 2026-09-22 追加，見 [design_handoff_note_toc](prototype/design_handoff_note_toc/README.md) 的後續需求）：
 
   | 項目 | 選項 | 預設 | 作用 |
   | :-- | :-- | :-- | :-- |
   | 預設 view | List／Board／Table／Timeline | List | 進 `/notes` 且網址沒帶 `?view=` 時用哪一種（Q3）；手機一律 List |
   | List 預設分組 | 資料夾／系列／標籤／月份 | 資料夾 | List 一開始的分組方式。在 Toolbar 切換分組時也會回寫這個值（prototype 如此） |
+  | 目錄預設狀態 | 全部收合／全部展開 | 全部收合 | 開啟筆記時目錄子項目的初始狀態；SSR 一律收合，掛載後才套用。目錄標頭的按鈕仍可隨時切換，但不回寫設定 |
 
-- 寫入 `localStorage["nc-workbench-prefs-v1"]`，形狀 `{ defaultView, groupBy }`；讀不到或值無效時用預設值。正式環境同樣可用
+- 寫入 `localStorage["nc-workbench-prefs-v1"]`，形狀 `{ defaultView, groupBy, tocDefault }`；讀不到或值無效時用預設值。正式環境同樣可用
 - Prototype Tweaks 面板的另外兩項**不做**：「列高」在 prototype 裡其實沒接上（JS 寫了 `--pt-row-h`，但 `pt.css` 沒有任何規則讀它），等於設計稿沒有這個功能；「筆記字級」現況沒有、可用瀏覽器內建縮放達成。日後要加，列結構（`.wb-set`）與儲存格式都能直接擴充
 - 「關於」的工作區路徑顯示 `workspaceLabel`，不出現本機絕對路徑（Q25 已定案，§5.2.2）
 - 流程列與技術選型文案照抄 `PT_FLOW`／`PT_STACK`

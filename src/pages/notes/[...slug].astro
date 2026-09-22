@@ -202,14 +202,21 @@ const toc = headings
     overflow-y: auto;
     padding-right: 4px;
   }
+  /* 標頭列：標題按鈕（窄版時負責折疊面板）＋「全部展開／收合」按鈕 */
   .nc-toc-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .nc-toc-title {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 6px;
-    width: 100%;
     padding: 0;
-    margin-bottom: 12px;
     border: none;
     background: none;
     font-family: var(--font-sans);
@@ -243,6 +250,44 @@ const toc = headings
     flex-direction: column;
     gap: 1px;
     border-left: 2px solid var(--neutral-200);
+  }
+  /* 一列 = 連結 + 可選的展開鈕；連結不包在按鈕裡 */
+  .nc-toc-row {
+    display: flex;
+    align-items: center;
+  }
+  .nc-toc-row > .nc-toc-item {
+    flex: 1;
+    min-width: 0;
+  }
+  .nc-toc-twisty,
+  .nc-toc-all {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 140ms, background 140ms;
+  }
+  .nc-toc-twisty:hover,
+  .nc-toc-all:hover {
+    color: var(--blue-700);
+    background: var(--neutral-100);
+  }
+  .nc-toc-twisty:focus-visible,
+  .nc-toc-all:focus-visible {
+    outline: 2px solid var(--blue-700);
+    outline-offset: -2px;
+  }
+  .nc-toc-twisty svg {
+    transition: transform 200ms ease-out;
   }
   .nc-toc-item {
     display: flex;
@@ -305,6 +350,10 @@ const toc = headings
     font-weight: 700;
     opacity: 1;
   }
+  /* 目前位置藏在收合的分支裡：看得到的最近祖先代為標橘色左緣 */
+  .nc-toc-item.proxy {
+    border-left-color: var(--orange-500);
+  }
   .nc-toc-item.on .nc-toc-mark {
     background: var(--orange-500);
   }
@@ -329,13 +378,14 @@ const toc = headings
       box-shadow: var(--shadow-xs);
     }
     .nc-toc-head {
-      justify-content: space-between;
-      align-items: center;
       margin-bottom: 0;
-      cursor: pointer;
     }
-    .nc-toc-head[aria-expanded="true"] {
+    .nc-toc-head:has(> .nc-toc-title[aria-expanded="true"]) {
       margin-bottom: 12px;
+    }
+    .nc-toc-title {
+      align-items: center;
+      cursor: pointer;
     }
     .nc-toc-chevron {
       display: inline-flex;
@@ -345,7 +395,10 @@ const toc = headings
   @media (prefers-reduced-motion: reduce) {
     .nc-toc-chevron,
     .nc-toc-item,
-    .nc-toc-mark {
+    .nc-toc-mark,
+    .nc-toc-twisty,
+    .nc-toc-twisty svg,
+    .nc-toc-all {
       transition: none;
     }
   }
