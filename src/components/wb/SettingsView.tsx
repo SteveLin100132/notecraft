@@ -1,7 +1,18 @@
-// /settings（規格 §8.8）：設定（兩項，存 localStorage）與關於（build 期資料）。Tab 寫進 ?tab=about。
+// /settings（規格 §8.8）：設定（三項，存 localStorage）與關於（build 期資料）。Tab 寫進 ?tab=about。
 import { useEffect, useState, type ComponentType } from "react";
-import { FileText, Layers, Plus, Search, Sparkles, Tag, type LucideProps } from "lucide-react";
-import { GROUP_LABEL, readPrefs, VIEW_LABEL, WB_GROUPS, WB_VIEWS, writePrefs, type WbPrefs } from "@/lib/wb-prefs";
+import { BookOpen, FileText, Layers, Plus, Search, Sparkles, Tag, type LucideProps } from "lucide-react";
+import {
+  DEFAULT_PREFS,
+  GROUP_LABEL,
+  readPrefs,
+  TOC_DEFAULT_LABEL,
+  VIEW_LABEL,
+  WB_GROUPS,
+  WB_TOC_DEFAULTS,
+  WB_VIEWS,
+  writePrefs,
+  type WbPrefs,
+} from "@/lib/wb-prefs";
 import { toast } from "@/lib/prompts";
 import WbHeader from "./WbHeader";
 import { GroupHeader, Ic, Seg, StatStrip } from "./ui";
@@ -55,7 +66,7 @@ function SetRow({ k, d, children }: { k: string; d?: string; children?: React.Re
 
 export default function SettingsView({ about, isDev = false }: { about: AboutData; isDev?: boolean }) {
   const [tab, setTab] = useState<Tab>("settings");
-  const [prefs, setPrefs] = useState<WbPrefs>({ defaultView: "list", groupBy: "folder" }); // SSR 用預設值
+  const [prefs, setPrefs] = useState<WbPrefs>(DEFAULT_PREFS); // SSR 用預設值
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("tab") === "about") setTab("about");
@@ -102,6 +113,10 @@ export default function SettingsView({ about, isDev = false }: { about: AboutDat
           </SetRow>
           <SetRow k="List 預設分組" d="List 檢視一開始的分組依據；在筆記列表切換分組時也會回寫這裡">
             <Seg boxed label="List 預設分組" value={prefs.groupBy} options={WB_GROUPS.map((g) => ({ value: g, label: GROUP_LABEL[g] }))} onChange={(g) => save({ groupBy: g })} />
+          </SetRow>
+          <GroupHeader name="筆記" icon={BookOpen} gc="wb-gc-blue-l" />
+          <SetRow k="目錄預設狀態" d="開啟筆記時，右側目錄的子項目要全部展開或全部收合；目錄標頭的按鈕仍可隨時切換">
+            <Seg boxed label="目錄預設狀態" value={prefs.tocDefault} options={WB_TOC_DEFAULTS.map((t) => ({ value: t, label: TOC_DEFAULT_LABEL[t] }))} onChange={(t) => save({ tocDefault: t })} />
           </SetRow>
           <p style={{ margin: 0, padding: "12px 18px", fontSize: 11.5, color: "var(--wb-ink-3)" }}>設定儲存在這個瀏覽器，不會同步到其他裝置。</p>
         </div>

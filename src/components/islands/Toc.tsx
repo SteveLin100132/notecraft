@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { readPrefs } from "@/lib/wb-prefs";
 
 type Level = 1 | 2 | 3;
 type Heading = { id: string; label: string; lv: Level };
-type Node = Heading & { depth: number; parent: Node | null };
+type Node = Heading & { depth: number; parent: Node | null; hasKids: boolean };
 
 /** 標題距捲動容器頂端小於這個值，就算「已讀到」。 */
 const ACTIVE_OFFSET = 140;
@@ -23,7 +24,8 @@ function buildTree(items: Heading[]): Node[] {
         break;
       }
     }
-    flat.push({ ...h, depth: h.lv - minLv, parent });
+    if (parent) parent.hasKids = true;
+    flat.push({ ...h, depth: h.lv - minLv, parent, hasKids: false });
   }
   return flat;
 }
@@ -53,6 +55,9 @@ export default function Toc({ items = [] }: { items?: Heading[] }) {
   const [active, setActive] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const [open, setOpen] = useState(true);
+  // 展開中的節點。SSR 一律全部收合（localStorage 當作沒有），掛載後依設定頁的「目錄預設狀態」決定；
+  // 捲動時不自動展開，完全由讀者決定。
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   const navRef = useRef<HTMLElement>(null);
 
   const trail = useMemo(() => {
@@ -118,44 +123,93 @@ export default function Toc({ items = [] }: { items?: Heading[] }) {
     else window.scrollTo({ top: top + window.scrollY - 90, behavior });
   };
 
+  const parents = useMemo(() => flat.filter((h) => h.hasKids), [flat]);
+  useEffect(() => {
+    if (readPrefs().tocDefault === "expanded") setExpanded(new Set(parents.map((h) => h.id)));
+  }, [parents]);
+  const allOpen = parents.length > 0 && parents.every((h) => expanded.has(h.id));
+  const isVisible = (h: Node) => {
+    for (let p = h.parent; p; p = p.parent) if (!expanded.has(p.id)) return false;
+    return true;
+  };
+  // 目前位置藏在收合的分支裡時，由看得到的最近祖先代為標示橘色左緣
+  let proxyNode = flat.find((h) => h.id === active) ?? null;
+  while (proxyNode && !isVisible(proxyNode)) proxyNode = proxyNode.parent;
+  const proxy = proxyNode && proxyNode.id !== active ? proxyNode.id : null;
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () => setExpanded(allOpen ? new Set() : new Set(parents.map((h) => h.id)));
+
   if (!flat.length) return null;
 
   return (
     <nav ref={navRef} className="nc-toc" aria-label="目錄">
-      <button
-        type="button"
-        className="nc-toc-head"
-        aria-expanded={open}
-        onClick={() => mobile && setOpen((o) => !o)}
-      >
-        <span>目錄</span>
-        <span className="nc-toc-head-r">
-          <span className="nc-toc-count">{counts}</span>
-          <ChevronDown className="nc-toc-chevron" size={16} style={{ transform: open ? "rotate(180deg)" : "none" }} />
-        </span>
-      </button>
+      <div className="nc-toc-head">
+        <button
+          type="button"
+          className="nc-toc-title"
+          aria-expanded={open}
+          onClick={() => mobile && setOpen((o) => !o)}
+        >
+          <span>目錄</span>
+          <span className="nc-toc-head-r">
+            <span className="nc-toc-count">{counts}</span>
+            <ChevronDown className="nc-toc-chevron" size={16} style={{ transform: open ? "rotate(180deg)" : "none" }} />
+          </span>
+        </button>
+        {open && parents.length > 0 && (
+          <button
+            type="button"
+            className="nc-toc-all"
+            onClick={toggleAll}
+            aria-label={allOpen ? "全部收合" : "全部展開"}
+            title={allOpen ? "全部收合" : "全部展開"}
+          >
+            {allOpen ? <ChevronsDownUp size={14} /> : <ChevronsUpDown size={14} />}
+          </button>
+        )}
+      </div>
       {open && (
         <div className="nc-toc-list">
-          {flat.map((h) => {
+          {flat.filter(isVisible).map((h) => {
             const on = active === h.id;
-            const cls = ["nc-toc-item", `d${h.depth}`, on ? "on" : trail.has(h.id) ? "trail" : ""].filter(Boolean).join(" ");
+            const state = on ? "on" : h.id === proxy ? "trail proxy" : trail.has(h.id) ? "trail" : "";
+            const cls = ["nc-toc-item", `d${h.depth}`, state].filter(Boolean).join(" ");
+            const isOpen = expanded.has(h.id);
             return (
-              <a
-                key={h.id}
-                href={`#${h.id}`}
-                className={cls}
-                aria-current={on ? "location" : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (!mobile) return jumpTo(h.id);
-                  // 窄版面板在內文上方：先收合，等版面縮回去再算目標位置，否則會捲過頭
-                  setOpen(false);
-                  requestAnimationFrame(() => jumpTo(h.id));
-                }}
-              >
-                {h.depth > 0 && <span className="nc-toc-mark" aria-hidden="true" />}
-                <span className="nc-toc-label">{h.label}</span>
-              </a>
+              <div key={h.id} className="nc-toc-row">
+                <a
+                  href={`#${h.id}`}
+                  className={cls}
+                  aria-current={on ? "location" : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!mobile) return jumpTo(h.id);
+                    // 窄版面板在內文上方：先收合，等版面縮回去再算目標位置，否則會捲過頭
+                    setOpen(false);
+                    requestAnimationFrame(() => jumpTo(h.id));
+                  }}
+                >
+                  {h.depth > 0 && <span className="nc-toc-mark" aria-hidden="true" />}
+                  <span className="nc-toc-label">{h.label}</span>
+                </a>
+                {h.hasKids && (
+                  <button
+                    type="button"
+                    className="nc-toc-twisty"
+                    aria-expanded={isOpen}
+                    aria-label={`${isOpen ? "收合" : "展開"}「${h.label}」`}
+                    onClick={() => toggle(h.id)}
+                  >
+                    <ChevronRight size={14} style={{ transform: isOpen ? "rotate(90deg)" : "none" }} />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
