@@ -1,0 +1,21 @@
+---
+title: "資料檔內嵌測試"
+description: "在筆記內文嵌入 plugin 渲染的資料檔，並驗證資料檔頁的「回到來源筆記」會連回這裡。"
+tags: ["測試", "Plugin"]
+createdAt: "2026-09-22"
+updatedAt: "2026-09-22"
+---
+
+import PluginView from "@/components/PluginView.astro";
+
+這篇用來測兩件事：內文嵌入資料檔的外框與放大檢視，以及資料檔自己的 `meta.backTo` 是否會在渲染頁出現「回到來源筆記」按鈕、按了回到這一篇。
+
+## 內嵌的資料表關聯圖
+
+下面這張圖來自 `schema-demo.er.json`，由 `er-diagram-renderer` 渲染。內文只有 760px，所以包在外框卡片裡，右上角可以放大檢視。
+
+<PluginView src="schema-demo.er.json" caption="測試用的資料表關聯圖：36 張表、297 個欄位、69 條外鍵" />
+
+## 對應的獨立頁
+
+同一份資料檔也有全寬的獨立頁：[/view/schema-demo.er](/view/schema-demo.er)。那一頁的頁首應該要有「回到來源筆記」，連回 `/notes/testing/資料檔內嵌測試`。

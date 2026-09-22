@@ -3,7 +3,8 @@
   "meta": {
     "title": "資料表關聯圖（測試資料）",
     "description": "36 張表、297 個欄位、69 條外鍵，用來驗證無限畫布的縮放與拖曳",
-    "source": "轉自一支資料寫死在 tsx 裡的舊版 ER 元件"
+    "source": "轉自一支資料寫死在 tsx 裡的舊版 ER 元件",
+    "backTo": "/notes/testing/資料檔內嵌測試"
   },
   "options": {
     "defaultRows": 6,
