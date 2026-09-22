@@ -114,3 +114,10 @@ Q10 定案相對量在瀏覽器以 `Date.now()` 計算：
 
 viewer 模式下 `entry.filePath` 是否真的變成一長串 `../`。不論結果如何，本 Task 的算法（先 resolve 成絕對、再對 notesDir 取相對）都成立；
 只是把實測結果記在實作記錄裡，讓規格 §5.2.2 那句「推測」變成事實。
+
+## 實作記錄（2026-09-22）
+
+- **待驗證項①實測**：viewer 模式下 `entry.filePath` 確為 `../../../../../private/tmp/…/docs/plain.md`；先 resolve 成絕對再對 notesDir 取相對後，`path` 是 `My Notes/ER Diagram.md`、`slug` 是 `my-notes/er-diagram`，JSON 內 `../` 與絕對路徑 0 筆
+- 標記的 `prompt` 截到 240 字：索引 71 KB（30 篇），長提示詞會撐大 Palette 的載入量
+- `getWorkbenchIndex()` 在 dev 下每次請求重算（檔案會變），正式 build 才走模組層快取
+- `GET /api/folders` 的 handler 在 dev server 啟動時載入，改完要重啟 dev 才生效（不是 HMR）

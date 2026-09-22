@@ -99,3 +99,10 @@ Task 60、Task 61。
 
 Task 62 重寫 `/notes` 時會拿掉頁面上方的 `PagefindSearch`。Palette 還沒做的話，全文搜尋會有一段空窗。
 先做本 Task，拿掉舊搜尋框的同一刻新入口就已經在了。
+
+## 實作記錄（2026-09-22）
+
+- dev 下**連 pagefind 的請求都不發**（必然 404，瀏覽器會在 console 印網路錯誤）；正式 build 才動態載入
+- `excerptNodes()` 以正則切 `<mark>` 片段、各自 entity 解碼後組回 React 節點
+- 實測（`astro preview`）：搜 "cosine" 三筆內文命中且命中詞粗體；搜 "Voyage" 時標題命中的那篇只在「筆記」組出現、不重複在「內文」組
+- `⌘K` 開啟後 `wb-index.json` 只請求一次；輸入法選字中的 `Enter` 不觸發

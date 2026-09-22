@@ -4,7 +4,39 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
-## [未發布]
+## [0.7.0] - 2026-09-22
+
+**Workbench 工作台** —— 外殼整個換掉：Rail 52 + 檔案樹 Sidebar 240 + 壓縮頁首／工具列／內容，整頁不捲動。
+所有列表頁共用同一套資料列語彙。設計見 `docs/notecraft-workbench.md`，像素級規格在 `docs/prototype/design_handoff_workbench/`。
+
+### 新增
+
+- **三欄工作台殼**：Sidebar 是不限層數的真實資料夾樹（viewer 使用者的 `My Notes/Deep Dir/` 原名顯示，不會被 slug 化）、系列進度、Plugin 資料檔、標籤；展開狀態與捲動位置跨頁保留
+- **`/notes` 四種 view**：List（依資料夾／系列／標籤／月份分組）、Board（三欄，拖曳改閱讀狀態）、Table、Timeline；篩選全在網址（`?folder=`、`?series=`、`?tag=`、`?pending=1`、`?hasAi=1`、`?nofm=1`、`?fav=1`、`?view=`），舊的 `?tag=` 連結照常
+- **Drawer 預覽**：單擊列開右側預覽（摘要、Metadata、標記、同系列章節），雙擊或列尾常駐的「開啟」圖示進筆記；`⌘`+點擊、中鍵開新分頁
+- **`⌘K` 指令面板**：每一頁都能開，筆記／系列／標籤／資料檔 + pagefind 全文；索引第一次開啟才載入
+- **Dashboard widget grid** + 總覽／本週／AI 佇列三個 Tab；近 7 日、近 30 日、近 8 週在瀏覽器以當地時區計算，不再是 build 當下的值
+- **`/plugins`**：資料檔依資料夾分組、已安裝外掛列表與 Plugin Drawer（manifest、映射規則、命中檔、options、外掛檔案）；`/plugins/folder/<dir>`
+- **Plugin 啟用／停用**：`plugins.json` 頂層 `disabled` 陣列；dev 下 `PUT /api/plugins/:id` 與列上的 Switch（只動 `disabled` 鍵、保留作者排版）；停用的 plugin 其規則等同不存在，壞掉的 plugin 先停用站仍 build 得出來
+- **`/settings`**：預設 view、List 預設分組（存 `nc-workbench-prefs-v1`）；「關於」顯示工作區與版本
+- **`meta.backTo`** 正式成為 app 層約定：只接受站內路徑，`https:`／`javascript:`／`//host` 一律忽略並 warn
+- 筆記頁首接手標題與動作：簡報、收藏星號、dev 的「⋯」選單（VS Code、重新生成提示、刪除）；標題最多兩行
+- 三段響應式（桌面／平板抽屜／手機底部 Tab bar）與無障礙底線：skip link、地標、`Escape` 關閉順序、reduced motion、pill 對比 ≥ 4.5:1
+- `GET /api/folders` 改為遞迴列出所有層；`DELETE /api/notes/:slug` 補進文件
+
+### 移除
+
+- 筆記列表的多標籤同時篩選與排序欄位切換（單一標籤改由 `?tag=` 承接；排序固定更新日倒序，Table 除外）
+- `/notes` 不再混排資料檔（入口改為 Rail 的 Plugin、Sidebar、`/plugins`、系列頁與 `⌘K`）；系列這條線仍完整混合顯示
+- `/about` 與 `/view` 列表頁（靜態轉址到 `/settings?tab=about` 與 `/plugins`；`/view/<路徑>` 渲染頁不變）
+- Dashboard 的「已生成簡報」統計與以建立日計的「本週／本月新增」
+- 舊側邊欄的「細條」模式（`nc:sidebar`）
+
+### 修正
+
+- viewer 模式下筆記頁尾與「複製生成提示」的路徑原本是一長串 `../…` 或寫死的 `src/content/notes/<slug>.mdx`，改為相對 notesDir／專案根的真實路徑
+- `daysAgo()` 預設基準日原本取 UTC，台灣時間早上八點前「今天」會算成昨天
+- 「待開始」統一為「未開始」
 
 ### 變更
 

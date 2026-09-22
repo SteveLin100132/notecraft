@@ -1,13 +1,13 @@
 ---
 Project Name: NoteCraft Workbench
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件）
-文件狀態: 已定案 —— §15 的 30 題已於 2026-09-21 逐題確認（紀錄見 §16），本文即實作依據；尚未實作
+文件狀態: 已實作（notecraftapp v0.7.0，Task 59–75，2026-09-22）—— §15 的 30 題已於 2026-09-21 逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-09-21
-更新日期: 2026-09-21
+更新日期: 2026-09-22
 依賴文件: docs/notecraft-prd.md、docs/notecraft-plugin-system.md、docs/notecraft-npx-viewer-v2.md、docs/prototype/design_handoff_workbench/README.md
 ---
 
@@ -291,7 +291,7 @@ export async function getWorkbenchIndex(): Promise<WbIndex>   // 模組層快取
 
 - 專案根 = `NOTECRAFT_USER_CWD`，沒有則 `process.cwd()`；notesDir = `NOTECRAFT_NOTES_DIR`，沒有則 `src/content/notes`
 - notesDir 不在專案根底下時（相對路徑以 `..` 開頭），`workspaceLabel` 退回只顯示 notesDir 的資料夾名，不輸出 `../`
-- `WbNoteRow.path` = `path.relative(notesDir, path.resolve(process.cwd(), entry.filePath))`，統一成正斜線。**不直接顯示 `entry.filePath`**：它是相對於 app 根目錄的路徑，viewer 模式下 app 位於 `~/.notecraft/app-<版本>/`，推測會變成一長串 `../` 開頭的字串（**未實測，P2 驗證**）
+- `WbNoteRow.path` = `path.relative(notesDir, path.resolve(process.cwd(), entry.filePath))`，統一成正斜線。**不直接顯示 `entry.filePath`**：它是相對於 app 根目錄的路徑，viewer 模式下 app 位於 `~/.notecraft/app-<版本>/`，**實測確為一長串 `../`**（例：`../../../../../private/tmp/…/docs/plain.md`，Task 60 驗證）；舊筆記頁頁尾直接輸出它就會洩漏目錄結構，v0.7.0 起改顯示 `path`
 - **也不能用 entry id 反推路徑**：Astro glob loader 預設會把 id slug 化（轉小寫、空白變連字號），`My Notes/ER Diagram.md` 的 id 是 `my-notes/er-diagram`。主專案的檔名本來就是 slug 形式所以看不出差別，viewer 使用者的資料夾就會對不上。**§5.2 的資料夾樹同樣要從真實相對路徑切段**，顯示真實的資料夾名；`?folder=` 的值也用真實路徑。slug（entry id）只用於 `/notes/<slug>` 網址與 localStorage key
 
 各處顯示什麼：
@@ -375,7 +375,7 @@ redirects: {
 - 不綁平台：Netlify、viewer 的 `serve` 模式、任何靜態主機都有效；`astro dev` 下也會轉。**不另外在 `netlify.toml` 寫 301 規則**，避免同一件事維護兩份設定
 - 它不是真正的 301 狀態碼。個人筆記站不在意搜尋權重轉移，接受
 - `src/pages/about.astro` 與 `src/pages/view/index.astro` 刪除。**只影響 `/view` 列表頁本身**；`/view/<路徑>` 資料檔渲染頁依 Q19 維持原網址，不轉址
-- **P11 要驗證的一點**：`src/pages/view/[...path].astro` 是 rest 參數路由，理論上也能匹配空路徑 `/view`。目前由 `view/index.astro` 佔住這個位置；刪掉它之後，要確認 `/view` 確實落到 redirect 而不是被 `[...path]` 接走（`getStaticPaths` 不回傳空路徑即可，實際 build 後檢查 `dist/view/index.html` 的內容）
+- **P11 要驗證的一點**：`src/pages/view/[...path].astro` 是 rest 參數路由，理論上也能匹配空路徑 `/view`。目前由 `view/index.astro` 佔住這個位置；刪掉它之後，要確認 `/view` 確實落到 redirect 而不是被 `[...path]` 接走。**Task 73 實測：`dist/view/index.html` 是 redirect 產生的 meta refresh**，rest 路由沒有接走；帶 query 的 `/settings?tab=about` 也正常停在「關於」Tab
 - 帶 query 的目的地（`/settings?tab=about`）同樣在 P11 實測一次
 
 Rail 高亮規則（README §3.2）：`/` → 儀表板；`/notes?pending=1` → AI；`/plugins*` 與 `/view/*` → Plugin；`/settings` → 設定；其餘不高亮，改由 Sidebar 高亮。`?pending=1` 的判斷在 client 做。
@@ -622,7 +622,7 @@ README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實�
 - pill 只有 AI 狀態。設計稿的「N 字」pill 不做（Q9 已定案：字數功能整個拿掉）
 - 內文容器 `.wb-host{padding:26px 32px 60px}`；`Toc` 的 sticky 以 `#nc-scroll` 為基準，保留 id 即可
 - `data-pagefind-body` 仍只標在 `.nc-prose`，新殼的 Sidebar 文字不會進索引
-- **pagefind 的標題來源**：內文 h1 移除後，頁首 h1 位在 `data-pagefind-body` 之外。在頁首 h1 加 `data-pagefind-meta="title"` 明確指定，P9 以實際搜尋結果驗證標題沒有變成網址或空白
+- **pagefind 的標題來源**：內文 h1 移除後，頁首 h1 位在 `data-pagefind-body` 之外。在頁首 h1 加 `data-pagefind-meta="title"` 明確指定。**Task 69 實測：正式 build 後搜尋結果的標題就是筆記標題**，不必在 `.nc-prose` 內放隱藏標題
 - **長標題**：README 規定頁首標題單行省略，但筆記頁少了內文大標題之後，被截斷的標題就沒有別處看得到全文。**僅筆記頁**放寬為最多兩行（`-webkit-line-clamp:2`），其餘頁面維持單行；`title` 屬性帶完整標題
 
 ### 8.4 系列
@@ -708,7 +708,7 @@ README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實�
 - `plugins/plugins.schema.json` 加上 `disabled`（字串陣列、`uniqueItems`、同 `plugin` 欄位的 id pattern）。這份 schema 只供編輯器補全 —— build 期的檢查是 `readConfig()` 手寫的，**舊版 app 讀到 `disabled` 不會失敗，只會忽略它**（停用不生效）
 - `install-plugin --remove <id>`：連帶檢查 `disabled` 裡是否殘留該 id，有就警告、不自動清（沿用「只警告不自動清」的既有做法）
 - `npm run check-plugins` 不受影響
-- **風險**：`plugins.ts` 以模組層變數快取解析結果，`astro dev` 下改 `plugins.json` 會不會即時反映尚未實測（plugin 設計文件 Q19 的遺留項）。P10 先實測；不反映就讓 API 成功後由 client 觸發整頁重載，並在 dev integration 裡清掉該快取
+- **風險**：`plugins.ts` 以模組層變數快取解析結果，`astro dev` 下改 `plugins.json` **實測不會即時反映**（Task 71；plugin 設計文件 Q19 的遺留項）。已在 dev integration 監看 `plugins.json`：變動時清 `plugins.ts` 的快取、`invalidateModule` 並送 `full-reload`；client 端 API 成功後另以 `location.reload()` 保底
 
 ### 8.7 資料檔渲染頁 `/view/<路徑>`
 
@@ -1097,3 +1097,38 @@ P3 刻意安排成「先換殼、內容原樣」：這是唯一一個必須全�
 | Q28 | DS 沒有的七個色值 | 照 prototype 原值新增為 `--wb-*` token（`--wb-ink-2`、`--wb-mute`、`--wb-warn-ink`、`--wb-ok-ink`、`--wb-danger-ink`、`--wb-rail-ic`、`--wb-rail-ic-hover`），集中於 `workbench.css` 開頭；樣式規則只引用 token、不出現 hex。不吸附到 DS 既有色階，像素級重現優先 | 2026-09-21 |
 | Q29 | 設定頁的項目 | 只做 README 列的兩項：預設 view、List 預設分組，存 `nc-workbench-prefs-v1`。Tweaks 的「列高」（prototype 中實際未接上）與「筆記字級」不做 | 2026-09-21 |
 | Q30 | 切換策略與交付節奏 | 單一分支 `feat/workbench-redesign`、依 §13 分 Phase commit，P13 完成才併回 main；每個 commit 皆可 build；P3 先讓既有頁面原樣搬進新殼。Task 自 59 起編號。不做新舊並存或旗標切換 | 2026-09-21 |
+
+---
+
+## 17. 實作後回填
+
+Task 59–75 已全部實作（2026-09-22，隨 notecraftapp v0.7.0）。四個標為「待驗證」的項目與實測結果：
+
+| 待驗證項 | 結論 | 寫在 |
+| :-- | :-- | :-- |
+| viewer 模式下 `entry.filePath` 是否變成一長串 `../` | **是**。`workbench.ts` 先 resolve 成絕對再對 notesDir 取相對，輸出 `My Notes/ER Diagram.md`、`workspaceLabel` 為 `myproj/docs`，JSON 內無 `../`、無絕對路徑 | §5.2.2 |
+| 移除內文 h1 後 pagefind 的標題來源 | 頁首 h1 標 `data-pagefind-meta="title"` 即可，搜尋結果標題正確 | §8.3 |
+| 刪掉 `/view` 列表頁後 `/view` 的去向 | 落到 `redirects`，`dist/view/index.html` 是 meta refresh；rest 路由沒有接走 | §6 |
+| `astro dev` 下改 `plugins.json` 是否即時反映 | **不會**。dev integration 監看該檔、清快取並 `full-reload` | §8.6.1 |
+
+### 實作中新增的決定
+
+| 項目 | 決定 | 為什麼 |
+| :-- | :-- | :-- |
+| **`WorkbenchLayout` 的 `bare` 與 `bareBody`** | `bare`：頁首／Toolbar／Body 全由 island 輸出（`/notes`、Dashboard、`/plugins`、`/settings`、系列詳情）；`bareBody`：頁首靜態、Toolbar 與 Body 由 island 輸出（`/tags`、系列總覽） | 規格只寫了 `noHeader`；實作時發現「頁首靜態但 Body 有 client state」的頁面不少，多一個模式省得每頁自己畫頁首 |
+| **List 分組的資料夾 key 取「目前篩選往下一層」** | 沒篩選時是頂層資料夾；篩在 `a` 時 `a/b/c.md` 歸 `a/b` | 不限層數的樹若一律取頂層，篩進子資料夾後整頁只剩一組 |
+| **Dashboard 只 inline 精簡列** | 拿掉 `description` 與標記的 `prompt`；Drawer 走 `/wb-index.json` | 規格 §5.3 的精神；Dashboard 每頁都在、不該帶全站摘要 |
+| **`plugins.json` 以文字方式改寫** | `PUT /api/plugins/:id` 只增刪 `disabled` 鍵，保留作者排版；文字改寫後若不是合法 JSON 才退回重新序列化 | `JSON.stringify` 會把作者的單行陣列展開，切一次再切回 `git diff` 不乾淨 |
+| **TOC 斷點改用 container query** | `.wb-host` 內容寬 ≥ 900（內文 640 + gap 40 + TOC 220）才顯示右側 TOC；`Toc.tsx` 用 `ResizeObserver` 量容器 | 桌面與平板（Sidebar 收成抽屜）主區寬度不同，用視窗寬要算兩套；實測桌面約落在視窗 1300、平板 1060 |
+| **pill 文字色微調** | 預設 pill 文字用 `--wb-blue`（原 `--wb-blue-l`）、muted pill 用新 token `--wb-muted-ink`（DS `--neutral-600`，原 `--wb-ink-3`） | §10 要求 pill 對比 ≥ 4.5:1；prototype 的值只有 4.4 與 4.1，其餘三種 pill 本來就過 |
+| **`Card.astro`、`Button.astro`、`TagChip.astro` 刪除** | 開工前的引用頁全部改版後歸零 | `Badge.astro` 仍被 `AiMarkerCard` 用、`DownloadButton.astro` 仍被筆記內文用，保留 |
+| **手機上 Drawer 不蓋底部 Tab bar** | Drawer 是 `.wb-main` 內的 absolute，Tab bar（z 650）留在它之外 | 依 §4.5 的階梯 Tab bar 高於 Drawer；Task 74 文件那句「應該被蓋」與階梯衝突，以階梯為準 |
+| **`public/favicon.svg` 進 `package.json` 的 `files`** | 加了 | viewer 沒有 favicon 不致命，但加一行就有 |
+
+### 仍未做的
+
+- 大量筆記的效能：500 篇的 viewer 專案 build 8.7 秒（514 頁）、`/wb-index.json` 133 KB，但 `/notes` 的 HTML 928 KB —— 列全部 inline 成 island props（Astro 的 props 編碼約為 JSON 的 3 倍）。首版不做虛擬捲動（§12）；若體感卡，下一步是讓 `/notes` 超過門檻時改從 `/wb-index.json` 載入列而不 inline
+- pagefind 對中文的分詞是既有行為：「無限畫布」這種詞搜不到，「拖曳」搜得到；與本次改版無關
+- viewer 模式下改**資料檔內容**在 `astro dev` 是否即時反映仍未實測（只驗了 `plugins.json`）
+- PRD §8.1 的 Phase 4.13–4.16 條目仍欠著（見 tasks README）
+

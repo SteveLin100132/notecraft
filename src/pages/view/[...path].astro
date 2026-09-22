@@ -24,7 +24,8 @@ export function getStaticPaths() {
 const { file } = Astro.props;
 const plugin = getPlugins().get(file.pluginId);
 const isDev = import.meta.env.DEV;
-const rendererPath = plugin ? path.join(plugin.dir, "renderer.tsx") : undefined;
+// renderer 的絕對路徑只給 dev 的「以 VS Code 編輯 renderer」用；正式 build 不傳（會 inline 進 island props、洩漏本機路徑）
+const rendererPath = isDev && plugin ? path.join(plugin.dir, "renderer.tsx") : undefined;
 const vscodeHref = `vscode://file/${file.absPath.replace(/\\/g, "/").replace(/^\/+/, "")}`;
 
 // meta.backTo 已在 src/lib/plugins.ts 解析時驗證過（只接受站內路徑），頁面不再自己去挖 file.data.meta。

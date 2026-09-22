@@ -101,3 +101,10 @@ Toolbar：說明「plugin 渲染的資料檔，點列直接進入渲染頁」+ �
 ## 依賴
 
 Task 61。
+
+## 實作記錄（2026-09-22）
+
+- 索引補 `plugins`、`pluginSystem`、`appVersion`（讀 `package.json`，不 import JSON 以免打包）；`plugins.ts` 對外提供 `getPluginsConfig()`
+- `DrawerShell` 從 `NoteDrawer` 抽出，`PluginDrawer` 共用
+- `/plugins/folder/[...dir]` 的搜尋用幾行 inline script 過濾 DOM，沒有 island
+- 實測：Sidebar 點資料檔夾進 `/plugins/folder/_root`、該項 active、Rail 亮 Plugin；Drawer 來源顯示「內建」；`npm run check-plugins` 通過

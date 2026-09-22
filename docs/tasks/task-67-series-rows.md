@@ -86,3 +86,9 @@
 ## 依賴
 
 Task 61。「篩選連結」那一項的完整效果需要 Task 62，但不擋本 Task。
+
+## 實作記錄（2026-09-22）
+
+- 系列詳情頁的頁首由 island 渲染（pill 的數字靠 localStorage），頁面用 `bare`；總覽頁用 `bareBody`
+- `seriesShared.tsx` 刪掉只被舊版面用到的 `ReadingBadge`、`StatusDot`、`ProgStat`、`truncate`，留 `useReadingVersion`、`SeriesIcon`、`ProgressBar` 給 `SeriesNav`
+- 實測：連按三次 mini button 依序閱讀中 → 已完成 → 未開始，stat strip 與頁首 pill 同步、不觸發導覽；連結與按鈕不巢狀

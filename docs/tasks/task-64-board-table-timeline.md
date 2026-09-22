@@ -89,3 +89,10 @@ Task 63。
 ## 已知取捨（規格已記錄，不是 bug）
 
 只用鍵盤的使用者無法在 Board 上改狀態，須進筆記頁用 `ReadingControl`，或到系列詳情頁用單鍵推進。
+
+## 實作記錄（2026-09-22）
+
+- 拖曳的驗證用合成 `DragEvent`（Browser pane 的模擬拖曳不觸發 HTML5 DnD）：drop 後 localStorage 寫入、Sidebar 系列進度同步 1/6；從「開啟」圖示起拖 `defaultPrevented`
+- `useSyncExternalStore` 讀 `(pointer: fine)`，SSR 一律 false；hydrate 前欄內容 `visibility:hidden`
+- 「待開始」→「未開始」除了 `readingMeta()` 還有 `ReadingControl` 與 `seriesShared` 的統計文案共 3 處
+- 手機（390）實測 `?view=board` 被忽略、Tab 列整條不顯示、網址未被改寫

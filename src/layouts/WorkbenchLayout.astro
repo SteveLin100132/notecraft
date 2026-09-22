@@ -73,6 +73,10 @@ const index = await getWorkbenchIndex();
       // 有 query 或偏好與預設不同時，先把主區藏起來；island 掛載完會移除這個屬性。沒有 query 時什麼都不做。
       (function () {
         try {
+          // 舊殼的 key（完整／細條側邊欄）已無人讀；清一次，幾個版本後再拿掉這行（v0.7.0）
+          localStorage.removeItem("nc:sidebar");
+        } catch (e) {}
+        try {
           if (location.pathname.replace(/\/+$/, "") !== "/notes") return;
           var hide = location.search.length > 1;
           if (!hide) {

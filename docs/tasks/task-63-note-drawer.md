@@ -87,3 +87,10 @@ Tab 在 Drawer 內循環。`prefers-reduced-motion` 時不做滑入。
 ## 依賴
 
 Task 62。
+
+## 實作記錄（2026-09-22）
+
+- Drawer 的外框（scrim、滑入、焦點管理、`Escape`）先寫在 `NoteDrawer`，Task 70 抽成 `DrawerShell` 與 `PluginDrawer` 共用
+- `wb/actions.tsx`：三段式簡報鈕、複製生成提示、收藏 icon 鈕 —— 筆記頁首與 Drawer 共用同一套，`FavoriteButton`／`GenerateDeckButton` 的舊外觀在 Task 69 刪除
+- `lib/prompts.ts` 集中對話範本；`RegenerateButton`／`GenerateDeckButton` 先改吃 `promptPath`
+- 實測：`Escape` 先關 Modal 再關 Drawer；正式 build 的 `/notes` 沒有「複製生成提示」字串

@@ -102,3 +102,10 @@ Body 用 `.wb-body`（灰底）內包 `.wb-host{padding:26px 32px 60px}`。`Toc`
 ## 依賴
 
 Task 61、Task 63。
+
+## 實作記錄（2026-09-22）
+
+- **待驗證項②實測**：頁首 h1 標 `data-pagefind-meta="title"` 後，正式 build 的搜尋結果 `meta.title` 就是筆記標題，不必在 `.nc-prose` 內放隱藏標題
+- `DeleteNoteButton` 拆成 `useDeleteNote()`（對話框 + 邏輯）與觸發 UI；「先導頁、不 await」原封不動
+- `FavoriteButton.tsx`、`GenerateDeckButton.tsx` 也一併刪除（邏輯已在 `wb/actions.tsx`），不等 Task 75
+- 頁面 `h1` 數量：頁首 1 個；若筆記內文自己寫了 `# 標題`（作者內容），會多 1 個，不在本 Task 範圍

@@ -103,3 +103,12 @@ Task 62–73。
 
 驗畫面前確認 Browser pane 是**可見**的 —— 隱藏時 `client:visible` 的 island 不會 hydrate，容易誤判。
 另外筆記頁的捲動發生在內層 `#nc-scroll`，不是 `window`；用 `window.scrollTo` 之類的方式驗不到東西。
+
+## 實作記錄（2026-09-22）
+
+- TOC 斷點改用 **container query**（`.wb-host` 內容寬 ≥ 900 = 640 + 40 + 220），`Toc.tsx` 用 `ResizeObserver` 量容器；實測桌面 1280 單欄、1320 兩欄（內文 662）、平板 1040 單欄
+- pill 對比：預設 4.41、muted 4.14 不到 4.5，改 `--wb-blue` 與新 token `--wb-muted-ink`（DS `--neutral-600`）後 6.75／6.46；ok／warn／danger 本來就過
+- 390 寬十頁實測無水平捲軸、最後一列不被 Tab bar 遮；1000 寬 Sidebar 抽屜開合、`Escape` 後焦點回漢堡鈕
+- 手機頁首動作列改換到第二行（原本把麵包屑擠成三行）；多行列的 icon 與標題同行
+- 手機上 Drawer **不蓋**底部 Tab bar：依規格 §4.5 的階梯 Tab bar（650）高於 Drawer（600），本檔 §6 那句「應該被蓋」與階梯衝突，以階梯為準
+- 純鍵盤流程實測：`⌘K` → 選項 → `Escape` → 列 `Space` 開 Drawer（焦點到關閉鈕）→ `Escape`（焦點回列）

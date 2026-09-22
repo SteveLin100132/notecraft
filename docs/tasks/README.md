@@ -246,12 +246,15 @@
 > 否則是全站回歸。[Task 51](task-51-er-diagram-renderer-plugin.md) 則是唯一「已經有正確答案」的 Task——
 > 舊元件的行為就是驗收基準，任何差異都是回歸。
 
-## v1.13.0 追加功能（§8.1 Phase 4.16 待補）— Workbench 改版（notecraftapp v0.7.0）
+## v1.13.0 追加功能（§8.1 Phase 4.16）— Workbench 改版（notecraftapp v0.7.0）
 
-> 規格：[notecraft-workbench.md](../notecraft-workbench.md) **v0.2.0**（30 項決策已於 2026-09-21 定案，紀錄見該文件 §16）
+> **已完成（2026-09-22）**：Task 59–75 全部實作並逐 Task commit 於 `feat/workbench-redesign`。四個待驗證項的結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+> 完成摘要：殼全換、`/notes` 四種 view + Drawer、`⌘K`、Dashboard widget grid、`/plugins`（含啟用／停用）、`/settings`、舊網址轉址、三段響應式與無障礙；刪除 8 個舊 island／元件。偏離原計畫的三處：`bare`／`bareBody` 兩種 layout 模式取代 `noHeader`；TOC 斷點改 container query；預設與 muted pill 文字色為對比而微調。
+
+> 規格：[notecraft-workbench.md](../notecraft-workbench.md) **v1.0.0**（30 項決策已於 2026-09-21 定案，紀錄見該文件 §16；實作後回填見 §17）
 > 設計交付：[design_handoff_workbench](../prototype/design_handoff_workbench/)（`README.md` 是像素級規格、`prototype/wb/pt.css` 是視覺定稿、
 > `NoteCraft-Workbench-standalone.html` 可離線開啟）
-> **PRD §8.1 尚未有對應 Phase 條目** —— 待補（可用 `/bump-prd`；Phase 4.13–4.15 也還欠著）。
+> PRD §8.1 的 Phase 4.15（Plugin System）與 4.16（Workbench）已於 v1.13.0 補上。
 
 把外殼從「248px navy 側邊欄 + 卡片式頁面」換成**三欄工作台**（Rail + 檔案樹 Sidebar + 壓縮頁首／工具列／內容），
 並新增 `/notes` 四種 view、Drawer 預覽、⌘K 指令面板、Dashboard widget grid、Plugin 管理頁、設定頁與平板／手機響應式。

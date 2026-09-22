@@ -87,3 +87,10 @@ pill：plugin id（預設樣式）+「N 天前更新」muted + 系列 pill（若
 ## 依賴
 
 Task 61；`/plugins` 連結需 Task 70（未完成前可先連 `/view`）。
+
+## 實作記錄（2026-09-22）
+
+- `readMeta()` 多回 `backTo`；四種值實測：站內路徑出按鈕、`https:`／`javascript:`／`//host` 皆無按鈕、build warn、HTML 內找不到該字串
+- 「N 天前更新」用極小的 `RelativeTime` island，不把整個頁首變成 island
+- `.nc-dv-stage` 的 `min-height` 改 `100%`（原本以視窗高扣頁首算，殼變了不準）
+- pagefind 實測：資料檔頁的標題與描述搜得到（「拖曳」命中描述），欄位名 `company_city_id` 搜不到；「無限畫布」搜不到是 pagefind 對中文分詞的既有行為

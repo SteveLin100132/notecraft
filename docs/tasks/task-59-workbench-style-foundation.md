@@ -116,3 +116,13 @@ props 形狀照 `prototype/wb/pt-views.jsx`、`pt-views2.jsx` 的同名元件，
 - `pt.css` 裡有幾處 `!important`（widget 的 `grid-column`）是為了蓋過 inline style。
   正式版 widget 的 span 用 class 不用 inline style，這些 `!important` 應該可以拿掉 —— 拿掉後以樣式頁確認
 - 不要順手「整理」prototype 的 class 命名。後面每個 Task 都會拿 prototype 原始碼對照，名稱一改就對不上
+
+## 實作記錄（2026-09-22）
+
+`workbench.css` 由 `pt.css` 以腳本逐行移植：先 grep 出全部 21 個 rgba 與 9 個 hex 命名成 token 再替換，
+`body.pt-*` 規則逐條與 `@media` 版比對後刪除（只有 `.wb-sb-ws-mark{display:flex}` 是 body class 版獨有，已搬進 `@media(max-width:1100px)`）。
+
+- 規格 §8.2.1 的列結構（`.wb-row-main`／`.wb-row-open`）、系列 accent 與 `--gc` 具名色、z-index token 是 prototype 沒有的，補在檔尾並註明
+- widget 的 `!important` 全拿掉，span 改用 `.wb-span-N` class
+- 樣式頁 `/dev/wb` 實測：列 38、pill 20、按鈕 30、chip 26、Switch 38×22，與 prototype 一致
+- 順手加 `public/favicon.svg` 進 `package.json` 的 `files`

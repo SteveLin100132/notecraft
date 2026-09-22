@@ -74,3 +74,9 @@ props（`initial`、`devMode`）不變。**寫入邏輯與確認流程一行都�
 ## 依賴
 
 Task 61。
+
+## 實作記錄（2026-09-22）
+
+- 寫入邏輯、`ConfirmDialog` 三種情境一行未動；只換版面與觸發點。`IconBtn` 與寫死基準日的 `daysAgo()` 刪除
+- 新增 `WorkbenchLayout` 的 `bareBody`（頁首靜態、Toolbar 與 Body 由 island 輸出），標籤頁與系列總覽採用
+- 實測：改名 `Escape` 取消無對話框、改名提交開「重新命名標籤」對話框、刪除的確認鈕在勾選前停用；正式 build 的 `/tags` 沒有 mini button

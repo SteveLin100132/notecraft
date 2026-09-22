@@ -105,3 +105,9 @@ flush 列表：近 7 日更新的筆記，依 `updatedAt` 倒序，用 `NoteRow`
 ## 依賴
 
 Task 63。
+
+## 實作記錄（2026-09-22）
+
+- inline 的精簡列拿掉 `description` 與標記的 `prompt`；Drawer 走 `useWbIndex()`，載入中顯示骨架 Drawer
+- 系列進度 widget：每個系列是 `.wb-series-item` 容器，主區 `<a>` 與「繼續閱讀」`<a>` 並排；`live=false` 時不顯示按鈕
+- 實測：週窗最後一格是今天往回 6 天（`weekBuckets` 傳固定 `now` 驗過）；Dashboard 無 hydration 警告（console 裡的是舊 `TagsManager` 頁殘留）；「簡報」字樣 0 筆

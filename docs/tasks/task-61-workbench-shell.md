@@ -150,3 +150,12 @@ Task 59、Task 60。
 - **驗畫面前先確認 Browser pane 是可見的**。pane 隱藏時 `client:visible` 的 island 全部不會 hydrate，很容易誤判成殼把功能弄壞了
 - 本 Task 結束時畫面會是「新殼 + 舊卡片版面」，視覺不一致是預期中的中間態（Q30 定案：全部完成才併回 main）
 - 筆記頁 TOC 的斷點現在是 1024，以視窗寬計。主區變窄了 292px，TOC 可能在不夠寬時就出現 —— 先不改，記下實際觀感，交給 [Task 74](task-74-responsive-a11y.md)
+
+## 實作記錄（2026-09-22）
+
+- 多了 `bare` 模式（頁首／Toolbar／Body 全由 island 輸出），比規格的 `noHeader` 更直白：island 必須自己輸出 `#nc-scroll.wb-body`；Task 68 再加 `bareBody`
+- Sidebar 的展開狀態、目前項目高亮與捲動位置由**緊接在 Sidebar 後的 inline script** 做，不是 `<head>` 的 pre-paint script —— 要查 DOM 才能標，放 head 找不到節點；同步執行仍在首次繪製前
+- Sidebar 的列是容器：caret 是 `<button aria-expanded>`、名稱是 `<a>`，兩個獨立的可聚焦元素（prototype 把 caret 塞在按鈕裡）
+- `.wb-main>astro-island{display:contents}`：`bare` 頁的 island 外層 `<astro-island>` 不能成為 flex 子項，否則直向排版壞掉
+- 回歸實測：TOC scroll spy、`client:visible` 的 `DonePrompt`／`SeriesNav`、`VizZoom` 全螢幕（蓋過 Rail 與 Sidebar）、新增筆記 Modal 皆正常；正式 build 26 頁無新增筆記按鈕、無 `NewNoteModal`、無絕對路徑
+- `NewNoteModal` z-index 600 → 1000（與 Drawer 同層會被蓋）；`DeleteNoteButton` 的對話框同樣提到 1000

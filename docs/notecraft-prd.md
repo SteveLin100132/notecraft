@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.12.0
+文件版本: v1.13.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-09-18
+更新日期: 2026-09-22
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -97,15 +97,20 @@ Project Name: NoteCraft
 ## 5. Site Map（網站地圖）
 
 ```
-NoteCraft
-├── /                       Dashboard（首頁，功能選單 + 統計）
-├── /notes                  筆記列表頁面
-├── /notes/[slug]           筆記檢視頁面（含「以 VS Code 編輯」按鈕）
+NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16）
+├── /                       Dashboard（widget grid + 總覽／本週／AI 佇列三個 Tab）
+├── /notes                  筆記列表（List／Board／Table／Timeline 四種 view + Drawer；篩選在 query string）
+├── /notes/[slug]           筆記檢視頁面（頁首接手標題與動作；dev 動作收進「⋯」選單）
 ├── /present/[slug]         簡報模式（檢視 + 全螢幕播放；播放正式環境亦可用）
-├── /series                 系列總覽頁（所有系列 + 模糊查詢 + 篩選排序 + 進度）
-├── /series/[id]            系列詳情頁（Hero + 整體進度 + 逐章清單）
-├── /tags                   標籤索引頁
-└── /about                  系統說明（簡單靜態頁，內容為一個 MDX，不需獨立 Spec）
+├── /series                 系列總覽頁（資料列 + stat strip + 進度）
+├── /series/[id]            系列詳情頁（stat strip + 進度帶 + 逐章清單與單鍵推進）
+├── /tags                   標籤索引頁（資料列 + inline 改名）
+├── /plugins                Plugin 資料檔（依資料夾分組）與已安裝外掛（含啟用／停用）
+├── /plugins/folder/[dir]   某資料夾底下的資料檔
+├── /view/[path]            由 plugin 渲染的資料檔頁
+├── /settings               設定（預設 view、List 預設分組）與關於
+├── /about  → /settings?tab=about   舊網址，靜態轉址
+└── /view   → /plugins              舊網址，靜態轉址
 ```
 
 ---
@@ -2586,6 +2591,30 @@ model: haiku
 
 **依據文件：** `docs/prototype/design_handoff_viz_zoom/README.md`（hifi handoff，規格唯一來源）、`docs/prototype/design_handoff_canvas_viewport/README.md`（前置依賴）。
 
+#### Phase 4.15 — Plugin System（v1.12.0 追加）
+
+**目標：讓專案裡的結構化 JSON 資料檔，被一個可安裝的渲染器畫成頁面**
+
+- `.notecraft/plugins.json` 映射哪些檔交給哪個 plugin（`files` glob、`exclude`、`options`；一檔被多條規則命中第一條勝）；`.notecraft/plugins/<id>/` 內固定 `notecraft-plugin.json` + `renderer.tsx` + `schema.json`
+- 路由 `/view/<路徑去副檔名>`；資料在 build 期 parse、ajv 驗證後 inline 成 island props，經 `PluginHost` 掛載；失敗一律 build fail，只有瀏覽器端 throw 走 `PluginErrorCard`
+- 系列章節可為資料檔頁（`view:` 前綴），與筆記一視同仁計入閱讀進度
+- `npx notecraftapp install-plugin`：官方 store（repo 根 `plugins/`，`registry.json`）與 GitHub 來源；安裝時檢查 manifest、engines、import 白名單
+- 對應實作 Task 46–58；完整設計見 [notecraft-plugin-system.md](./notecraft-plugin-system.md)
+
+#### Phase 4.16 — Workbench 工作台改版（v1.13.0 追加）
+
+**目標：把殼從「248px 側邊欄 + 卡片式頁面」換成三欄工作台，所有列表頁共用一套資料列語彙**
+
+- `WorkbenchLayout` 取代 `BaseLayout`：Rail 52 + Sidebar 240（遞迴檔案樹、系列進度、Plugin 資料檔、標籤）+ 主區（壓縮頁首／Toolbar 40／Body）；整頁不捲動，`#nc-scroll` 保留在 Body 上
+- 工作台索引 `src/lib/workbench.ts`（build 期、模組層快取）與靜態端點 `/wb-index.json`；資料夾與顯示用路徑一律來自真實檔案路徑，本機絕對路徑不得出現在輸出
+- `/notes` 四種 view（List 分組／Board 三欄拖曳改閱讀狀態／Table 六欄／Timeline）+ Drawer 預覽；篩選全在 query string（`?folder=`、`?series=`、`?tag=`、`?pending=1`、`?fav=1`、`?view=`）；列是容器內並排的按鈕與常駐的「開啟」連結
+- 指令面板 ⌘K：筆記／系列／標籤／資料檔 + pagefind 全文（延遲載入、取代 `/notes` 上方的獨立搜尋框）
+- Dashboard widget grid + 總覽／本週／AI 佇列；相對時間在瀏覽器以當地時區計算，不再寫死基準日
+- 新頁面 `/plugins`（資料檔、已安裝外掛、Plugin Drawer、啟用／停用 Switch）、`/plugins/folder/<dir>`、`/settings`；`/about` 與 `/view` 列表頁轉址
+- 三段響應式（>1100／861–1100／≤860）與無障礙底線（地標、focus ring、`Escape` 順序、reduced motion、pill 對比 ≥ 4.5:1）
+- **移除**：多標籤篩選、排序切換、`/notes` 的資料檔混排、Dashboard 的簡報統計；設計稿的字數、版型庫、Board「未發佈」欄、「不相容」「渲染錯誤」狀態皆不做
+- 對應實作 Task 59–75；完整設計見 [notecraft-workbench.md](./notecraft-workbench.md)（30 題定案紀錄在其 §16，實作後回填在 §17）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2745,6 +2774,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.13.0] - 2026-09-22
+- **Added**: 新增 Workbench 工作台改版規格與 Phase 4.16；補上 Phase 4.15 Plugin System 條目；Site Map 更新為三欄工作台的路由（含 /plugins、/settings 與舊網址轉址）
 
 ### [1.12.0] - 2026-09-18
 - **Added**: 新增 Plugin System 規格，系列章節可為資料檔頁

@@ -114,3 +114,10 @@ Task 70。
 
 停用**不是**解除安裝：已停用 plugin 的 `renderer.tsx` 仍會被 `PluginHost` 的 eager glob 打包進 client chunk。
 要讓它離開 bundle 得用 `install-plugin --remove`。在 callout 或 Drawer 的說明裡帶一句，免得使用者以為停用能減少載入量。
+
+## 實作記錄（2026-09-22）
+
+- **待驗證項④實測**：dev 下改 `plugins.json` **不會**自動反映（`plugins.ts` 的三層快取都活著）。dev integration 監看該檔，變動時 `invalidatePluginCaches()` + `invalidateModule` + `full-reload`；API 成功後 client 另 `location.reload()` 保底
+- `PUT /api/plugins/:id` 以**文字方式**只動 `disabled` 鍵（`patchDisabledKey`）：`JSON.stringify` 會把作者的單行陣列展開，切一次再切回 `git diff` 不乾淨；文字改寫後若不是合法 JSON 才退回重新序列化
+- build 期六種情境全部實測：停用生效（`/view/*` 不產生、Sidebar 無資料檔區段）、未安裝但停用 build 成功、打錯字 warn、非陣列 build fail、停用規則在前啟用在後由啟用的渲染、系列章節指向停用 plugin 的資料檔 warn 並跳過
+- handlers.mjs 在 dev server 啟動時載入，改完要重啟 dev

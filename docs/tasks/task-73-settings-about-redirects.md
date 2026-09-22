@@ -91,3 +91,9 @@ Task 61、Task 62、Task 70。
 `[...path].astro` 的 `getStaticPaths()` 只要不回傳空路徑，靜態 build 就不會產生 `/view/index.html`，redirect 應該會勝出。
 若實測不是這樣：保留一個極小的 `src/pages/view/index.astro`，內容只有 meta refresh 到 `/plugins`，並從 `redirects` 拿掉 `/view`。
 把實測結果記在實作記錄。
+
+## 實作記錄（2026-09-22）
+
+- **待驗證項③實測**：`dist/view/index.html` 是 redirect 產生的 meta refresh，`[...path]` 沒有接走；`/about` → `/settings?tab=about` 停在「關於」Tab；dev 也轉
+- viewer 模式下「部署」列改顯示「模式：notecraftapp viewer」（`viewer` prop 由 `NOTECRAFT_NOTES_DIR` 判斷）
+- 實測：預設 view 改 Board 後 `/notes` 直接是 Board、`?view=table` 優先；`nc-workbench-prefs-v1` 設成 `"{oops"` 不炸；`dist/settings/index.html` 無本機使用者名稱

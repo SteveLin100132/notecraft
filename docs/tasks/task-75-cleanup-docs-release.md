@@ -103,3 +103,13 @@ npx tsc --noEmit && npm run build && npm run check-plugins
 ## 依賴
 
 Task 59–74。
+
+## 實作記錄（2026-09-22）
+
+- 刪除 `Card.astro`、`Button.astro`、`TagChip.astro`（0 引用）；`Badge.astro`、`AiMarkerCard.astro`、`DownloadButton.astro` 仍有引用保留。`global.css` 沒有舊殼規則（它們原本在已刪的 `Sidebar.astro`／`BaseLayout.astro` 裡）
+- layout pre-paint script 清一次 `nc:sidebar`
+- 文件：CLAUDE.md（Workbench 一節、目錄結構、dev API、dev／正式差異、`LOCAL_EDIT` 與 pre-push hook 兩句更正）、plugin 設計文件三筆修訂 + `disabled`、workbench 規格 §17 回填、PRD v1.13.0（Phase 4.15、4.16、Site Map）、CHANGELOG 0.7.0、README
+- `package.json` → 0.7.0；`npm pack --dry-run` 確認 `src/components/wb/**`、`workbench.css`、`wb-index.json.ts`、`plugins/**`、`settings.astro`、`favicon.svg` 都在
+- viewer 端對端：外部資料夾 `myproj/docs`（含 `My Notes/Deep Dir/`、無 frontmatter 的 `.md`）build 成功，Sidebar 顯示真實資料夾名，`grep -r "$HOME" dist/` 0 筆
+- 500 篇筆記的 viewer 專案：build 8.7 秒、`wb-index.json` 133 KB、`/notes` HTML 928 KB（props inline）；瀏覽器體感未在本輪量測，已記入規格 §17「仍未做的」
+- 順手修：`/view/*` 的 `rendererPath`（renderer 絕對路徑）原本在正式 build 也 inline 進 island props，改為只在 dev 傳（viewer 端對端 `grep -r "$HOME" dist/` 才抓到）
