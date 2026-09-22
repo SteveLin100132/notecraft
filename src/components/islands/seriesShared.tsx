@@ -123,12 +123,12 @@ const STAT_DOT: Record<"done" | "reading" | "notStarted", string> = {
   notStarted: "var(--neutral-300)",
 };
 
-/** 「N 已完成 · N 閱讀中 · N 待開始」，每段前綴對應小圓點。 */
+/** 「N 已完成 · N 閱讀中 · N 未開始」，每段前綴對應小圓點。 */
 export function ProgStat({ done, reading, notStarted }: { done: number; reading: number; notStarted: number }) {
   const items: [keyof typeof STAT_DOT, number, string][] = [
     ["done", done, "已完成"],
     ["reading", reading, "閱讀中"],
-    ["notStarted", notStarted, "待開始"],
+    ["notStarted", notStarted, "未開始"],
   ];
   return (
     <div

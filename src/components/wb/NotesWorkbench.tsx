@@ -17,6 +17,9 @@ import { md } from "@/lib/wb-time";
 import WbHeader, { type WbHeaderPill } from "./WbHeader";
 import NoteRow from "./NoteRow";
 import NoteDrawer from "./NoteDrawer";
+import BoardView from "./views/BoardView";
+import TableView from "./views/TableView";
+import TimelineView from "./views/TimelineView";
 import { Chip, GroupHeader, SearchBox, Seg } from "./ui";
 
 export type NotesSeriesInfo = { id: string; title: string; accent: SeriesAccent; dataChapters: number };
@@ -214,8 +217,12 @@ export default function NotesWorkbench({
                 : g.rows.map((r) => <NoteRow key={r.slug} row={r} selected={sel === r.slug} onSelect={onSelect} />)}
             </section>
           ))
+        ) : view === "board" ? (
+          <BoardView rows={filtered} sel={sel} onSelect={onSelect} />
+        ) : view === "table" ? (
+          <TableView rows={filtered} sel={sel} onSelect={onSelect} />
         ) : (
-          <div className="wb-empty">{VIEW_LABEL[view]} view 尚未實作。</div>
+          <TimelineView rows={filtered} sel={sel} onSelect={onSelect} />
         )}
       </div>
       {selRow ? (
