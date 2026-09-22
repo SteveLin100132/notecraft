@@ -211,23 +211,33 @@ export function Seg<T extends string>({
   boxed?: boolean;
   label?: string;
 }) {
-  const items = options.map((o) => (
+  const onKey = (e: React.KeyboardEvent<HTMLButtonElement>, i: number) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = options[(i + (e.key === "ArrowRight" ? 1 : -1) + options.length) % options.length];
+    onChange?.(next.value);
+    (e.currentTarget.parentElement?.children[options.indexOf(next)] as HTMLElement | undefined)?.focus();
+  };
+  const items = options.map((o, i) => (
     <button
       key={o.value}
       type="button"
+      role="radio"
       className={"wb-seg" + (value === o.value ? " on" : "")}
-      aria-pressed={value === o.value}
+      aria-checked={value === o.value}
+      tabIndex={value === o.value || (value === undefined && i === 0) ? 0 : -1}
       onClick={() => onChange?.(o.value)}
+      onKeyDown={(e) => onKey(e, i)}
     >
       {o.label}
     </button>
   ));
   return boxed ? (
-    <span className="wb-setseg" role="group" aria-label={label}>
+    <span className="wb-setseg" role="radiogroup" aria-label={label}>
       {items}
     </span>
   ) : (
-    <div className="wb-tb-group" role="group" aria-label={label}>
+    <div className="wb-tb-group" role="radiogroup" aria-label={label}>
       {label ? <span className="wb-tb-lbl">{label}</span> : null}
       {items}
     </div>

@@ -43,16 +43,18 @@ export default function SidebarLive() {
 
     const close = () => {
       sb.classList.remove("open");
+      document.body.classList.remove("wb-sb-open");
       scrim.hidden = true;
       burger.setAttribute("aria-expanded", "false");
       popEscape?.();
       popEscape = null;
-      lastFocus?.focus();
+      (lastFocus && lastFocus !== document.body ? lastFocus : burger).focus();
       lastFocus = null;
     };
     const open = () => {
       lastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       sb.classList.add("open");
+      document.body.classList.add("wb-sb-open");
       scrim.hidden = false;
       burger.setAttribute("aria-expanded", "true");
       popEscape = pushEscape(close);

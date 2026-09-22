@@ -96,10 +96,11 @@ const index = await getWorkbenchIndex();
     />
   </head>
   <body>
+    <a class="wb-skip" href="#nc-main">跳到主要內容</a>
     <div class="wb-app">
       <Rail active={rail} pending={index.pending.markers} />
       <Sidebar index={index} folderPath={folderPath} />
-      <div class="wb-main">
+      <main class="wb-main" id="nc-main">
         <button type="button" class="wb-mburger" id="wb-mburger" aria-label="開啟側欄" aria-expanded="false" aria-controls="wb-sb">
           <Icon name="layers" size={16} stroke={1.7} />
         </button>
@@ -132,7 +133,7 @@ const index = await getWorkbenchIndex();
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
     <SidebarLive client:idle />
     <Palette client:idle />

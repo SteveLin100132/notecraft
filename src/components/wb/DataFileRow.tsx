@@ -10,7 +10,7 @@ export default function DataFileRow({ file }: { file: WbDataFile }) {
       <Ic icon={FileText} size={13} color="var(--wb-gold)" />
       <span className="wb-row-t">{file.title}</span>
       <span className="wb-row-p">{file.relPath}</span>
-      <span className="wb-row-tags" style={{ width: 168, flex: "0 0 168px" }}>
+      <span className="wb-row-tags wb-keep" style={{ width: 168, flex: "0 0 168px" }}>
         <span className="wb-tagchip" style={{ fontFamily: "var(--font-mono)" }}>
           {file.pluginId}
         </span>

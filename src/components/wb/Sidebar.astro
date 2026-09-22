@@ -27,7 +27,7 @@ const dataFolders = Array.from(dataDirs.entries())
   .sort((a, b) => (a.dir === "" ? -1 : b.dir === "" ? 1 : a.dir.localeCompare(b.dir, "zh-Hant")));
 ---
 <button type="button" class="wb-sb-scrim" id="wb-sb-scrim" aria-label="關閉側欄" hidden></button>
-<aside class="wb-sb" id="wb-sb" aria-label="工作區" data-wb-current-folder={folderPath}>
+<nav class="wb-sb" id="wb-sb" aria-label="工作區" data-wb-current-folder={folderPath}>
   <a class="wb-sb-ws" href="/">
     <span class="wb-sb-ws-mark"><Logo size={30} /></span>
     <div style="min-width:0;text-align:left">
@@ -107,7 +107,7 @@ const dataFolders = Array.from(dataDirs.entries())
       <a class="wb-sb-foot-a" href={ROUTES.aiQueue}>查看佇列 →</a>
     </div>
   )}
-</aside>
+</nav>
 
 <script is:inline>
   // 緊接在 Sidebar 之後、同步執行：在首次繪製前套用展開狀態、目前項目高亮與捲動位置，避免換頁閃動。

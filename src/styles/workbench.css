@@ -14,6 +14,7 @@
   --wb-ink: var(--neutral-900); --wb-ink-3: var(--neutral-500); --wb-rail: var(--neutral-900);
   --wb-ok: var(--success-500);  --wb-warn: var(--warning-500);  --wb-danger: var(--danger-500);
   --wb-on: var(--text-on-brand);          /* 實心按鈕、Rail 選取態上的字 */
+  --wb-muted-ink: var(--neutral-600);     /* muted pill 文字：--wb-ink-3 對淺底只有 4.1:1，改用 DS 的 600 階達 4.5:1（Task 74） */
 
   /* ── 工作台專用、DS 無對應（Q28 定案：照 prototype 原值）── */
   --wb-ink-2: #2b3546;          /* 次要文字 */
@@ -182,10 +183,10 @@
 .wb-row-more{height:32px;width:100%;display:flex;align-items:center;padding:0 12px;font-size:11.5px;font-weight:500;color:var(--wb-blue-l);border:none;background:none;cursor:pointer;font-family:inherit}
 .wb-tagchip{height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;background:var(--wb-bg);border:1px solid var(--wb-line);font-size:11px;color:var(--wb-ink-2);white-space:nowrap}
 .wb-tagchip.more{color:var(--wb-ink-3)}
-.wb-pill{height:20px;display:inline-flex;align-items:center;padding:0 9px;border-radius:999px;font-size:11px;font-weight:500;background:var(--wb-a-blue-10);color:var(--wb-blue-l);white-space:nowrap}
+.wb-pill{height:20px;display:inline-flex;align-items:center;padding:0 9px;border-radius:999px;font-size:11px;font-weight:500;background:var(--wb-a-blue-10);color:var(--wb-blue);white-space:nowrap}
 .wb-pill.ok{background:var(--wb-a-ok-14);color:var(--wb-ok-ink)}
 .wb-pill.warn{background:var(--wb-a-warn-16);color:var(--wb-warn-ink)}
-.wb-pill.muted{background:var(--wb-bg);color:var(--wb-ink-3);border:1px solid var(--wb-line)}
+.wb-pill.muted{background:var(--wb-bg);color:var(--wb-muted-ink);border:1px solid var(--wb-line)}
 .wb-row>.wb-pill{width:86px;flex:0 0 86px;justify-content:center}
 .wb-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:var(--wb-ink-3)}
 .wb-dot.warn{background:var(--wb-warn)}
@@ -494,6 +495,7 @@ button.wb-sb-caret{width:11px;flex:0 0 11px;height:100%;padding:0;border:none;ba
 .wb-hd-title.clamp2{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-clamp:2}
 /* 頁首由 island 自己渲染的頁面：<astro-island> 不可成為 flex 子項，否則 Header／Toolbar／Body 的直向排版會壞 */
 .wb-main>astro-island{display:contents}
+main.wb-main{display:flex}
 /* Task 61 的中間態：舊版面原樣搬進新殼時維持原本的閱讀寬度 */
 .wb-host.legacy{max-width:1120px;margin:0 auto;padding:20px 24px 60px}
 @media(max-width:860px){.wb-host,.wb-host.legacy{padding:16px 4px 48px}}
@@ -549,3 +551,54 @@ html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}
 .wb-menu-item.danger{color:var(--wb-danger-ink)}
 .wb-menu-item.danger:hover{background:var(--wb-a-danger-12)}
 .wb-menu-sep{height:1px;margin:4px 0;background:var(--wb-line-2)}
+
+/* ════════════════════════════════════════════════════════════════
+   Task 74：響應式與無障礙收尾（逐頁實測後補的洞）
+   ════════════════════════════════════════════════════════════════ */
+/* 跳到主要內容 */
+.wb-skip{position:absolute;left:8px;top:-40px;z-index:var(--wb-z-overlay);padding:6px 10px;border-radius:6px;background:var(--wb-blue);color:var(--wb-on);font-size:12.5px;font-weight:700;text-decoration:none}
+.wb-skip:focus{top:8px}
+/* 焦點可見：殼內的可互動元素一律有 focus ring（global.css 的 :focus-visible 已設 outline；這裡只補被 outline-offset 蓋掉的） */
+.wb-rail-btn:focus-visible{outline:2px solid var(--wb-rail-ic-hover);outline-offset:-2px}
+.wb-sb-link:focus-visible,.wb-row-main:focus-visible,a.wb-row:focus-visible,.wb-card-main:focus-visible{outline-offset:-3px}
+/* 手機：底部 Tab bar 不遮住 Body 最後一列；safe-area */
+@media(max-width:860px){
+  .wb-rail{padding-bottom:env(safe-area-inset-bottom);height:calc(54px + env(safe-area-inset-bottom));flex-basis:auto}
+  .wb-body{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  .wb-body.flush{padding-bottom:env(safe-area-inset-bottom)}
+  /* 多行列：icon 與標題同一行（標題可換行），路徑／pill／日期落到第二行 */
+  .wb-row-main .wb-row-t{flex:1 1 60%}
+  /* 多行列裡「開啟」圖示垂直置中、點擊區維持 24px */
+  .wb-row:has(>.wb-row-open){align-items:center}
+  /* Drawer 滿版時關閉鈕要夠大 */
+  .wb-dw-x{width:40px;height:40px;flex-basis:40px}
+  .wb-dw-h{padding-right:4px}
+  /* Palette 距頂改 8vh，避免被鍵盤頂掉 */
+  .wb-pal-scrim{padding-top:8vh}
+  /* /plugins 的 plugin id 欄在手機換到第二行 */
+  .wb-row .wb-row-tags{display:none}
+  .wb-row-tags.wb-keep{display:flex;flex:1 1 100%;width:auto}
+  /* 系列詳情：mini button 不被擠出列外 */
+  .wb-row>.wb-mini{margin-left:auto}
+  /* Board 的欄在手機用不到（只有 List），但 Dashboard 的長條圖單欄時不超寬 */
+  .wb-spark{max-width:100%}
+  /* Sidebar 抽屜開著時 Body 不可捲 */
+  body.wb-sb-open .wb-body{overflow:hidden}
+}
+@media(min-width:861px) and (max-width:1100px){
+  body.wb-sb-open .wb-body{overflow:hidden}
+  .wb-board{overflow-x:auto}
+}
+/* 觸控：Board 卡片長按不出現系統選取／拖放介面 */
+@media(pointer:coarse){.wb-card{-webkit-touch-callout:none;user-select:none}}
+/* reduced motion：關閉殼內所有過場 */
+@media(prefers-reduced-motion:reduce){
+  .wb-drawer,.wb-scrim,.wb-sb,.wb-sb-caret,.wb-switch,.wb-switch i,.wb-bar i,.wb-prog i,.wb-sb-prog i,.wb-tagrow-track i,.wb-spark-b{animation:none!important;transition:none!important}
+}
+/* 手機：頁首動作列換到第二行，麵包屑單行省略，不再被動作按鈕擠成三行 */
+@media(max-width:860px){
+  .wb-hd-top{flex-wrap:wrap;align-items:flex-start;row-gap:6px}
+  .wb-hd-top>div:first-child{flex:1 1 100%;min-width:0}
+  .wb-crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wb-hd-actions{flex:1 1 100%;justify-content:flex-end;flex-wrap:wrap;padding-left:0}
+}

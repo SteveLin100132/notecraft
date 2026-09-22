@@ -169,7 +169,15 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     gap: 40px;
     align-items: start;
   }
-  @media (min-width: 1025px) {
+  /* TOC 斷點（Task 74）：以「內文欄至少 640px」為準，不看視窗寬。
+     新殼吃掉 Rail 52 + Sidebar 240，同樣的視窗寬主區窄很多；平板時 Sidebar 又收成抽屜，
+     用視窗寬換算要算兩套。改用 container query 量 .wb-host 的內容寬：
+     640（內文）+ 40（gap）+ 220（TOC）= 900。桌面約落在視窗 1256、平板約 1016。 */
+  .wb-host {
+    container-type: inline-size;
+    container-name: wbhost;
+  }
+  @container wbhost (min-width: 900px) {
     .nc-note-grid.has-toc {
       grid-template-columns: 1fr 220px;
     }
@@ -205,8 +213,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     display: none;
   }
 
-  /* 平板 / 手機：單欄 + 目錄改為可折疊面板置於內文上方 */
-  @media (max-width: 1024px) {
+  /* 主區不夠寬：單欄 + 目錄改為可折疊面板置於內文上方 */
+  @container wbhost (max-width: 899.98px) {
     .nc-note-grid {
       gap: 0;
     }

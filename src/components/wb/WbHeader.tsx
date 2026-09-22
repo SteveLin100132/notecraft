@@ -88,7 +88,16 @@ export default function WbHeader<T extends string>({
               role="tab"
               aria-selected={t.key === activeTab}
               className={"wb-tab" + (t.key === activeTab ? " on" : "")}
+              tabIndex={t.key === activeTab ? 0 : -1}
               onClick={() => onTab?.(t.key)}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                e.preventDefault();
+                const i = tabs.findIndex((x) => x.key === t.key);
+                const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+                onTab?.(next.key);
+                (e.currentTarget.parentElement?.children[tabs.indexOf(next)] as HTMLElement | undefined)?.focus();
+              }}
             >
               {t.label}
             </button>
