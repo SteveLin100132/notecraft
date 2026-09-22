@@ -4,6 +4,12 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.1.1] - 2026-09-22
+
+### 移除
+
+- 資料檔頁（`/view/<路徑>`）底部的閱讀狀態、「已標記為完成」提示與系列導覽卡（上一章／下一章），頁面只渲染資料檔本身；屬於系列時仍在頁首以 pill 標示、可連到系列頁。資料檔章節因此不再自動標為「閱讀中」，也無法在此頁標記完成
+
 ## [1.1.0] - 2026-09-22
 
 **筆記目錄支援 H1–H3 三層**。設計見 `docs/prototype/design_handoff_note_toc/`。

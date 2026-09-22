@@ -9,9 +9,6 @@ import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import Icon from "@/components/Icon.astro";
 import RelativeTime from "@/components/wb/RelativeTime.tsx";
 import PluginHost from "@/components/islands/PluginHost.tsx";
-import ReadingControl from "@/components/islands/ReadingControl.tsx";
-import DonePrompt from "@/components/islands/DonePrompt.tsx";
-import SeriesNav from "@/components/islands/SeriesNav.tsx";
 import { getDataFiles, getPlugins } from "@/lib/plugins";
 import { getAllNotes } from "@/lib/notes";
 import { loadSeries, seriesOf, dataRef } from "@/lib/series";
@@ -32,28 +29,11 @@ const vscodeHref = `vscode://file/${file.absPath.replace(/\\/g, "/").replace(/^\
 const backTo = file.backTo;
 const updatedDate = file.updatedAt.slice(0, 10);
 
-// 資料檔頁也可以是系列的一章（Q6′）。識別碼是 `view:<routePath>`，
-// 同時也是閱讀進度的 localStorage key —— 不剝前綴，否則會與同名筆記撞格。
+// 資料檔頁也可以是系列的一章（Q6′），識別碼是 `view:<routePath>`。
+// 這頁只渲染資料檔本身：系列只在頁首以 pill 標示，不放閱讀狀態與上一章／下一章。
 const ref = dataRef(file.routePath);
 const allNotes = await getAllNotes();
 const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
-const seriesNavData = series
-  ? {
-      id: series.series.id,
-      title: series.series.title,
-      eyebrow: series.series.eyebrow,
-      accent: series.series.accent,
-      icon: series.series.icon,
-      chapters: series.chapters.map((c) => ({
-        ref: c.ref,
-        href: c.href,
-        title: c.title,
-        kind: c.kind,
-        relPath: c.relPath,
-      })),
-      currentIndex: series.index,
-    }
-  : null;
 ---
 
 <WorkbenchLayout
@@ -96,8 +76,7 @@ const seriesNavData = series
     </div>
   )}
 
-  {/* 屬於系列時把 min-height 收掉 —— 否則圖與頁尾導覽之間會空一整屏 */}
-  <div class={`nc-dv-stage${series ? " nc-dv-stage--inseries" : ""}`}>
+  <div class="nc-dv-stage">
     <PluginHost
       client:load
       pluginId={file.pluginId}
@@ -109,15 +88,6 @@ const seriesNavData = series
       isDev={isDev}
     />
   </div>
-
-  {series && (
-    <div class="nc-dv-series">
-      {/* 開頁即「閱讀中」；「已完成」一律由讀者手動按。與筆記同一套機制、同一個 key。 */}
-      <ReadingControl client:idle slug={ref} />
-      <DonePrompt client:visible slug={ref} />
-      <SeriesNav client:visible series={seriesNavData!} />
-    </div>
-  )}
 </WorkbenchLayout>
 
 <style>
@@ -125,19 +95,5 @@ const seriesNavData = series
     min-height: 100%;
     background: var(--surface-page);
     padding: 18px clamp(12px, 3vw, 40px) 48px;
-  }
-  .nc-dv-stage--inseries {
-    min-height: 0;
-    padding-bottom: 8px;
-  }
-
-  /* 渲染區是滿版的，導覽不是 —— 一條橫跨整個螢幕的上一章／下一章沒人想讀 */
-  .nc-dv-series {
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 0 40px 72px;
-  }
-  @media (max-width: 1024px) {
-    .nc-dv-series { padding: 0 16px 56px; }
   }
 </style>
