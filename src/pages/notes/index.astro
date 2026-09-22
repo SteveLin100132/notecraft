@@ -15,5 +15,12 @@ const series = index.series.map((s) => ({
 }));
 ---
 <WorkbenchLayout title="全部筆記" description="瀏覽所有 NoteCraft 筆記" bare>
-  <NotesWorkbench client:load rows={index.notes} series={series} workspaceLabel={index.workspaceLabel} isDev={isDev} />
+  <NotesWorkbench
+    client:load
+    rows={index.notes}
+    series={series}
+    seriesFull={index.series}
+    workspaceLabel={index.workspaceLabel}
+    isDev={isDev}
+  />
 </WorkbenchLayout>

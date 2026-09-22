@@ -17,7 +17,7 @@ import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
 import { getDataFiles } from "@/lib/plugins";
-import { noteRelPath } from "@/lib/workbench";
+import { noteRelPath, promptPathOf } from "@/lib/workbench";
 import { notesFolderHref } from "@/lib/wb-routes";
 import { ROOT_GROUP } from "@/lib/wb-types";
 
@@ -58,6 +58,7 @@ const seriesNavData = series
 
 // 麵包屑第三段 = 筆記所在資料夾（真實路徑，不是 slug）
 const relPath = noteRelPath(note);
+const promptPath = promptPathOf(relPath);
 const folderPath = relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
 const aiPill =
   pendingMarkers.length > 0
@@ -126,7 +127,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
               <Icon name="play" size={15} /> 簡報
             </a>
           ) : isDev ? (
-            <GenerateDeckButton client:idle slug={note.id} notePath={note.filePath} />
+            <GenerateDeckButton client:idle promptPath={promptPath} />
           ) : null}
           <FavoriteButton client:idle slug={note.id} />
           {isDev && (
@@ -138,7 +139,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
             </a>
           )}
           {isDev && pendingIds.length > 0 && (
-            <RegenerateButton client:idle slug={note.id} pendingIds={pendingIds} />
+            <RegenerateButton client:idle promptPath={promptPath} pendingIds={pendingIds} />
           )}
           {isDev && (
             <DeleteNoteButton
@@ -171,7 +172,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         style="margin-top:44px;padding-top:22px;border-top:1px solid var(--neutral-200);display:flex;justify-content:space-between;color:var(--text-muted);font-size:13px;"
       >
         <span>建立於 {fmtDate(note.data.createdAt)}</span>
-        <span style="font-family:var(--font-mono);">{note.filePath ?? `src/content/notes/${note.id}.mdx`}</span>
+        <span style="font-family:var(--font-mono);">{relPath}</span>
       </div>
 
       {seriesNavData && <SeriesNav client:visible series={seriesNavData} />}

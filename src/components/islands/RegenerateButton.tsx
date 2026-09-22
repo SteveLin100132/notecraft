@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Clipboard, Check } from "lucide-react";
+import { buildRegeneratePrompt, copyToClipboard } from "@/lib/prompts";
 
-export default function RegenerateButton({ slug, pendingIds }: { slug: string; pendingIds: string[] }) {
+export default function RegenerateButton({ promptPath, pendingIds }: { promptPath: string; pendingIds: string[] }) {
   const [copied, setCopied] = useState(false);
   const onClick = async () => {
-    const template = `請使用 content-visualize-skill 重新處理 src/content/notes/${slug}.mdx 內的 @ai-visualize 標記區塊（${pendingIds.join(
-      ", ",
-    )}），依 note-scanner → visualize-planner → component-generator → mdx-writer 流程生成元件並回寫 MDX。`;
-    try {
-      await navigator.clipboard.writeText(template);
+    if (await copyToClipboard(buildRegeneratePrompt({ promptPath, pendingIds }))) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      window.dispatchEvent(
-        new CustomEvent("nc-toast", { detail: { msg: "無法複製，請檢查瀏覽器權限", icon: "x" } }),
-      );
     }
   };
   return (

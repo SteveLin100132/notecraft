@@ -8,7 +8,7 @@ import { CalendarDays, Filter, Folder, Layers, Search, Tag } from "lucide-react"
 import type { LucideProps } from "lucide-react";
 import type { ComponentType } from "react";
 import type { SeriesAccent } from "@/data/series";
-import type { WbNoteRow } from "@/lib/wb-types";
+import type { WbNoteRow, WbSeries } from "@/lib/wb-types";
 import { markerCounts } from "@/lib/wb-types";
 import { applyFilters, EMPTY_QUERY, groupRows, parseQuery, toSearch, type WbQuery } from "@/lib/wb-filter";
 import { DEFAULT_PREFS, GROUP_LABEL, readPrefs, VIEW_LABEL, WB_GROUPS, WB_VIEWS, writePrefs, type WbGroupBy, type WbView } from "@/lib/wb-prefs";
@@ -16,6 +16,7 @@ import { FAVORITES_EVENT, getFavorites } from "@/lib/favorites";
 import { md } from "@/lib/wb-time";
 import WbHeader, { type WbHeaderPill } from "./WbHeader";
 import NoteRow from "./NoteRow";
+import NoteDrawer from "./NoteDrawer";
 import { Chip, GroupHeader, SearchBox, Seg } from "./ui";
 
 export type NotesSeriesInfo = { id: string; title: string; accent: SeriesAccent; dataChapters: number };
@@ -42,11 +43,14 @@ function useNarrow(): boolean {
 export default function NotesWorkbench({
   rows = [],
   series = [],
+  seriesFull = [],
+  workspaceLabel = "",
   isDev = false,
 }: {
   rows?: WbNoteRow[];
   series?: NotesSeriesInfo[];
-  /** Drawer 頂列要用（Task 63） */
+  /** 完整章節，供 Drawer 的「同系列章節」 */
+  seriesFull?: WbSeries[];
   workspaceLabel?: string;
   isDev?: boolean;
 }) {
@@ -123,6 +127,11 @@ export default function NotesWorkbench({
   if (activeSeries && activeSeries.dataChapters > 0) pills.push({ label: "僅筆記", tone: "muted" });
 
   const onSelect = useCallback((slug: string) => setSel((cur) => (cur === slug ? null : slug)), []);
+  const selRow = sel ? rows.find((r) => r.slug === sel) ?? null : null;
+  // 篩選變了、選取的列不在畫面上 → 關 Drawer
+  useEffect(() => {
+    if (sel && !filtered.some((r) => r.slug === sel)) setSel(null);
+  }, [filtered, sel]);
 
   return (
     <>
@@ -209,6 +218,15 @@ export default function NotesWorkbench({
           <div className="wb-empty">{VIEW_LABEL[view]} view 尚未實作。</div>
         )}
       </div>
+      {selRow ? (
+        <NoteDrawer
+          row={selRow}
+          series={selRow.series ? seriesFull.find((s) => s.id === selRow.series!.id) ?? null : null}
+          workspaceLabel={workspaceLabel}
+          isDev={isDev}
+          onClose={() => setSel(null)}
+        />
+      ) : null}
     </>
   );
 }

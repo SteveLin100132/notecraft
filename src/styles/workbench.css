@@ -510,3 +510,10 @@ html[data-wb-filtering] .wb-main .wb-crumb,
 html[data-wb-filtering] .wb-main .wb-tabs,
 html[data-wb-filtering] .wb-main .wb-tb,
 html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}
+
+/* ── 24px 方形 icon 鈕（收藏星號、⋯ 更多）── */
+.wb-iconbtn{width:24px;height:24px;flex:0 0 24px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:none;background:none;color:var(--wb-ink-3);cursor:pointer}
+.wb-iconbtn:hover{background:var(--wb-bg);color:var(--wb-ink-2)}
+.wb-iconbtn.on{color:var(--wb-gold)}
+.wb-dw-sec{position:relative}
+@media (prefers-reduced-motion:reduce){.wb-drawer,.wb-scrim,.wb-sb{animation:none;transition:none}}
