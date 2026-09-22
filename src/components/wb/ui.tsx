@@ -2,6 +2,7 @@
 // class 名稱與 docs/prototype/design_handoff_workbench/prototype/wb/*.jsx 一致，樣式全在 src/styles/workbench.css。
 import type { CSSProperties, ComponentType, ReactNode } from "react";
 import { ChevronRight, type LucideProps } from "lucide-react";
+import { markerCounts, type WbMarker } from "@/lib/wb-types";
 
 /** prototype 的圖示是 24 grid／1.7 stroke；lucide 預設 stroke 2，這裡統一成 1.7。 */
 export function Ic({
@@ -308,4 +309,16 @@ export function SearchBox({
       />
     </span>
   );
+}
+
+/**
+ * AI 狀態 pill（README §4）。優先序：無 frontmatter → 待生成 N → 已生成 N → 無標記。
+ * 列表、Drawer、Palette、Dashboard 全部共用這一顆，文案只在這裡出現一次。
+ */
+export function AiPill({ markers = [], hasFrontmatter = true }: { markers?: WbMarker[]; hasFrontmatter?: boolean }) {
+  if (!hasFrontmatter) return <Pill tone="muted">無 frontmatter</Pill>;
+  const { done, pending } = markerCounts(markers);
+  if (pending > 0) return <Pill tone="warn">{`待生成 ${pending}`}</Pill>;
+  if (done > 0) return <Pill tone="ok">{`已生成 ${done}`}</Pill>;
+  return <Pill tone="muted">無標記</Pill>;
 }

@@ -497,3 +497,9 @@ button.wb-sb-caret{width:11px;flex:0 0 11px;height:100%;padding:0;border:none;ba
 /* Task 61 的中間態：舊版面原樣搬進新殼時維持原本的閱讀寬度 */
 .wb-host.legacy{max-width:1120px;margin:0 auto;padding:20px 24px 60px}
 @media(max-width:860px){.wb-host,.wb-host.legacy{padding:16px 4px 48px}}
+
+/* ── Palette（Task 65）：分組小標與載入中的骨架列 ── */
+.wb-pal-sec{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--wb-ink-3);padding:8px 16px 4px;background:var(--wb-panel)}
+.wb-pal .wb-row-p b{color:var(--wb-ink);font-weight:700}
+.wb-skel{cursor:default;pointer-events:none}
+.wb-skel::before{content:"";flex:1;height:10px;border-radius:999px;background:var(--wb-line-2)}

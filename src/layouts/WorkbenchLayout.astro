@@ -16,6 +16,7 @@ import Sidebar from "@/components/wb/Sidebar.astro";
 import Header, { type HeaderCrumb, type HeaderPill, type HeaderTab } from "@/components/wb/Header.astro";
 import Icon from "@/components/Icon.astro";
 import SidebarLive from "@/components/wb/SidebarLive.tsx";
+import Palette from "@/components/wb/Palette.tsx";
 import ToastHost from "@/components/islands/ToastHost.tsx";
 import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import { getWorkbenchIndex } from "@/lib/workbench";
@@ -106,6 +107,7 @@ const index = await getWorkbenchIndex();
       </div>
     </div>
     <SidebarLive client:idle />
+    <Palette client:idle />
     <ToastHost client:idle />
     {isDev && <NewNoteModal client:idle />}
     <script is:inline>

@@ -1,7 +1,6 @@
 ---
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import NotesList from "@/components/islands/NotesList.tsx";
-import PagefindSearch from "@/components/islands/PagefindSearch.tsx";
 import { getAllNotes, parseMarkers, tagStats, excerpt } from "@/lib/notes";
 import { loadSeries } from "@/lib/series";
 import { getDataFiles } from "@/lib/plugins";
@@ -55,7 +54,6 @@ const dataCards = getDataFiles().map((f) => ({
       : `${notes.length} 篇筆記 · 預設依更新時間倒序`}</span>
   </div>
   <div class="wb-host legacy">
-  <PagefindSearch client:idle />
   <NotesList client:load notes={cards} dataFiles={dataCards} tagStats={stats} />
 
   </div>
