@@ -602,3 +602,6 @@ html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}
   .wb-crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .wb-hd-actions{flex:1 1 100%;justify-content:flex-end;flex-wrap:wrap;padding-left:0}
 }
+
+/* 頁首上半段的高度對齊 Sidebar 的工作區頭（.wb-sb-ws 68px + 1px 邊線）：沒有 Tab 列的頁面（筆記頁、資料檔頁…）兩邊的底線才會連成一線 */
+.wb-hd-top{min-height:68px;box-sizing:border-box}
