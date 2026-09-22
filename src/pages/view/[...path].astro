@@ -5,7 +5,7 @@
 // ER 圖是橫向佈局，1120 都塞不下；渲染器自帶工具列、橫向捲動與全寬覆蓋層，
 // 外層再包一層外框卡片或放大檢視都是重複功能（Q22）。
 import path from "node:path";
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import Icon from "@/components/Icon.astro";
 import PluginHost from "@/components/islands/PluginHost.tsx";
 import ReadingControl from "@/components/islands/ReadingControl.tsx";
@@ -54,7 +54,15 @@ const seriesNavData = series
   : null;
 ---
 
-<BaseLayout title={file.title} description={file.description} current="data" bleed>
+<WorkbenchLayout
+  title={file.title}
+  description={file.description}
+  rail="plugins"
+  back="/view"
+  flush
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin", href: "/view" }, { label: file.relPath }]}
+  pills={[{ label: file.pluginId }]}
+>
   {/* data-pagefind-body：Q6 定案這些頁只索引標題與描述。
       專案已在筆記頁用了 data-pagefind-body（notes/[...slug].astro），pagefind 因此處於
       「只索引標記過的區塊」模式 —— 不標的話這頁根本不會進索引。標在頁首而非整頁，
@@ -127,7 +135,7 @@ const seriesNavData = series
       <SeriesNav client:visible series={seriesNavData!} />
     </div>
   )}
-</BaseLayout>
+</WorkbenchLayout>
 
 <style>
   .nc-dv-head {

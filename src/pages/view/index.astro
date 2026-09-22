@@ -1,7 +1,6 @@
 ---
 // 資料檔清單頁（Task 49）。側邊欄「資料 Data」指向這裡。
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import PageHead from "@/components/PageHead.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import Icon from "@/components/Icon.astro";
 import DataFilesList from "@/components/islands/DataFilesList.tsx";
 import { getDataFiles, getUsedPlugins } from "@/lib/plugins";
@@ -18,17 +17,19 @@ const cards = files.map((f) => ({
 }));
 ---
 
-<BaseLayout title="所有資料檔" current="data" description="由 plugin 渲染的結構化資料檔">
-  <PageHead
-    eyebrow="DATA"
-    title="所有資料檔"
-    sub={
-      files.length
-        ? `${files.length} 個資料檔 · 由 ${pluginCount} 個 plugin 渲染 · 依檔案 mtime 倒序`
-        : "還沒有任何資料檔"
-    }
-  />
-
+<WorkbenchLayout
+  title="Plugin 資料檔"
+  rail="plugins"
+  description="由 plugin 渲染的結構化資料檔"
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin" }]}
+  pills={[{ label: `${files.length} 個資料檔`, tone: "muted" }]}
+>
+  <div slot="toolbar" class="wb-tb">
+    <span class="wb-tb-lbl">{files.length
+      ? `${files.length} 個資料檔 · 由 ${pluginCount} 個 plugin 渲染 · 依檔案 mtime 倒序`
+      : "還沒有任何資料檔"}</span>
+  </div>
+  <div class="wb-host legacy">
   {files.length ? (
     <DataFilesList client:load files={cards} />
   ) : (
@@ -49,4 +50,5 @@ const cards = files.map((f) => ({
       >npx notecraftapp install-plugin</pre>
     </div>
   )}
-</BaseLayout>
+  </div>
+</WorkbenchLayout>

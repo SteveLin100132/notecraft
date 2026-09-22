@@ -1,0 +1,122 @@
+---
+// 三欄工作台的殼（取代 BaseLayout）。規格：docs/notecraft-workbench.md §4。
+//
+//   .wb-app
+//     Rail（52）  Sidebar（240）  .wb-main ─ Header ─ toolbar slot ─ #nc-scroll.wb-body
+//
+// **整頁不捲動**，只有 Body 與 Sidebar 內部捲動。`id="nc-scroll"` 刻意保留在新的捲動容器上：
+// Toc.tsx 與 notes/[...slug].astro 的 inline script 共 4 處靠它找捲動容器。
+//
+// `bare`：Header／Toolbar／Body／Drawer 是同一份 state 的頁面（/notes、Dashboard、/plugins…）
+// 由 island 自己渲染這四塊，layout 只提供 .wb-main 這個容器。此時 island **必須自己輸出 #nc-scroll.wb-body**。
+import "@/styles/global.css";
+import "@/styles/workbench.css";
+import Rail, { type RailKey } from "@/components/wb/Rail.astro";
+import Sidebar from "@/components/wb/Sidebar.astro";
+import Header, { type HeaderCrumb, type HeaderPill, type HeaderTab } from "@/components/wb/Header.astro";
+import Icon from "@/components/Icon.astro";
+import SidebarLive from "@/components/wb/SidebarLive.tsx";
+import ToastHost from "@/components/islands/ToastHost.tsx";
+import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
+import { getWorkbenchIndex } from "@/lib/workbench";
+
+export interface Props {
+  title: string;
+  description?: string;
+  rail?: RailKey;
+  crumbs?: HeaderCrumb[];
+  pills?: HeaderPill[];
+  back?: string;
+  tabs?: HeaderTab[];
+  /** Body 無 padding、白底（取代舊的 bleed） */
+  flush?: boolean;
+  /** 頁首、工具列、Body 由頁內 island 自己渲染 */
+  bare?: boolean;
+  /** 目前頁面所屬的資料夾路徑（筆記頁）：Sidebar 會展開它的祖先鏈並標為目前項目 */
+  folderPath?: string;
+  clampTwo?: boolean;
+  pagefindTitle?: boolean;
+  indexHeader?: boolean;
+}
+const {
+  title,
+  description,
+  rail = "",
+  crumbs = [],
+  pills = [],
+  back,
+  tabs = [],
+  flush = false,
+  bare = false,
+  folderPath = "",
+  clampTwo = false,
+  pagefindTitle = false,
+  indexHeader = false,
+} = Astro.props;
+
+const isDev = import.meta.env.DEV;
+const index = await getWorkbenchIndex();
+---
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — NoteCraft</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap"
+    />
+  </head>
+  <body>
+    <div class="wb-app">
+      <Rail active={rail} pending={index.pending.markers} />
+      <Sidebar index={index} folderPath={folderPath} />
+      <div class="wb-main">
+        <button type="button" class="wb-mburger" id="wb-mburger" aria-label="開啟側欄" aria-expanded="false" aria-controls="wb-sb">
+          <Icon name="layers" size={16} stroke={1.7} />
+        </button>
+        {bare ? (
+          <slot />
+        ) : (
+          <>
+            <Header
+              title={title}
+              crumbs={crumbs}
+              pills={pills}
+              back={back}
+              tabs={tabs}
+              clampTwo={clampTwo}
+              pagefindTitle={pagefindTitle}
+              indexHeader={indexHeader}
+            >
+              <slot name="pills" slot="pills" />
+              <slot name="actions" slot="actions" />
+            </Header>
+            <slot name="toolbar" />
+            <div id="nc-scroll" class:list={["wb-body", { flush }]}>
+              <slot />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+    <SidebarLive client:idle />
+    <ToastHost client:idle />
+    {isDev && <NewNoteModal client:idle />}
+    <script is:inline>
+      // 殼的兩顆事件型按鈕：Rail 的搜尋、頁首的「＋ 新增筆記」。只 dispatch 事件，由對應的 island 接。
+      // 用事件而非 getElementById 綁定：island 渲染的頁首可能晚於 Modal 的 effect 才掛載，直接綁會綁不到。
+      document.addEventListener("click", function (e) {
+        var t = e.target && e.target.closest ? e.target : null;
+        if (!t) return;
+        if (t.closest("[data-wb-open-palette]")) window.dispatchEvent(new CustomEvent("nc-open-palette"));
+        else if (t.closest("[data-wb-new-note]")) window.dispatchEvent(new CustomEvent("nc-open-new-note"));
+      });
+    </script>
+  </body>
+</html>

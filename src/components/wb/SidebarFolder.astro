@@ -1,0 +1,33 @@
+---
+// 資料夾樹的一個節點（遞迴、不限層數；子層每層縮排 +14px）。
+// 列是容器：裡面並排「收合鈕」與「連結」，不把按鈕包進連結裡。
+import Icon from "@/components/Icon.astro";
+import type { WbFolderNode } from "@/lib/wb-types";
+
+export interface Props {
+  node: WbFolderNode;
+  depth?: number;
+}
+const { node, depth = 0 } = Astro.props;
+const hasKids = node.children.length > 0;
+const pad = 10 + depth * 14;
+---
+<div class="wb-sb-item" style={`padding-left:${pad}px`} data-wb-folder={node.path}>
+  {hasKids ? (
+    <button type="button" class="wb-sb-caret" aria-expanded="false" aria-label={`展開 ${node.name}`} data-wb-toggle={node.path}>
+      <Icon name="chevronRight" size={11} stroke={2.2} />
+    </button>
+  ) : (
+    <span class="wb-sp11"></span>
+  )}
+  <a class="wb-sb-link" href={`/notes?folder=${encodeURIComponent(node.path)}`}>
+    <Icon name="folder" size={depth ? 13 : 14} style={`color:${depth ? "var(--wb-ink-3)" : "var(--wb-blue-l)"};flex:none`} />
+    <span class="wb-sb-label" style={depth ? "font-size:12.5px" : undefined}>{node.name}</span>
+    <span class="wb-badge-n tnum">{node.count}</span>
+  </a>
+</div>
+{hasKids && (
+  <div class="wb-sb-sub" data-wb-sub={node.path} hidden>
+    {node.children.map((c) => <Astro.self node={c} depth={depth + 1} />)}
+  </div>
+)}

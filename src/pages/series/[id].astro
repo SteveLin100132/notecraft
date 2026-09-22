@@ -1,6 +1,5 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import Icon from "@/components/Icon.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import SeriesDetail from "@/components/islands/SeriesDetail.tsx";
 import type { SeriesDetailData } from "@/components/islands/SeriesDetail.tsx";
 import { getAllNotes } from "@/lib/notes";
@@ -39,16 +38,17 @@ export async function getStaticPaths() {
 
 const { data } = Astro.props;
 ---
-<BaseLayout title={data.title} current="series" description={data.description}>
-  <a
-    href="/series"
-    style="display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:18px;"
-  >
-    <Icon name="chevronLeft" size={16} /> 返回系列
-  </a>
-
+<WorkbenchLayout
+  title={data.title}
+  description={data.description}
+  back="/series"
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列", href: "/series" }, { label: data.title }]}
+  pills={[{ label: `${data.chapters.length} 章`, tone: "muted" }]}
+>
+  <div class="wb-host legacy">
   <SeriesDetail client:load series={data} />
-</BaseLayout>
+  </div>
+</WorkbenchLayout>
 
 <style is:global>
   .nc-chapter-row:hover {

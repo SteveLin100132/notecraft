@@ -1,0 +1,179 @@
+---
+// Sidebar：240px 檔案樹（README §3.3）。四個區段順序固定：資料夾／系列／Plugin 資料檔／其他。
+// 這裡畫的全是 build 期已知的東西。靠 client 才知道的三件事不在這：
+//   - 展開狀態、目前項目高亮、捲動位置 → 緊接在後的 inline script（首次繪製前套用，不閃）
+//   - 系列進度（localStorage）、平板／手機的抽屜開合 → SidebarLive island
+import Icon from "@/components/Icon.astro";
+import Logo from "@/components/wb/Logo.astro";
+import SidebarFolder from "@/components/wb/SidebarFolder.astro";
+import type { WbIndex } from "@/lib/wb-types";
+import { ROOT_GROUP } from "@/lib/wb-types";
+import { ROUTES, dataFolderHref } from "@/lib/wb-routes";
+
+export interface Props {
+  index: WbIndex;
+  /** 目前頁面所屬的資料夾路徑（筆記頁用）：它的祖先鏈預設展開。 */
+  folderPath?: string;
+}
+const { index, folderPath = "" } = Astro.props;
+
+const series = index.series.filter((s) => s.chapters.length > 0);
+
+// 資料檔依所在資料夾分組；根目錄排最前。
+const dataDirs = new Map<string, number>();
+for (const f of index.dataFiles) dataDirs.set(f.dir, (dataDirs.get(f.dir) ?? 0) + 1);
+const dataFolders = Array.from(dataDirs.entries())
+  .map(([dir, count]) => ({ dir, count }))
+  .sort((a, b) => (a.dir === "" ? -1 : b.dir === "" ? 1 : a.dir.localeCompare(b.dir, "zh-Hant")));
+---
+<button type="button" class="wb-sb-scrim" id="wb-sb-scrim" aria-label="關閉側欄" hidden></button>
+<aside class="wb-sb" id="wb-sb" aria-label="工作區" data-wb-current-folder={folderPath}>
+  <a class="wb-sb-ws" href="/">
+    <span class="wb-sb-ws-mark"><Logo size={30} /></span>
+    <div style="min-width:0;text-align:left">
+      <div class="wb-sb-ws-name">NoteCraft 工作台</div>
+      <div class="wb-sb-ws-path" title={index.workspaceLabel}>{index.workspaceLabel}</div>
+    </div>
+  </a>
+  <div class="wb-sb-scroll" id="wb-sb-scroll">
+    <div class="wb-sb-sec">資料夾</div>
+    <div class="wb-sb-item" style="padding-left:10px" data-wb-all-notes>
+      <span class="wb-sp11"></span>
+      <a class="wb-sb-link" href="/notes">
+        <Icon name="layers" size={14} style="color:var(--wb-ink-3);flex:none" />
+        <span class="wb-sb-label">全部筆記</span>
+        <span class="wb-badge-n tnum">{index.notes.length}</span>
+      </a>
+    </div>
+    {index.folders.map((f) => <SidebarFolder node={f} />)}
+
+    {series.length > 0 && (
+      <>
+        <div class="wb-sb-sec" style="margin-top:8px">系列<a class="wb-sb-foot-a" style="padding:0;font-size:11px" href="/series">全部</a></div>
+        {series.map((s) => (
+          <div class:list={["wb-sb-item", `wb-acc-${s.accent}`]} style="padding-left:10px" data-wb-series={s.id} data-wb-refs={JSON.stringify(s.chapters.map((c) => c.ref))}>
+            <span class="wb-sp11"></span>
+            <a class="wb-sb-link" href={`/series/${s.id}`}>
+              <span class="wb-sb-swatch"></span>
+              <span class="wb-sb-label">{s.title}</span>
+              <span class="wb-sb-prog" aria-hidden="true"><i style="width:0%"></i></span>
+              <span class="wb-badge-n tnum" data-wb-series-n>0/{s.chapters.length}</span>
+            </a>
+          </div>
+        ))}
+      </>
+    )}
+
+    {index.dataFiles.length > 0 && (
+      <>
+        <div class="wb-sb-sec" style="margin-top:8px">Plugin 資料檔</div>
+        <div class="wb-sb-item" style="padding-left:10px" data-wb-path={ROUTES.plugins}>
+          <span class="wb-sp11"></span>
+          <a class="wb-sb-link" href={ROUTES.plugins}>
+            <Icon name="layers" size={14} style="color:var(--wb-ink-3);flex:none" />
+            <span class="wb-sb-label">全部資料檔</span>
+            <span class="wb-badge-n tnum">{index.dataFiles.length}</span>
+          </a>
+        </div>
+        {dataFolders.map((d) => (
+          <div class="wb-sb-item" style="padding-left:10px" data-wb-path={dataFolderHref(d.dir)}>
+            <span class="wb-sp11"></span>
+            <a class="wb-sb-link" href={dataFolderHref(d.dir)}>
+              <Icon name="folder" size={14} style="color:var(--wb-gold);flex:none" />
+              <span class="wb-sb-label">{d.dir === "" ? ROOT_GROUP : d.dir}</span>
+              <span class="wb-badge-n tnum">{d.count}</span>
+            </a>
+          </div>
+        ))}
+      </>
+    )}
+
+    <div class="wb-sb-sec" style="margin-top:8px">其他</div>
+    <div class="wb-sb-item" style="padding-left:10px" data-wb-path="/tags">
+      <span class="wb-sp11"></span>
+      <a class="wb-sb-link" href="/tags">
+        <Icon name="tag" size={14} style="color:var(--wb-ink-3);flex:none" />
+        <span class="wb-sb-label">標籤</span>
+        <span class="wb-badge-n tnum">{index.tags.length}</span>
+      </a>
+    </div>
+  </div>
+  {index.pending.markers > 0 && (
+    <div class="wb-sb-foot">
+      <div class="wb-sb-foot-h"><Icon name="sparkle" size={13} style="color:var(--wb-warn)" /> 待生成標記</div>
+      <div class="wb-sb-foot-b">
+        <b class="tnum">{index.pending.markers}</b> 個 @ai-visualize 標記待生成，分布於 {index.pending.notes} 篇筆記。
+      </div>
+      <a class="wb-sb-foot-a" href={ROUTES.aiQueue}>查看佇列 →</a>
+    </div>
+  )}
+</aside>
+
+<script is:inline>
+  // 緊接在 Sidebar 之後、同步執行：在首次繪製前套用展開狀態、目前項目高亮與捲動位置，避免換頁閃動。
+  // 這裡只碰 DOM，不重新渲染樹（規格 §4.4）。
+  (function () {
+    var KEY = "nc-wb-sidebar-v1", SCROLL_KEY = "nc-wb-sidebar-scroll";
+    var sb = document.getElementById("wb-sb");
+    if (!sb) return;
+    var open = [];
+    try { var raw = JSON.parse(localStorage.getItem(KEY) || "[]"); if (Array.isArray(raw)) open = raw.filter(function (x) { return typeof x === "string"; }); } catch (e) {}
+
+    var path = location.pathname.replace(/\/+$/, "") || "/";
+    var qs = new URLSearchParams(location.search);
+    var curFolder = path === "/notes" ? (qs.get("folder") || "") : (sb.getAttribute("data-wb-current-folder") || "");
+
+    // 目前所在資料夾的祖先鏈一律展開（不寫回 localStorage —— 那是使用者手動展開的紀錄）
+    var forced = [];
+    if (curFolder) { var segs = curFolder.split("/"); for (var i = 1; i <= segs.length; i++) forced.push(segs.slice(0, i).join("/")); }
+
+    function setOpen(p, on) {
+      var sub = sb.querySelector('[data-wb-sub="' + CSS.escape(p) + '"]');
+      var btn = sb.querySelector('[data-wb-toggle="' + CSS.escape(p) + '"]');
+      if (sub) sub.hidden = !on;
+      if (btn) { btn.classList.toggle("open", on); btn.setAttribute("aria-expanded", on ? "true" : "false"); }
+    }
+    open.concat(forced).forEach(function (p) { setOpen(p, true); });
+
+    // 目前項目高亮。靜態站 build 期看不到 query，所以在這裡判斷。
+    function mark(el) { if (el) { el.classList.add("on"); var a = el.querySelector("a"); if (a) a.setAttribute("aria-current", "page"); } }
+    if (path === "/notes") {
+      if (qs.get("folder")) mark(sb.querySelector('[data-wb-folder="' + CSS.escape(qs.get("folder")) + '"]'));
+      else if (qs.get("series")) mark(sb.querySelector('[data-wb-series="' + CSS.escape(qs.get("series")) + '"]'));
+      else if (!qs.get("tag") && !qs.get("pending")) mark(sb.querySelector("[data-wb-all-notes]"));
+    } else if (path.indexOf("/series/") === 0) {
+      mark(sb.querySelector('[data-wb-series="' + CSS.escape(decodeURIComponent(path.slice(8))) + '"]'));
+    } else if (path.indexOf("/notes/") === 0 && curFolder) {
+      mark(sb.querySelector('[data-wb-folder="' + CSS.escape(curFolder) + '"]'));
+    } else {
+      var items = sb.querySelectorAll("[data-wb-path]");
+      for (var j = 0; j < items.length; j++) if (decodeURIComponent(items[j].getAttribute("data-wb-path")) === decodeURIComponent(path)) mark(items[j]);
+    }
+
+    // Rail 的 AI 佇列：/notes?pending=1
+    if (path === "/notes" && qs.get("pending")) {
+      var ai = document.querySelector('[data-rail="ai"]');
+      if (ai) ai.classList.add("on");
+    }
+
+    // 收合鈕
+    sb.addEventListener("click", function (e) {
+      var btn = e.target.closest ? e.target.closest("[data-wb-toggle]") : null;
+      if (!btn) return;
+      var p = btn.getAttribute("data-wb-toggle");
+      var on = !btn.classList.contains("open");
+      setOpen(p, on);
+      var idx = open.indexOf(p);
+      if (on && idx === -1) open.push(p);
+      if (!on && idx !== -1) open.splice(idx, 1);
+      try { localStorage.setItem(KEY, JSON.stringify(open)); } catch (err) {}
+    });
+
+    // 捲動位置：同一個分頁內換頁後還原
+    var sc = document.getElementById("wb-sb-scroll");
+    if (sc) {
+      try { var y = Number(sessionStorage.getItem(SCROLL_KEY) || 0); if (y > 0) sc.scrollTop = y; } catch (e) {}
+      window.addEventListener("pagehide", function () { try { sessionStorage.setItem(SCROLL_KEY, String(sc.scrollTop)); } catch (e) {} });
+    }
+  })();
+</script>

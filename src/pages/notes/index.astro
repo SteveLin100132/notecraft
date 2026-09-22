@@ -1,16 +1,11 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import PageHead from "@/components/PageHead.astro";
-import Button from "@/components/Button.astro";
-import Icon from "@/components/Icon.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import NotesList from "@/components/islands/NotesList.tsx";
-import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import PagefindSearch from "@/components/islands/PagefindSearch.tsx";
 import { getAllNotes, parseMarkers, tagStats, excerpt } from "@/lib/notes";
 import { loadSeries } from "@/lib/series";
 import { getDataFiles } from "@/lib/plugins";
 
-const isDev = import.meta.env.DEV;
 const notes = await getAllNotes();
 const series = await loadSeries();
 
@@ -48,25 +43,20 @@ const dataCards = getDataFiles().map((f) => ({
   updatedAt: f.updatedAt,
 }));
 ---
-<BaseLayout title="所有筆記" current="notes" description="瀏覽所有 NoteCraft 筆記">
-  <PageHead
-    eyebrow="NOTES"
-    title="所有筆記"
-    sub={dataCards.length
+<WorkbenchLayout
+  title="全部筆記"
+  description="瀏覽所有 NoteCraft 筆記"
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "筆記" }]}
+  pills={[{ label: `${notes.length} 篇`, tone: "muted" }]}
+>
+  <div slot="toolbar" class="wb-tb">
+    <span class="wb-tb-lbl">{dataCards.length
       ? `${notes.length} 篇筆記、${dataCards.length} 個資料檔 · 預設依更新時間倒序`
-      : `${notes.length} 篇筆記 · 預設依更新時間倒序`}
-  >
-    {isDev && (
-      <Fragment slot="action">
-        <Button id="nc-new-note" variant="primary" size="md">
-          <Icon name="plus" size={18} /> 新增筆記
-        </Button>
-      </Fragment>
-    )}
-  </PageHead>
-
+      : `${notes.length} 篇筆記 · 預設依更新時間倒序`}</span>
+  </div>
+  <div class="wb-host legacy">
   <PagefindSearch client:idle />
   <NotesList client:load notes={cards} dataFiles={dataCards} tagStats={stats} />
 
-  {isDev && <NewNoteModal client:idle />}
-</BaseLayout>
+  </div>
+</WorkbenchLayout>

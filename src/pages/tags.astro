@@ -1,6 +1,5 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import PageHead from "@/components/PageHead.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagsManager from "@/components/islands/TagsManager.tsx";
 import { getAllNotes, tagStats } from "@/lib/notes";
 
@@ -8,14 +7,18 @@ const isDev = import.meta.env.DEV;
 const notes = await getAllNotes();
 const stats = tagStats(notes);
 ---
-<BaseLayout title="標籤索引" current="tags" description="依標籤瀏覽筆記">
-  <PageHead
-    eyebrow="TAGS"
-    title="標籤索引"
-    sub={isDev
+<WorkbenchLayout
+  title="標籤"
+  description="依標籤瀏覽筆記"
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "標籤" }]}
+  pills={[{ label: `${stats.length} 個標籤`, tone: "muted" }]}
+>
+  <div slot="toolbar" class="wb-tb">
+    <span class="wb-tb-lbl">{isDev
       ? "瀏覽、重新命名或刪除標籤 — 寫入動作僅 dev 環境可用。"
-      : "依標籤瀏覽筆記，點擊任一標籤進入過濾後的列表。"}
-  />
-
+      : "依標籤瀏覽筆記，點擊任一標籤進入過濾後的列表。"}</span>
+  </div>
+  <div class="wb-host legacy">
   <TagsManager client:load initial={stats} devMode={isDev} />
-</BaseLayout>
+  </div>
+</WorkbenchLayout>

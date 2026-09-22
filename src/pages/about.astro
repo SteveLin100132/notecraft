@@ -1,6 +1,5 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import PageHead from "@/components/PageHead.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import Card from "@/components/Card.astro";
 import Icon from "@/components/Icon.astro";
 
@@ -24,14 +23,16 @@ const stack: { name: string; role: string }[] = [
   { name: "Netlify", role: "部署" },
 ];
 ---
-<BaseLayout title="關於 NoteCraft" current="about" description="關於 NoteCraft：AI 生成視覺化的筆記系統">
-  <div style="max-width:820px;">
-    <PageHead
-      eyebrow="ABOUT"
-      title="關於 NoteCraft"
-      sub="以 MDX 為原始檔、由 AI Agent 與 Skill 自動生成視覺化與動態互動的筆記系統。"
-    />
-
+<WorkbenchLayout
+  title="關於 NoteCraft"
+  rail="settings"
+  description="關於 NoteCraft：AI 生成視覺化的筆記系統"
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "關於" }]}
+>
+  <div slot="toolbar" class="wb-tb">
+    <span class="wb-tb-lbl">以 MDX 為原始檔、由 AI Agent 與 Skill 自動生成視覺化與動態互動的筆記系統。</span>
+  </div>
+  <div class="wb-host legacy" style="max-width:820px;margin:0;">
     <Card padding={28} style="margin-bottom:20px;">
       <p style="font-size:var(--text-md);color:var(--text-body);line-height:1.85;margin:0;">
         讓知識學習不再是枯燥的文字堆疊，而是能被「看見」與「操作」的體驗。作者只需用 VS Code 撰寫筆記、放入 AI 標記區塊，系統便能在建構階段由 AI 讀取提示詞、自由發想並產出對應的元件，最終以靜態網頁部署。
@@ -68,4 +69,4 @@ const stack: { name: string; role: string }[] = [
       ))}
     </div>
   </div>
-</BaseLayout>
+</WorkbenchLayout>

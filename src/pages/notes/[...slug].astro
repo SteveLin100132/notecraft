@@ -1,6 +1,6 @@
 ---
 import { render } from "astro:content";
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
 import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
@@ -17,6 +17,9 @@ import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
 import { getDataFiles } from "@/lib/plugins";
+import { noteRelPath } from "@/lib/workbench";
+import { notesFolderHref } from "@/lib/wb-routes";
+import { ROOT_GROUP } from "@/lib/wb-types";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -53,16 +56,31 @@ const seriesNavData = series
     }
   : null;
 
+// 麵包屑第三段 = 筆記所在資料夾（真實路徑，不是 slug）
+const relPath = noteRelPath(note);
+const folderPath = relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
+const aiPill =
+  pendingMarkers.length > 0
+    ? { label: `待生成 ${pendingMarkers.length}`, tone: "warn" as const }
+    : genCount > 0
+      ? { label: `已生成 ${genCount}`, tone: "ok" as const }
+      : { label: "無標記", tone: "muted" as const };
+
 const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text }));
 ---
-<BaseLayout title={note.data.title} current="notes" description={note.data.description}>
-  <a
-    href="/notes"
-    style="display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:18px;"
-  >
-    <Icon name="chevronLeft" size={16} /> 返回筆記列表
-  </a>
-
+<WorkbenchLayout
+  title={note.data.title}
+  description={note.data.description}
+  back="/notes"
+  folderPath={folderPath}
+  crumbs={[
+    { label: "NoteCraft", href: "/" },
+    { label: "筆記", href: "/notes" },
+    { label: folderPath || ROOT_GROUP, href: notesFolderHref(folderPath) },
+  ]}
+  pills={[aiPill]}
+>
+  <div class="wb-host">
   <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
     <article class="nc-note-article" style="min-width:0;max-width:760px;">
       <div style="margin-bottom:14px;">
@@ -165,7 +183,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
       </div>
     )}
   </div>
-</BaseLayout>
+  </div>
+</WorkbenchLayout>
 
 <style is:global>
   .nc-note-grid {

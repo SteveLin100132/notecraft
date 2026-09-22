@@ -1,0 +1,35 @@
+---
+// Rail：最左 52px 深色圖示列（README §3.2）。5 個入口；搜尋鈕只 dispatch 事件，由 Palette 接。
+// `ai` 的高亮靠 ?pending=1 判斷，靜態站 build 期看不到 query → 由 WorkbenchLayout 的 inline script 補判。
+import Icon from "@/components/Icon.astro";
+import Logo from "@/components/wb/Logo.astro";
+import { ROUTES } from "@/lib/wb-routes";
+
+export type RailKey = "dashboard" | "ai" | "plugins" | "settings" | "";
+export interface Props {
+  active?: RailKey;
+  pending?: number;
+}
+const { active = "", pending = 0 } = Astro.props;
+---
+<nav class="wb-rail" aria-label="主要導覽">
+  <a class="wb-rail-mark" href="/" aria-label="NoteCraft 首頁"><Logo size={28} /></a>
+  <div class="wb-rail-group">
+    <a class:list={["wb-rail-btn", { on: active === "dashboard" }]} href="/" title="儀表板" aria-label="儀表板" data-rail="dashboard">
+      <Icon name="home" size={17} stroke={1.7} />
+    </a>
+    <button type="button" class="wb-rail-btn" title="搜尋（⌘K）" aria-label="搜尋" data-wb-open-palette>
+      <Icon name="search" size={17} stroke={1.7} />
+    </button>
+    <a class:list={["wb-rail-btn", { on: active === "ai" }]} href={ROUTES.aiQueue} title="AI 標記佇列" aria-label="AI 標記佇列" data-rail="ai">
+      <Icon name="sparkle" size={17} stroke={1.7} />
+      {pending > 0 && <span class="wb-rail-dot" aria-hidden="true"></span>}
+    </a>
+    <a class:list={["wb-rail-btn", { on: active === "plugins" }]} href={ROUTES.plugins} title="Plugin 外掛" aria-label="Plugin 外掛" data-rail="plugins">
+      <Icon name="plug" size={17} stroke={1.7} />
+    </a>
+    <a class:list={["wb-rail-btn", { on: active === "settings" }]} href={ROUTES.settings} title="設定與關於" aria-label="設定與關於" data-rail="settings">
+      <Icon name="settings" size={17} stroke={1.7} />
+    </a>
+  </div>
+</nav>
