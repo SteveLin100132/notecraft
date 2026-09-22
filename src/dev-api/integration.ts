@@ -18,10 +18,14 @@ export default function devApi(): AstroIntegration {
 
         // plugins.json 變動（含 PUT /api/plugins/:id 寫入）：src/lib/plugins.ts 以模組層變數快取解析結果，
         // dev 下不會自己失效。這裡監看該檔，變動時清快取並讓瀏覽器整頁重載。
+        // 資料檔（notesDir 底下的 .json）改了也一樣：meta.title／description／backTo 都是解析時讀進快取的。
         const cfgPath = path.join(resolveNotecraftDir(cwd), "plugins.json");
+        const notesPrefix = notesRoot.endsWith(path.sep) ? notesRoot : notesRoot + path.sep;
         server.watcher.add(cfgPath);
         const onChange = async (file: string) => {
-          if (path.resolve(file) !== cfgPath) return;
+          const abs = path.resolve(file);
+          const isDataFile = abs.startsWith(notesPrefix) && abs.toLowerCase().endsWith(".json");
+          if (abs !== cfgPath && !isDataFile) return;
           try {
             const mod = await server.ssrLoadModule("/src/lib/plugins.ts");
             (mod as { invalidatePluginCaches?: () => void }).invalidatePluginCaches?.();

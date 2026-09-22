@@ -1129,6 +1129,6 @@ Task 59–75 已全部實作（2026-09-22，隨 notecraftapp v0.7.0）。四個�
 
 - 大量筆記的效能：500 篇的 viewer 專案 build 8.7 秒（514 頁）、`/wb-index.json` 133 KB，但 `/notes` 的 HTML 928 KB —— 列全部 inline 成 island props（Astro 的 props 編碼約為 JSON 的 3 倍）。首版不做虛擬捲動（§12）；若體感卡，下一步是讓 `/notes` 超過門檻時改從 `/wb-index.json` 載入列而不 inline
 - pagefind 對中文的分詞是既有行為：「無限畫布」這種詞搜不到，「拖曳」搜得到；與本次改版無關
-- viewer 模式下改**資料檔內容**在 `astro dev` 是否即時反映仍未實測（只驗了 `plugins.json`）
+- ~~viewer 模式下改**資料檔內容**在 `astro dev` 是否即時反映仍未實測~~ 2026-09-22 實測**不會**反映（`meta.*` 是解析時讀進快取的）；dev integration 的 watcher 已擴到 notesDir 底下的 `.json`，改 `backTo` 即時生效
 - PRD §8.1 的 Phase 4.13–4.16 條目仍欠著（見 tasks README）
 

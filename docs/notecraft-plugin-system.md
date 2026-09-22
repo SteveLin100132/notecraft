@@ -770,6 +770,6 @@ Task 46–58 已全部實作（2026-09-18，隨 notecraftapp v0.6.0）。原本�
 
 - ~~**pagefind 索引範圍**~~ 早已實作（見上表）
 - **`view`（astro dev）模式的 HMR**（Q19）：v0.7.0 實測 —— `plugins.ts` 的模組層快取在 dev 期間持續存活，改 `plugins.json` **不會**自動反映。
-  已在 dev integration 監看 `plugins.json`，變動時清快取並送 `full-reload`；改**資料檔**內容仍未實測
+  已在 dev integration 監看 `plugins.json` 與 notesDir 底下的 `.json` 資料檔，變動時清快取並送 `full-reload`（資料檔的 `meta.*` 同樣是解析時讀進快取，實測改了不監看也不會反映）
 - **官方 store 的 screenshot**：`registry.json` 未帶 `screenshot` 欄位
 - plugin 的 i18n、`dataSchema` 改版的相容性、同一份資料被兩個 plugin 用不同視角渲染
