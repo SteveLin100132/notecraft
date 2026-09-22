@@ -2,52 +2,30 @@
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import SeriesOverview from "@/components/islands/SeriesOverview.tsx";
 import type { SeriesCardData } from "@/components/islands/SeriesOverview.tsx";
-import { getAllNotes } from "@/lib/notes";
-import { loadSeries, getSeriesChapters } from "@/lib/series";
-import { getDataFiles } from "@/lib/plugins";
+import { getWorkbenchIndex } from "@/lib/workbench";
 
-const notes = await getAllNotes();
-const series = await loadSeries();
-const dataFiles = getDataFiles();
+const index = await getWorkbenchIndex();
+const tagsBySlug = new Map(index.notes.map((n) => [n.slug, n.tags]));
 
-// 章節一篇都解析不到的系列直接略過（例：章節全是被 .gitignore 的 private 筆記，
-// 正式站沒有這些檔案）—— 避免出現「0 篇」的空系列卡。
-const cards: SeriesCardData[] = series.flatMap((s) => {
-  const chapters = getSeriesChapters(notes, s, dataFiles);
-  if (chapters.length === 0) return [];
-  return [{
+// 章節一篇都解析不到的系列直接略過（例：章節全是被 .gitignore 的 private 筆記，正式站沒有這些檔案）。
+const cards: SeriesCardData[] = index.series
+  .filter((s) => s.chapters.length > 0)
+  .map((s) => ({
     id: s.id,
     title: s.title,
     eyebrow: s.eyebrow,
     description: s.description,
     accent: s.accent,
     icon: s.icon,
-    chapters: chapters.map((c) => {
-      // 資料檔沒有標籤；模糊查詢比對得到標題與描述就夠了
-      const note = c.kind === "note" ? notes.find((n) => n.id === c.ref) : undefined;
-      return { ref: c.ref, title: c.title, tags: note?.data.tags ?? [] };
-    }),
-  }];
-});
-
-const totalChapters = cards.reduce((acc, c) => acc + c.chapters.length, 0);
+    chapters: s.chapters.map((c) => ({ ref: c.ref, title: c.title, tags: c.kind === "note" ? (tagsBySlug.get(c.ref) ?? []) : [] })),
+  }));
 ---
 <WorkbenchLayout
   title="系列"
   description="把相關筆記串成有順序的閱讀路徑"
   crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列" }]}
   pills={[{ label: `${cards.length} 個系列`, tone: "muted" }]}
+  bare
 >
-  <div slot="toolbar" class="wb-tb">
-    <span class="wb-tb-lbl">把相關內容串成有順序的閱讀路徑 · 共 {cards.length} 個系列、{totalChapters} 章</span>
-  </div>
-  <div class="wb-host legacy">
-  {cards.length === 0 ? (
-    <div style="text-align:center;padding:80px 0;color:var(--text-muted);">
-      <p style="margin:0;font-size:15px;">尚未建立任何系列</p>
-    </div>
-  ) : (
-    <SeriesOverview client:load series={cards} />
-  )}
-  </div>
+  <SeriesOverview client:load series={cards} />
 </WorkbenchLayout>

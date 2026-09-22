@@ -5,11 +5,13 @@ import type { SeriesDetailData } from "@/components/islands/SeriesDetail.tsx";
 import { getAllNotes } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
 import { getDataFiles } from "@/lib/plugins";
+import { noteRelPath } from "@/lib/workbench";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
   const series = await loadSeries();
   const dataFiles = getDataFiles();
+  const relBySlug = new Map(notes.map((n) => [n.id, noteRelPath(n)]));
   // 與 /series 一致：零章節的系列不產頁（章節全為 private 筆記時，正式站不會有此路由）。
   return series.flatMap((s) => {
     const chapters = getSeriesChapters(notes, s, dataFiles);
@@ -27,9 +29,9 @@ export async function getStaticPaths() {
         href: c.href,
         title: c.title,
         description: c.description,
+        path: c.kind === "data" ? (c.relPath ?? "") : (relBySlug.get(c.ref) ?? c.ref),
         markersTotal: c.markersTotal,
         markersGenerated: c.markersGenerated,
-        relPath: c.relPath,
       })),
     };
     return [{ params: { id: s.id }, props: { data } }];
@@ -37,21 +39,8 @@ export async function getStaticPaths() {
 }
 
 const { data } = Astro.props;
+const isDev = import.meta.env.DEV;
 ---
-<WorkbenchLayout
-  title={data.title}
-  description={data.description}
-  back="/series"
-  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列", href: "/series" }, { label: data.title }]}
-  pills={[{ label: `${data.chapters.length} 章`, tone: "muted" }]}
->
-  <div class="wb-host legacy">
-  <SeriesDetail client:load series={data} />
-  </div>
+<WorkbenchLayout title={data.title} description={data.description} bare>
+  <SeriesDetail client:load series={data} isDev={isDev} />
 </WorkbenchLayout>
-
-<style is:global>
-  .nc-chapter-row:hover {
-    background: var(--neutral-50);
-  }
-</style>
