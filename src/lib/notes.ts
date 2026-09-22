@@ -154,59 +154,6 @@ export function tagStats(notes: Note[]): TagStat[] {
   return Array.from(m.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
-export type DashboardStats = {
-  total: number;
-  weekNew: number;
-  monthNew: number;
-  markersTotal: number;
-  markersGenerated: number;
-  recent: { slug: string; title: string; updatedAt: string; tags: string[]; markersTotal: number; markersGenerated: number }[];
-  tags: { name: string; count: number }[];
-  notesWithMarkers: number;
-};
-
-export function buildDashboardStats(notes: Note[], today: string): DashboardStats {
-  const tNow = new Date(today + "T00:00:00").getTime();
-  let weekNew = 0;
-  let monthNew = 0;
-  let markersTotal = 0;
-  let markersGenerated = 0;
-  let notesWithMarkers = 0;
-  for (const n of notes) {
-    const created = new Date(n.data.createdAt + "T00:00:00").getTime();
-    if (tNow - created < 7 * 86400000) weekNew++;
-    if (tNow - created < 30 * 86400000) monthNew++;
-    const ms = parseMarkers(n.body);
-    if (ms.length) notesWithMarkers++;
-    markersTotal += ms.length;
-    markersGenerated += ms.filter((m) => m.status === "generated").length;
-  }
-  const recent = notes.slice(0, 6).map((n) => {
-    const ms = parseMarkers(n.body);
-    return {
-      slug: n.id,
-      title: n.data.title,
-      updatedAt: n.data.updatedAt,
-      tags: n.data.tags,
-      markersTotal: ms.length,
-      markersGenerated: ms.filter((m) => m.status === "generated").length,
-    };
-  });
-  const tags = tagStats(notes)
-    .slice(0, 6)
-    .map((t) => ({ name: t.name, count: t.count }));
-  return {
-    total: notes.length,
-    weekNew,
-    monthNew,
-    markersTotal,
-    markersGenerated,
-    recent,
-    tags,
-    notesWithMarkers,
-  };
-}
-
 export function excerpt(body: string | undefined | null, fallback: string): string {
   if (!body) return fallback.replace(/\s+/g, " ").slice(0, 220);
   const stripped = body

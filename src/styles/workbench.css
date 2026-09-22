@@ -528,3 +528,16 @@ html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}
 .wb-card>.wb-card-m:last-child{padding-top:6px}
 /* Timeline 的列：軸線要撐滿列高 */
 .wb-tl-row .wb-row-main{align-self:stretch}
+
+/* ── Dashboard（Task 66）── */
+.wb-gc-warn{--gc:var(--wb-warn)}
+/* 系列進度 widget：每個系列是容器，主區連結與「繼續閱讀」連結並排、不巢狀（Q15a） */
+.wb-series-item{display:block}
+.wb-series-item+.wb-series-item{padding-top:12px;border-top:1px solid var(--wb-line-2)}
+.wb-series-foot{display:flex;align-items:center;gap:8px;padding-top:5px}
+.wb-series-foot .wb-series-next{flex:1;min-width:0;padding-top:0}
+.wb-series-foot .wb-mini{flex:none}
+.wb-series-list{gap:12px}
+.wb-tagrow{text-decoration:none}
+/* AI 佇列 Tab 的標記列：prompt 單行省略 */
+.wb-row .wb-row-p{min-width:0}
