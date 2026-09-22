@@ -1,0 +1,112 @@
+---
+title: HTTP 快取策略：從 Cache-Control 到 ETag
+description: 一次搞懂瀏覽器與 CDN 如何決定「要不要重新抓」：新鮮度、驗證、以及各種快取層之間的協作。
+tags:
+  - 後端
+  - 效能
+  - 系統設計
+category: 技術筆記
+createdAt: '2026-09-22'
+updatedAt: '2026-09-22'
+---
+
+> 最快的請求，是不必發出的請求。HTTP 快取要解的正是「什麼時候可以不問伺服器」。
+
+HTTP 快取的規則散落在多個標頭與多個角色之間（瀏覽器、代理、CDN、來源伺服器）。這篇依「新鮮度 → 驗證 → 分層」三個層次整理（H1），每一層再拆成幾個小節（H2），需要時再往下補細節（H3）。
+
+# 新鮮度：快取還能直接用嗎
+
+第一個問題是快取副本是否仍「新鮮」。新鮮的副本可以直接回應，完全不用連線到來源伺服器。
+
+## Cache-Control 指令
+
+`max-age` 是最常見的新鮮度宣告，以秒為單位；`s-maxage` 只對共享快取（CDN、代理）生效，讓你能為瀏覽器與 CDN 設定不同的 TTL。
+
+```http
+Cache-Control: public, max-age=60, s-maxage=3600
+Cache-Control: private, no-cache
+Cache-Control: no-store
+```
+
+### max-age 與 s-maxage
+
+兩者同時出現時，共享快取以 `s-maxage` 為準、瀏覽器以 `max-age` 為準。常見組合是「CDN 快取一小時、瀏覽器只快取一分鐘」，兼顧回源成本與更新即時性。
+
+### immutable
+
+告訴瀏覽器「在新鮮期內連重新整理也不必驗證」。只適合檔名含雜湊的靜態資源。
+
+## no-cache 與 no-store 的差別
+
+- `no-cache`：可以儲存，但每次使用前必須回源驗證。
+- `no-store`：完全不得儲存，適用於含個資或一次性的回應。
+- `private`：只允許瀏覽器等私有快取儲存，CDN 不得快取。
+
+## 啟發式新鮮度（Heuristic Freshness）
+
+當回應沒有任何明確的新鮮度資訊、但帶有 `Last-Modified` 時，瀏覽器會自行推估 TTL（常見做法是「距上次修改時間的 10%」）。這是許多「明明改了卻沒更新」問題的來源，正式環境應永遠明確宣告。
+
+# 驗證：過期後如何便宜地確認
+
+副本過期不代表要重下載。條件式請求讓伺服器能用一個 `304 Not Modified` 回答「你手上的還能用」。
+
+## ETag 與 If-None-Match
+
+ETag 是資源版本的不透明識別字串，通常是內容雜湊。瀏覽器重新驗證時把它放進 `If-None-Match`，伺服器比對後決定回 304 或新內容。
+
+```http
+GET /api/report.json
+If-None-Match: "a3f9c1"
+
+HTTP/1.1 304 Not Modified
+ETag: "a3f9c1"
+Cache-Control: max-age=0, must-revalidate
+```
+
+## Last-Modified 與 If-Modified-Since
+
+以時間戳為基準的驗證方式，精度只到秒，且無法表達「內容相同但時間不同」的情況。與 ETag 同時存在時，伺服器應以 ETag 為主。
+
+### 多個 ETag 與萬用字元
+
+`If-None-Match` 可以用逗號帶多個值，讓伺服器對任一版本命中即回 304；`*` 則常用在 `If-Match` 上，表達「只要資源存在就不要覆寫」。
+
+## 強驗證與弱驗證
+
+以 `W/` 開頭的弱 ETag 表示「語意相同即可」，允許伺服器在壓縮方式不同時仍回 304；強 ETag 則要求位元組完全一致，Range 請求只能搭配強驗證。
+
+# 分層：瀏覽器、CDN 與來源
+
+實務上請求會經過多層快取，每層對標頭的解讀略有不同，也各有自己的失效手段。
+
+## 瀏覽器快取的兩個路徑
+
+同分頁內的重新導覽會先查 memory cache，再查 disk cache。前者不檢查新鮮度、生命週期與分頁綁定；後者才遵守完整的 HTTP 規則。
+
+## CDN 的 stale-while-revalidate
+
+允許 CDN 在副本剛過期的一小段時間內先回舊內容、同時在背景回源更新。使用者幾乎感受不到延遲，來源伺服器也不會被瞬間打爆。
+
+```http
+Cache-Control: max-age=600, stale-while-revalidate=60, stale-if-error=86400
+```
+
+### stale-if-error
+
+來源伺服器回 5xx 或連不上時，允許 CDN 繼續提供過期副本，是最便宜的降級手段。
+
+### Vary 與快取鍵
+
+`Vary: Accept-Encoding` 會讓同一 URL 依請求標頭切成多份副本。Vary 越多、命中率越低；`Vary: Cookie` 或 `User-Agent` 幾乎等於關掉共享快取。
+
+## 主動失效：Purge 與版本化 URL
+
+被動等待 TTL 過期不總是可行。兩條常見路徑：對 CDN 下 purge 指令，或直接把內容雜湊放進檔名（`app.3f9c1.js`），讓舊 URL 自然被淘汰、新 URL 可以放心設一年的 `max-age`。
+
+# 一張決策表
+
+1. 會變、且不能有半點舊資料 → `no-store`，或 `no-cache` 搭配 ETag。
+2. 會變、但容忍幾秒鐘延遲 → 短 `max-age` 搭配 `stale-while-revalidate`。
+3. 不會變（帶雜湊的靜態資源）→ `public, max-age=31536000, immutable`。
+
+> 先決定「舊資料可以容忍多久」，標頭只是把這個答案翻譯給每一層快取聽。

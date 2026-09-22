@@ -65,7 +65,10 @@ const aiPill =
       ? { label: `已生成 ${genCount}`, tone: "ok" as const }
       : { label: "無標記", tone: "muted" as const };
 
-const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text }));
+// 目錄收 h1–h3，id 直接用 Astro 幫標題產生的 slug（與內文標題同一個函式，不會對不上）
+const toc = headings
+  .filter((h) => h.depth <= 3)
+  .map((h) => ({ id: h.slug, label: h.text, lv: h.depth as 1 | 2 | 3 }));
 ---
 <WorkbenchLayout
   title={note.data.title}
@@ -194,10 +197,15 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
   .nc-toc {
     position: sticky;
     top: 8px;
+    /* 目錄過長時自己捲，不撐開頁面 */
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-right: 4px;
   }
   .nc-toc-head {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    justify-content: space-between;
     gap: 6px;
     width: 100%;
     padding: 0;
@@ -212,9 +220,93 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     color: var(--text-muted);
     cursor: default;
   }
+  .nc-toc-head-r {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nc-toc-count {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    font-variant-numeric: tabular-nums;
+  }
   /* 桌面不需要折疊箭頭 */
   .nc-toc-chevron {
     display: none;
+  }
+
+  /* 扁平清單，用縮排表現層級：左 padding = 14 + depth × 12 */
+  .nc-toc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-left: 2px solid var(--neutral-200);
+  }
+  .nc-toc-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: -2px;
+    border-left: 2px solid transparent;
+    line-height: 1.5;
+    text-decoration: none;
+    transition: color 140ms, border-color 140ms;
+  }
+  .nc-toc-item.d0 {
+    padding: 5px 10px 5px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .nc-toc-item.d1 {
+    padding: 3px 10px 3px 26px;
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--text-body);
+  }
+  .nc-toc-item.d2 {
+    padding: 3px 10px 3px 38px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 0.85;
+  }
+  .nc-toc-mark {
+    flex: none;
+    background: var(--neutral-300);
+    transition: background 140ms;
+  }
+  .nc-toc-item.d1 .nc-toc-mark {
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+  }
+  .nc-toc-item.d2 .nc-toc-mark {
+    width: 8px;
+    height: 1.5px;
+  }
+  .nc-toc-label {
+    min-width: 0;
+  }
+  .nc-toc-item:hover {
+    color: var(--blue-700);
+  }
+  /* 目前位置的祖先 */
+  .nc-toc-item.trail {
+    color: var(--blue-700);
+    font-weight: 600;
+    opacity: 1;
+  }
+  .nc-toc-item.on {
+    border-left-color: var(--orange-500);
+    color: var(--blue-700);
+    font-weight: 700;
+    opacity: 1;
+  }
+  .nc-toc-item.on .nc-toc-mark {
+    background: var(--orange-500);
   }
 
   /* 主區不夠寬：單欄 + 目錄改為可折疊面板置於內文上方 */
@@ -228,6 +320,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     }
     .nc-toc {
       position: static;
+      max-height: none;
+      overflow: visible;
       border: 1px solid var(--neutral-200);
       border-radius: var(--radius-lg);
       background: #fff;
@@ -236,6 +330,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     }
     .nc-toc-head {
       justify-content: space-between;
+      align-items: center;
       margin-bottom: 0;
       cursor: pointer;
     }
@@ -248,7 +343,9 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .nc-toc-chevron {
+    .nc-toc-chevron,
+    .nc-toc-item,
+    .nc-toc-mark {
       transition: none;
     }
   }
