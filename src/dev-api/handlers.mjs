@@ -302,15 +302,27 @@ async function handleFolderList(cwd, notesRoot, res) {
   const displayRoot = !rel || rel.startsWith("..")
     ? notesRoot.endsWith(path.sep) ? notesRoot : notesRoot + path.sep
     : rel + "/";
+  // 遞迴列出所有層（Workbench 的資料夾樹不限層數，新增筆記要能選到子資料夾）。
+  // 回傳格式不變：字串陣列、以 / 結尾；父層恆排在子層之前。
+  const SKIP = new Set(["node_modules", "dist"]);
   const folders = [displayRoot];
-  try {
-    const ents = await fs.readdir(notesRoot, { withFileTypes: true });
-    for (const e of ents) {
-      if (!e.isDirectory()) continue;
-      if (e.name.startsWith(".")) continue;
-      folders.push(`${displayRoot}${e.name}/`);
+  const walk = async (absDir, relPrefix) => {
+    let ents;
+    try {
+      ents = await fs.readdir(absDir, { withFileTypes: true });
+    } catch {
+      return;
     }
-  } catch {}
+    const dirs = ents
+      .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !SKIP.has(e.name))
+      .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+    for (const e of dirs) {
+      const rel = `${relPrefix}${e.name}/`;
+      folders.push(`${displayRoot}${rel}`);
+      await walk(path.join(absDir, e.name), rel);
+    }
+  };
+  await walk(notesRoot, "");
   return json(res, 200, { folders });
 }
 
