@@ -137,9 +137,27 @@ async function readNote(filePath) {
   return { raw, data: parsed.data, content: parsed.content };
 }
 
+/**
+ * 原子寫入：先寫同目錄的 `.<name>.tmp` 再 rename。
+ * 直接 writeFile 會讓 Astro dev 的 glob loader 收到 add + change 兩個事件、對同一檔同時跑兩次 sync，
+ * 兩次都寫 `.astro/data-store.json`（tmp + rename）→ 第二次 rename ENOENT，緊接著渲染新筆記會拋
+ * UnknownContentCollectionError。rename 是單一事件，loader 只 sync 一次。tmp 以 `.` 開頭且副檔名 `.tmp`，
+ * 不會被 notes collection 的 md／mdx glob 掃到。
+ */
+async function writeFileAtomic(filePath, text) {
+  const tmp = path.join(path.dirname(filePath), `.${path.basename(filePath)}.tmp`);
+  await fs.writeFile(tmp, text, "utf8");
+  try {
+    await fs.rename(tmp, filePath);
+  } catch (e) {
+    await fs.rm(tmp, { force: true }).catch(() => {});
+    throw e;
+  }
+}
+
 async function writeNote(filePath, data, content) {
   const out = matter.stringify(content, data);
-  await fs.writeFile(filePath, out, "utf8");
+  await writeFileAtomic(filePath, out);
 }
 
 const TEMPLATE = (title, tagsYaml, includeMarker) => `---
@@ -245,7 +263,7 @@ async function handleCreateNote(cwd, notesRoot, req, res) {
     const abs = await assertSafePath(path.join(targetDir, `${slug}.mdx`), notesRoot);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     const tagsYaml = `[${tags.map((t) => JSON.stringify(t)).join(", ")}]`;
-    await fs.writeFile(abs, TEMPLATE(title, tagsYaml, !isViewerMode()), "utf8");
+    await writeFileAtomic(abs, TEMPLATE(title, tagsYaml, !isViewerMode()));
     return json(res, 200, {
       slug,
       path: path.relative(cwd, abs),

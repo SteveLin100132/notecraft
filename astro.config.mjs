@@ -46,6 +46,10 @@ export default defineConfig({
   vite: {
     server: {
       host: "127.0.0.1",
+      // 新建筆記時 chokidar（macOS fsevents）會對同一檔連發 add + change，Astro 的 glob loader 因此對同一檔
+      // 同時跑兩次 sync、兩次都寫 .astro/data-store.json（tmp + rename）→ 第二次 rename ENOENT，
+      // 緊接著開新筆記會拋 UnknownContentCollectionError。等檔案大小穩定再發事件，兩個事件就折成一個。
+      watch: { awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 } },
       // fs.allow：notesDir、userCwd 都要允許（dev server 才能讀專案根外的 tsx / mdx）
       ...(notesDir && { fs: { allow: [process.cwd(), notesDir, ...(userCwd ? [userCwd] : [])] } }),
     },
