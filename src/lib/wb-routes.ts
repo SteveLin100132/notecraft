@@ -16,8 +16,7 @@ export const ROUTES = {
   series: "/series",
   tags: "/tags",
   plugins: "/plugins",
-  /** Task 73 之前暫時指向舊的關於頁 */
-  settings: "/about",
+  settings: "/settings",
 } as const;
 
 export function dataFolderHref(dir: string): string {

@@ -30,6 +30,13 @@ const notecraftDir = userCwd
 
 export default defineConfig({
   output: "static",
+  // 舊網址轉址（Workbench Q20）：build 時替每個舊網址產生只含 meta refresh 的極小 HTML。
+  // 不綁平台（Netlify、viewer 的 serve、任何靜態主機都有效），所以不另外在 netlify.toml 寫 301。
+  // /view/<路徑> 資料檔渲染頁維持原網址，只有 /view 列表頁本身轉址。
+  redirects: {
+    "/about": "/settings?tab=about",
+    "/view": "/plugins",
+  },
   integrations: [
     mdx(),
     react(),

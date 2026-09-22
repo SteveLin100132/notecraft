@@ -1,0 +1,23 @@
+---
+// /settings：設定（localStorage）與關於（build 期資料）。頁首與內容由 island 渲染（Tab 與偏好都是 client state）。
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
+import SettingsView from "@/components/wb/SettingsView.tsx";
+import type { AboutData } from "@/components/wb/SettingsView.tsx";
+import { getWorkbenchIndex } from "@/lib/workbench";
+
+const isDev = import.meta.env.DEV;
+const index = await getWorkbenchIndex();
+const about: AboutData = {
+  workspaceLabel: index.workspaceLabel,
+  appVersion: index.appVersion,
+  notes: index.notes.length,
+  series: index.series.filter((s) => s.chapters.length > 0).length,
+  tags: index.tags.length,
+  dataFiles: index.dataFiles.length,
+  pendingMarkers: index.pending.markers,
+  viewer: Boolean(process.env.NOTECRAFT_NOTES_DIR),
+};
+---
+<WorkbenchLayout title="設定與關於" rail="settings" description="NoteCraft 工作台的設定與關於" bare>
+  <SettingsView client:load about={about} isDev={isDev} />
+</WorkbenchLayout>
