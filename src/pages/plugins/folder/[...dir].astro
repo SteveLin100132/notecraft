@@ -1,0 +1,69 @@
+---
+// /plugins/folder/<dir>：某資料夾底下的資料檔，平列不分組。<dir> 可含 /；根目錄用保留字 _root。
+// 這頁唯一的互動是搜尋，用幾行 inline script 過濾 DOM，不拉 island。
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
+import Icon from "@/components/Icon.astro";
+import DataFileRow from "@/components/wb/DataFileRow.tsx";
+import { getWorkbenchIndex } from "@/lib/workbench";
+import { DATA_ROOT_SEGMENT } from "@/lib/wb-routes";
+import { ROOT_GROUP } from "@/lib/wb-types";
+
+export async function getStaticPaths() {
+  const index = await getWorkbenchIndex();
+  const dirs = Array.from(new Set(index.dataFiles.map((f) => f.dir)));
+  return dirs.map((dir) => ({
+    params: { dir: dir === "" ? DATA_ROOT_SEGMENT : dir },
+    props: { dir, files: index.dataFiles.filter((f) => f.dir === dir) },
+  }));
+}
+
+const { dir, files } = Astro.props;
+const label = dir === "" ? ROOT_GROUP : dir;
+const pluginCount = new Set(files.map((f) => f.pluginId)).size;
+---
+<WorkbenchLayout
+  title={label}
+  rail="plugins"
+  back="/plugins"
+  description={`${label} 底下的資料檔`}
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin", href: "/plugins" }, { label }]}
+  pills={[{ label: `${files.length} 個資料檔`, tone: "muted" }, { label: `${pluginCount} 個 plugin` }]}
+  flush
+>
+  <div slot="toolbar" class="wb-tb">
+    <span class="wb-tb-lbl">plugin 渲染的資料檔，點列直接進入渲染頁</span>
+    <div class="wb-tb-right">
+      <span class="wb-search">
+        <Icon name="search" size={13} stroke={1.7} style="color:var(--wb-ink-3)" />
+        <input type="search" id="wb-df-q" placeholder="搜尋檔名、plugin…" aria-label="搜尋檔名、plugin" />
+      </span>
+      <span class="wb-count tnum" id="wb-df-n">{files.length} 個</span>
+    </div>
+  </div>
+  <div id="wb-df-list">
+    {files.map((f) => (
+      <div data-wb-hay={`${f.title} ${f.relPath} ${f.pluginId}`.toLowerCase()}>
+        <DataFileRow file={f} />
+      </div>
+    ))}
+  </div>
+  <div class="wb-empty" id="wb-df-empty" hidden>沒有符合條件的資料檔。</div>
+</WorkbenchLayout>
+
+<script>
+  const q = document.getElementById("wb-df-q") as HTMLInputElement | null;
+  const n = document.getElementById("wb-df-n");
+  const empty = document.getElementById("wb-df-empty");
+  const rows = Array.from(document.querySelectorAll<HTMLElement>("#wb-df-list [data-wb-hay]"));
+  q?.addEventListener("input", () => {
+    const t = q.value.trim().toLowerCase();
+    let shown = 0;
+    for (const r of rows) {
+      const hit = !t || (r.dataset.wbHay ?? "").includes(t);
+      r.hidden = !hit;
+      if (hit) shown++;
+    }
+    if (n) n.textContent = `${shown} 個`;
+    if (empty) empty.hidden = shown > 0;
+  });
+</script>

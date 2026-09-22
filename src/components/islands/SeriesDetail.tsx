@@ -1,21 +1,25 @@
-import { Layers, Play, RotateCcw, Check, Sparkles, ChevronRight, Database, FileJson } from "lucide-react";
-import { ACCENT, type SeriesAccent, type SeriesIconName } from "@/data/series";
-import { seriesProgress, resetSeriesProgress, type ReadingStatus } from "@/lib/reading-progress";
-import { SeriesIcon, ReadingBadge, ProgressBar, ProgStat, truncate, useReadingVersion } from "./seriesShared";
+// 系列詳情（規格 §8.4；prototype `PtSeriesDetail`）。頁首的 pill 靠 localStorage，所以整個主區由這個 island 渲染。
+// **這一頁完整混合顯示筆記與資料檔**（Q14：資料檔移出的只有 /notes 列表），兩者一視同仁、都計入進度。
+import { FileText, Layers } from "lucide-react";
+import type { SeriesAccent, SeriesIconName } from "@/data/series";
+import { readingMeta, readingStatus, resetSeriesProgress, seriesProgress, setReadingStatus, type ReadingStatus } from "@/lib/reading-progress";
+import { toast } from "@/lib/prompts";
+import WbHeader from "@/components/wb/WbHeader";
+import { GroupHeader, Ic, MiniButton, Pill, Progress, StatStrip } from "@/components/wb/ui";
+import { useReadingVersion } from "./seriesShared";
 
 export type DetailChapter = {
   /** 筆記或資料檔頁；兩者一視同仁，只有型別標示不同 */
   kind: "note" | "data";
-  /** 識別碼原字串，也是閱讀進度的 key */
+  /** 識別碼原字串，也是閱讀進度的 key（資料檔含 view: 前綴，不可剝掉） */
   ref: string;
   href: string;
   title: string;
   description: string;
-  /** 資料檔恆為 0 */
+  /** 顯示用路徑：筆記相對 notesDir、資料檔的 relPath */
+  path: string;
   markersTotal: number;
   markersGenerated: number;
-  /** 只有資料檔有 */
-  relPath?: string;
 };
 export type SeriesDetailData = {
   id: string;
@@ -27,275 +31,84 @@ export type SeriesDetailData = {
   chapters: DetailChapter[];
 };
 
-function toast(msg: string, icon = "check") {
-  window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg, icon } }));
-}
+const NEXT: Record<ReadingStatus, { next: ReadingStatus; act: string; tone: "muted" | "default" | "ok" }> = {
+  "not-started": { next: "reading", act: "開始閱讀", tone: "muted" },
+  reading: { next: "done", act: "標記完成", tone: "default" },
+  done: { next: "not-started", act: "重設", tone: "ok" },
+};
 
-export default function SeriesDetail({ series }: { series: SeriesDetailData }) {
-  const accent = ACCENT[series.accent];
+export default function SeriesDetail({ series, isDev = false }: { series: SeriesDetailData; isDev?: boolean }) {
   const refs = series.chapters.map((c) => c.ref);
-  const version = useReadingVersion();
-  const prog = seriesProgress(refs, version > 0);
-  const nextChapter = prog.nextSlug ? series.chapters.find((c) => c.ref === prog.nextSlug) : undefined;
-  const nextTitle = nextChapter?.title ?? "";
-  const cta = prog.completed
-    ? { label: "重新閱讀", Icon: RotateCcw }
-    : prog.started
-      ? { label: "繼續閱讀", Icon: Play }
-      : { label: "開始閱讀", Icon: Play };
+  const live = useReadingVersion() > 0;
+  const p = seriesProgress(refs, live);
+  const next = p.nextIndex >= 0 ? series.chapters[p.nextIndex] : undefined;
+  const status = (ref: string): ReadingStatus => (live ? readingStatus(ref) : "not-started");
 
-  const openNext = () => {
-    // 依章節種類決定去 /notes/ 還是 /view/
-    if (nextChapter) window.location.href = nextChapter.href;
-  };
   const reset = () => {
     if (window.confirm("確定要重設這個系列所有章節的閱讀進度嗎？")) {
       resetSeriesProgress(refs);
-      toast("已重設系列進度", "check");
+      toast("已重設系列進度");
     }
   };
 
   return (
-    <div>
-      {/* Hero 卡 */}
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid var(--neutral-200)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-xs)",
-          overflow: "hidden",
-          marginBottom: 22,
-        }}
-      >
-        <div style={{ position: "relative", background: accent.gradient, padding: "30px 30px 28px", overflow: "hidden" }}>
-          <span style={{ position: "absolute", top: -40, right: -30, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.10)" }} />
-          <div style={{ position: "relative", display: "flex", gap: 16, alignItems: "flex-start" }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 56,
-                height: 56,
-                borderRadius: "var(--radius-lg)",
-                background: "rgba(255,255,255,0.18)",
-                color: "#fff",
-                flex: "none",
-              }}
-            >
-              <SeriesIcon name={series.icon} size={30} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, letterSpacing: ".18em", color: "rgba(255,255,255,0.78)", fontWeight: 700, textTransform: "uppercase" }}>
-                {series.eyebrow}
-              </div>
-              <h1 style={{ fontSize: "var(--text-3xl)", fontWeight: 900, color: "#fff", margin: "6px 0 0", lineHeight: 1.2 }}>
-                {series.title}
-              </h1>
-              <p style={{ fontSize: 14.5, color: "rgba(255,255,255,0.88)", margin: "10px 0 0", lineHeight: 1.65, maxWidth: 620 }}>
-                {series.description}
-              </p>
+    <>
+      <WbHeader
+        title={series.title}
+        back="/series"
+        crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列", href: "/series" }, { label: series.title }]}
+        pills={[
+          { label: `${p.done}/${p.total} 已讀`, tone: "muted" },
+          { label: `${p.pct}%`, tone: "ok" },
+        ]}
+        actions={
+          <a className="wb-btn-ghost" href={`/notes?series=${encodeURIComponent(series.id)}`}>
+            <Ic icon={Layers} size={14} /> 在筆記列表中篩選
+          </a>
+        }
+        isDev={isDev}
+      />
+      <div id="nc-scroll" className="wb-body flush">
+        <StatStrip
+          items={[
+            { label: "章節", value: p.total },
+            { label: "已完成", value: p.done, tone: "ok" },
+            { label: "閱讀中", value: p.reading, tone: "blue" },
+            { label: "未開始", value: p.notStarted },
+            { label: "進度", value: p.pct + "%" },
+          ]}
+        />
+        <div className="wb-sumbar">
+          <Progress pct={p.pct} wide gc={`wb-acc-${series.accent}`} />
+          <span className="wb-sum-note">{p.completed ? "已全部讀完" : next ? `下一章：${next.title}` : ""}</span>
+          <button type="button" className="wb-btn-ghost" onClick={reset}>
+            重設進度
+          </button>
+        </div>
+        <GroupHeader name="章節" count={p.total} icon={Layers} gc={`wb-acc-${series.accent}`} stats="資料檔頁與筆記一視同仁，都計入進度" />
+        {series.chapters.map((c, i) => {
+          const st = status(c.ref);
+          const m = readingMeta(st);
+          const n = NEXT[st];
+          return (
+            <div key={c.ref} className="wb-row">
+              <a className="wb-row-main" href={c.href}>
+                <span className="wb-row-i tnum">{i + 1}</span>
+                <Ic icon={FileText} size={13} color={c.kind === "data" ? "var(--wb-gold)" : "var(--wb-ink-3)"} />
+                <span className="wb-row-t">{c.title}</span>
+                <span className="wb-row-p">{c.path}</span>
+                {c.kind === "data" ? <span className="wb-tagchip">資料檔</span> : null}
+                <Pill tone={n.tone} style={{ width: 54, justifyContent: "center" }}>
+                  {m.label}
+                </Pill>
+              </a>
+              <MiniButton onClick={() => setReadingStatus(c.ref, n.next)} disabled={!live}>
+                {n.act}
+              </MiniButton>
             </div>
-          </div>
-        </div>
-
-        {/* 進度帶 */}
-        <div style={{ padding: "20px 30px", display: "flex", flexWrap: "wrap", gap: 26, alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flex: "none" }}>
-            <span style={{ fontSize: 36, fontWeight: 900, fontFamily: "var(--font-mono)", color: prog.completed ? "var(--success-500)" : accent.deep, lineHeight: 1 }}>
-              {prog.pct}%
-            </span>
-            <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>已完成</span>
-          </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ marginBottom: 8 }}>
-              <ProgStat done={prog.done} reading={prog.reading} notStarted={prog.notStarted} />
-            </div>
-            <ProgressBar total={prog.total} done={prog.done} reading={prog.reading} accent={accent} height={10} />
-          </div>
-          <div style={{ display: "flex", gap: 10, flex: "none", flexWrap: "wrap" }}>
-            <button
-              onClick={openNext}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                height: 38,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: prog.completed ? "1.5px solid var(--neutral-200)" : "none",
-                background: prog.completed ? "#fff" : "var(--action-secondary)",
-                color: prog.completed ? "var(--text-body)" : "#fff",
-                fontFamily: "var(--font-sans)",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <cta.Icon size={16} /> {cta.label}
-              {nextTitle ? `：${truncate(nextTitle)}` : ""}
-            </button>
-            {prog.started && (
-              <button
-                onClick={reset}
-                className="nc-btn-reset"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  height: 38,
-                  padding: "0 14px",
-                  borderRadius: 999,
-                  color: "var(--text-muted)",
-                  fontSize: 13,
-                  fontWeight: 700,
-                }}
-              >
-                <RotateCcw size={15} /> 重設進度
-              </button>
-            )}
-          </div>
-        </div>
+          );
+        })}
       </div>
-
-      {/* 章節區 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 14px", color: "var(--text-strong)" }}>
-        <Layers size={18} />
-        <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>章節</h2>
-        <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600, whiteSpace: "nowrap" }}>共 {prog.total} 章</span>
-      </div>
-
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid var(--neutral-200)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-xs)",
-          overflow: "hidden",
-        }}
-      >
-        {series.chapters.map((c, i) => (
-          <ChapterRow key={c.ref} chapter={c} index={i} status={prog.statuses[i] ?? "not-started"} accent={series.accent} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ChapterRow({
-  chapter,
-  index,
-  status,
-  accent,
-}: {
-  chapter: DetailChapter;
-  index: number;
-  status: ReadingStatus;
-  accent: SeriesAccent;
-}) {
-  const a = ACCENT[accent];
-  const done = status === "done";
-  return (
-    <a
-      href={chapter.href}
-      className="nc-chapter-row"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        padding: "14px 20px",
-        borderTop: index === 0 ? "none" : "1px solid var(--neutral-100)",
-        textDecoration: "none",
-        color: "inherit",
-        transition: "background 140ms",
-      }}
-    >
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 34,
-          height: 34,
-          borderRadius: "var(--radius-md)",
-          flex: "none",
-          fontFamily: "var(--font-mono)",
-          fontWeight: 800,
-          fontSize: 13,
-          background: done ? "var(--success-50)" : a.soft,
-          color: done ? "#1d6b48" : a.deep,
-        }}
-      >
-        {done ? <Check size={17} /> : String(index + 1).padStart(2, "0")}
-      </span>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <span
-            style={{
-              fontSize: 15.5,
-              fontWeight: 700,
-              color: "var(--text-strong)",
-              lineHeight: 1.4,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {chapter.title}
-          </span>
-          {chapter.kind === "data" && (
-            <span
-              style={{
-                flex: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "2px 8px",
-                borderRadius: "var(--radius-pill)",
-                background: "var(--orange-50)",
-                color: "var(--orange-600)",
-                fontSize: 11.5,
-                fontWeight: 700,
-              }}
-            >
-              <Database size={12} /> 資料檔
-            </span>
-          )}
-        </div>
-        {chapter.description && (
-          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {chapter.description}
-          </div>
-        )}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "none" }}>
-        {/* 筆記在這一格放 @ai-visualize 計數；資料檔沒有那個東西，改放原始檔路徑。
-            是「換一種資訊」而不是「少一格」—— 它是正式的一章。 */}
-        {chapter.kind === "data" && chapter.relPath ? (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontFamily: "var(--font-mono)",
-              fontSize: 11.5,
-              color: "var(--text-muted)",
-            }}
-          >
-            <FileJson size={13} /> {chapter.relPath}
-          </span>
-        ) : chapter.markersTotal > 0 ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>
-            <Sparkles size={13} /> {chapter.markersGenerated}/{chapter.markersTotal}
-          </span>
-        ) : null}
-        <ReadingBadge status={status} />
-        <span style={{ color: "var(--neutral-300)", display: "flex" }}>
-          <ChevronRight size={18} />
-        </span>
-      </div>
-    </a>
+    </>
   );
 }

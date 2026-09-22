@@ -1,16 +1,17 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import Icon from "@/components/Icon.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import SeriesDetail from "@/components/islands/SeriesDetail.tsx";
 import type { SeriesDetailData } from "@/components/islands/SeriesDetail.tsx";
 import { getAllNotes } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
 import { getDataFiles } from "@/lib/plugins";
+import { noteRelPath } from "@/lib/workbench";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
   const series = await loadSeries();
   const dataFiles = getDataFiles();
+  const relBySlug = new Map(notes.map((n) => [n.id, noteRelPath(n)]));
   // 與 /series 一致：零章節的系列不產頁（章節全為 private 筆記時，正式站不會有此路由）。
   return series.flatMap((s) => {
     const chapters = getSeriesChapters(notes, s, dataFiles);
@@ -28,9 +29,9 @@ export async function getStaticPaths() {
         href: c.href,
         title: c.title,
         description: c.description,
+        path: c.kind === "data" ? (c.relPath ?? "") : (relBySlug.get(c.ref) ?? c.ref),
         markersTotal: c.markersTotal,
         markersGenerated: c.markersGenerated,
-        relPath: c.relPath,
       })),
     };
     return [{ params: { id: s.id }, props: { data } }];
@@ -38,20 +39,8 @@ export async function getStaticPaths() {
 }
 
 const { data } = Astro.props;
+const isDev = import.meta.env.DEV;
 ---
-<BaseLayout title={data.title} current="series" description={data.description}>
-  <a
-    href="/series"
-    style="display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:18px;"
-  >
-    <Icon name="chevronLeft" size={16} /> 返回系列
-  </a>
-
-  <SeriesDetail client:load series={data} />
-</BaseLayout>
-
-<style is:global>
-  .nc-chapter-row:hover {
-    background: var(--neutral-50);
-  }
-</style>
+<WorkbenchLayout title={data.title} description={data.description} bare>
+  <SeriesDetail client:load series={data} isDev={isDev} />
+</WorkbenchLayout>

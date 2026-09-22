@@ -1,5 +1,5 @@
 // ── 閱讀進度（個人狀態，存於瀏覽器 localStorage）──
-// 三態：not-started（待開始）→ reading（閱讀中）→ done（已完成）。
+// 三態：not-started（未開始）→ reading（閱讀中）→ done（已完成）。
 // 純前端、正式環境亦可用、零 API（與 src/lib/favorites.ts 同性質）。
 // 所有筆記皆可追蹤（不做「未發佈」判定，見 PRD §7.1〈系列資料模型〉Q2）。
 
@@ -63,7 +63,7 @@ export function readingMeta(status: ReadingStatus): ReadingMeta {
     case "reading":
       return { key: "reading", label: "閱讀中", tone: "blue", icon: "bookOpen" };
     default:
-      return { key: "not-started", label: "待開始", tone: "neutral", icon: "circle" };
+      return { key: "not-started", label: "未開始", tone: "neutral", icon: "circle" };
   }
 }
 

@@ -10,6 +10,7 @@ import { z } from "astro:content";
 import type { SeriesDef } from "@/data/series";
 import { parseMarkers, type Note } from "@/lib/notes";
 import type { ResolvedDataFile } from "@/lib/plugin-types";
+import { getInactiveMatches } from "@/lib/plugins";
 
 export type { SeriesDef };
 
@@ -158,6 +159,13 @@ export function getSeriesChapters(
       const routePath = ref.slice(DATA_REF_PREFIX.length);
       const file = dataFiles.find((f) => f.routePath === routePath);
       if (!file) {
+        const off = getInactiveMatches().find((m) => m.relPath.replace(/\.json$/i, "") === routePath);
+        if (off) {
+          console.warn(
+            `[series] 系列 "${series.id}" 的章節 "${ref}"：資料檔存在，但負責渲染它的 plugin \`${off.pluginId}\` 已停用，已跳過。`,
+          );
+          continue;
+        }
         console.warn(
           `[series] 系列 "${series.id}" 的章節 "${ref}" 找不到對應的資料檔。` +
             `請確認 .notecraft/plugins.json 的 files 有涵蓋 ${routePath}.json，且該檔已被 plugin 認領。`,

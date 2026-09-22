@@ -1,72 +1,26 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import PageHead from "@/components/PageHead.astro";
-import Button from "@/components/Button.astro";
-import Icon from "@/components/Icon.astro";
-import NotesList from "@/components/islands/NotesList.tsx";
-import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
-import PagefindSearch from "@/components/islands/PagefindSearch.tsx";
-import { getAllNotes, parseMarkers, tagStats, excerpt } from "@/lib/notes";
-import { loadSeries } from "@/lib/series";
-import { getDataFiles } from "@/lib/plugins";
+// /notes：整個主區（頁首 Tab、Toolbar、view、Drawer）是同一個 island。
+// 只列筆記 —— 資料檔已移出（規格 Q14）；資料檔的入口在 Rail、Sidebar、/plugins、系列頁與 Palette。
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
+import NotesWorkbench from "@/components/wb/NotesWorkbench.tsx";
+import { getWorkbenchIndex, publicIndex } from "@/lib/workbench";
 
 const isDev = import.meta.env.DEV;
-const notes = await getAllNotes();
-const series = await loadSeries();
-
-// 列表「系列」排序的依據改由集中式 registry 推導（不再讀筆記 frontmatter）。
-const seriesBySlug = new Map<string, { title: string; index: number }>();
-for (const s of series) s.slugs.forEach((slug, i) => seriesBySlug.set(slug, { title: s.title, index: i }));
-
-const cards = notes.map((n) => {
-  const ms = parseMarkers(n.body);
-  const sr = seriesBySlug.get(n.id) ?? null;
-  return {
-    slug: n.id,
-    title: n.data.title,
-    description: n.data.description,
-    tags: n.data.tags,
-    updatedAt: n.data.updatedAt,
-    createdAt: n.data.createdAt,
-    series: sr?.title ?? null,
-    order: sr?.index ?? null,
-    excerpt: excerpt(n.body, n.data.description),
-    markersTotal: ms.length,
-    markersGenerated: ms.filter((m) => m.status === "generated").length,
-  };
-});
-const stats = tagStats(notes).map((t) => ({ name: t.name, count: t.count }));
-
-// 由 plugin 渲染的資料檔與筆記混排（Q6）。它們沒有標籤也不能收藏，
-// 套用標籤篩選或「只看收藏」時會退出列表 —— 判斷在 NotesList 裡。
-const dataCards = getDataFiles().map((f) => ({
-  routePath: f.routePath,
-  relPath: f.relPath,
-  title: f.title,
-  description: f.description,
-  pluginId: f.pluginId,
-  updatedAt: f.updatedAt,
+const index = publicIndex(await getWorkbenchIndex());
+const series = index.series.map((s) => ({
+  id: s.id,
+  title: s.title,
+  accent: s.accent,
+  dataChapters: s.chapters.filter((c) => c.kind === "data").length,
 }));
 ---
-<BaseLayout title="所有筆記" current="notes" description="瀏覽所有 NoteCraft 筆記">
-  <PageHead
-    eyebrow="NOTES"
-    title="所有筆記"
-    sub={dataCards.length
-      ? `${notes.length} 篇筆記、${dataCards.length} 個資料檔 · 預設依更新時間倒序`
-      : `${notes.length} 篇筆記 · 預設依更新時間倒序`}
-  >
-    {isDev && (
-      <Fragment slot="action">
-        <Button id="nc-new-note" variant="primary" size="md">
-          <Icon name="plus" size={18} /> 新增筆記
-        </Button>
-      </Fragment>
-    )}
-  </PageHead>
-
-  <PagefindSearch client:idle />
-  <NotesList client:load notes={cards} dataFiles={dataCards} tagStats={stats} />
-
-  {isDev && <NewNoteModal client:idle />}
-</BaseLayout>
+<WorkbenchLayout title="全部筆記" description="瀏覽所有 NoteCraft 筆記" bare>
+  <NotesWorkbench
+    client:load
+    rows={index.notes}
+    series={series}
+    seriesFull={index.series}
+    workspaceLabel={index.workspaceLabel}
+    isDev={isDev}
+  />
+</WorkbenchLayout>

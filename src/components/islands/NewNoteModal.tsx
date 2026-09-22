@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, X, ArrowRight, Edit3, Check, ChevronDown } from "lucide-react";
+import { pushEscape } from "@/lib/wb-escape";
 
 // FOLDERS 由 GET /api/folders 動態載入（依 NOTECRAFT_NOTES_DIR 或 fallback 到 src/content/notes/），
 // 若 API 不可用則退回單一 root 選項避免壞掉。
@@ -17,9 +18,10 @@ function slugify(s: string) {
   );
 }
 
-type Props = { triggerId?: string };
+/** 全站只掛一次（WorkbenchLayout）。任何地方要開啟它，dispatch 這個事件即可。 */
+export const NEW_NOTE_EVENT = "nc-open-new-note";
 
-export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
+export default function NewNoteModal() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -32,22 +34,21 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ slug: string; path: string; vscode: string } | null>(null);
 
+  // 監聽 window 事件而非綁定某顆按鈕：頁首可能由 island 渲染、晚於這個 effect 才掛載，
+  // 用 getElementById 會綁不到。按鈕（.astro 或 React）都只 dispatch 事件。
   useEffect(() => {
-    const trigger = document.getElementById(triggerId);
-    if (!trigger) return;
-    const onClick = () => {
+    const onOpen = () => {
       setOpen(true);
       setTitle("");
       setSelected([]);
       setTagQuery("");
-      setFolder(folders[0] ?? FALLBACK_FOLDERS[0]);
       setError("");
       setDone(null);
       setSubmitting(false);
     };
-    trigger.addEventListener("click", onClick);
-    return () => trigger.removeEventListener("click", onClick);
-  }, [triggerId]);
+    window.addEventListener(NEW_NOTE_EVENT, onOpen);
+    return () => window.removeEventListener(NEW_NOTE_EVENT, onOpen);
+  }, []);
 
   // 載入全站既有標籤（dev API）；失敗則退回純文字輸入
   useEffect(() => {
@@ -102,12 +103,10 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
   };
   const removeTag = (t: string) => setSelected((s) => s.filter((x) => x !== t));
 
+  // Escape 走共用堆疊：同時開著 Drawer 或 Sidebar 抽屜時，一次只關最上面這一層
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (!open) return;
+    return pushEscape(() => setOpen(false));
   }, [open]);
 
   if (!open) return null;
@@ -151,7 +150,7 @@ export default function NewNoteModal({ triggerId = "nc-new-note" }: Props) {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 600,
+        zIndex: 1000,
         background: "rgba(11,31,62,0.45)",
         display: "flex",
         alignItems: "center",

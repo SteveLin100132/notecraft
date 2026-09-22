@@ -1,18 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Trash2, X, AlertTriangle, FileText } from "lucide-react";
+import { pushEscape } from "@/lib/wb-escape";
 
-type Props = { slug: string; title: string; componentIds: string[] };
+type Props = { slug: string; title: string; componentIds: string[]; /** 顯示用路徑（相對 notesDir） */ path?: string };
 
-export default function DeleteNoteButton({ slug, title, componentIds }: Props) {
+/**
+ * 刪除筆記的對話框與邏輯，拆成 hook 讓「⋯」選單（MoreMenu）與獨立按鈕都能用。
+ * 回傳 open() 與要掛在畫面上的 dialog 節點。
+ */
+export function useDeleteNote({ slug, title, componentIds, path }: Props): { open: () => void; dialog: ReactNode } {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Escape 走共用堆疊（與 Drawer、Palette 同一套關閉順序）
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open && !submitting) setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (!open) return;
+    return pushEscape(() => {
+      if (!submitting) setOpen(false);
+    });
   }, [open, submitting]);
 
   const confirm = async () => {
@@ -36,12 +41,7 @@ export default function DeleteNoteButton({ slug, title, componentIds }: Props) {
     window.location.replace("/notes");
   };
 
-  return (
-    <>
-      <button onClick={() => setOpen(true)} style={triggerBtn}>
-        <Trash2 size={15} /> 刪除筆記
-      </button>
-      {open && (
+  const dialog = open ? (
         <div onClick={() => !submitting && setOpen(false)} style={overlay}>
           <div onClick={(e) => e.stopPropagation()} style={modal}>
             <div style={modalHead}>
@@ -66,7 +66,7 @@ export default function DeleteNoteButton({ slug, title, componentIds }: Props) {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-strong)" }}>{title}</div>
                   <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", wordBreak: "break-all" }}>
-                    src/content/notes/{slug}.mdx
+                    {path ?? `${slug}.mdx`}
                   </code>
                 </div>
               </div>
@@ -102,7 +102,19 @@ export default function DeleteNoteButton({ slug, title, componentIds }: Props) {
             </div>
           </div>
         </div>
-      )}
+  ) : null;
+
+  return { open: () => setOpen(true), dialog };
+}
+
+export default function DeleteNoteButton(props: Props) {
+  const { open, dialog } = useDeleteNote(props);
+  return (
+    <>
+      <button onClick={open} style={triggerBtn}>
+        <Trash2 size={15} /> 刪除筆記
+      </button>
+      {dialog}
     </>
   );
 }
@@ -126,7 +138,7 @@ const triggerBtn: React.CSSProperties = {
 const overlay: React.CSSProperties = {
   position: "fixed",
   inset: 0,
-  zIndex: 600,
+  zIndex: 1000,
   background: "rgba(11,31,62,0.45)",
   display: "flex",
   alignItems: "center",

@@ -9,7 +9,7 @@ import {
 } from "@/lib/reading-progress";
 
 const SEGMENTS: { key: ReadingStatus; label: string; color: string; Icon: typeof Circle }[] = [
-  { key: "not-started", label: "待開始", color: "var(--neutral-600)", Icon: Circle },
+  { key: "not-started", label: "未開始", color: "var(--neutral-600)", Icon: Circle },
   { key: "reading", label: "閱讀中", color: "var(--blue-700)", Icon: BookOpen },
   { key: "done", label: "已完成", color: "#1d6b48", Icon: CheckCircle2 },
 ];

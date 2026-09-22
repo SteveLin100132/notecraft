@@ -1,7 +1,7 @@
 {
   "name": "notecraftapp",
   "type": "module",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。用 npx 一行指令在任何 md/mdx 資料夾啟動漂亮 UI。",
   "keywords": [
     "notecraft",
@@ -34,9 +34,11 @@
   "files": [
     "bin/",
     "plugins/",
+    "public/favicon.svg",
     "src/components/*.astro",
     "src/components/islands/",
     "src/components/deck/",
+    "src/components/wb/",
     "src/content/config.ts",
     "src/data/series.ts",
     "src/dev-api/",

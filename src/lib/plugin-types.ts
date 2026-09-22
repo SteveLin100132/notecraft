@@ -28,6 +28,8 @@ export interface PluginMapping {
 /** <專案根>/.notecraft/plugins.json 的形狀。 */
 export interface PluginsConfig {
   $schema?: string;
+  /** 已停用的 plugin id；省略或空陣列 = 全部啟用（規格 §8.6.1，Task 71 實作語意）。 */
+  disabled?: string[];
   /** 由上而下比對，第一條命中的勝（Q8）。 */
   plugins: PluginMapping[];
 }
@@ -98,6 +100,11 @@ export interface ResolvedDataFile {
   title: string;
   /** 取自資料檔的 meta.description，缺值時為空字串。 */
   description: string;
+  /**
+   * 取自資料檔的 meta.backTo（app 層約定的第三個 meta 欄位，規格 Q21）：「回到來源筆記」的站內路徑。
+   * 只接受單一 `/` 開頭的站內路徑；不符者已在解析時忽略並 warn，這裡不會出現。
+   */
+  backTo?: string;
   data: unknown;
   options: Record<string, unknown>;
   updatedAt: string;

@@ -23,16 +23,20 @@ export default function Toc({ items }: { items: Heading[] }) {
     return () => sc?.removeEventListener("scroll", onScroll);
   }, [items]);
 
-  // 手機 / 平板：目錄改為可折疊面板（預設收合）；桌面：常駐展開
+  // 主區不夠寬（.wb-host 內容寬 < 900，與頁面 CSS 的 container query 同一個數字）：
+  // 目錄改為可折疊面板（預設收合）；夠寬：右側常駐展開。用 ResizeObserver 量容器，不看視窗寬。
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1024px)");
+    const host = document.querySelector<HTMLElement>(".wb-host");
+    if (!host) return;
     const apply = () => {
-      setMobile(mq.matches);
-      setOpen(!mq.matches);
+      const narrow = host.clientWidth - 64 < 900; // 64 = .wb-host 左右 padding
+      setMobile(narrow);
+      setOpen(!narrow);
     };
     apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    const ro = new ResizeObserver(apply);
+    ro.observe(host);
+    return () => ro.disconnect();
   }, []);
 
   if (!items.length) return null;

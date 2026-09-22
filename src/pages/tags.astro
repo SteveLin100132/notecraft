@@ -1,21 +1,17 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import PageHead from "@/components/PageHead.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagsManager from "@/components/islands/TagsManager.tsx";
-import { getAllNotes, tagStats } from "@/lib/notes";
+import { getWorkbenchIndex } from "@/lib/workbench";
 
 const isDev = import.meta.env.DEV;
-const notes = await getAllNotes();
-const stats = tagStats(notes);
+const index = await getWorkbenchIndex();
 ---
-<BaseLayout title="標籤索引" current="tags" description="依標籤瀏覽筆記">
-  <PageHead
-    eyebrow="TAGS"
-    title="標籤索引"
-    sub={isDev
-      ? "瀏覽、重新命名或刪除標籤 — 寫入動作僅 dev 環境可用。"
-      : "依標籤瀏覽筆記，點擊任一標籤進入過濾後的列表。"}
-  />
-
-  <TagsManager client:load initial={stats} devMode={isDev} />
-</BaseLayout>
+<WorkbenchLayout
+  title="標籤"
+  description="依標籤瀏覽筆記"
+  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "標籤" }]}
+  pills={[{ label: `${index.tags.length} 個標籤`, tone: "muted" }]}
+  bareBody
+>
+  <TagsManager client:load initial={index.tags} devMode={isDev} noteCount={index.notes.length} />
+</WorkbenchLayout>

@@ -31,7 +31,13 @@ type Name =
   | "database"
   | "fileJson"
   | "plug"
-  | "alert";
+  | "alert"
+  | "home"
+  | "settings"
+  | "arrowLeft"
+  | "presentation"
+  | "filter"
+  | "more";
 
 export interface Props {
   name: Name;
@@ -130,6 +136,19 @@ const paths: Record<Name, string[]> = {
   external: ['<path d="M15 3h6v6"/>', '<path d="M10 14 21 3"/>', '<path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>'],
   menu: ['<path d="M4 6h16"/>', '<path d="M4 12h16"/>', '<path d="M4 18h16"/>'],
   star: ['<path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 16.9l-5.2 2.62.99-5.8-4.21-4.1 5.82-.85Z"/>'],
+  // ── Workbench（Task 59）：path 取自 lucide，與 React island 的 lucide-react 同一套字形 ──
+  home: [
+    '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>',
+    '<path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  ],
+  settings: [
+    '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>',
+    '<circle cx="12" cy="12" r="3"/>',
+  ],
+  arrowLeft: ['<path d="M19 12H5"/>', '<path d="m11 18-6-6 6-6"/>'],
+  presentation: ['<path d="M2 3h20"/>', '<path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/>', '<path d="m7 21 5-5 5 5"/>'],
+  filter: ['<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>'],
+  more: ['<circle cx="12" cy="12" r="1"/>', '<circle cx="19" cy="12" r="1"/>', '<circle cx="5" cy="12" r="1"/>'],
   download: ['<path d="M12 3v12"/>', '<path d="m7 11 5 5 5-5"/>', '<path d="M4 21h16"/>'],
 };
 

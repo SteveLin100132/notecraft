@@ -1,12 +1,10 @@
 ---
 import { render } from "astro:content";
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
 import Toc from "@/components/islands/Toc.tsx";
-import RegenerateButton from "@/components/islands/RegenerateButton.tsx";
-import DeleteNoteButton from "@/components/islands/DeleteNoteButton.tsx";
-import FavoriteButton from "@/components/islands/FavoriteButton.tsx";
-import GenerateDeckButton from "@/components/islands/GenerateDeckButton.tsx";
+import MoreMenu from "@/components/wb/MoreMenu.tsx";
+import { DeckAction, FavoriteIcon } from "@/components/wb/actions.tsx";
 import ReadingControl from "@/components/islands/ReadingControl.tsx";
 import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
@@ -17,6 +15,9 @@ import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
 import { getDataFiles } from "@/lib/plugins";
+import { noteRelPath, promptPathOf } from "@/lib/workbench";
+import { notesFolderHref } from "@/lib/wb-routes";
+import { ROOT_GROUP } from "@/lib/wb-types";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -53,16 +54,50 @@ const seriesNavData = series
     }
   : null;
 
+// 麵包屑第三段 = 筆記所在資料夾（真實路徑，不是 slug）
+const relPath = noteRelPath(note);
+const promptPath = promptPathOf(relPath);
+const folderPath = relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
+const aiPill =
+  pendingMarkers.length > 0
+    ? { label: `待生成 ${pendingMarkers.length}`, tone: "warn" as const }
+    : genCount > 0
+      ? { label: `已生成 ${genCount}`, tone: "ok" as const }
+      : { label: "無標記", tone: "muted" as const };
+
 const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text }));
 ---
-<BaseLayout title={note.data.title} current="notes" description={note.data.description}>
-  <a
-    href="/notes"
-    style="display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:18px;"
-  >
-    <Icon name="chevronLeft" size={16} /> 返回筆記列表
-  </a>
-
+<WorkbenchLayout
+  title={note.data.title}
+  description={note.data.description}
+  back="/notes"
+  folderPath={folderPath}
+  crumbs={[
+    { label: "NoteCraft", href: "/" },
+    { label: "筆記", href: "/notes" },
+    { label: folderPath || ROOT_GROUP, href: notesFolderHref(folderPath) },
+  ]}
+  pills={[aiPill]}
+  clampTwo
+  pagefindTitle
+>
+  <Fragment slot="actions">
+    <DeckAction client:idle slug={note.id} hasDeck={noteHasDeck} promptPath={promptPath} isDev={isDev} />
+    <FavoriteIcon client:idle slug={note.id} />
+    {isDev && (
+      <MoreMenu
+        client:idle
+        slug={note.id}
+        title={note.data.title}
+        path={relPath}
+        promptPath={promptPath}
+        vscodeHref={vscodeHref}
+        pendingIds={pendingIds}
+        componentIds={markers.map((m) => m.id)}
+      />
+    )}
+  </Fragment>
+  <div class="wb-host">
   <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
     <article class="nc-note-article" style="min-width:0;max-width:760px;">
       <div style="margin-bottom:14px;">
@@ -75,9 +110,6 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         />
       </div>
 
-      <h1 class="nc-note-title" style="color:var(--text-strong);line-height:1.2;margin:0 0 14px;font-weight:900;">
-        {note.data.title}
-      </h1>
       <p style="font-size:var(--text-lg);color:var(--text-muted);line-height:1.7;margin:0 0 18px;">
         {note.data.description}
       </p>
@@ -91,46 +123,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
           <span style="display:inline-flex;align-items:center;gap:5px;">
             <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
           </span>
-          {markers.length > 0 && (
-            <span style="display:inline-flex;align-items:center;gap:5px;">
-              <Icon name="sparkle" size={15} style="color:var(--orange-500);" />
-              {genCount}/{markers.length} 視覺化已生成
-            </span>
-          )}
           <ReadingControl client:idle slug={note.id} />
         </div>
-        <span class="nc-note-actions" style="display:inline-flex;gap:8px;flex-wrap:wrap;">
-          {noteHasDeck ? (
-            <a
-              href={`/present/${note.id.normalize("NFC")}`}
-              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
-            >
-              <Icon name="play" size={15} /> 簡報
-            </a>
-          ) : isDev ? (
-            <GenerateDeckButton client:idle slug={note.id} notePath={note.filePath} />
-          ) : null}
-          <FavoriteButton client:idle slug={note.id} />
-          {isDev && (
-            <a
-              href={vscodeHref}
-              style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--action-secondary);color:#fff;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;"
-            >
-              <Icon name="edit" size={15} /> 以 VS Code 編輯
-            </a>
-          )}
-          {isDev && pendingIds.length > 0 && (
-            <RegenerateButton client:idle slug={note.id} pendingIds={pendingIds} />
-          )}
-          {isDev && (
-            <DeleteNoteButton
-              client:idle
-              slug={note.id}
-              title={note.data.title}
-              componentIds={markers.map((m) => m.id)}
-            />
-          )}
-        </span>
       </div>
 
       {/* 已生成的標記，其提示詞已由下方 GeneratedFrame 卡片（含複製按鈕）呈現，
@@ -153,7 +147,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
         style="margin-top:44px;padding-top:22px;border-top:1px solid var(--neutral-200);display:flex;justify-content:space-between;color:var(--text-muted);font-size:13px;"
       >
         <span>建立於 {fmtDate(note.data.createdAt)}</span>
-        <span style="font-family:var(--font-mono);">{note.filePath ?? `src/content/notes/${note.id}.mdx`}</span>
+        <span style="font-family:var(--font-mono);">{relPath}</span>
       </div>
 
       {seriesNavData && <SeriesNav client:visible series={seriesNavData} />}
@@ -165,7 +159,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
       </div>
     )}
   </div>
-</BaseLayout>
+  </div>
+</WorkbenchLayout>
 
 <style is:global>
   .nc-note-grid {
@@ -174,15 +169,15 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     gap: 40px;
     align-items: start;
   }
-  .nc-note-title {
-    font-size: var(--text-4xl);
+  /* TOC 斷點（Task 74）：以「內文欄至少 640px」為準，不看視窗寬。
+     新殼吃掉 Rail 52 + Sidebar 240，同樣的視窗寬主區窄很多；平板時 Sidebar 又收成抽屜，
+     用視窗寬換算要算兩套。改用 container query 量 .wb-host 的內容寬：
+     640（內文）+ 40（gap）+ 220（TOC）= 900。桌面約落在視窗 1256、平板約 1016。 */
+  .wb-host {
+    container-type: inline-size;
+    container-name: wbhost;
   }
-  @media (max-width: 1024px) {
-    .nc-note-title {
-      font-size: var(--text-3xl);
-    }
-  }
-  @media (min-width: 1025px) {
+  @container wbhost (min-width: 900px) {
     .nc-note-grid.has-toc {
       grid-template-columns: 1fr 220px;
     }
@@ -218,8 +213,8 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     display: none;
   }
 
-  /* 平板 / 手機：單欄 + 目錄改為可折疊面板置於內文上方 */
-  @media (max-width: 1024px) {
+  /* 主區不夠寬：單欄 + 目錄改為可折疊面板置於內文上方 */
+  @container wbhost (max-width: 899.98px) {
     .nc-note-grid {
       gap: 0;
     }
@@ -246,11 +241,6 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
     .nc-toc-chevron {
       display: inline-flex;
       transition: transform 200ms ease-out;
-    }
-    /* 頁首動作鈕：自成一行、靠左、可換行，不再被壓窄 */
-    .nc-note-actions {
-      margin-left: 0 !important;
-      flex-basis: 100%;
     }
   }
   @media (prefers-reduced-motion: reduce) {
