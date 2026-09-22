@@ -1,0 +1,481 @@
+// NoteCraft — MDX block renderer + Note view page
+const { useState, useEffect, useRef } = React;
+
+const T = {
+  blue: "var(--blue-700)", blue500: "var(--blue-500)", blue50: "var(--blue-50)",
+  orange: "var(--orange-500)", orange50: "var(--orange-50)",
+  ink: "var(--text-strong)", body: "var(--text-body)", muted: "var(--text-muted)",
+  n100: "var(--neutral-100)", n200: "var(--neutral-200)", n50: "var(--neutral-50)",
+};
+
+// slug for headings (TOC)
+const hid = (s) => "h-" + s.replace(/[^\w\u4e00-\u9fff]+/g, "-");
+
+function MarkerBlock({ block }) {
+  const { Badge } = window.TrendLinkDesignSystem_b2a0d6;
+  const statusMap = {
+    generated: ["success", "已生成"], pending: ["warning", "待生成"],
+    locked: ["neutral", "已鎖定"], failed: ["danger", "生成失敗"],
+  };
+  const [tone, label] = statusMap[block.status] || statusMap.pending;
+  const isPending = block.status !== "generated";
+  return React.createElement("div", {
+    style: {
+      margin: "22px 0", borderRadius: "var(--radius-lg)", overflow: "hidden",
+      border: `1px dashed ${isPending ? "var(--orange-300)" : "var(--neutral-300)"}`,
+      background: isPending ? "var(--orange-50)" : "var(--neutral-50)",
+    },
+  },
+    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: `1px solid ${isPending ? "var(--orange-100)" : T.n100}` } },
+      React.createElement("span", { style: { display: "flex", color: T.orange } }, window.Icons.sparkle({ s: 16 })),
+      React.createElement("code", { style: { fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, color: T.blue } }, `@ai-visualize · ${block.id}`),
+      React.createElement("span", { style: { marginLeft: "auto", display: "flex", gap: 6 } },
+        React.createElement(Badge, { tone: "blue", variant: "soft" }, block.type),
+        React.createElement(Badge, { tone, variant: "soft" }, label)
+      )
+    ),
+    React.createElement("div", { style: { padding: "12px 16px 14px" } },
+      React.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", color: T.muted, marginBottom: 5 } }, "PROMPT"),
+      React.createElement("p", { style: { margin: 0, fontSize: 13.5, color: T.body, lineHeight: 1.7 } }, block.prompt),
+      isPending && React.createElement("div", { style: { marginTop: 10, fontSize: 12.5, color: "var(--orange-600)", display: "flex", alignItems: "center", gap: 6 } },
+        window.Icons.clock({ s: 14 }),
+        "尚未生成 — 在 Claude Code 中請 AI 處理此標記即可在此渲染元件"
+      )
+    )
+  );
+}
+
+// ── Code block theme (trendlink light surface) ──
+const CODE = {
+  bg: "var(--neutral-0)",           // #ffffff — clean white surface
+  header: "var(--neutral-50)",      // #f6f8fb — faint blue-tinted bar
+  gutterBg: "var(--neutral-50)",    // sunken gutter
+  border: "var(--neutral-200)",     // #e1e6ee — hairline
+  gutter: "var(--neutral-400)",     // #9aa6b8 — line-number figures
+  base: "var(--neutral-800)",       // #262e3d — plain code
+  comment: "var(--neutral-400)",    // muted blue-gray
+  string: "var(--orange-600)",      // #c7641a — warm accent (legible on white)
+  keyword: "var(--blue-700)",       // #1b4f9c — brand navy
+  number: "var(--orange-700)",      // #a04f15
+  hlBg: "var(--orange-50)",         // #fdf4e6 — highlighted line band
+  hlBar: "var(--orange-400)",       // #ed9b26 — left accent stripe
+  hlNum: "var(--orange-600)",       // #c7641a — emphasized line number
+};
+const CODE_FONT_SIZE = 13.5;
+const CODE_LINE_HEIGHT = 1.85;      // generous, controllable line height
+
+// Token → style, all mapped to design-system tokens.
+const CODE_TC = {
+  comment: { color: "var(--neutral-400)", fontStyle: "italic" },
+  string:  { color: "var(--success-500)" },              // green — strings
+  number:  { color: "var(--orange-700)" },               // warm — numerics
+  keyword: { color: "var(--blue-700)", fontWeight: 600 },// navy — language keywords
+  func:    { color: "var(--blue-500)" },                 // azure — function calls
+  type:    { color: "var(--orange-600)" },               // gold — Components / Types
+  attr:    { color: "var(--sky-600)" },                  // sky — JSX attrs / object keys
+  punct:   { color: "var(--neutral-400)" },              // muted — punctuation
+  plain:   { color: "var(--neutral-800)" },              // base identifiers
+};
+
+const CODE_KW_SET = new Set("const let var function return if else for while do switch case break continue type interface enum import export from as default new await async class extends implements public private protected readonly static get set null undefined true false void never any unknown in of typeof instanceof this yield delete throw try catch finally".split(" "));
+
+// Master tokenizer: comments, strings, numbers, identifiers, punctuation.
+const CODE_RE = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\b0x[\da-fA-F]+\b|\b\d+(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)|([{}()\[\].,;:=<>+\-*/%!&|?~@]+)|(\s+)/g;
+
+function classifyIdent(word, line, start, end) {
+  if (CODE_KW_SET.has(word)) return "keyword";
+  let n = end; while (n < line.length && line[n] === " ") n++;
+  let p = start - 1; while (p >= 0 && line[p] === " ") p--;
+  const nextCh = line[n], prevCh = line[p];
+  if (prevCh === "<" || prevCh === ".") return /^[A-Z]/.test(word) ? "type" : (nextCh === "(" ? "func" : "attr");
+  if (nextCh === "(") return "func";
+  if (nextCh === "=" && line[n + 1] !== "=") return "attr";      // JSX attr / assignment target
+  if (/^[A-Z]/.test(word)) return "type";                         // Component / Type names
+  return "plain";
+}
+
+function tokenizeLine(line, keyBase) {
+  const out = [];
+  let m, k = 0;
+  CODE_RE.lastIndex = 0;
+  const push = (text, t) => out.push(React.createElement("span", { key: keyBase + "-" + (k++), style: CODE_TC[t] }, text));
+  while ((m = CODE_RE.exec(line))) {
+    if (m[1]) push(m[1], "comment");
+    else if (m[2]) push(m[2], "string");
+    else if (m[3]) push(m[3], "number");
+    else if (m[4]) push(m[4], classifyIdent(m[4], line, m.index, CODE_RE.lastIndex));
+    else if (m[5]) push(m[5], "punct");
+    else out.push(m[0]); // whitespace
+  }
+  return out.length ? out : "\u200b"; // keep empty lines tall
+}
+
+function CodeBlock({ block }) {
+  const [copied, setCopied] = useState(false);
+  const lines = String(block.c).split("\n");
+  const copy = () => {
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1600); };
+    try {
+      navigator.clipboard.writeText(block.c).then(done, done);
+    } catch (e) { done(); }
+  };
+  const rowStyle = { lineHeight: CODE_LINE_HEIGHT, height: `${CODE_LINE_HEIGHT}em` };
+  const hl = new Set((block.hl || []).map(Number));   // 1-indexed lines to highlight
+
+  return React.createElement("div", { style: { margin: "22px 0", borderRadius: "var(--radius-lg)", overflow: "hidden", border: `1px solid ${CODE.border}`, background: CODE.bg, boxShadow: "var(--shadow-sm)" } },
+    // header
+    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "9px 12px 9px 14px", background: CODE.header, borderBottom: `1px solid ${CODE.border}` } },
+      React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "var(--orange-500)" } },
+        window.Icons.code({ s: 15 }),
+        React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--orange-600)" } }, block.lang)
+      ),
+      React.createElement("span", { style: { marginLeft: "auto" } },
+        React.createElement("button", {
+          onClick: copy,
+          style: {
+            display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
+            fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600,
+            padding: "5px 11px", borderRadius: 999,
+            border: `1px solid ${copied ? "rgba(46,158,107,0.45)" : "var(--neutral-300)"}`,
+            background: copied ? "var(--success-50)" : "var(--neutral-0)",
+            color: copied ? "var(--success-500)" : "var(--neutral-600)",
+            transition: "background 140ms, color 140ms, border-color 140ms",
+          },
+          onMouseEnter: (e) => { if (!copied) e.currentTarget.style.background = "var(--neutral-100)"; },
+          onMouseLeave: (e) => { if (!copied) e.currentTarget.style.background = "var(--neutral-0)"; },
+        },
+          copied ? window.Icons.check({ s: 14 }) : window.Icons.copy({ s: 14 }),
+          copied ? "已複製" : "複製"
+        )
+      )
+    ),
+    // body: fixed line-number gutter + horizontally-scrolling code
+    React.createElement("div", { style: { display: "flex", alignItems: "stretch", fontFamily: "var(--font-mono)", fontSize: CODE_FONT_SIZE } },
+      React.createElement("div", { style: { flex: "none", textAlign: "right", userSelect: "none", padding: "14px 0", color: CODE.gutter, background: CODE.gutterBg, borderRight: `1px solid ${CODE.border}` } },
+        lines.map((_, i) => {
+          const on = hl.has(i + 1);
+          return React.createElement("div", { key: i, style: { ...rowStyle, padding: "0 14px 0 16px", background: on ? CODE.hlBg : "transparent", boxShadow: on ? `inset 3px 0 0 ${CODE.hlBar}` : "none", color: on ? CODE.hlNum : undefined, fontWeight: on ? 700 : undefined } }, i + 1);
+        })
+      ),
+      React.createElement("pre", { style: { margin: 0, padding: "14px 0", overflowX: "auto", flex: "1 1 auto", minWidth: 0 } },
+        React.createElement("code", { style: { color: CODE.base } },
+          lines.map((ln, i) => React.createElement("div", { key: i, style: { ...rowStyle, padding: "0 18px", whiteSpace: "pre", background: hl.has(i + 1) ? CODE.hlBg : "transparent" } }, tokenizeLine(ln, i)))
+        )
+      )
+    )
+  );
+}
+
+function NoteBody({ note }) {
+  return note.content.map((b, i) => {
+    switch (b.t) {
+      case "h1":
+        return React.createElement("h2", { key: i, id: hid(b.c), "data-level": 1, style: { fontSize: "var(--text-3xl)", color: T.blue, margin: "48px 0 16px", paddingBottom: 10, borderBottom: `1px solid ${T.n200}`, scrollMarginTop: 90 } }, b.c);
+      case "h2":
+        return React.createElement("h2", { key: i, id: hid(b.c), style: { fontSize: "var(--text-2xl)", color: T.ink, margin: "38px 0 14px", scrollMarginTop: 90 } }, b.c);
+      case "h3":
+        return React.createElement("h3", { key: i, id: hid(b.c), style: { fontSize: "var(--text-xl)", color: T.ink, margin: "28px 0 10px", scrollMarginTop: 90 } }, b.c);
+      case "p":
+        return React.createElement("p", { key: i, style: { fontSize: "var(--text-md)", color: T.body, lineHeight: 1.85, margin: "0 0 16px" } }, b.c);
+      case "ul":
+      case "ol":
+        return React.createElement(b.t === "ul" ? "ul" : "ol", { key: i, style: { margin: "0 0 18px", paddingLeft: 22, color: T.body, fontSize: "var(--text-md)", lineHeight: 1.85, display: "flex", flexDirection: "column", gap: 7 } },
+          b.c.map((li, j) => React.createElement("li", { key: j }, li)));
+      case "quote":
+        return React.createElement("blockquote", { key: i, style: { margin: "22px 0", padding: "14px 20px", borderLeft: `4px solid ${T.orange}`, background: T.orange50, borderRadius: "0 var(--radius-md) var(--radius-md) 0", fontSize: "var(--text-md)", color: "var(--blue-900)", fontWeight: 500, lineHeight: 1.8 } }, b.c);
+      case "code":
+        return React.createElement(CodeBlock, { key: i, block: b });
+      case "marker":
+        return React.createElement(MarkerBlock, { key: i, block: b });
+      case "viz": {
+        const Comp = window.GENERATED[b.id];
+        return Comp ? React.createElement(Comp, { key: i }) : null;
+      }
+      case "dataembed": {
+        const env = window.NC_ENV || {};
+        return React.createElement(window.DataEmbedFrame, { key: i, fileId: b.id, devMode: env.devMode, embedMark: env.embedMark, vizError: env.vizError, onOpenView: env.onOpenView || (() => {}) });
+      }
+      default:
+        return null;
+    }
+  });
+}
+
+// 閱讀進度控制（手動為主）：待開始 / 閱讀中 / 已完成
+function ReadingControl({ note }) {
+  const status = window.readingStatus(note.slug);
+  const opts = [["not-started", "待開始", "var(--neutral-600)"], ["reading", "閱讀中", "var(--blue-500)"], ["done", "已完成", "var(--success-500)"]];
+  return React.createElement("div", { style: { display: "inline-flex", alignItems: "center", gap: 9 } },
+    React.createElement("span", { style: { fontSize: 12.5, fontWeight: 600, color: T.muted } }, "閱讀進度"),
+    React.createElement("div", { style: { display: "inline-flex", gap: 3, padding: 3, background: "var(--neutral-100)", borderRadius: 999 } },
+      opts.map(([k, label, color]) => {
+        const on = status === k;
+        const m = window.readingMeta(k);
+        return React.createElement("button", { key: k, onClick: () => window.setReadingStatus(note.slug, k),
+          style: { display: "inline-flex", alignItems: "center", gap: 5, height: 30, padding: "0 12px", border: "none", borderRadius: 999, cursor: "pointer", fontFamily: "var(--font-sans)", fontSize: 12.5, fontWeight: on ? 700 : 600, background: on ? "#fff" : "transparent", color: on ? color : T.muted, boxShadow: on ? "var(--shadow-xs)" : "none", transition: "all 140ms" } },
+          window.Icons[m.icon]({ s: 14 }), label);
+      })
+    )
+  );
+}
+
+// 文末「標記為已完成」提示
+function DonePrompt({ note }) {
+  const { Button } = window.TrendLinkDesignSystem_b2a0d6;
+  const status = window.readingStatus(note.slug);
+  if (status === "done") {
+    return React.createElement("div", { style: { marginTop: 32, display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderRadius: "var(--radius-lg)", background: "var(--success-50)", color: "var(--success-500)", fontSize: 14, fontWeight: 700 } },
+      window.Icons.circleCheck({ s: 18 }), "已標記為完成",
+      React.createElement("button", { onClick: () => window.setReadingStatus(note.slug, "reading"),
+        style: { marginLeft: "auto", border: "none", background: "none", color: "var(--text-muted)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-sans)" } }, "標記為未完成")
+    );
+  }
+  return React.createElement("div", { style: { marginTop: 32, display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderRadius: "var(--radius-lg)", background: T.orange50, border: "1px solid var(--orange-100)" } },
+    React.createElement("span", { style: { display: "flex", color: T.orange } }, window.Icons.lightbulb({ s: 20 })),
+    React.createElement("span", { style: { fontSize: 14, fontWeight: 700, color: "var(--blue-900)" } }, "讀完這篇了嗎？"),
+    React.createElement(Button, { variant: "primary", size: "sm", shape: "pill", style: { marginLeft: "auto" }, iconLeft: window.Icons.check({ s: 15 }), onClick: () => { window.setReadingStatus(note.slug, "done"); window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg: "已標記為完成", icon: "check" } })); } }, "標記為已完成")
+  );
+}
+
+function NoteView({ note, devMode, onBack, onTag, onOpenNote, onOpenSeries, onPresent, fontScale }) {
+  const { Button, Badge } = window.TrendLinkDesignSystem_b2a0d6;
+  const [copied, setCopied] = useState(false);
+  const [activeH, setActiveH] = useState(null);
+  const rootRef = useRef(null);
+  // ToC：h1 / h2 / h3 三層樹。缺少上層時（例如筆記只從 h2 起）自動掛到最近的可用層級。
+  const toc = []; const flat = [];
+  note.content.forEach((b) => {
+    const lv = { h1: 1, h2: 2, h3: 3 }[b.t]; if (!lv) return;
+    const it = { id: hid(b.c), label: b.c, lv, kids: [], parent: null };
+    let parent = null;
+    for (let i = flat.length - 1; i >= 0; i--) if (flat[i].lv < lv) { parent = flat[i]; break; }
+    it.parent = parent; (parent ? parent.kids : toc).push(it); flat.push(it);
+  });
+  const minLv = Math.min(...flat.map((h) => h.lv), 3);
+  const active = flat.find((h) => h.id === activeH);
+  const trail = new Set(); for (let a = active; a; a = a.parent) trail.add(a.id);
+  const counts = [1, 2, 3].map((l) => flat.filter((h) => h.lv === l).length);
+  const scrollParentOf = (el) => { let p = el && el.parentElement; while (p) { const o = getComputedStyle(p).overflowY; if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight) return p; p = p.parentElement; } return null; };
+  const jumpTo = (id) => {
+    const el = document.getElementById(id); if (!el) return;
+    const sc = scrollParentOf(rootRef.current);
+    if (sc) sc.scrollTo({ top: el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 24, behavior: "smooth" });
+    else window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
+  };
+  const markers = window.markersOf(note);
+  const genCount = markers.filter((m) => m.status === "generated").length;
+
+  useEffect(() => { window.scrollTo(0, 0); }, [note.slug]);
+  // 開啟已發佈筆記時，輕量自動轉換：待開始 → 閱讀中（手動為主，永不降級）
+  useEffect(() => { if (window.noteStatus(note) === "published") window.markReading(note.slug); }, [note.slug]);
+  useEffect(() => {
+    const sc = scrollParentOf(rootRef.current);
+    const onScroll = () => {
+      const base = sc ? sc.getBoundingClientRect().top : 0;
+      let cur = null;
+      flat.forEach((h) => {
+        const el = document.getElementById(h.id);
+        if (el && el.getBoundingClientRect().top < base + 140) cur = h.id;
+      });
+      setActiveH(cur);
+    };
+    const tgt = sc || window;
+    tgt.addEventListener("scroll", onScroll);
+    onScroll();
+    return () => tgt.removeEventListener("scroll", onScroll);
+  }, [note.slug]);
+
+  const copyPrompt = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  // ── status-driven states：empty（初始畫面）/ coming-soon（佔位 + 彩蛋）──
+  // 所有 hooks 已於上方無條件呼叫完畢，這裡才依 status 分流，避免 hooks 順序錯亂。
+  const status = window.noteStatus(note);
+  if (status !== "published") {
+    const StateComp = status === "coming-soon" ? window.ComingSoonState : window.EmptyNoteState;
+    return React.createElement("div", { style: { fontSize: `calc(1rem * ${fontScale})` } },
+      React.createElement("button", { onClick: onBack, style: { display: "inline-flex", alignItems: "center", gap: 5, border: "none", background: "none", color: T.muted, fontSize: 13.5, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 22, fontFamily: "var(--font-sans)" } },
+        window.Icons.chevronLeft({ s: 16 }), "返回筆記列表"),
+      React.createElement(StateComp, { note, devMode })
+    );
+  }
+
+  return React.createElement("div", { ref: rootRef, style: { fontSize: `calc(1rem * ${fontScale})` } },
+    React.createElement("button", { onClick: onBack, style: { display: "inline-flex", alignItems: "center", gap: 5, border: "none", background: "none", color: T.muted, fontSize: 13.5, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 18, fontFamily: "var(--font-sans)" } },
+      window.Icons.chevronLeft({ s: 16 }), "返回筆記列表"),
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: toc.length ? "1fr 220px" : "1fr", gap: 40, alignItems: "start" } },
+      // main column
+      React.createElement("article", { style: { minWidth: 0 } },
+        React.createElement("div", { style: { marginBottom: 14 } },
+          React.createElement(window.TagEditor, {
+            tags: note.tags, editable: devMode,
+            suggestions: window.allTags().map((x) => x[0]),
+            onTagClick: onTag,
+            onAdd: (tg) => { const r = window.addNoteTag(note.slug, tg); if (!r.ok) window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg: r.reason === "dup" ? "此筆記已有相同標籤" : "標籤無效", icon: "x" } })); },
+            onRemove: (tg) => { window.removeNoteTag(note.slug, tg); },
+          })
+        ),
+        React.createElement("h1", { style: { fontSize: "var(--text-4xl)", color: T.ink, lineHeight: 1.2, margin: "0 0 14px", fontWeight: 900 } }, note.title),
+        React.createElement("p", { style: { fontSize: "var(--text-lg)", color: T.muted, lineHeight: 1.7, margin: "0 0 18px" } }, note.description),
+        React.createElement("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, paddingBottom: 18, marginBottom: 8, borderBottom: `1px solid ${T.n200}`, fontSize: 13, color: T.muted } },
+          React.createElement(ReadingControl, { note }),
+          React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5 } }, window.Icons.clock({ s: 15 }), `更新於 ${window.fmtDate(note.updatedAt)}`),
+          markers.length > 0 && React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5 } }, window.Icons.sparkle({ s: 15, style: { color: T.orange } }), `${genCount}/${markers.length} 視覺化已生成`),
+          // 功能列動作：簡報入口（讀者可見）+ dev-only 按鈕
+          React.createElement("span", { style: { marginLeft: "auto", display: "inline-flex", gap: 8, alignItems: "center" } },
+            React.createElement(window.DeckToolbarActions, { slug: note.slug, devMode, onPresent: () => onPresent && onPresent(note.slug) }),
+            devMode && React.createElement(Button, { variant: "secondary", size: "sm", shape: "pill", iconLeft: window.Icons.edit({ s: 15 }), onClick: () => window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg: `已喚起 VS Code 開啟 ${note.slug}.mdx`, icon: "code" } })) }, "以 VS Code 編輯"),
+            devMode && markers.some((m) => m.status !== "generated") && React.createElement(Button, { variant: "outline", size: "sm", shape: "pill", iconLeft: copied ? window.Icons.check({ s: 15 }) : window.Icons.clipboard({ s: 15 }), onClick: copyPrompt }, copied ? "已複製範本" : "在 Claude Code 重新生成")
+          )
+        ),
+        React.createElement("div", { style: { marginTop: 14 } }, React.createElement(NoteBody, { note })),
+        // 文末「標記為已完成」提示
+        React.createElement(DonePrompt, { note }),
+        // series prev / next navigation
+        onOpenNote && React.createElement(SeriesNav, { note, onOpenNote, onOpenSeries }),
+        // footer nav
+        React.createElement("div", { style: { marginTop: 44, paddingTop: 22, borderTop: `1px solid ${T.n200}`, display: "flex", justifyContent: "space-between", color: T.muted, fontSize: 13 } },
+          React.createElement("span", null, `建立於 ${window.fmtDate(note.createdAt)}`),
+          React.createElement("span", { style: { fontFamily: "var(--font-mono)" } }, `src/content/notes/${note.slug}.mdx`)
+        )
+      ),
+      // TOC
+      toc.length > 0 && React.createElement("nav", { "aria-label": "目錄", style: { position: "sticky", top: 8, alignSelf: "start", maxHeight: "calc(100vh - 120px)", overflowY: "auto", paddingRight: 4 } },
+        React.createElement("div", { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 } },
+          React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, letterSpacing: ".1em", color: T.muted, textTransform: "uppercase" } }, "目錄"),
+          React.createElement("span", { style: { fontSize: 11, color: T.muted, fontVariantNumeric: "tabular-nums" } }, counts.map((n, i) => n ? `H${i + 1}×${n}` : null).filter(Boolean).join(" · "))
+        ),
+        React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 1, borderLeft: `2px solid ${T.n200}` } },
+          flat.map((h) => {
+            const depth = h.lv - minLv;              // 0 / 1 / 2（相對深度，筆記若只從 h2 起則 h2 當頂層）
+            const on = activeH === h.id, inTrail = trail.has(h.id);
+            const size = [13.5, 12.5, 12][depth], indent = 14 + depth * 12;
+            return React.createElement("a", { key: h.id, href: `#${h.id}`, onClick: (e) => { e.preventDefault(); jumpTo(h.id); },
+              style: { display: "flex", alignItems: "center", gap: 7, padding: `${depth ? 3 : 5}px 10px ${depth ? 3 : 5}px ${indent}px`, marginLeft: -2, borderLeft: `2px solid ${on ? T.orange : "transparent"}`, fontSize: size, color: on ? T.blue : inTrail ? T.blue : depth === 2 ? T.muted : depth === 1 ? T.body : T.muted, fontWeight: on ? 700 : inTrail ? 600 : depth === 0 ? 600 : 400, opacity: depth === 2 && !on && !inTrail ? .85 : 1, textDecoration: "none", lineHeight: 1.5, transition: "color 140ms, border-color 140ms" } },
+              depth === 1 && React.createElement("span", { "aria-hidden": true, style: { width: 4, height: 4, borderRadius: 999, flex: "none", background: on ? T.orange : "var(--neutral-300)", transition: "background 140ms" } }),
+              depth === 2 && React.createElement("span", { "aria-hidden": true, style: { width: 8, height: 1.5, flex: "none", background: on ? T.orange : "var(--neutral-300)", transition: "background 140ms" } }),
+              React.createElement("span", { style: { minWidth: 0 } }, h.label));
+          })
+        )
+      )
+    )
+  );
+}
+
+window.NoteView = NoteView;
+
+// ── Series navigation：系列上一章 / 下一章（置於內文末）── 一章可以是筆記，也可以是資料檔頁
+const ncOpenEntry = (entry, onOpenNote) => {
+  if (!entry) return;
+  if (entry.kind === "data") { const f = (window.NC_ENV || {}).onOpenView; f && f(entry.id); return; }
+  onOpenNote(entry.ref);
+};
+
+function SeriesNavCard({ entry, dir, onOpenNote }) {
+  const isPrev = dir === "prev";
+  const isData = entry.kind === "data";
+  const [hover, setHover] = useState(false);
+  return React.createElement("button", {
+    onClick: () => ncOpenEntry(entry, onOpenNote),
+    onMouseEnter: () => setHover(true),
+    onMouseLeave: () => setHover(false),
+    style: {
+      display: "flex", flexDirection: "column", gap: 7,
+      alignItems: isPrev ? "flex-start" : "flex-end",
+      textAlign: isPrev ? "left" : "right",
+      padding: "16px 20px", width: "100%", cursor: "pointer",
+      border: `1px solid ${hover ? "var(--blue-300)" : T.n200}`,
+      borderRadius: "var(--radius-lg)", background: "#fff",
+      boxShadow: hover ? "var(--shadow-sm)" : "none",
+      transform: hover ? "translateY(-2px)" : "none",
+      transition: "transform 160ms var(--ease-out), box-shadow 160ms, border-color 160ms",
+      fontFamily: "var(--font-sans)",
+    },
+  },
+    // 方向標：資料檔在這裡補上型別，標題本身的處理與筆記完全相同
+    React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 600, color: T.muted } },
+      isPrev && window.Icons.chevronLeft({ s: 14 }),
+      isPrev ? "上一章" : "下一章",
+      isData && React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, color: "var(--orange-600)", fontWeight: 700 } },
+        "· ", window.Icons.database({ s: 13 }), "資料檔"),
+      !isPrev && window.Icons.chevronRight({ s: 14 })
+    ),
+    React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: "var(--text-lg)", fontWeight: 700, color: hover ? "var(--blue-500)" : T.blue, lineHeight: 1.35, transition: "color 160ms" } },
+      isPrev && React.createElement("span", { style: { fontWeight: 400, color: "var(--orange-500)", fontSize: "1.1em" } }, "«"),
+      entry.title,
+      !isPrev && React.createElement("span", { style: { fontWeight: 400, color: "var(--orange-500)", fontSize: "1.1em" } }, "»")
+    ),
+    isData && React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: 11.5, color: T.muted } }, entry.file.path)
+  );
+}
+
+function SeriesNav({ note, entryRef, onOpenNote, onOpenSeries }) {
+  const cur = entryRef || (note && note.slug);
+  const info = window.seriesOf(cur);
+  if (!info) return null;
+  const { series, index, total, prev, next } = info;
+  const prog = window.seriesProgress(series);
+  const chapterMark = (window.NC_ENV || {}).chapterMark || "pill";
+  return React.createElement("section", { style: { marginTop: 44, paddingTop: 26, borderTop: `1px solid ${T.n200}` } },
+    // series context eyebrow
+    React.createElement("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 14 } },
+      React.createElement("button", { onClick: () => onOpenSeries && onOpenSeries(series.id),
+        style: { display: "inline-flex", alignItems: "center", gap: 11, border: "none", background: "none", padding: 0, cursor: onOpenSeries ? "pointer" : "default", fontFamily: "var(--font-sans)", textAlign: "left" } },
+        React.createElement("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: "var(--radius-md)", background: T.blue50, color: T.blue, flex: "none" } }, window.Icons.layers({ s: 17 })),
+        React.createElement("div", { style: { lineHeight: 1.25 } },
+          React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700, letterSpacing: ".16em", color: "var(--orange-500)" } }, series.eyebrow),
+          React.createElement("div", { style: { fontSize: 14.5, fontWeight: 800, color: T.ink } }, series.title)
+        )
+      ),
+      onOpenSeries && React.createElement("button", { onClick: () => onOpenSeries(series.id),
+        style: { display: "inline-flex", alignItems: "center", gap: 4, border: "none", background: "none", color: "var(--blue-600)", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-sans)", padding: 0 } },
+        "查看系列", window.Icons.arrowRight({ s: 14 })),
+      React.createElement("span", { style: { marginLeft: "auto", fontSize: 12.5, fontWeight: 600, color: T.muted, fontFamily: "var(--font-mono)" } }, `第 ${index + 1} 章 · 共 ${total} 章`)
+    ),
+    // 系列整體進度條（依各章閱讀狀態，資料檔與筆記同一條）
+    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, marginBottom: 18 } },
+      React.createElement("div", { style: { display: "flex", flex: 1, height: 6, borderRadius: 999, background: T.n100, overflow: "hidden" } },
+        React.createElement("div", { style: { width: `${prog.tracked ? (prog.done / prog.tracked) * 100 : 0}%`, background: "var(--success-500)", transition: "width 400ms" } }),
+        React.createElement("div", { style: { width: `${prog.tracked ? (prog.reading / prog.tracked) * 100 : 0}%`, background: "var(--blue-500)", opacity: 0.4, transition: "width 400ms" } })
+      ),
+      React.createElement("span", { style: { fontSize: 12.5, fontWeight: 800, color: prog.completed ? "var(--success-500)" : T.blue, fontFamily: "var(--font-mono)" } }, `${prog.pct}%`)
+    ),
+    // 章節狀態縮覽（目前章節高亮）
+    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4, marginBottom: 20 } },
+      prog.statuses.map((s, i) => {
+        const e = s.entry;
+        const m = window.readingMeta(s.status);
+        const isCur = e.ref === cur;
+        const isData = e.kind === "data";
+        const color = s.status === "done" ? "var(--success-500)" : s.status === "reading" ? "var(--blue-500)" : "var(--neutral-400)";
+        const tint = isData && chapterMark === "tint";
+        return React.createElement("button", { key: e.ref, onClick: () => ncOpenEntry(e, onOpenNote),
+          style: { display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "8px 12px", border: `1px solid ${isCur ? "var(--blue-200)" : "transparent"}`, borderRadius: "var(--radius-md)", background: isCur ? T.blue50 : (tint ? "var(--orange-50)" : "transparent"), cursor: "pointer", fontFamily: "var(--font-sans)", transition: "background 140ms" },
+          onMouseEnter: (ev) => { if (!isCur) ev.currentTarget.style.background = "var(--neutral-50)"; },
+          onMouseLeave: (ev) => { if (!isCur) ev.currentTarget.style.background = tint ? "var(--orange-50)" : "transparent"; } },
+          React.createElement("span", { style: { display: "inline-flex", color, flex: "none" } }, window.Icons[m.icon]({ s: 16 })),
+          React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: isData && chapterMark === "icon" ? "var(--orange-600)" : T.muted, fontFamily: "var(--font-mono)", flex: "none", width: 22, display: "inline-flex", justifyContent: "center" } },
+            isData && chapterMark === "icon" ? window.Icons.database({ s: 14 }) : String(i + 1).padStart(2, "0")),
+          React.createElement("span", { style: { flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: isCur ? 700 : 500, color: isCur ? T.blue : T.body, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, e.title),
+          isData && chapterMark !== "icon" && React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, flex: "none", padding: "2px 8px", borderRadius: 999, background: "var(--orange-50)", color: "var(--orange-600)", fontSize: 11, fontWeight: 700 } },
+            window.Icons.database({ s: 11 }), "資料檔"),
+          isCur && React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: T.blue, flex: "none" } }, "目前這一章")
+        );
+      })
+    ),
+    // prev / next cards
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 } },
+      prev
+        ? React.createElement(SeriesNavCard, { entry: prev, dir: "prev", onOpenNote })
+        : React.createElement("div", null),
+      next
+        ? React.createElement(SeriesNavCard, { entry: next, dir: "next", onOpenNote })
+        : React.createElement("div", null)
+    )
+  );
+}
+
+
+window.SeriesNav = SeriesNav;

@@ -69,7 +69,9 @@ img { max-width: 100%; display: block; }
 
 /* ── prose styles for MDX note bodies ── */
 .nc-prose { max-width: 760px; }
-.nc-prose h1 { font-size: var(--text-3xl); color: var(--text-strong); line-height: 1.25; font-weight: var(--weight-black); margin: 8px 0 18px; scroll-margin-top: 90px; }
+.nc-prose h1 { font-size: var(--text-3xl); color: var(--blue-700); line-height: 1.25; font-weight: 700; margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--neutral-200); scroll-margin-top: 90px; }
+/* 內文第一個元素就是章標題時，頁首分隔線下方已有間距，不再疊 48px */
+.nc-prose > h1:first-child { margin-top: 8px; }
 .nc-prose h2 { font-size: var(--text-2xl); color: var(--text-strong); margin: 38px 0 14px; scroll-margin-top: 90px; }
 .nc-prose h3 { font-size: var(--text-xl); color: var(--text-strong); margin: 28px 0 10px; scroll-margin-top: 90px; }
 .nc-prose p { font-size: var(--text-md); color: var(--text-body); line-height: 1.85; margin: 0 0 16px; }
