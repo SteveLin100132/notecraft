@@ -99,7 +99,7 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
   </Fragment>
   <div class="wb-host">
   <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
-    <article class="nc-note-article" style="min-width:0;max-width:760px;">
+    <article class="nc-note-article" style="min-width:0;">
       <div style="margin-bottom:14px;">
         <TagEditor
           client:load
@@ -163,6 +163,10 @@ const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, labe
 </WorkbenchLayout>
 
 <style is:global>
+  /* 筆記頁內文滿版：解除 global.css 的 .nc-prose 760px 上限（PluginView 仍保留） */
+  .nc-note-article .nc-prose {
+    max-width: none;
+  }
   .nc-note-grid {
     display: grid;
     grid-template-columns: 1fr;

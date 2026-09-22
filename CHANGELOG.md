@@ -4,6 +4,12 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.0.1] - 2026-09-22
+
+### 變更
+
+- 筆記頁內文改為滿版，撐到目錄欄左緣（原本內文欄與 `.nc-prose` 各自限寬 760px，寬螢幕時與目錄之間空出一段）；資料檔頁（`PluginView`）的 `.nc-prose` 仍維持 760px
+
 ## [1.0.0] - 2026-09-22
 
 **Workbench 工作台** —— 外殼整個換掉：Rail 52 + 檔案樹 Sidebar 240 + 壓縮頁首／工具列／內容，整頁不捲動。
