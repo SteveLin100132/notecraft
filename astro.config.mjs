@@ -9,6 +9,7 @@ import remarkNotecraftCodeblock from "./src/lib/remark-notecraft-codeblock.ts";
 import remarkNotecraftNotesAssets from "./src/lib/remark-notecraft-notes-assets.ts";
 import { GENERATED_COMPONENT_PACKAGE_WHITELIST } from "./src/lib/generated-component-whitelist.ts";
 import devApi from "./src/dev-api/integration.ts";
+import crossDriveContent from "./src/lib/vite-cross-drive-content.ts";
 
 // v2 Q3 + Bug fix: `.notecraft/` 資料夾**放在 userCwd**（使用者專案根、與 .claude/ 同層），
 // 不放在 notesDir——因為 subagent 從 project root 跑並寫到 cwd 下的 .notecraft/，
@@ -44,6 +45,8 @@ export default defineConfig({
     devApi(),
   ],
   vite: {
+    // Windows：viewer app 與筆記在不同磁碟時修正 content entry 路徑（見檔頭說明）
+    plugins: [crossDriveContent()],
     server: {
       host: "127.0.0.1",
       // 新建筆記時 chokidar（macOS fsevents）會對同一檔連發 add + change，Astro 的 glob loader 因此對同一檔
