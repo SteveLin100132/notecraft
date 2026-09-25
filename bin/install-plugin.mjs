@@ -46,7 +46,12 @@ function readWhitelist(packageRoot) {
 export function parseSource(raw) {
   const s = String(raw).trim();
 
-  if (s.startsWith(".") || s.startsWith("/") || s.startsWith("~")) {
+  // Windows 絕對路徑（D:\x、D:/x、\\server\share）沒有前導 . / ~，不另外判斷會被當成
+  // 官方 id 或 owner/repo 丟去 GitHub。GitHub 帳號不含冒號，磁碟機寫法在任何平台都當本地路徑。
+  if (
+    s.startsWith(".") || s.startsWith("/") || s.startsWith("~") ||
+    path.isAbsolute(s) || /^[a-zA-Z]:[\\/]/.test(s)
+  ) {
     return { kind: "local", dir: path.resolve(s.replace(/^~/, os.homedir())) };
   }
 
@@ -157,25 +162,30 @@ async function clonePluginFiles(src) {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "notecraft-plugin-"));
   const url = `https://github.com/${src.owner}/${src.repo}.git`;
   const args = ["clone", "--depth", "1", ...(src.ref ? ["--branch", src.ref] : []), url, tmp];
-  const r = spawnSync("git", args, { stdio: "pipe" });
-  if (r.status !== 0) {
-    throw new Error(`git clone 失敗：${r.stderr?.toString().trim() || "（未知錯誤）"}`);
-  }
-  const head = spawnSync("git", ["-C", tmp, "rev-parse", "HEAD"], { stdio: "pipe" });
-  const root = path.join(tmp, src.dir ?? "");
-  const files = new Map();
-  const walk = async (d, sub = "") => {
-    for (const e of await fs.readdir(d, { withFileTypes: true })) {
-      if (e.name === ".git") continue;
-      const abs = path.join(d, e.name);
-      const rel = [sub, e.name].filter(Boolean).join("/");
-      if (e.isDirectory()) await walk(abs, rel);
-      else if (e.isFile()) files.set(rel, await fs.readFile(abs));
+  // 任何失敗（clone 失敗、子目錄不存在）都要清掉暫存目錄，否則整份 clone 會留在 tmp
+  try {
+    const r = spawnSync("git", args, { stdio: "pipe" });
+    if (r.status !== 0) {
+      throw new Error(`git clone 失敗：${r.stderr?.toString().trim() || r.error?.message || "（未知錯誤）"}`);
     }
-  };
-  await walk(root);
-  await fs.rm(tmp, { recursive: true, force: true });
-  return { files, commit: head.status === 0 ? head.stdout.toString().trim() : (src.ref ?? "unknown") };
+    const head = spawnSync("git", ["-C", tmp, "rev-parse", "HEAD"], { stdio: "pipe" });
+    const root = path.join(tmp, src.dir ?? "");
+    if (!existsSync(root)) throw new Error(`repo 內找不到 ${src.dir}`);
+    const files = new Map();
+    const walk = async (d, sub = "") => {
+      for (const e of await fs.readdir(d, { withFileTypes: true })) {
+        if (e.name === ".git") continue;
+        const abs = path.join(d, e.name);
+        const rel = [sub, e.name].filter(Boolean).join("/");
+        if (e.isDirectory()) await walk(abs, rel);
+        else if (e.isFile()) files.set(rel, await fs.readFile(abs));
+      }
+    };
+    await walk(root);
+    return { files, commit: head.status === 0 ? head.stdout.toString().trim() : (src.ref ?? "unknown") };
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
 }
 
 async function readLocalFiles(dir) {

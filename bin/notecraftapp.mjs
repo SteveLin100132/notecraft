@@ -66,12 +66,17 @@ async function ensureInstalled() {
     await copyDirExcluding(packageRoot, stableAppRoot, excludes);
 
     console.log(`[notecraftapp] 安裝相依（npm install）…`);
+    // Windows 的 npm 是 npm.cmd，不經 shell 會 ENOENT（status 為 null）
     const install = spawnSync("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], {
       cwd: stableAppRoot,
       stdio: "inherit",
+      shell: process.platform === "win32",
     });
     if (install.status !== 0) {
+      // 移除半成品，否則下次執行看到目錄存在就跳過安裝、直接帶著缺相依的 app 跑
+      await fs.rm(stableAppRoot, { recursive: true, force: true }).catch(() => {});
       console.error("[notecraftapp] npm install 失敗");
+      if (install.error) console.error(install.error.message);
       process.exit(install.status ?? 1);
     }
   }
@@ -624,12 +629,17 @@ async function startStaticServer(cwd, notesDir, distDir, port, host, openBrowser
 }
 
 function openInBrowser(url) {
-  const cmd =
-    process.platform === "darwin" ? "open" :
-    process.platform === "win32" ? "start" :
-    "xdg-open";
+  // Windows 的 start 是 cmd 內建指令、不是執行檔，要經 cmd /c；空字串 "" 是視窗標題，
+  // 否則 start 會把第一個帶引號的參數當標題。
+  const [cmd, cmdArgs, extra] =
+    process.platform === "darwin" ? ["open", [url], {}] :
+    process.platform === "win32" ? ["cmd", ["/c", "start", '""', `"${url}"`], { windowsVerbatimArguments: true }] :
+    ["xdg-open", [url], {}];
   try {
-    spawn(cmd, [url], { detached: true, stdio: "ignore" }).unref();
+    const child = spawn(cmd, cmdArgs, { detached: true, stdio: "ignore", ...extra });
+    // spawn 失敗（找不到指令）是非同步 error 事件，不接住會讓整個 serve 崩潰
+    child.on("error", () => log(`無法自動開啟瀏覽器，請手動前往 ${url}`));
+    child.unref();
   } catch {}
 }
 
@@ -691,15 +701,27 @@ const serveCmd = defineCommand({
     dir: { type: "positional", required: false, description: "notes 資料夾（預設當前目錄）" },
     port: { type: "string", default: "4321", description: "伺服器 port" },
     host: { type: "string", default: "127.0.0.1", description: "綁定 host" },
-    "no-open": { type: "boolean", description: "不自動開啟瀏覽器" },
+    // citty 把 `--no-xxx` 解析成 `xxx: false`，所以旗標要宣告成預設 true 的 open / watch；
+    // 宣告成 "no-open" 的話 args["no-open"] 永遠是 undefined，--no-open / --no-watch 形同無效。
+    open: {
+      type: "boolean",
+      default: true,
+      description: "自動開啟瀏覽器",
+      negativeDescription: "不自動開啟瀏覽器",
+    },
     rebuild: { type: "boolean", description: "強制首次 rebuild，忽略快取" },
-    "no-watch": { type: "boolean", description: "關閉背景 rebuild + SSE（回到純靜態、唯讀行為）" },
+    watch: {
+      type: "boolean",
+      default: true,
+      description: "背景 rebuild + SSE auto reload",
+      negativeDescription: "關閉背景 rebuild + SSE（回到純靜態、唯讀行為）",
+    },
   },
   async run({ args }) {
     const notesDir = resolveNotesDirArg(args.dir);
     const cacheDir = cacheDirFor(notesDir);
     const userCwd = process.cwd();
-    const watch = !args["no-watch"];
+    const watch = args.watch;
     log(`notes dir  : ${notesDir}`);
     log(`cache dir  : ${cacheDir}`);
     log(`watch mode : ${watch ? "on（chokidar + SSE + atomic rebuild）" : "off"}`);
@@ -714,7 +736,7 @@ const serveCmd = defineCommand({
       path.join(cacheDir, "dist"),
       Number(args.port),
       args.host,
-      !args["no-open"],
+      args.open,
       { watch, initialError: initial.ok ? null : initial.error },
     );
     if (watch) {

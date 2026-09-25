@@ -129,14 +129,18 @@ if (!skipBuild && errors.length === 0) {
 
     // 輸出到 fixture 自己的目錄，不要碰 repo 的 dist/ ——
     // 這支腳本在開發者機器上也會跑（prepublishOnly），清掉人家的產物很沒禮貌。
-    const r = spawnSync("npx", ["astro", "build", "--outDir", path.join(fixture, "dist")], {
+    // 直接以 node 執行 astro.js（與 CLI 相同）：Windows 上 spawnSync("npx") 找不到 npx.cmd，
+    // 改 shell: true 又會讓含空白的 fixture 路徑（C:\Users\<名字 有空白>\...）被拆開。
+    const astroBin = path.join(root, "node_modules", "astro", "astro.js");
+    const r = spawnSync(process.execPath, [astroBin, "build", "--outDir", path.join(fixture, "dist")], {
       cwd: root,
       env: { ...process.env, NOTECRAFT_NOTES_DIR: path.join(fixture, "docs"), NOTECRAFT_USER_CWD: fixture },
       stdio: "pipe",
     });
     await fs.rm(fixture, { recursive: true, force: true });
     if (r.status !== 0) {
-      fail(`[${id}] 配 example 資料 build 失敗：\n${(r.stderr || r.stdout).toString().split("\n").slice(-12).join("\n")}`);
+      const out = r.error?.message ?? (r.stderr?.length ? r.stderr : r.stdout)?.toString() ?? "（無輸出）";
+      fail(`[${id}] 配 example 資料 build 失敗：\n${out.split("\n").slice(-12).join("\n")}`);
     } else {
       console.log(`  ✓ ${id} 配 example 資料 build 成功`);
     }
