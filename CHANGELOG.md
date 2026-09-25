@@ -14,6 +14,9 @@
 - Windows 首次執行時 `npm install` 必定失敗（`spawnSync("npm")` 找不到 `npm.cmd`）；改為在 Windows 經 shell 執行。安裝失敗時一併移除半成品目錄，避免下次執行跳過安裝、帶著缺相依的 app 啟動
 - Windows 上 `serve` 自動開啟瀏覽器時崩潰（`spawn("start")` ENOENT，`start` 是 cmd 內建指令）；改走 `cmd /c start`，且開啟失敗只印提示、不再讓 server 結束
 - `serve --no-open` 與 `serve --no-watch` 無效（所有平台）：citty 把 `--no-xxx` 解析成 `xxx: false`，程式卻讀 `args["no-xxx"]`。旗標改宣告為預設 true 的 `open`／`watch`，指令用法不變
+- `install-plugin` 把 Windows 絕對路徑（`D:\my-plugin`、`D:/my-plugin`、`\\server\share\...`）當成 GitHub 來源：前者被視為官方 id、後者被拆成 owner `D:`，一路退到 git clone 整個 repo 才失敗；磁碟機與 UNC 路徑現在一律視為本地路徑
+- `install-plugin` 的 git clone 退路在失敗時（clone 失敗、repo 內沒有指定子目錄）不清暫存目錄，整份 clone 留在系統 tmp（所有平台）；子目錄不存在時也改為明確錯誤訊息
+- `npm run check-plugins` 在 Windows 崩潰（`spawnSync("npx")` 找不到 `npx.cmd`，錯誤處理又讀了 undefined 的 stderr）；改以 node 直接執行 `astro.js`
 
 ## [1.2.0] - 2026-09-22
 

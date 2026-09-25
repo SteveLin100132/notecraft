@@ -373,7 +373,7 @@ MDX 或 md 內 `![](./cover.png)` / `![](../shared/logo.svg)` 都會被自動 re
 ## 系統需求
 
 - **Node.js ≥ 22**
-- macOS / Linux / Windows（Windows 11 已驗證 `view`、`build`、`serve`、`init-skill`，含筆記與 `~/.notecraft` 位於不同磁碟；`install-plugin` 尚未驗證）
+- macOS / Linux / Windows（Windows 11 已驗證 `view`、`build`、`serve`、`init-skill`、`install-plugin`，含筆記與 `~/.notecraft` 位於不同磁碟）
 
 ---
 
@@ -415,7 +415,6 @@ CLI 偵測到 `.git` 就會跳過套件複製、直接從當前 repo 執行。�
 - 簡報匯出 PDF / PPTX
 - 寫入 UI 支援子資料夾新增
 - pagefind 全文搜尋
-- Windows 上驗證 `install-plugin`
 - 支援 `.notecraft/config.json`（主題、預設 port、隱藏某些筆記）
 - 一鍵包成靜態站部署（GitHub Pages / Netlify / Vercel）
 
