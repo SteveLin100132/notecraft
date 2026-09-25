@@ -4,6 +4,12 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.2.2] - 2026-09-25
+
+### 修正
+
+- viewer 模式下 AI 生成元件、plugin 渲染器與筆記 MDX 內的 Tailwind class 失效：`tailwind.config.mjs` 的 `content` 只掃 app 的 `src/`，使用者專案的 `.notecraft/components/`、`.notecraft/plugins/` 與筆記資料夾都不在範圍，只有剛好在 `src/` 也用過的 class 才會進 CSS（`grid-cols-7`、`bg-[#1F4E8C]` 這類則沒有）。現在依 `NOTECRAFT_USER_CWD`／`NOTECRAFT_NOTES_DIR` 一併掃描，位置判斷與 `@notes` alias 一致；`view` 下改元件新增的 class 也會即時生效。主專案（未設這兩個環境變數）行為不變
+
 ## [1.2.1] - 2026-09-25
 
 **Windows 支援修正**。
