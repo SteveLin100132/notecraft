@@ -4,6 +4,12 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.2.3] - 2026-09-26
+
+### 修正
+
+- Windows 上筆記專案與 viewer app（`~/.notecraft/app-<version>/`）位於不同磁碟時，plugin 渲染器與簡報無法載入：`/plugins`、`/settings`、`/view/*`、MDX 內的 `<PluginView>` 與 `/present/<slug>` 失敗並丟 `Could not import ../../../D:/...`，筆記工具列也因此一律顯示「生成簡報」。成因是 `import.meta.glob("@notes/...")` 解析到 Vite root 以外時，以 importer 的相對路徑產生 specifier，跨磁碟時得到 `../../X:/...` 這種不存在的路徑；`src/lib/vite-cross-drive-content.ts` 新增 `resolveId` 把它還原成磁碟機絕對路徑。同磁碟與 macOS／Linux 不會產生這種 id，行為不變
+
 ## [1.2.2] - 2026-09-25
 
 ### 修正
