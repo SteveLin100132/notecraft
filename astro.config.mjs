@@ -45,7 +45,7 @@ export default defineConfig({
     devApi(),
   ],
   vite: {
-    // Windows：viewer app 與筆記在不同磁碟時修正 content entry 路徑（見檔頭說明）
+    // Windows：viewer app 與筆記在不同磁碟時修正 content entry 與 @notes glob 的路徑（見檔頭說明）
     plugins: [crossDriveContent()],
     server: {
       host: "127.0.0.1",
