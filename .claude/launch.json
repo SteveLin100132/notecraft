@@ -30,6 +30,13 @@
       "autoPort": false
     },
     {
+      "name": "preview-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/astro/astro.js", "preview", "--port", "4343"],
+      "port": 4343,
+      "autoPort": true
+    },
+    {
       "name": "viewer-poc",
       "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
       "runtimeArgs": ["node_modules/astro/astro.js", "dev", "--port", "4330"],
