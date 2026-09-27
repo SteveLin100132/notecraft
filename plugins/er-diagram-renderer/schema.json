@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/er-diagram-renderer/schema.json",
   "title": "ER Diagram data",
-  "description": "一份資料庫 schema 的表、欄位與外鍵關聯。關聯由欄位的 fk 推導，不要另外存一份 edges。",
+  "description": "一份資料庫 schema 的表、欄位與外鍵關聯，以及各層的 Wiki 說明。關聯由欄位的 fk 推導，不要另外存一份 edges。v1.2 新增 schemas 層與 description（皆選填，v1.1 資料檔不改也合法）。",
   "type": "object",
   "required": [
     "requirement",
@@ -26,7 +26,8 @@
           "type": "string"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Wiki 總覽頁內文（Markdown）。也由 NoteCraft 用於頁面描述與搜尋索引——索引時應先去除 Markdown 標記。"
         },
         "source": {
           "type": "string",
@@ -169,6 +170,31 @@
         }
       }
     },
+    "schemas": {
+      "type": "array",
+      "description": "導覽第一層（v1.2）。選填；沒有時所有 group 歸在單一隱含 schema 下。順序即導覽順序。",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "建議用資料庫實際的 schema 名，例：crm、sales"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Schema Wiki 頁內文（Markdown）"
+          }
+        }
+      }
+    },
     "groups": {
       "type": "array",
       "minItems": 1,
@@ -186,6 +212,14 @@
           },
           "label": {
             "type": "string"
+          },
+          "schema": {
+            "type": "string",
+            "description": "對應 schemas[].key（v1.2）。沒寫或找不到時歸入第一個 schema"
+          },
+          "description": {
+            "type": "string",
+            "description": "Schema 頁該分群標題下的說明（Markdown）"
           }
         }
       }
@@ -297,10 +331,14 @@
                 },
                 "pii": {
                   "type": "boolean",
-                  "description": "個資標示；目前渲染器不用，保留讓資料先記著"
+                  "description": "個資標示。v1.2 渲染器仍不顯示，保留讓資料先記著"
                 }
               }
             }
+          },
+          "description": {
+            "type": "string",
+            "description": "Table Wiki 頁的表說明（Markdown）（v1.2）"
           }
         }
       }

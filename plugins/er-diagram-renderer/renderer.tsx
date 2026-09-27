@@ -66,6 +66,25 @@ export interface ErTable {
   /** 對應 data.groups[].key */
   group: string
   columns: ErColumn[]
+  /** Table Wiki 頁的表說明（Markdown）。v1.2 */
+  description?: string
+}
+
+/** 導覽第一層。v1.2；沒有時所有 group 歸在單一隱含 schema 下 */
+export interface ErSchema {
+  key: string
+  label: string
+  /** Schema Wiki 頁內文（Markdown） */
+  description?: string
+}
+
+export interface ErGroup {
+  key: string
+  label: string
+  /** 對應 schemas[].key。v1.2；沒寫或找不到時歸入第一個 schema */
+  schema?: string
+  /** Schema 頁該分群標題下的說明（Markdown）。v1.2 */
+  description?: string
 }
 
 export interface ErOptions {
@@ -90,7 +109,9 @@ export interface ErDiagramData {
   flags: { key: ErFlagKey; badge: string; tone?: string; label?: string }[]
   /** 衍生欄徽章，一律 warning 色 */
   derivations: { key: string; badge: string; label?: string }[]
-  groups: { key: string; label: string }[]
+  /** v1.2 */
+  schemas?: ErSchema[]
+  groups: ErGroup[]
   layout: { columns: { key: string; groups: string[] }[] }
   tables: ErTable[]
 }
