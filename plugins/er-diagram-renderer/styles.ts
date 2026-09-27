@@ -324,4 +324,15 @@ export const CSS = `
 .erd-root .erd-local--v { grid-template-columns: minmax(0, 1fr); gap: 36px 0; }
 .erd-root .erd-local--v .erd-local-col { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; }
 .erd-root .erd-local--v .erd-local-h { flex-basis: 100%; text-align: center; }
+
+/* ── Diagram 範圍與聚焦列（v1.2）── */
+.erd-root .erd-scope { display: flex; align-items: center; gap: 4px; min-width: 0; margin-left: auto; overflow-x: auto; font-size: 11.5px; color: var(--text-muted); scrollbar-width: none; }
+.erd-root .erd-scope-l { flex: none; margin-right: 4px; }
+.erd-root .erd-scope button { flex: none; height: 24px; padding: 0 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); background: var(--surface-card); font: inherit; font-size: 11.5px; color: var(--text-body); cursor: pointer; white-space: nowrap; }
+.erd-root .erd-scope button:hover { border-color: var(--blue-300); color: var(--blue-700); }
+.erd-root .erd-scope button.erd-on { border-color: var(--blue-700); background: var(--blue-700); color: var(--neutral-0); }
+.erd-root .erd-scope button:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.erd-root .erd-focusbar-act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.erd-root .erd-focusbar-act .erd-reset { margin-left: 0; }
+.erd-root .erd-hint-cross { margin-left: 6px; color: var(--orange-600); }
 `

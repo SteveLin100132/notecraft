@@ -15,7 +15,7 @@ import {
   useState,
 } from 'react'
 import type { MutableRefObject } from 'react'
-import { ChevronDown, ChevronUp, Info, Maximize2, Minus, Plus, Search, X } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronUp, Info, Maximize2, Minus, Plus, Search, X } from 'lucide-react'
 import type {
   Edge,
   ErColumn,
@@ -32,6 +32,14 @@ export interface ErDiagramProps {
   data: ErDiagramData
   /** 已合併三層來源的設定（見 renderer.tsx） */
   opts: ErOptions
+  /** 範圍內的表名；null = 全部 */
+  scope: Set<string> | null
+  onOpenWiki: (name: string) => void
+  /** 搜尋字串與 hub 開關的狀態在外殼：切到 Wiki 再切回來時要還在 */
+  query: string
+  onQueryChange: (q: string) => void
+  showHubEdges: boolean
+  onShowHubEdgesChange: (v: boolean) => void
   /** true：畫布填滿外殼剩餘高度（embed、全寬）；false：依視窗算固定高度（page） */
   fill: boolean
   /** 是否在全寬檢視中。只用來觸發重新 fit 與量測 —— 畫布搬進覆蓋層後尺寸會變 */
@@ -43,10 +51,45 @@ export interface ErDiagramProps {
   escapeRef: MutableRefObject<(() => boolean) | null>
 }
 
-export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escapeRef }: ErDiagramProps) {
-
-  const tables = data.tables
-  const layoutColumns = data.layout.columns
+export function ErDiagram({
+  data,
+  opts,
+  fill,
+  wide,
+  scope,
+  focus,
+  onFocusChange,
+  onOpenWiki,
+  query,
+  onQueryChange,
+  showHubEdges,
+  onShowHubEdgesChange,
+  escapeRef,
+}: ErDiagramProps) {
+  /* 範圍（schema）：只畫範圍內的表。沒有範圍時完全沿用 v1.1 —— 連空的分群框也照畫 */
+  const allTables = data.tables
+  const tables = useMemo(
+    () => (scope ? allTables.filter((t) => scope.has(t.name)) : allTables),
+    [allTables, scope],
+  )
+  const layoutColumns = useMemo(
+    () =>
+      scope
+        ? data.layout.columns
+            .map((c) => ({ ...c, groups: c.groups.filter((g) => tables.some((t) => t.group === g)) }))
+            .filter((c) => c.groups.length > 0)
+        : data.layout.columns,
+    [data.layout.columns, scope, tables],
+  )
+  /** 一端在範圍內、一端在範圍外的外鍵：不畫，但要說有幾條，免得讀者以為沒有關聯 */
+  const crossEdges = useMemo(() => {
+    if (!scope) return 0
+    const all = new Set(allTables.map((t) => t.name))
+    return allTables.reduce(
+      (n, t) => n + t.columns.filter((c) => c.fk && all.has(c.fk) && scope.has(t.name) !== scope.has(c.fk)).length,
+      0,
+    )
+  }, [allTables, scope])
 
   const groupLabel = useMemo(
     () => Object.fromEntries(data.groups.map((g) => [g.key, g.label])),
@@ -73,7 +116,10 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
 
   /* hub 表：被極多張表指向的共用表（例：選項主檔）。它的連線預設收起來，
      否則整張圖會被這一張表的放射狀線條蓋滿。取代原本寫死的 option_item。 */
-  const hubTables = useMemo(() => new Set(opts.hubTables), [opts])
+  const hubTables = useMemo(
+    () => new Set(opts.hubTables.filter((h) => !scope || scope.has(h))),
+    [opts, scope],
+  )
 
   const requirementOf = useCallback(
     (key: string) => data.requirement.find((r) => r.key === key),
@@ -101,8 +147,6 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
 
   const [hover, setHover] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [query, setQuery] = useState('')
-  const [showHubEdges, setShowHubEdges] = useState(false)
   const [tip, setTip] = useState<TipState | null>(null)
   const [paths, setPaths] = useState<
     { id: string; d: string; child: string; parent: string; col: string; mx: number; my: number }[]
@@ -128,6 +172,10 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
   /* 使用者動過之後就不再自動 fit —— 否則字體載入完、或展開一張表，
      視角會被硬拉回原點，正在看的地方就不見了。 */
   const touchedRef = useRef(false)
+  /* 換範圍等於換一張圖：放掉「使用者動過視角」的旗標，讓量測完的新尺寸重新 fit */
+  useLayoutEffect(() => {
+    touchedRef.current = false
+  }, [scope])
   const [animate, setAnimate] = useState(false)
   const [panning, setPanning] = useState(false)
   const panRef = useRef<{ px: number; py: number; ox: number; oy: number; moved: boolean } | null>(null)
@@ -508,7 +556,7 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
             type="search"
             value={query}
             placeholder={opts.searchPlaceholder}
-            onChange={(ev) => setQuery(ev.target.value)}
+            onChange={(ev) => onQueryChange(ev.target.value)}
             aria-label="搜尋表名或欄位名"
           />
           {hitLabel ? (
@@ -526,7 +574,7 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
             <button
               type="button"
               className="erd-root erd-clear"
-              onClick={() => setQuery('')}
+              onClick={() => onQueryChange('')}
               aria-label="清除搜尋"
             >
               <X size={13} aria-hidden />
@@ -539,9 +587,9 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
             <input
               type="checkbox"
               checked={showHubEdges}
-              onChange={(ev) => setShowHubEdges(ev.target.checked)}
+              onChange={(ev) => onShowHubEdgesChange(ev.target.checked)}
             />
-            顯示 {opts.hubTables.join('、')} 的 {edges.filter(isHubEdge).length} 條連線
+            顯示 {[...hubTables].join('、')} 的 {edges.filter(isHubEdge).length} 條連線
           </label>
         ) : null}
 
@@ -571,9 +619,15 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
               ? `（${[...related.children].join('、')}）`
               : ''}
           </div>
-          <button type="button" className="erd-root erd-reset" onClick={() => onFocusChange(null)}>
-            取消聚焦（Esc）
-          </button>
+          <div className="erd-root erd-focusbar-act">
+            <button type="button" className="erd-root erd-pill erd-pill--blue" onClick={() => onOpenWiki(focusTable.name)}>
+              <BookOpen size={12} aria-hidden />
+              開啟 Wiki
+            </button>
+            <button type="button" className="erd-root erd-reset" onClick={() => onFocusChange(null)}>
+              取消聚焦（Esc）
+            </button>
+          </div>
         </div>
       ) : (
         <p className="erd-root erd-hint">
@@ -582,6 +636,9 @@ export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escape
           <span className="erd-root erd-hint-canvas">
             畫布可拖曳平移，⌘/Ctrl＋滾輪縮放，雙擊空白處還原。
           </span>
+          {crossEdges ? (
+            <span className="erd-root erd-hint-cross">另有 {crossEdges} 條跨 schema 連線未顯示。</span>
+          ) : null}
         </p>
       )}
 

@@ -95,6 +95,14 @@ export default function ErDiagramRenderer({
   const [navOpen, setNavOpen] = useState(mode === 'page')
   const [wide, setWide] = useState(false)
   const [narrow, setNarrow] = useState(false)
+  /* Diagram 的搜尋字串與 hub 開關放在外殼：Diagram 切走時會卸載，這兩個要跨分頁保留（不持久化） */
+  const [dgQuery, setDgQuery] = useState('')
+  const [showHubEdges, setShowHubEdges] = useState(false)
+
+  const scopeSet = useMemo(
+    () => (scope ? new Set(data.tables.filter((t) => D.schemaOfTable(t.name) === scope).map((t) => t.name)) : null),
+    [scope, data.tables, D],
+  )
 
   /* ── 持久化 ─────────────────────────────────────────────
      SSR 與首次 client render 一律用預設值，掛載後才讀 —— 否則 hydration 對不上。
@@ -233,6 +241,23 @@ export default function ErDiagramRenderer({
     scrollToTop()
   }, [scrollToTop])
 
+  /** 範圍 pill：全部 → 總覽；某 schema → 該 schema 頁。範圍換了，聚焦一律清掉 */
+  const pickScope = useCallback((key: string | null) => {
+    setScope(key)
+    setRoute(key ? { kind: 'schema', key } : OVERVIEW)
+    setFocus(null)
+  }, [])
+
+  /** Diagram 聚焦列的「開啟 Wiki」 */
+  const openWiki = useCallback(
+    (name: string) => {
+      setRoute({ kind: 'table', key: name })
+      setTab('wiki')
+      scrollToTop()
+    },
+    [scrollToTop],
+  )
+
   /** Diagram 裡點卡片：聚焦並同步 Wiki 路由；取消聚焦只清 focus */
   const onFocusChange = useCallback((name: string | null) => {
     setFocus(name)
@@ -343,7 +368,27 @@ export default function ErDiagramRenderer({
             <span className="erd-root erd-tab-l">Diagram</span>
           </button>
         </div>
-        {tab === 'wiki' ? <div className="erd-root erd-bar-crumb">{crumb}</div> : <div className="erd-root erd-bar-fill" />}
+        {tab === 'wiki' ? (
+          <div className="erd-root erd-bar-crumb">{crumb}</div>
+        ) : D.implicit ? (
+          <div className="erd-root erd-bar-fill" />
+        ) : (
+          <div className="erd-root erd-scope" role="radiogroup" aria-label="Diagram 範圍">
+            <span className="erd-root erd-scope-l">範圍</span>
+            {[null, ...D.schemas.map((x) => x.key)].map((k) => (
+              <button
+                type="button"
+                key={k ?? '*'}
+                role="radio"
+                aria-checked={scope === k}
+                className={scope === k ? 'erd-on' : ''}
+                onClick={() => pickScope(k)}
+              >
+                {k ? <code>{k}</code> : '全部'}
+              </button>
+            ))}
+          </div>
+        )}
         {mode === 'embed' ? (
           <button
             type="button"
@@ -373,8 +418,14 @@ export default function ErDiagramRenderer({
               opts={opts}
               fill={mode === 'embed' || wide}
               wide={wide}
+              scope={scopeSet}
               focus={focus}
               onFocusChange={onFocusChange}
+              onOpenWiki={openWiki}
+              query={dgQuery}
+              onQueryChange={setDgQuery}
+              showHubEdges={showHubEdges}
+              onShowHubEdgesChange={setShowHubEdges}
               escapeRef={dgEscape}
             />
           )}
