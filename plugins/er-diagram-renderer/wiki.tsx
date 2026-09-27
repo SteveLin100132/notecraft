@@ -376,7 +376,7 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
       </SectionHead>
       <ErLocalDiagram key={t.name} D={D} name={t.name} onOpen={open} />
       <div className="erd-root erd-rel">
-        <div id="erd-rel-parents">
+        <div data-erd-rel="parents">
           <h4>參照（本表 → 父表）</h4>
           {parents.length || selfRefs.length ? (
             [...parents, ...selfRefs].map((e) => (
@@ -394,7 +394,7 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
             <p className="erd-root erd-empty">沒有外鍵欄位。</p>
           )}
         </div>
-        <div id="erd-rel-children">
+        <div data-erd-rel="children">
           <h4>被參照（子表 → 本表）</h4>
           {children.length ? (
             children.map((e) => (
