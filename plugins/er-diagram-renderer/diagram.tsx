@@ -40,7 +40,7 @@ export interface ErDiagramProps {
   onQueryChange: (q: string) => void
   showHubEdges: boolean
   onShowHubEdgesChange: (v: boolean) => void
-  /** true：畫布填滿外殼剩餘高度（embed、全寬）；false：依視窗算固定高度（page） */
+  /** true：畫布填滿外殼剩餘高度（目前三種情境都是）；false：依視窗算固定高度（v1.1 的 page 行為，保留給 options 以外的用途） */
   fill: boolean
   /** 是否在全寬檢視中。只用來觸發重新 fit 與量測 —— 畫布搬進覆蓋層後尺寸會變 */
   wide: boolean

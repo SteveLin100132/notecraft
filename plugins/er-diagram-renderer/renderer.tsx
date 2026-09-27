@@ -351,6 +351,7 @@ export default function ErDiagramRenderer({
     'erd-root erd-shell',
     wide ? 'erd-shell--wide' : mode === 'page' ? 'erd-shell--page' : 'erd-shell--embed',
     navOpen ? '' : 'erd-shell--navclosed',
+    tab === 'diagram' ? 'erd-shell--dg' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -473,7 +474,7 @@ export default function ErDiagramRenderer({
             <ErDiagram
               data={data}
               opts={opts}
-              fill={mode === 'embed' || wide}
+              fill
               wide={wide}
               scope={scopeSet}
               focus={focus}

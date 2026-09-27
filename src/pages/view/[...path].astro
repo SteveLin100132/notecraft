@@ -98,9 +98,10 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
 </WorkbenchLayout>
 
 <style>
+  /* 滿版、不留 padding：渲染器自己決定內距。資料檔頁就是一整片畫面（ER 圖的導覽、Wiki、畫布都要貼齊邊緣）；
+     需要留白的 plugin 在自己的根元素上加 padding 即可，反過來要「吃掉」外層 padding 則做不到。 */
   .nc-dv-stage {
     min-height: 100%;
-    background: var(--surface-page);
-    padding: 18px clamp(12px, 3vw, 40px) 48px;
+    background: var(--surface-card);
   }
 </style>

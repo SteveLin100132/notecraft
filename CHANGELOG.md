@@ -11,6 +11,10 @@
 - 資料檔的 `meta.description` 允許 Markdown。app 用到它的地方 —— `/view` 頁的 `<meta name="description">` 與 Toolbar 說明、`/wb-index.json`、系列章節 —— 一律去除標記、只取第一段純文字；`/view` 頁另以隱藏元素把全文純文字交給 pagefind 索引（顯示第一段、索引全文）。原本就是純文字的描述，輸出與先前逐字相同。原文仍在 `data.meta.description` 給 plugin 使用
 - `npm run check-plugins` 會驗證並 build plugin `example/` 底下的所有 `.json`（不再只有 `manifest.example`），並串接 `scripts/checks/*.mjs` 的純函式斷言（以 Node 22.6+ 原生 strip-types 直接載入 `.ts`，不引入 test runner）；新增 `npm run check:er`
 
+### 變更
+
+- 資料檔渲染頁（`/view/*`）改為滿版：渲染區不再留 padding，由 plugin 自行決定內距
+
 ### 修正
 
 - `astro dev` 下改動資料檔或 `plugins.json` 後，重新編譯 plugin 的 dataSchema 丟出「schema with key or id … already exists」導致整站 500：清快取時一併清掉 Ajv 已註冊的 schema

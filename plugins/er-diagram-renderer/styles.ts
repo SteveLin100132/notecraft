@@ -31,7 +31,7 @@ export const CSS = `
 .erd-root .erd-viewport:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .erd-root .erd-viewport--panning { cursor: grabbing; }
 .erd-root .erd-viewport--page { height: clamp(420px, calc(100vh - 250px), 1200px); }
-.erd-root .erd-viewport--fill { flex: 1; min-height: 200px; }
+.erd-root .erd-viewport--fill { flex: 1; min-height: 240px; }
 .erd-root .erd-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: max-content; }
 .erd-root .erd-stage--animated { transition: transform var(--duration-normal) var(--ease-out); }
 .erd-root .erd-canvas { position: relative; width: max-content; }
@@ -105,12 +105,16 @@ export const CSS = `
 .erd-root.erd-inline, .erd-root.erd-overlay { container: erd / inline-size; }
 .erd-root.erd-shell { display: flex; flex-direction: column; min-width: 0; background: var(--surface-card); font-size: 13px; }
 .erd-root.erd-shell code { font-family: var(--font-mono); }
-.erd-root.erd-shell--page { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+/* page：滿版貼齊資料檔頁的內容區，不畫外框；至少撐滿捲動容器的可視高度，內容短時導覽欄底色也到底 */
+.erd-root.erd-shell--page { min-height: var(--erd-scroll-h, 100dvh); }
+/* page 的 Diagram 分頁：外殼剛好等於捲動容器的可視高度，畫布填滿剩餘空間（滿版時不必再用 100vh 扣固定值去猜） */
+.erd-root.erd-shell--page.erd-shell--dg { height: var(--erd-scroll-h, 100dvh); }
+.erd-root.erd-shell--page.erd-shell--dg .erd-body { min-height: 0; }
 .erd-root.erd-shell--embed { height: 580px; }
 .erd-root.erd-shell--wide { height: 100%; }
 @container erd (max-width: 520px) { .erd-root.erd-shell--embed { height: min(580px, 75vh); } }
 .erd-root .erd-bar { display: flex; align-items: center; gap: 12px; flex: none; height: 44px; padding: 0 14px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-card); }
-.erd-root.erd-shell--page .erd-bar { position: sticky; top: 0; z-index: 6; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.erd-root.erd-shell--page .erd-bar { position: sticky; top: 0; z-index: 6; }
 .erd-root .erd-iconbtn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); cursor: pointer; }
 .erd-root .erd-iconbtn:hover { background: var(--blue-50); color: var(--blue-700); }
 .erd-root .erd-iconbtn.erd-on { color: var(--blue-700); }
@@ -144,7 +148,7 @@ export const CSS = `
 /* page：導覽 sticky、高度上限取捲動容器的可視高度（renderer 量好寫進 --erd-scroll-h）。
    導覽比內容短時，欄底色與分隔線由 body 的背景補滿整欄 */
 .erd-root.erd-shell--page .erd-nav { position: sticky; top: 44px; align-self: flex-start; max-height: calc(var(--erd-scroll-h, 100dvh) - 44px); border-right: 0; background: transparent; }
-.erd-root.erd-shell--page:not(.erd-shell--navclosed) .erd-body { background: linear-gradient(to right, var(--surface-page) 0 248px, var(--border-subtle) 248px 249px, transparent 249px); border-radius: 0 0 0 var(--radius-lg); }
+.erd-root.erd-shell--page:not(.erd-shell--navclosed) .erd-body { background: linear-gradient(to right, var(--surface-page) 0 248px, var(--border-subtle) 248px 249px, transparent 249px); }
 .erd-root .erd-nav-search { display: flex; align-items: center; gap: 6px; flex: none; height: 30px; margin: 10px 10px 4px; padding: 0 8px 0 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); background: var(--surface-card); color: var(--text-muted); }
 .erd-root .erd-nav-search:focus-within { border-color: var(--blue-400); }
 .erd-root .erd-nav-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 12.5px; color: var(--text-strong); }

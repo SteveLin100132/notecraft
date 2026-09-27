@@ -616,6 +616,7 @@ Task 76–86 已全部實作（2026-09-27，plugin v1.2.0／notecraftapp v1.3.0�
 | **`--warning-700` 不存在於 DS** | v1.1 的衍生欄徽章字色寫的是 `var(--warning-700)`，DS 只有 `--warning-50/500`，實際一直是繼承色。改用集中定義的 `--erd-warn-ink: #8a6412` | §7 以為 v1.1 寫死了 hex，查證後其實是引用了不存在的 token |
 | **`matchTable` 空字串回傳命中** | 導覽沒有篩選字時所有表都顯示；Diagram 只在有字時才呼叫 | 兩處共用一支，行為要能直接套用 |
 | **`#` 視同 `##`** | 迷你 Markdown 的標題規則 `#{1,6}`：一個或兩個 `#` 為 h3、三個以上為 h4 | prototype 只認 `##`／`###`，單一 `#` 開頭的行會卡在段落判定外造成無限迴圈 |
+| **資料檔頁滿版**（2026-09-27 作者追加） | app 的 `/view` 頁 `.nc-dv-stage` 拿掉 padding（原 `18px clamp(12px, 3vw, 40px) 48px`），背景改卡片色；ER 外殼在 page 模式不畫外框與圓角、`min-height` 撐滿捲動容器的可視高度；Diagram 分頁外殼**剛好等於**可視高度、畫布填滿剩餘空間（取代 v1.1 的 `clamp(420px, 100vh - 250px, 1200px)`，那個 250 是把舊 padding 算進去的猜測值） | 作者要求資料檔渲染頁以滿版呈現。改 app 端的 stage 會影響所有 plugin 的獨立頁：需要留白的 plugin 可以在自己的根元素加 padding，反過來要吃掉外層 padding 則做不到，所以 app 端不留 |
 | **`check-plugins` 需要 Node 22.6+** | 開頭檢查版本，不足時明確報錯；`engines.node` 維持 `>=22.0.0` | 只影響維護者跑 `check-plugins`／`prepublishOnly`，不影響使用者安裝 app |
 
 ### 順手修的既有問題
