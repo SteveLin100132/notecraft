@@ -329,6 +329,71 @@
 > [Task 71](task-71-plugin-enable-disable.md) 則是唯一會改動 `plugins.json` 格式與 build 期解析的 Task，
 > 改完務必跑 `npm run check-plugins`。
 
+## v1.14.0 追加功能（§8.1 Phase 4.17 待補）— ER Diagram Renderer v1.2：導覽 + Wiki + Diagram（plugin v1.2.0／notecraftapp v1.3.0）
+
+> **已完成（2026-09-27）**：Task 76–86 全部實作並逐 Task commit 於 `feat/er-diagram-redesign`。四個待驗證項的結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+> 偏離原計畫的幾處：`ResolvedDataFile.description` 直接改為純文字（不另開欄位）；embed 畫布改為填滿剩餘高度；page 導覽高度量捲動祖先而非寫死 offset；`<style>` 的 CSS 不可含 SSR 會跳脫的字元（新增 `er-styles.mjs`）。另順手修了 dev 下 Ajv「schema already exists」的既有問題。
+
+> 規格：[notecraft-er-docs.md](../notecraft-er-docs.md) **v0.2.0**（10 項決策已於 2026-09-27 定案，紀錄見該文件 §16）
+> 設計交付：[design_handoff_er_docs](../prototype/design_handoff_er_docs/)（`README.md` 是像素級規格與相容性要求、`prototype/er/er.css` 是視覺定稿、
+> `prototype/ER Diagram Docs.html` 可離線開啟、`schema.json` 與 `example/schema.json` 是 v1.2 資料規格與範例）
+
+把官方 plugin `er-diagram-renderer` 從「單一關聯圖」擴充成 DBdocs 式的資料庫文件介面：Schema → 分群 → Table 導覽樹、
+Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，加 schema 範圍與 Wiki 雙向跳轉）。page 與 embed 共用同一棵元件樹。
+
+> **規格與設計稿不一致時，一律以規格為準。** 主要偏離：沒有 `schemas` 時導覽不顯示「全部」節點（prototype 仍顯示）；
+> 內嵌 580px 去外框；page 模式外殼不佔滿、bar 與導覽 sticky；斷點改 container query；
+> 導覽篩選也比對欄位名；`meta.description` 顯示第一段、索引全文；反引號支援 `table:`／`schema:` 前綴。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 76](task-76-er-schema-v12-examples.md) | 資料格式 v1.2 + 兩份範例護欄 | §5.1、§12.1 | `schema.json`、`example/schema.json`（v1.2）、`example/schema.v1.1.json`、`scripts/check-plugins.mjs` 多範例 |
+| [Task 77](task-77-er-split-files.md) | 拆檔（純搬移、零行為變更） | §4.1 | `renderer.tsx` → `types.ts`／`styles.ts`／`diagram.tsx` |
+| [Task 78](task-78-er-derive-compat-checks.md) | 資料推導與 v1.1 相容規則 | §5.2–5.4 | `derive.ts`、`matchTable`、dev warn、`scripts/checks/er-derive.mjs`、`npm run check:er` |
+| [Task 79](task-79-er-mini-markdown.md) | 迷你 Markdown | §8.5 | `markdown.tsx`、`markdown-text.ts`、連結白名單、自動連結前綴 |
+| [Task 80](task-80-er-shell-nav-routing.md) | 外殼、導覽、路由、持久化 | §6、§8.1–8.2 | `renderer.tsx`、`nav.tsx`；全寬按鈕搬到 bar |
+| [Task 81](task-81-er-wiki-pages.md) | Wiki 三頁 | §5.3、§8.3 | `wiki.tsx` |
+| [Task 82](task-82-er-local-diagram.md) | 局部關聯圖 | §8.4 | `local-diagram.tsx` |
+| [Task 83](task-83-er-diagram-scope.md) | Diagram 範圍與雙向跳轉 | §8.6 | `diagram.tsx`、範圍 pill、「開啟 Wiki」 |
+| [Task 84](task-84-er-responsive-a11y.md) | 響應式 + 無障礙 + Esc | §9、§10 | container query、焦點管理 |
+| [Task 85](task-85-app-meta-description-markdown.md) | **App 端** `meta.description` 去 Markdown | §11 | `src/lib/strip-markdown.ts`、`plugins.ts`、`view/[...path].astro`、`workbench.ts`、`series.ts`；v1.3.0 |
+| [Task 86](task-86-er-docs-release.md) | 文件、版號、全面驗收、回填 | §12.2、§17 | manifest／registry 1.2.0、README、CHANGELOG、CLAUDE.md |
+
+**順序**：76 → 77 → 78 是地基，依序做；**76 先把 v1.1 與 v1.2 兩份範例都接進 `check-plugins`**，之後每一步都有相容性回歸保護。
+79 與 80 都只依賴 78，可並行；81 需要 79＋80；82 接 81；83 只依賴 80，可與 81、82 並行；84 收 81–83；
+85 是唯一動 app 的 Task，只依賴 79（斷言要與 plugin 的 `stripMarkdown` 對照），可隨時插入；86 最後。
+
+```
+76 ─ 77 ─ 78 ─┬─ 79 ─┬──────────── 85
+              │      └─┐
+              └─ 80 ───┴─ 81 ─ 82 ─┐
+                  └──────── 83 ────┴─ 84 ─ 86
+```
+
+> **交付節奏**：全程在 `feat/er-diagram-redesign` 單一分支上，依 Task 逐步 commit，**Task 86 完成後才併回 main** ——
+> repo 根的 `plugins/` 就是官方 store，**推上預設分支等於發佈**。每個 commit 都要能通過
+> `npx tsc --noEmit && npx astro build && npm run check-plugins`（Task 78 起加 `npm run check:er`）。
+>
+> **四個規格標為「待驗證」的項目**，結論由 Task 86 彙整回填規格 §17：
+> ① pagefind 是否索引 `hidden` 屬性的元素（Task 85）；
+> ② `VizZoom` 在 capture 階段攔 Esc 是否破壞逐層退（Task 84）；
+> ③ page 模式 `--erd-page-offset` 的實測值（Task 80）；
+> ④ embed 畫布在 580 外殼內的實際高度（Task 83）。
+>
+> **幾條貫穿整批的規則**：
+> - **v1.1 資料零修改可渲染**。`example/schema.v1.1.json` 與 `src/content/notes/schema-demo.er.json` 一個欄位都不准改
+> - **每新增一個 plugin 檔就登記到 `registry.json` 的 `files`**。store 安裝只下載清單內的檔；`check-plugins` 會比對集合
+> - **被 `scripts/checks` 載入的 `.ts` 只能有 `import type`、不能有 JSX**（Node strip-types 不解析無副檔名的相對 import、不轉 JSX）
+> - **靠 localStorage 的東西 SSR 一律當作沒有**：路由在 `useEffect` 掛載後才還原
+> - **不用 `dangerouslySetInnerHTML`、不引入白名單外套件**；Markdown 連結只接受 `http(s)`／`mailto`／站內 `/`／`#`
+> - **class 一律 `erd-` 前綴、規則以 `.erd-root` 起頭**（prototype 是 `erx-`）；樣式不出現 hex 或裸 `rgba()`，唯一例外集中成 `--erd-warn-ink`
+> - 驗畫面前確認 Browser pane **可見**，否則 `client:visible` 的內嵌不會 hydrate
+
+> **本批最大風險**：[Task 77](task-77-er-split-files.md) 與 [Task 83](task-83-er-diagram-scope.md) —— Diagram 的縮放、fit、量測是 v1.1 調最久的部分，
+> 搬移與加 scope 都可能讓它微妙地壞掉，而 build 全綠。兩個 Task 都附並排比對的驗收。
+> 其次是 [Task 85](task-85-app-meta-description-markdown.md)：它改的是**所有 plugin** 的 description 出口與 pagefind 標記，
+> 標記搬錯位置資料檔頁會**整頁掉出全文索引**（與 Task 72 同一類風險），只有實際搜尋才看得出來。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

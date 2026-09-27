@@ -1,9 +1,9 @@
 {
-  "$schema": "../schema.json",
+  "$schema": "../../../../plugins/er-diagram-renderer/schema.json",
   "meta": {
-    "title": "TrendMile 業務系統 schema",
+    "title": "資料庫文件（v1.2 測試資料）",
     "source": "業務系統規格書 v3.2 §2",
-    "backTo": "/notes/trendmile/spec",
+    "backTo": "/notes/testing/資料檔內嵌測試",
     "description": "業務系統的資料庫結構，涵蓋**客戶經營 → 報價簽約 → 開票收款**的完整流程，以及各模組共用的選項與組織主檔。\n\n## 閱讀順序\n1. 先看 `crm`：客戶與案件是所有業務資料的起點\n2. 再看 `sales`：合約從案件或報價轉入，發票掛在合約下\n3. `core` 是共用主檔，被幾乎每張表指向，Diagram 預設收起它的連線\n\n## 命名慣例\n- 主鍵一律 `id bigint identity`，外鍵以 `<父表>_id` 命名\n- 金額欄一律 `numeric(12,0)`，新台幣不留小數\n- 軟刪除用 `archived_at`，不做實體刪除\n\n> 2026-09-01 決議：行政區不做，縣市層即可。"
   },
   "options": {

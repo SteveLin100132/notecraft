@@ -490,6 +490,8 @@ Q6 原本定案「不進 series」，理由是閱讀進度的語意只該算筆�
 前兩者用於 `<title>`、側邊欄、pagefind，缺了就用檔名；`backTo` 是「回到來源筆記」按鈕的站內路徑，**只接受單一 `/` 開頭**（排除 `//host`、`http(s):`、`javascript:`），
 不符者忽略、不顯示按鈕並在 build 期 warn。檢查在 `src/lib/plugins.ts` 解析時做，`ResolvedDataFile.backTo` 是已驗證的值。其餘欄位由 plugin 自行解讀，app 不碰。
 
+`meta.description` **允許 Markdown**（2026-09-27，notecraftapp 1.3.0；ER plugin v1.2 的 Wiki 總覽頁用它）。app 的出口一律只要文字：`ResolvedDataFile.description` 是去除標記後的**第一段**單行純文字（頁面描述、Toolbar、`/wb-index.json`、系列章節），`descriptionIndex` 是全文純文字，`/view` 頁以隱藏的 `data-pagefind-body` 元素交給 pagefind —— 顯示第一段、索引全文。實作在 `src/lib/strip-markdown.ts`。原文仍在 `data.meta.description`，由 plugin 自行渲染。
+
 ### 8.3 欄位鍵名：短鍵 → 長鍵
 
 現行 tsx 用 `n/t/r/d/pk/fk/u/i/g/p/s` 是為了壓縮單行字面量；資料檔要給人讀、給 AI 產、給 git diff，**一律改長鍵**，boolean 為 false 時省略：

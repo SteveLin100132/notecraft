@@ -28,6 +28,8 @@ const vscodeHref = `vscode://file/${file.absPath.replace(/\\/g, "/").replace(/^\
 // meta.backTo 已在 src/lib/plugins.ts 解析時驗證過（只接受站內路徑），頁面不再自己去挖 file.data.meta。
 const backTo = file.backTo;
 const updatedDate = file.updatedAt.slice(0, 10);
+// 描述有第一段以外的內容時，全文另放隱藏的索引元素（見 toolbar 附近）
+const indexFull = !!file.descriptionIndex && file.descriptionIndex !== file.description;
 
 // 資料檔頁也可以是系列的一章（Q6′），識別碼是 `view:<routePath>`。
 // 這頁只渲染資料檔本身：系列只在頁首以 pill 標示，不放閱讀狀態與上一章／下一章。
@@ -70,10 +72,15 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
   </Fragment>
   {/* data-pagefind-body：這頁只索引標題（頁首 h1，由 indexHeader 標）與描述；渲染出來的上千個欄位名不進索引。
       pagefind 處於「只索引有標記的區塊」模式，沒標記的頁面整頁不進索引 —— 標記一定要在。 */}
+  {/* meta.description 可能是多段 Markdown：Toolbar 只放第一段純文字（一行的位置），
+      全文純文字另放在隱藏的索引元素 —— 顯示第一段、索引全文。兩者相同時維持只標 Toolbar。 */}
   {file.description && (
     <div slot="toolbar" class="wb-tb">
-      <span class="wb-tb-lbl" data-pagefind-body>{file.description}</span>
+      <span class="wb-tb-lbl" data-pagefind-body={indexFull ? undefined : ""}>{file.description}</span>
     </div>
+  )}
+  {indexFull && (
+    <div data-pagefind-body hidden aria-hidden="true">{file.descriptionIndex}</div>
   )}
 
   <div class="nc-dv-stage">
@@ -91,9 +98,10 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
 </WorkbenchLayout>
 
 <style>
+  /* 滿版、不留 padding：渲染器自己決定內距。資料檔頁就是一整片畫面（ER 圖的導覽、Wiki、畫布都要貼齊邊緣）；
+     需要留白的 plugin 在自己的根元素上加 padding 即可，反過來要「吃掉」外層 padding 則做不到。 */
   .nc-dv-stage {
     min-height: 100%;
-    background: var(--surface-page);
-    padding: 18px clamp(12px, 3vw, 40px) 48px;
+    background: var(--surface-card);
   }
 </style>

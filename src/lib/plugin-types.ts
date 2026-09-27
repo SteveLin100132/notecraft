@@ -98,8 +98,14 @@ export interface ResolvedDataFile {
   routePath: string;
   /** 取自資料檔的 meta.title，缺值時退回檔名。 */
   title: string;
-  /** 取自資料檔的 meta.description，缺值時為空字串。 */
+  /**
+   * 取自資料檔的 meta.description，**已去除 Markdown、只取第一段**的單行純文字；缺值時為空字串。
+   * meta.description 允許 Markdown，但 app 用到它的地方（頁面描述、Toolbar、索引、系列）都只要文字。
+   * 原文仍在 data.meta.description，plugin 自行取用。
+   */
   description: string;
+  /** meta.description 全文的純文字（單行），給 /view 頁的 pagefind 索引用；缺值時為空字串。 */
+  descriptionIndex: string;
   /**
    * 取自資料檔的 meta.backTo（app 層約定的第三個 meta 欄位，規格 Q21）：「回到來源筆記」的站內路徑。
    * 只接受單一 `/` 開頭的站內路徑；不符者已在解析時忽略並 warn，這裡不會出現。

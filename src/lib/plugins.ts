@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import picomatch from "picomatch";
+import { stripMarkdownAll, stripMarkdownFirst } from "./strip-markdown";
 import Ajv2020Module from "ajv/dist/2020.js";
 import type { ValidateFunction } from "ajv";
 import type {
@@ -273,11 +274,19 @@ const SITE_PATH_RE = /^\/(?!\/)/;
 /**
  * 取資料檔的 meta.title / meta.description / meta.backTo —— app 只約定這三個欄位，其餘由 plugin 自行解讀。
  * backTo 不符站內路徑時忽略並 warn（不 build fail：它不影響頁面能否渲染）。
+ * description 允許 Markdown：app 的出口（頁面描述、Toolbar、索引 JSON、系列章節）都只要文字，
+ * 所以這裡就攤平成第一段純文字；pagefind 另取全文純文字（descriptionIndex）。原文仍在 data 裡給 plugin 用。
  */
-function readMeta(data: unknown, fallbackTitle: string, relPath: string): { title: string; description: string; backTo?: string } {
+function readMeta(
+  data: unknown,
+  fallbackTitle: string,
+  relPath: string,
+): { title: string; description: string; descriptionIndex: string; backTo?: string } {
   const meta = isPlainObject(data) && isPlainObject(data.meta) ? data.meta : null;
   const title = meta && typeof meta.title === "string" && meta.title.trim() ? meta.title : fallbackTitle;
-  const description = meta && typeof meta.description === "string" ? meta.description : "";
+  const raw = meta && typeof meta.description === "string" ? meta.description : "";
+  const description = stripMarkdownFirst(raw);
+  const descriptionIndex = stripMarkdownAll(raw);
   let backTo: string | undefined;
   if (meta && meta.backTo !== undefined) {
     if (typeof meta.backTo === "string" && SITE_PATH_RE.test(meta.backTo)) {
@@ -286,7 +295,7 @@ function readMeta(data: unknown, fallbackTitle: string, relPath: string): { titl
       warn(`${relPath} 的 meta.backTo 不是站內路徑（${JSON.stringify(meta.backTo)}），已忽略。它必須以單一 / 開頭，例如 "/notes/xxx"。`);
     }
   }
-  return { title, description, ...(backTo ? { backTo } : {}) };
+  return { title, description, descriptionIndex, ...(backTo ? { backTo } : {}) };
 }
 
 function resolve(): Resolved {
@@ -389,7 +398,7 @@ function resolve(): Resolved {
 
     const routePath = file.relPath.replace(/\.json$/i, "");
     const name = path.basename(file.relPath);
-    const { title, description, backTo } = readMeta(data, name, file.relPath);
+    const { title, description, descriptionIndex, backTo } = readMeta(data, name, file.relPath);
     const resolvedFile: ResolvedDataFile = {
       pluginId: plugin.id,
       absPath: file.absPath,
@@ -397,6 +406,7 @@ function resolve(): Resolved {
       routePath,
       title,
       description,
+      descriptionIndex,
       ...(backTo ? { backTo } : {}),
       data,
       options: winner.mapping.options ?? {},
@@ -478,6 +488,9 @@ export function invalidatePluginCaches(): void {
   configCache = undefined;
   resolvedCache = null;
   validatorCache.clear();
+  /* Ajv 以 $id 記住編譯過的 schema；只清我們自己的 Map 的話，下一次 compile 同一份 schema
+     會丟「schema with key or id … already exists」，dev 下改一個資料檔整站就 500。 */
+  ajv.removeSchema();
 }
 /** 已驗證的 plugins.json 內容；沒有設定檔時 null。供 /plugins 頁顯示映射規則與 options。 */
 export function getPluginsConfig(): PluginsConfig | null {

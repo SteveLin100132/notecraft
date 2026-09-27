@@ -10,7 +10,9 @@
 //   2. registry.json 與實際目錄無漂移（含 files 清單與版號）
 //   3. import 白名單（與安裝期 lint 共用同一份實作，不寫兩套）
 //   4. example 資料通過該 plugin 自己的 dataSchema
-//   5. 每個 plugin 配 example 資料真的 build 得起來
+//      （manifest.example 之外，plugin 目錄的 example/ 底下所有 .json 都驗 ——
+//       官方 plugin 以此保留舊版資料格式的範例，當作向下相容的測試資料）
+//   5. 每個 plugin 配 example 資料真的 build 得起來（同樣涵蓋 example/ 底下所有 .json，一次 build）
 //
 // 用法：node scripts/check-plugins.mjs [--skip-build]
 
@@ -36,6 +38,12 @@ const whitelist = (() => {
 
 const errors = [];
 const fail = (msg) => errors.push(msg);
+
+/** 要驗證與 build 的範例：manifest.example 必在第一個，其後是 example/ 底下其餘的 .json（依檔名排序）。 */
+function exampleFiles(files, manifest) {
+  const extra = [...files.keys()].filter((f) => /^example\/[^/]+\.json$/i.test(f) && f !== manifest.example).sort();
+  return [manifest.example, ...extra];
+}
 
 async function readAll(dir, sub = "", out = new Map()) {
   for (const e of await fs.readdir(dir, { withFileTypes: true })) {
@@ -82,10 +90,9 @@ for (const e of entries) {
     if (extra.length) fail(`[${id}] registry files 多了（實際不存在）：${extra.join("、")}`);
   }
 
-  // 4：example 通過自己的 schema
+  // 4：example 通過自己的 schema（manifest.example + example/ 底下所有 .json）
   if (manifest?.example) {
-    const exBuf = files.get(manifest.example);
-    if (!exBuf) {
+    if (!files.get(manifest.example)) {
       fail(`[${id}] manifest 指定 example=${manifest.example}，但該檔不存在`);
     } else if (manifest.dataSchema) {
       const schemaBuf = files.get(manifest.dataSchema);
@@ -94,9 +101,11 @@ for (const e of entries) {
       } else {
         const ajv = new Ajv({ strict: false, allErrors: true });
         const validate = ajv.compile(JSON.parse(schemaBuf.toString("utf-8")));
-        if (!validate(JSON.parse(exBuf.toString("utf-8")))) {
-          const first = validate.errors?.[0];
-          fail(`[${id}] example 不符合自己的 dataSchema：${first?.instancePath} ${first?.message}`);
+        for (const ex of exampleFiles(files, manifest)) {
+          if (!validate(JSON.parse(files.get(ex).toString("utf-8")))) {
+            const first = validate.errors?.[0];
+            fail(`[${id}] ${ex} 不符合自己的 dataSchema：${first?.instancePath} ${first?.message}`);
+          }
         }
       }
     }
@@ -110,19 +119,49 @@ for (const p of registry.plugins) {
   if (!existsSync(path.join(storeDir, p.id))) fail(`registry 列了 "${p.id}"，但 plugins/${p.id} 不存在`);
 }
 
+// ── 4.5：scripts/checks/*.mjs（plugin 推導、Markdown 等純函式的斷言）──────────
+// 以 Node 原生 strip-types 直接載入 plugin 的 .ts —— 不加 test runner。很快，--skip-build 也照跑。
+if (errors.length === 0) {
+  const [major, minor] = process.versions.node.split(".").map(Number);
+  if (major < 22 || (major === 22 && minor < 6)) {
+    fail(`scripts/checks 需要 Node 22.6 以上（--experimental-strip-types），目前是 ${process.versions.node}`);
+  } else {
+    const checksDir = path.join(root, "scripts", "checks");
+    const checks = existsSync(checksDir)
+      ? (await fs.readdir(checksDir)).filter((f) => f.endsWith(".mjs")).sort()
+      : [];
+    for (const f of checks) {
+      const r = spawnSync(
+        process.execPath,
+        ["--experimental-strip-types", "--disable-warning=ExperimentalWarning", path.join(checksDir, f)],
+        { cwd: root, stdio: "pipe" },
+      );
+      if (r.status !== 0) {
+        const out = (r.stderr?.length ? r.stderr : r.stdout)?.toString() ?? "（無輸出）";
+        fail(`scripts/checks/${f} 失敗：\n${out.trim().split("\n").slice(-20).join("\n")}`);
+      } else {
+        console.log(`  ✓ scripts/checks/${f}`);
+      }
+    }
+  }
+}
+
 // ── 5：配 example 資料真的 build 一次 ──────────────────────
 if (!skipBuild && errors.length === 0) {
   for (const e of entries) {
     const id = e.name;
     const manifest = JSON.parse(readFileSync(path.join(storeDir, id, "notecraft-plugin.json"), "utf-8"));
     if (!manifest.example) continue;
+    const examples = exampleFiles(await readAll(path.join(storeDir, id)), manifest);
     const fixture = await fs.mkdtemp(path.join(os.tmpdir(), `notecraft-check-${id}-`));
-    await fs.mkdir(path.join(fixture, "docs"), { recursive: true });
+    await fs.mkdir(path.join(fixture, "docs", "examples"), { recursive: true });
     await fs.mkdir(path.join(fixture, ".notecraft"), { recursive: true });
-    await fs.copyFile(path.join(storeDir, id, manifest.example), path.join(fixture, "docs", "example.json"));
+    for (const ex of examples) {
+      await fs.copyFile(path.join(storeDir, id, ex), path.join(fixture, "docs", "examples", path.basename(ex)));
+    }
     await fs.writeFile(
       path.join(fixture, ".notecraft", "plugins.json"),
-      JSON.stringify({ plugins: [{ plugin: id, files: ["example.json"] }] }, null, 2),
+      JSON.stringify({ plugins: [{ plugin: id, files: ["examples/*.json"] }] }, null, 2),
       "utf-8",
     );
     await fs.writeFile(path.join(fixture, "docs", "readme.md"), "# fixture\n", "utf-8");
@@ -142,7 +181,7 @@ if (!skipBuild && errors.length === 0) {
       const out = r.error?.message ?? (r.stderr?.length ? r.stderr : r.stdout)?.toString() ?? "（無輸出）";
       fail(`[${id}] 配 example 資料 build 失敗：\n${out.split("\n").slice(-12).join("\n")}`);
     } else {
-      console.log(`  ✓ ${id} 配 example 資料 build 成功`);
+      console.log(`  ✓ ${id} 配 ${examples.length} 份 example 資料 build 成功`);
     }
   }
 }

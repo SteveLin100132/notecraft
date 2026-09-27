@@ -1,248 +1,58 @@
 /* ER Diagram Renderer —— NoteCraft plugin
  *
- * 把一份資料庫 schema JSON 畫成可聚焦、可搜尋的實體關聯圖。
+ * 把一份資料庫 schema JSON 渲染成 DBdocs 式的資料庫文件：
+ * 導覽樹（Schema → 分群 → Table）、Wiki（總覽／Schema／Table）、Diagram（可聚焦、可搜尋的關聯圖）。
  *
  * 前身是 TrendMile 專案裡一支 751 行的 tsx，其中 68 KB 是寫死的表定義。
  * 本檔把資料全部移出去，同時把幾個「只對那個專案成立」的常數也一併外部化 ——
  * 五欄版面、必填性語彙、徽章叫法、hub 表、預設顯示欄數、提示文案。
  * 只抽表定義是不夠的：那些常數留著，換一個專案還是得改程式。
  *
- * 關聯（edges）由欄位的 fk 推導，不存進資料檔 —— 存了就會有兩份真相。
- *
- * 版面是固定欄數的無限畫布（可拖曳平移、⌘/Ctrl 加滾輪縮放）。早期版本改用橫向捲軸，
- * 但捲軸只能左右看、看不到全貌；要「先縮小看整體、再放大看局部」就得是畫布。
+ * 檔案分工：renderer.tsx 是入口（外殼、路由與同步、持久化、全寬、Esc）；
+ * nav.tsx 導覽；wiki.tsx 三種 Wiki 頁；diagram.tsx 畫布；derive.ts 資料推導；
+ * markdown*.ts(x) 迷你 Markdown；types.ts 型別；styles.ts 樣式。
+ * 入口檔名固定為 renderer.tsx（NoteCraft 的 glob 只認它），其餘檔案由相對 import 帶進打包 ——
+ * 新增檔案時記得登記到 plugins/registry.json 的 files。
  */
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-import { ChevronDown, ChevronUp, Info, Maximize2, Minus, Plus, Search, X } from 'lucide-react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { BookOpen, Expand, PanelLeft, Workflow } from 'lucide-react'
+import { erDerive } from './derive'
+import type { ErDerived } from './derive'
+import { ErDiagram } from './diagram'
+import { ErNav } from './nav'
+import { ErWiki } from './wiki'
+import { CSS } from './styles'
+import type { ErDiagramData, ErOptions, PluginRendererProps, Route } from './types'
+import { DEFAULT_OPTIONS } from './types'
 
-/* props 的型別在這裡自帶一份，不從 `@notes/plugins/_types` import。
- * 理由：官方 plugin 同時要能在主 repo（CI 驗證用）與使用者專案裡 build，
- * 而 `@notes` 在兩處指向不同的根。TypeScript 是結構型別，自帶一份不影響相容性。
- * 偏好共用型別的 plugin 作者仍可改寫成 `import type { PluginRendererProps } from '@notes/plugins/_types'`。
- */
-interface PluginRendererProps<T> {
-  data: T
-  file: { path: string; name: string; updatedAt: string }
-  options: Record<string, unknown>
-  mode: 'page' | 'embed'
+export type { ErColumn, ErDiagramData, ErGroup, ErOptions, ErSchema, ErTable } from './types'
+
+type Tab = 'wiki' | 'diagram'
+
+/** 已印過 dev 警告的資料檔（file.path） */
+const warned = new Set<string>()
+
+/** 外殼寬度 ≤ 此值時導覽改為覆蓋在內容上（與 styles.ts 的 container query 同值） */
+const NARROW = 760
+
+const OVERVIEW: Route = { kind: 'overview' }
+
+/** localStorage 殘留的路由可能指向已改名、已刪除的表 —— 驗不過就回總覽，不白屏 */
+function validRoute(r: unknown, D: ErDerived): Route {
+  if (!r || typeof r !== 'object') return OVERVIEW
+  const x = r as { kind?: unknown; key?: unknown }
+  if (x.kind === 'table' && typeof x.key === 'string' && D.byName.has(x.key)) return { kind: 'table', key: x.key }
+  if (x.kind === 'schema' && typeof x.key === 'string' && !D.implicit && D.schemas.some((s) => s.key === x.key)) {
+    return { kind: 'schema', key: x.key }
+  }
+  return OVERVIEW
 }
-
-/* ── 資料型別 ─────────────────────────────────────────── */
-
-/** 徽章可以掛在哪些欄位屬性上。fk 是字串（父表名），其餘是 boolean，兩者都以 truthy 判定。 */
-type ErFlagKey = 'pk' | 'fk' | 'unique' | 'index'
-
-export interface ErColumn {
-  name: string
-  type: string
-  /** 對應 data.requirement[].key */
-  required: string
-  default?: string
-  note?: string
-  /** 父表名；有值即為外鍵 */
-  fk?: string
-  pk?: boolean
-  unique?: boolean
-  index?: boolean
-  /** 對應 data.derivations[].key */
-  derivation?: string
-  /** 個資標示。目前渲染器不用，保留讓資料先記著 */
-  pii?: boolean
-}
-
-export interface ErTable {
-  name: string
-  label: string
-  /** 章節編號，顯示在卡片右上 */
-  section?: string
-  /** 對應 data.groups[].key */
-  group: string
-  columns: ErColumn[]
-}
-
-export interface ErOptions {
-  /** 卡片預設顯示幾欄（主鍵與外鍵一律顯示，不計入） */
-  defaultRows: number
-  /** hub 表：被極多張表指向的共用表，連線預設收起，否則整張圖會被它蓋滿 */
-  hubTables: string[]
-  /** 章節編號的前綴 */
-  sectionPrefix: string
-  hint: string
-  searchPlaceholder: string
-  /** 畫布高度（px）。不給就依 mode 取預設：內嵌 560、獨立頁依視窗算 */
-  canvasHeight?: number
-}
-
-export interface ErDiagramData {
-  meta?: { title?: string; description?: string; source?: string; backTo?: string }
-  options?: Partial<ErOptions>
-  /** 必填性語彙。marker 對應 CSS 的圓點樣式：solid / half / hollow / muted */
-  requirement: { key: string; label: string; marker: string; title?: string }[]
-  /** 欄位徽章。tone 對應配色：danger / info / success / neutral / warning */
-  flags: { key: ErFlagKey; badge: string; tone?: string; label?: string }[]
-  /** 衍生欄徽章，一律 warning 色 */
-  derivations: { key: string; badge: string; label?: string }[]
-  groups: { key: string; label: string }[]
-  layout: { columns: { key: string; groups: string[] }[] }
-  tables: ErTable[]
-}
-
-const DEFAULT_OPTIONS: ErOptions = {
-  defaultRows: 6,
-  hubTables: [],
-  sectionPrefix: '§',
-  hint: '點一張表可聚焦它的關聯，其餘變淡；再點一次、點空白處或按 Esc 取消。欄位右側的圖示 hover 可看該欄說明。',
-  searchPlaceholder: '搜尋表名或欄位名',
-}
-
-interface Edge {
-  id: string
-  child: string
-  parent: string
-  col: string
-  self: boolean
-}
-
-/* 無限畫布的縮放範圍。下限 0.2 讓 36 張表的全圖能一眼看完，
-   上限 2.5 足以把 10px 的欄位型別看清楚，再大只是模糊放大。 */
-const MIN_ZOOM = 0.2
-const MAX_ZOOM = 2.5
-const ZOOM_STEP = 1.25
-/** fit 時四周留的呼吸空間 */
-const FIT_PAD = 28
-
-interface ViewState {
-  x: number
-  y: number
-  z: number
-}
-
-const clampZoom = (z: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z))
-
-const TIP_MAX_WIDTH = 320
-const TIP_HALF = TIP_MAX_WIDTH / 2
-
-interface TipState {
-  x: number
-  rawX: number
-  y: number
-  up: boolean
-  adjusted: boolean
-  title: string
-  body: string
-}
-
-const CSS = `
-.erd-root.erd-wrap { position: relative; font-family: var(--font-sans); color: var(--text-body); }
-.erd-root .erd-cardhead, .erd-root .erd-cardhead .erd-tname, .erd-root .erd-cardhead .erd-tlabel, .erd-root .erd-cardhead .erd-tsec { color: var(--neutral-0); }
-.erd-root .erd-card--focus .erd-cardhead, .erd-root .erd-card--focus .erd-cardhead .erd-tname, .erd-root .erd-card--focus .erd-cardhead .erd-tlabel, .erd-root .erd-card--focus .erd-cardhead .erd-tsec { color: var(--blue-950); }
-.erd-root .erd-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 10px; }
-.erd-root .erd-search { position: relative; display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border-default); border-radius: var(--radius-pill); background: var(--surface-card); color: var(--text-muted); min-width: 280px; }
-.erd-root .erd-input { border: 0; outline: none; background: transparent; font-size: 13px; color: var(--text-strong); width: 100%; font-family: inherit; }
-.erd-root .erd-clear { border: 0; background: transparent; cursor: pointer; color: var(--text-muted); display: flex; padding: 2px; }
-.erd-root .erd-hits { flex: none; font-size: 11.5px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.erd-root .erd-hits-ok { color: var(--blue-700, #1b4f9c); }
-.erd-root .erd-hits-none { color: var(--danger-500, #d64545); }
-.erd-root .erd-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
-.erd-root .erd-legend { display: flex; gap: 12px; margin-left: auto; font-size: 12px; color: var(--text-muted); }
-.erd-root .erd-lg { display: inline-flex; align-items: center; gap: 5px; }
-.erd-root .erd-hint { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.6; }
-.erd-root .erd-hint-canvas { color: var(--blue-700); }
-.erd-root .erd-focusbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--surface-accent-soft); border: 1px solid var(--orange-200); font-size: 12px; line-height: 1.6; }
-.erd-root .erd-focusbar strong { font-family: var(--font-mono); color: var(--blue-800); font-size: 13px; }
-.erd-root .erd-muted { color: var(--text-muted); }
-.erd-root .erd-reset { margin-left: auto; border: 1px solid var(--orange-300); background: var(--surface-card); color: var(--orange-700); border-radius: var(--radius-pill); padding: 3px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
-.erd-root .erd-viewport { position: relative; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background-color: var(--surface-page); background-image: radial-gradient(circle, color-mix(in srgb, var(--text-muted) 22%, transparent) 1px, transparent 1px); background-size: 22px 22px; cursor: grab; touch-action: none; outline: none; }
-.erd-root .erd-viewport:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-.erd-root .erd-viewport--panning { cursor: grabbing; }
-.erd-root .erd-viewport--embed { height: 560px; }
-.erd-root .erd-viewport--page { height: clamp(420px, calc(100vh - 230px), 1200px); }
-.erd-root .erd-overlay .erd-viewport { height: calc(100vh - 150px); }
-.erd-root .erd-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: max-content; }
-.erd-root .erd-stage--animated { transition: transform var(--duration-normal) var(--ease-out); }
-.erd-root .erd-canvas { position: relative; width: max-content; }
-.erd-root .erd-zoombar { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: var(--radius-pill); background: var(--surface-card); border: 1px solid var(--border-default); box-shadow: var(--shadow-sm); }
-.erd-root .erd-zbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 0; border-radius: var(--radius-circle); background: transparent; color: var(--text-muted); cursor: pointer; }
-.erd-root .erd-zbtn:hover:not(:disabled) { background: var(--blue-50); color: var(--blue-700); }
-.erd-root .erd-zbtn:disabled { opacity: .35; cursor: default; }
-.erd-root .erd-zbtn:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
-.erd-root .erd-zval { min-width: 42px; text-align: center; font-family: var(--font-mono); font-size: 11.5px; font-weight: var(--weight-bold); color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.erd-root .erd-zsep { width: 1px; height: 16px; margin: 0 3px; background: var(--border-subtle); }
-.erd-root .erd-svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-.erd-root .erd-cols { position: relative; display: grid; gap: 34px; align-items: start; }
-.erd-root .erd-col { display: flex; flex-direction: column; gap: 26px; }
-.erd-root .erd-group { border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg); padding: 10px 10px 12px; background: color-mix(in srgb, var(--blue-50) 45%, transparent); }
-.erd-root .erd-grouphead { margin: 0 0 8px; font-size: 11px; font-weight: var(--weight-bold); letter-spacing: var(--tracking-wide); color: var(--blue-700); text-transform: none; }
-.erd-root .erd-card { position: relative; z-index: 2; background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md); box-shadow: var(--shadow-xs); margin-bottom: 18px; min-width: 218px; max-width: 380px; width: max-content; transition: opacity var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out); }
-.erd-root .erd-card:last-child { margin-bottom: 0; }
-.erd-root .erd-card:hover { box-shadow: var(--shadow-sm); border-color: var(--blue-300); }
-.erd-root .erd-card--dim { opacity: .25; }
-.erd-root .erd-card--focus { border-color: var(--orange-400); box-shadow: var(--shadow-accent); z-index: 4; }
-.erd-root .erd-card--rel { border-color: var(--blue-500); box-shadow: var(--shadow-sm); z-index: 3; }
-.erd-root .erd-card--hit { border-color: var(--orange-300); }
-.erd-root .erd-cardhead { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 4px 10px; width: 100%; white-space: nowrap; text-align: left; border: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; background: var(--blue-700); color: var(--neutral-0); padding: 6px 9px; cursor: pointer; font-family: inherit; }
-.erd-root .erd-card--focus .erd-cardhead { background: var(--gradient-accent); color: var(--blue-950); }
-.erd-root .erd-cardhead:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-.erd-root .erd-tname { font-family: var(--font-mono); font-size: 12.5px; font-weight: var(--weight-bold); }
-.erd-root .erd-tlabel { font-size: 11px; opacity: .88; }
-.erd-root .erd-tsec { margin-left: auto; font-size: 10px; opacity: .75; }
-.erd-root .erd-cols-list { list-style: none; margin: 0; padding: 4px 0; }
-.erd-root .erd-field { display: flex; flex-wrap: nowrap; align-items: center; gap: 5px; margin: 0; padding: 2px 9px; font-size: 11px; line-height: 1.5; white-space: nowrap; }
-.erd-root .erd-field--hit { background: var(--orange-50); }
-.erd-root .erd-fname { font-family: var(--font-mono); color: var(--text-strong); }
-.erd-root .erd-ftype { font-family: var(--font-mono); color: var(--text-muted); font-size: 10px; }
-.erd-root .erd-keys { display: inline-flex; gap: 3px; margin-left: auto; padding-left: 6px; flex: 0 0 auto; }
-.erd-root .erd-k { font-size: 8.5px; font-weight: var(--weight-bold); line-height: 1; padding: 2px 4px; border-radius: var(--radius-xs); font-style: normal; }
-.erd-root .erd-k--danger { background: var(--danger-50); color: var(--danger-500); }
-.erd-root .erd-k--info { background: var(--blue-50); color: var(--blue-600); }
-.erd-root .erd-k--success { background: var(--success-50); color: var(--success-500); }
-.erd-root .erd-k--neutral { background: var(--neutral-100); color: var(--neutral-600); }
-.erd-root .erd-k--warning { background: var(--warning-50); color: var(--warning-700); }
-.erd-root .erd-dot { width: 7px; height: 7px; border-radius: var(--radius-circle); border: 1.5px solid var(--blue-500); flex: 0 0 auto; display: inline-block; }
-.erd-root .erd-dot--solid { background: var(--blue-500); }
-.erd-root .erd-dot--half { background: linear-gradient(90deg, var(--blue-500) 50%, transparent 50%); }
-.erd-root .erd-dot--hollow { background: transparent; }
-.erd-root .erd-dot--muted { background: var(--neutral-300); border-color: var(--neutral-400); }
-.erd-root .erd-info { border: 0; background: transparent; padding: 0; margin-left: 2px; flex: 0 0 auto; cursor: help; color: var(--neutral-400); display: inline-flex; }
-.erd-root .erd-info:hover, .erd-root .erd-info:focus-visible { color: var(--blue-600); }
-.erd-root .erd-more { width: 100%; border: 0; border-top: 1px solid var(--border-subtle); background: transparent; color: var(--blue-600); font-size: 10.5px; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 3px; border-radius: 0 0 var(--radius-md) var(--radius-md); font-family: inherit; }
-.erd-root .erd-more:hover { background: var(--blue-50); }
-.erd-root .erd-edge path { fill: none; stroke: var(--blue-300); stroke-width: 1.1; transition: opacity var(--duration-fast) var(--ease-out), stroke-width var(--duration-fast) var(--ease-out); }
-.erd-root .erd-edge text { font-family: var(--font-mono); font-size: 9.5px; fill: var(--orange-700); paint-order: stroke; stroke: var(--neutral-0); stroke-width: 3px; }
-.erd-root marker path { fill: var(--blue-300); }
-.erd-root .erd-head--on { fill: var(--orange-500); }
-.erd-root .erd-edge--base path { opacity: .55; }
-.erd-root .erd-edge--opt path { stroke: var(--neutral-300); }
-.erd-root .erd-edge--dim path { opacity: .18; }
-.erd-root .erd-edge--off path { opacity: .08; }
-.erd-root .erd-edge--on path { stroke: var(--orange-500); stroke-width: 2; opacity: 1; }
-.erd-root .erd-tip { position: absolute; z-index: 20; width: max-content; max-width: 320px; transform: translateX(-50%); background: var(--blue-950); color: var(--neutral-0); border-radius: var(--radius-sm); padding: 7px 10px; box-shadow: var(--shadow-lg); pointer-events: none; }
-.erd-root .erd-tip--up { transform: translate(-50%, -100%); }
-.erd-root .erd-tiphead { font-family: var(--font-mono); font-size: 11px; color: var(--orange-300); margin-bottom: 3px; }
-.erd-root .erd-tipbody { font-size: 11.5px; line-height: 1.65; }
-.erd-root .erd-act { appearance: none; font: inherit; font-size: 12px; font-weight: var(--weight-bold); line-height: 1.5; padding: 5px 13px; border-radius: var(--radius-pill); border: 1px solid var(--orange-400); background: var(--orange-400); color: var(--blue-950); cursor: pointer; white-space: nowrap; transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out); }
-.erd-root .erd-act:hover { background: var(--orange-300); border-color: var(--orange-300); }
-.erd-root .erd-act--ghost { background: var(--surface-card); border-color: var(--border-default); color: var(--text-muted); }
-.erd-root .erd-act--ghost:hover { background: var(--surface-card); border-color: var(--blue-400); color: var(--blue-700); }
-.erd-root .erd-act:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-.erd-root .erd-hold { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 18px 16px; border: 1px dashed var(--border-default); border-radius: var(--radius-lg); background: var(--surface-sunken); font-size: 13px; color: var(--text-muted); }
-.erd-root .erd-hold .erd-act { margin-left: auto; }
-.erd-root .erd-overlay { position: fixed; inset: 0; z-index: 2147483000; background: var(--surface-page); overflow: auto; padding: 18px clamp(12px, 3vw, 40px) 48px; }
-@media (max-width: 900px) {
-  .erd-root .erd-legend { margin-left: 0; }
-}
-`
 
 export default function ErDiagramRenderer({
   data,
+  file,
   options,
   mode,
 }: PluginRendererProps<ErDiagramData>) {
@@ -257,354 +67,225 @@ export default function ErDiagramRenderer({
     [data.options, options],
   )
 
-  const tables = data.tables
-  const layoutColumns = data.layout.columns
+  const D = useMemo(() => erDerive(data), [data])
 
-  const groupLabel = useMemo(
-    () => Object.fromEntries(data.groups.map((g) => [g.key, g.label])),
-    [data.groups],
-  )
-  const byName = useMemo(() => new Map(tables.map((t) => [t.name, t])), [tables])
+  /* 資料有瑕疵時不 throw（整頁白掉比少一個分群糟），但 dev 下要讓作者知道。
+     SSR 期不印，免得 build log 與瀏覽器各一次；同一個檔只印一次（多個內嵌、HMR 重掛）。 */
+  useEffect(() => {
+    if (!import.meta.env?.DEV || warned.has(file.path)) return
+    warned.add(file.path)
+    if (D.orphanGroups.length) {
+      console.warn(
+        `[er-diagram-renderer] ${file.path}：${D.orphanGroups.length} 個 group 的 schema 缺漏或無效，已歸入 "${D.schemas[0].key}"：${D.orphanGroups.join(', ')}`,
+      )
+    }
+    if (D.ungroupedTables.length) {
+      console.warn(
+        `[er-diagram-renderer] ${file.path}：${D.ungroupedTables.length} 張表的 group 不存在，已歸入「未分群」：${D.ungroupedTables.join(', ')}`,
+      )
+    }
+  }, [D, file.path])
 
-  /* 關聯由欄位的 fk 推導，不存進資料檔 —— 存了就會有兩份真相，改一邊忘另一邊。 */
-  const edges = useMemo<Edge[]>(
-    () =>
-      tables.flatMap((t) =>
-        t.columns
-          .filter((c) => c.fk && tables.some((x) => x.name === c.fk))
-          .map((c) => ({
-            id: `${t.name}.${c.name}`,
-            child: t.name,
-            parent: c.fk as string,
-            col: c.name,
-            self: c.fk === t.name,
-          })),
-      ),
-    [tables],
-  )
-
-  /* hub 表：被極多張表指向的共用表（例：選項主檔）。它的連線預設收起來，
-     否則整張圖會被這一張表的放射狀線條蓋滿。取代原本寫死的 option_item。 */
-  const hubTables = useMemo(() => new Set(opts.hubTables), [opts])
-
-  const requirementOf = useCallback(
-    (key: string) => data.requirement.find((r) => r.key === key),
-    [data.requirement],
-  )
-  const derivationOf = useCallback(
-    (key: string | undefined) => (key ? data.derivations.find((d) => d.key === key) : undefined),
-    [data.derivations],
-  )
-
-  /* 預設顯示：主鍵、全部外鍵，再補一般欄位到 defaultRows 為止 */
-  const defaultColumns = useCallback(
-    (t: ErTable): ErColumn[] => {
-      const keyCols = t.columns.filter((c) => c.pk || c.fk)
-      const rest = t.columns.filter((c) => !c.pk && !c.fk)
-      const out = [...keyCols]
-      for (const c of rest) {
-        if (out.length >= opts.defaultRows) break
-        out.push(c)
-      }
-      return t.columns.filter((c) => out.includes(c))
-    },
-    [opts.defaultRows],
-  )
-
+  /* ── 狀態 ───────────────────────────────────────────────
+     Wiki 的 route 是唯一真相；Diagram 的 scope／focus 由它投影而來。
+     唯一例外是「取消聚焦」：只清 focus、route 不動（回到 Wiki 仍是最後看的那張表）。 */
+  const [route, setRoute] = useState<Route>(OVERVIEW)
+  const [tab, setTab] = useState<Tab>('wiki')
+  const [scope, setScope] = useState<string | null>(null)
   const [focus, setFocus] = useState<string | null>(null)
-  const [hover, setHover] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [query, setQuery] = useState('')
-  const [showHubEdges, setShowHubEdges] = useState(false)
+  const [navOpen, setNavOpen] = useState(mode === 'page')
   const [wide, setWide] = useState(false)
-  const [tip, setTip] = useState<TipState | null>(null)
-  const [paths, setPaths] = useState<
-    { id: string; d: string; child: string; parent: string; col: string; mx: number; my: number }[]
-  >([])
+  const [narrow, setNarrow] = useState(false)
+  /* Diagram 的搜尋字串與 hub 開關放在外殼：Diagram 切走時會卸載，這兩個要跨分頁保留（不持久化） */
+  const [dgQuery, setDgQuery] = useState('')
+  const [showHubEdges, setShowHubEdges] = useState(false)
 
-  const wrapRef = useRef<HTMLDivElement | null>(null)
-  const canvasRef = useRef<HTMLDivElement | null>(null)
-  const gridRef = useRef<HTMLDivElement | null>(null)
-  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
-
-  /* ── 無限畫布 ─────────────────────────────────────────────
-     取代原本的橫向捲軸。五欄版面在內文欄寬下必然溢出，捲軸只能左右看、
-     看不到全貌；改成可縮放平移的畫布後，「先縮小看整體、再放大看局部」
-     這件事才做得到。
-
-     座標：stage 套 translate(x, y) scale(z)，transform-origin 左上。
-     連線的量測（measure）本來就會除以當下倍率換回版面座標，不必改。 */
-  const viewportRef = useRef<HTMLDivElement | null>(null)
-  const [view, setView] = useState<ViewState>({ x: 0, y: 0, z: 1 })
-  const viewRef = useRef(view)
-  viewRef.current = view
-  /* 使用者動過之後就不再自動 fit —— 否則字體載入完、或展開一張表，
-     視角會被硬拉回原點，正在看的地方就不見了。 */
-  const touchedRef = useRef(false)
-  const [animate, setAnimate] = useState(false)
-  const [panning, setPanning] = useState(false)
-  const panRef = useRef<{ px: number; py: number; ox: number; oy: number; moved: boolean } | null>(null)
-  /** 剛剛那次 pointer 互動是拖曳還是點擊 —— 拖完的 click 不該取消聚焦 */
-  const draggedRef = useRef(false)
-
-  const applyFit = useCallback(
-    (smooth: boolean) => {
-      const vp = viewportRef.current
-      if (!vp || canvasSize.w <= 0 || canvasSize.h <= 0) return
-      const vw = vp.clientWidth
-      const vh = vp.clientHeight
-      if (vw <= 0 || vh <= 0) return
-      /* fit 的是**寬度**，不是整張圖。
-         這種版面是固定欄數、往下長的形狀，用寬高都塞得下的倍率去 fit，
-         高度會成為瓶頸、把倍率壓到 20% 出頭 —— 一眼看得到輪廓，但一個字都讀不到。
-         改成填滿寬度，欄位名至少看得清楚；要看全貌就往下捲或縮小，那是一個手勢的事。
-
-         不放大超過 100%：小圖攤在大畫布上放大只會糊，維持原寸比較好讀。 */
-      const z = clampZoom(Math.min((vw - FIT_PAD * 2) / canvasSize.w, 1))
-      const scaledH = canvasSize.h * z
-      setAnimate(smooth)
-      setView({
-        x: (vw - canvasSize.w * z) / 2,
-        /* 塞得下就垂直置中；塞不下就對齊上緣 —— 從頭開始看才是對的起點 */
-        y: scaledH <= vh - FIT_PAD * 2 ? (vh - scaledH) / 2 : FIT_PAD,
-        z,
-      })
-    },
-    [canvasSize.w, canvasSize.h],
+  const scopeSet = useMemo(
+    () => (scope ? new Set(data.tables.filter((t) => D.schemaOfTable(t.name) === scope).map((t) => t.name)) : null),
+    [scope, data.tables, D],
   )
 
-  const resetView = useCallback(() => {
-    touchedRef.current = false
-    applyFit(true)
-  }, [applyFit])
-
-  /* 內容尺寸變動（首次量測、展開欄位、搜尋）→ 只在使用者還沒動過視角時自動 fit */
+  /* ── 持久化 ─────────────────────────────────────────────
+     SSR 與首次 client render 一律用預設值，掛載後才讀 —— 否則 hydration 對不上。
+     代價是 reload 時先閃一下總覽（page 約一幀；embed 捲到才掛載，通常看不到），已定案接受。 */
+  const storeKey = `erd:v1:${file.path}:${mode}`
+  const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
-    if (touchedRef.current) return
-    applyFit(false)
-  }, [applyFit, wide])
-
+    try {
+      const raw = window.localStorage.getItem(storeKey)
+      const saved = raw ? (JSON.parse(raw) as { route?: unknown; tab?: unknown; scope?: unknown }) : null
+      if (saved) {
+        const r = validRoute(saved.route, D)
+        setRoute(r)
+        if (saved.tab === 'wiki' || saved.tab === 'diagram') setTab(saved.tab)
+        const sc =
+          typeof saved.scope === 'string' && !D.implicit && D.schemas.some((s) => s.key === saved.scope)
+            ? saved.scope
+            : null
+        setScope(sc)
+        if (saved.tab === 'diagram' && r.kind === 'table') setFocus(r.key)
+      }
+    } catch {
+      /* 隱私模式、配額滿、JSON 壞掉：當作沒有 */
+    }
+    setHydrated(true)
+    // 只在掛載時讀一次
+  }, [])
   useEffect(() => {
-    const vp = viewportRef.current
-    if (!vp) return undefined
-    const ro = new ResizeObserver(() => {
-      if (!touchedRef.current) applyFit(false)
-    })
-    ro.observe(vp)
-    return () => ro.disconnect()
-  }, [applyFit])
-
-  /** 以指標為錨點縮放：滑鼠底下的那張表不會跑掉 */
-  const zoomAt = useCallback((factor: number, px: number, py: number, smooth = false) => {
-    const cur = viewRef.current
-    const next = clampZoom(cur.z * factor)
-    if (Math.abs(next - cur.z) < 0.0001) return
-    touchedRef.current = true
-    setAnimate(smooth)
-    setView({
-      x: px - (px - cur.x) * (next / cur.z),
-      y: py - (py - cur.y) * (next / cur.z),
-      z: next,
-    })
-  }, [])
-
-  const zoomByButton = useCallback(
-    (factor: number) => {
-      const vp = viewportRef.current
-      if (!vp) return
-      zoomAt(factor, vp.clientWidth / 2, vp.clientHeight / 2, true)
-    },
-    [zoomAt],
-  )
-
-  /* 滾輪：⌘/Ctrl（或觸控板捏合）才縮放，單純滾輪一律放行給頁面捲動。
-     這頁底下還有系列導覽，畫布把滾輪全吃掉的話人就出不去了。
-     ⚠ React 的 onWheel 是 passive listener、preventDefault 無效 —— 必須原生 non-passive 掛。 */
-  useEffect(() => {
-    const vp = viewportRef.current
-    if (!vp) return undefined
-    const onWheel = (ev: WheelEvent) => {
-      if (!(ev.ctrlKey || ev.metaKey)) return // 放行，不 preventDefault
-      ev.preventDefault()
-      const rect = vp.getBoundingClientRect()
-      zoomAt(Math.exp(-ev.deltaY * 0.0015), ev.clientX - rect.left, ev.clientY - rect.top)
+    if (!hydrated) return
+    try {
+      window.localStorage.setItem(storeKey, JSON.stringify({ route, tab, scope }))
+    } catch {
+      /* 同上 */
     }
-    vp.addEventListener('wheel', onWheel, { passive: false })
-    return () => vp.removeEventListener('wheel', onWheel)
-  }, [zoomAt])
+  }, [hydrated, storeKey, route, tab, scope])
 
-  /* 拖曳平移。指標落在卡片 / 按鈕 / 輸入框上時交給它們自己處理
-     （任何倍率下表都要點得到），按住 Alt 才能從卡片上起手平移。 */
-  const onPanStart = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
-    if (ev.button !== 0) return
-    const el = ev.target as HTMLElement
-    if (!ev.altKey && el.closest('.erd-card, button, a, input, label')) return
-    const cur = viewRef.current
-    panRef.current = { px: ev.clientX, py: ev.clientY, ox: cur.x, oy: cur.y, moved: false }
-    setPanning(true)
-    setAnimate(false)
-    ;(ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId)
-  }, [])
-
-  const onPanMove = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
-    const p = panRef.current
-    if (!p) return
-    const dx = ev.clientX - p.px
-    const dy = ev.clientY - p.py
-    if (!p.moved && Math.abs(dx) + Math.abs(dy) < 3) return
-    p.moved = true
-    touchedRef.current = true
-    setView((v) => ({ ...v, x: p.ox + dx, y: p.oy + dy }))
-  }, [])
-
-  const onPanEnd = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
-    if (!panRef.current) return
-    const moved = panRef.current.moved
-    panRef.current = null
-    setPanning(false)
-    /* 拖曳結束後緊接著的 click 不該被當成「點空白處取消聚焦」 */
-    if (moved) ev.preventDefault()
-    draggedRef.current = moved
-    ;(ev.currentTarget as HTMLElement).releasePointerCapture?.(ev.pointerId)
-  }, [])
-
-  const q = query.trim().toLowerCase()
-
-  /* 搜尋命中的表；命中欄位的表自動展開 */
-  const { hitTables, hitCols } = useMemo(() => {
-    const hitTableSet = new Set<string>()
-    const hitColSet = new Set<string>()
-    if (!q) return { hitTables: hitTableSet, hitCols: hitColSet }
-    for (const t of tables) {
-      if (t.name.toLowerCase().includes(q) || t.label.toLowerCase().includes(q)) hitTableSet.add(t.name)
-      for (const c of t.columns) {
-        if (c.name.toLowerCase().includes(q)) {
-          hitTableSet.add(t.name)
-          hitColSet.add(`${t.name}.${c.name}`)
-        }
-      }
-    }
-    return { hitTables: hitTableSet, hitCols: hitColSet }
-  }, [q, tables])
-
-  /* 搜尋結果數：沒有這個數字，「查不到」與「沒在查」在畫面上長得一樣 */
-  const hitLabel = useMemo(() => {
-    if (!q) return null
-    if (hitTables.size === 0) return '查無符合'
-    if (hitCols.size === 0) return `${hitTables.size} 張表`
-    return `${hitTables.size} 張表・${hitCols.size} 個欄位`
-  }, [q, hitTables, hitCols])
-
-  const related = useMemo(() => {
-    if (!focus) return null
-    const parents = new Set<string>()
-    const children = new Set<string>()
-    for (const e of edges) {
-      if (e.self) continue
-      if (e.child === focus) parents.add(e.parent)
-      if (e.parent === focus) children.add(e.child)
-    }
-    return { parents, children, all: new Set([...parents, ...children, focus]) }
-  }, [focus, edges])
-
-  const isHubEdge = useCallback(
-    (e: { parent: string }) => hubTables.has(e.parent),
-    [hubTables],
-  )
-
-  /* 量測卡片位置後畫線。展開、搜尋、容器寬度變動都會重算。
-     放大檢視（VizZoom 的畫布）對祖先套 transform: scale，getBoundingClientRect 會連帶被放大，
-     但 SVG 的座標系來自 scrollWidth（版面 px、不受 transform 影響）。兩者不同調線就會歪，
-     因此一律除以當下倍率換回版面座標。 */
-  const measure = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const base = canvas.getBoundingClientRect()
-    const scale = canvas.offsetWidth > 0 ? base.width / canvas.offsetWidth : 1
-    const k = scale > 0.01 ? scale : 1
-    /* 尺寸取自格線而非畫布：SVG 是畫布的絕對定位子元素，若拿畫布的 scrollWidth
-       會把 SVG 自己的寬度算進去，變成「越量越寬」的回饋迴圈，欄數會一路縮到 1。 */
-    const grid = gridRef.current
-    setCanvasSize({
-      w: grid ? grid.scrollWidth : canvas.clientWidth,
-      h: grid ? grid.scrollHeight : canvas.clientHeight,
-    })
-    const next: typeof paths = []
-    for (const e of edges) {
-      const a = cardRefs.current.get(e.child)
-      const b = cardRefs.current.get(e.parent)
-      if (!a || !b) continue
-      const ra = a.getBoundingClientRect()
-      const rb = b.getBoundingClientRect()
-      const ax0 = (ra.left - base.left) / k
-      const bx0 = (rb.left - base.left) / k
-      const aw = ra.width / k
-      const bw = rb.width / k
-      const ay = (ra.top - base.top) / k + Math.min(ra.height / k / 2, 26)
-      const by = (rb.top - base.top) / k + Math.min(rb.height / k / 2, 26)
-      let x1: number
-      let x2: number
-      let c1: number
-      let c2: number
-      if (e.self) {
-        x1 = ax0 + aw
-        x2 = x1
-        const d = 26
-        next.push({
-          id: e.id,
-          d: `M ${x1} ${ay - 8} C ${x1 + d} ${ay - 22}, ${x1 + d} ${ay + 22}, ${x2} ${ay + 8}`,
-          child: e.child,
-          parent: e.parent,
-          col: e.col,
-          mx: x1 + d,
-          my: ay,
-        })
-        continue
-      }
-      const aRight = ax0 + aw
-      const bRight = bx0 + bw
-      if (ax0 + aw / 2 <= bx0 + bw / 2) {
-        x1 = aRight
-        x2 = bx0
-      } else {
-        x1 = ax0
-        x2 = bRight
-      }
-      const dx = Math.max(28, Math.min(110, Math.abs(x2 - x1) / 2))
-      c1 = x1 + (x2 >= x1 ? dx : -dx)
-      c2 = x2 + (x2 >= x1 ? -dx : dx)
-      next.push({
-        id: e.id,
-        d: `M ${x1} ${ay} C ${c1} ${ay}, ${c2} ${by}, ${x2} ${by}`,
-        child: e.child,
-        parent: e.parent,
-        col: e.col,
-        mx: (x1 + x2) / 2,
-        my: (ay + by) / 2,
-      })
-    }
-    setPaths(next)
-  }, [edges])
-
+  /* ── 寬度與捲動 ─────────────────────────────────────── */
+  const shellRef = useRef<HTMLDivElement | null>(null)
+  const mainRef = useRef<HTMLDivElement | null>(null)
+  const firstNarrow = useRef(true)
   useLayoutEffect(() => {
-    measure()
-  }, [measure, expanded, q, canvasSize.w, wide])
+    const el = shellRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(() => {
+      const n = el.clientWidth > 0 && el.clientWidth <= NARROW
+      setNarrow(n)
+      /* 窄版一開始就收起導覽，否則手機上 page 模式一進來內容全被蓋住 */
+      if (n && firstNarrow.current) setNavOpen(false)
+      if (el.clientWidth > 0) firstNarrow.current = false
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
-  useEffect(() => {
-    const onResize = () => measure()
-    window.addEventListener('resize', onResize)
-    const ro = new ResizeObserver(() => measure())
-    if (canvasRef.current) ro.observe(canvasRef.current)
-    return () => {
-      window.removeEventListener('resize', onResize)
-      ro.disconnect()
+  /* page 模式外殼隨內容長高、由頁面的捲動容器捲。導覽要 sticky 且自己捲，
+     它的高度上限取「最近的捲動祖先」的可視高度 —— 不寫死工作台頁首幾 px，也不以 id 找容器。 */
+  useLayoutEffect(() => {
+    const el = shellRef.current
+    if (!el || mode !== 'page') return undefined
+    let p: HTMLElement | null = el.parentElement
+    while (p && p !== document.body) {
+      const oy = getComputedStyle(p).overflowY
+      if (oy === 'auto' || oy === 'scroll') break
+      p = p.parentElement
     }
-    /* wide 進 deps 是為了重掛 ResizeObserver：切換全寬會把畫布整棵搬到另一個容器，
-       掛回來的是新的一顆 DOM 節點，沿用舊的 observer 等於在觀察一個已脫離文件的節點。 */
-  }, [measure, wide])
+    const scroller = p && p !== document.body ? p : null
+    const apply = () => {
+      const h = scroller ? scroller.clientHeight : window.innerHeight
+      el.style.setProperty('--erd-scroll-h', `${h}px`)
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    if (scroller) ro.observe(scroller)
+    window.addEventListener('resize', apply)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', apply)
+    }
+  }, [mode])
 
-  /* 全寬檢視期間鎖住本文捲動，免得覆蓋層底下的頁面跟著滾 */
+  const scrollToTop = useCallback(() => {
+    if (mode === 'page' && !wide) {
+      /* 外殼頂端已捲出視野才捲回來；還看得到就別動，免得畫面跳 */
+      const el = shellRef.current
+      if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' })
+    } else if (mainRef.current) {
+      mainRef.current.scrollTop = 0
+    }
+  }, [mode, wide])
+
+  const navBtnRef = useRef<HTMLButtonElement | null>(null)
+  /** 收起導覽；焦點原本在導覽裡的話還給導覽開關，免得焦點掉到 body */
+  const closeNav = useCallback(() => {
+    const nav = shellRef.current?.querySelector('.erd-nav')
+    const hadFocus = !!nav && nav.contains(document.activeElement)
+    setNavOpen(false)
+    if (hadFocus) navBtnRef.current?.focus()
+  }, [])
+
+  const autoCloseNav = useCallback(() => {
+    if ((mode === 'embed' && !wide) || narrow) closeNav()
+  }, [mode, wide, narrow, closeNav])
+
+  /* ── 路由與同步 ─────────────────────────────────────── */
+  const go = useCallback(
+    (r: Route) => {
+      setRoute(r)
+      if (tab === 'diagram') {
+        if (r.kind === 'overview') {
+          setScope(null)
+          setFocus(null)
+        } else if (r.kind === 'schema') {
+          setScope(r.key)
+          setFocus(null)
+        } else {
+          const sk = D.schemaOfTable(r.key)
+          if (scope && scope !== sk) setScope(sk)
+          setFocus(r.key)
+        }
+      } else {
+        scrollToTop()
+      }
+      autoCloseNav()
+    },
+    [tab, scope, D, scrollToTop, autoCloseNav],
+  )
+
+  /** 切到 Diagram：依目前的 Wiki 頁決定範圍與聚焦 */
+  const toDiagram = useCallback(() => {
+    if (route.kind === 'schema') {
+      setScope(route.key)
+      setFocus(null)
+    } else if (route.kind === 'table') {
+      setScope(D.implicit ? null : D.schemaOfTable(route.key))
+      setFocus(route.key)
+    } else {
+      setScope(null)
+      setFocus(null)
+    }
+    setTab('diagram')
+  }, [route, D])
+
+  const toWiki = useCallback(() => {
+    setTab('wiki')
+    scrollToTop()
+  }, [scrollToTop])
+
+  /** 範圍 pill：全部 → 總覽；某 schema → 該 schema 頁。範圍換了，聚焦一律清掉 */
+  const pickScope = useCallback((key: string | null) => {
+    setScope(key)
+    setRoute(key ? { kind: 'schema', key } : OVERVIEW)
+    setFocus(null)
+  }, [])
+
+  /** Diagram 聚焦列的「開啟 Wiki」 */
+  const openWiki = useCallback(
+    (name: string) => {
+      setRoute({ kind: 'table', key: name })
+      setTab('wiki')
+      scrollToTop()
+    },
+    [scrollToTop],
+  )
+
+  /** Diagram 裡點卡片：聚焦並同步 Wiki 路由；取消聚焦只清 focus */
+  const onFocusChange = useCallback((name: string | null) => {
+    setFocus(name)
+    if (name) setRoute({ kind: 'table', key: name })
+  }, [])
+
+  /* ── 全寬（僅 embed）──────────────────────────────────── */
+  const wideBtnRef = useRef<HTMLButtonElement | null>(null)
+  /* 進出全寬時焦點都落在同一顆按鈕（外殼沒有重掛，它就是同一個節點）：
+     進去時焦點在覆蓋層內，出來時回到觸發的地方 */
+  const wideMounted = useRef(false)
+  useEffect(() => {
+    if (!wideMounted.current) {
+      wideMounted.current = true
+      return
+    }
+    wideBtnRef.current?.focus()
+  }, [wide])
   useEffect(() => {
     if (!wide) return undefined
     const prev = document.body.style.overflow
@@ -614,489 +295,224 @@ export default function ErDiagramRenderer({
     }
   }, [wide])
 
+  /* ── Esc 逐層退：畫布的聚焦／tooltip → 覆蓋式導覽 → 全寬 ──
+     掛在 capture 階段：放大檢視（VizZoom）也在 capture 階段攔 Esc 並 stopPropagation，
+     plugin 的監聽比它早註冊、先執行 —— 有東西可退才攔下（stopImmediatePropagation），
+     沒有就放行，讓 VizZoom 或工作台的 Escape 堆疊照常關自己那一層。一次 Esc 只退一層。 */
+  const dgEscape = useRef<(() => boolean) | null>(null)
   useEffect(() => {
-    /* Esc 逐層退：先解聚焦與 tooltip，兩者都沒有時才收掉全寬檢視，
-       讀者在全寬下查完一張表按 Esc 才不會整張圖直接跳回本文欄。 */
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key !== 'Escape') return
-      if (focus || tip) {
-        setFocus(null)
-        setTip(null)
-        return
+      if (ev.key !== 'Escape' || ev.defaultPrevented) return
+      const el = shellRef.current
+      /* 同一篇筆記有兩張圖時，只有焦點所在的那張反應；全寬是模態，不看焦點 */
+      if (!wide && !(el && el.contains(document.activeElement))) return
+      let handled = false
+      if (tab === 'diagram' && dgEscape.current?.()) handled = true
+      else if (narrow && navOpen) {
+        closeNav()
+        handled = true
+      } else if (wide) {
+        setWide(false)
+        handled = true
       }
-      setWide(false)
+      if (handled) {
+        ev.preventDefault()
+        ev.stopImmediatePropagation()
+      }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [focus, tip])
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [wide, tab, narrow, navOpen, closeNav])
 
-  /* 指標位於畫布上時 + − 0 生效。不綁全域，免得在搜尋框裡打「-」也被吃掉。 */
-  const onViewportKey = useCallback(
-    (ev: React.KeyboardEvent<HTMLDivElement>) => {
-      if (ev.metaKey || ev.ctrlKey || ev.altKey) return
-      if (ev.key === '+' || ev.key === '=') {
-        ev.preventDefault()
-        zoomByButton(ZOOM_STEP)
-      } else if (ev.key === '-' || ev.key === '_') {
-        ev.preventDefault()
-        zoomByButton(1 / ZOOM_STEP)
-      } else if (ev.key === '0') {
-        ev.preventDefault()
-        resetView()
-      }
-    },
-    [zoomByButton, resetView],
-  )
+  /* ── 鍵盤：分頁與範圍的方向鍵（roving） ──────────────── */
+  const uid = useId()
+  const mainId = `${uid}-main`
+  const onTabsKey = (ev: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return
+    ev.preventDefault()
+    if (tab === 'wiki') toDiagram()
+    else toWiki()
+    const next = ev.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[tab === 'wiki' ? 1 : 0]
+    next?.focus()
+  }
+  const onScopeKey = (ev: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return
+    ev.preventDefault()
+    const keys: (string | null)[] = [null, ...D.schemas.map((x) => x.key)]
+    const i = keys.indexOf(scope)
+    const j = (i + (ev.key === 'ArrowRight' ? 1 : -1) + keys.length) % keys.length
+    pickScope(keys[j])
+    ev.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[j]?.focus()
+  }
 
-  const toggleExpand = useCallback((name: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
-      return next
-    })
-  }, [])
+  /* ── 畫面 ───────────────────────────────────────────── */
+  const isEmbed = mode === 'embed' && !wide
+  const shellCls = [
+    'erd-root erd-shell',
+    wide ? 'erd-shell--wide' : mode === 'page' ? 'erd-shell--page' : 'erd-shell--embed',
+    navOpen ? '' : 'erd-shell--navclosed',
+    tab === 'diagram' ? 'erd-shell--dg' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
-  const showTip = useCallback((el: HTMLElement, title: string, body: string) => {
-    const wrap = wrapRef.current
-    if (!wrap) return
-    /* 座標相對於 .erd-wrap（position: relative，即 tooltip 的 offset parent）。
-       圖示位在會橫向捲動的 .erd-scroll 裡，其 rect 已含捲動位移，相減即為正確位置。
-       水平用「夾在容器內」處理溢出，不看視窗尺寸——巢狀捲動與隱藏分頁下視窗尺寸可能為 0。 */
-    const base = wrap.getBoundingClientRect()
-    const scale = wrap.offsetWidth > 0 ? base.width / wrap.offsetWidth : 1
-    const k = scale > 0.01 ? scale : 1
-    const r = el.getBoundingClientRect()
-    const raw = (r.left - base.left) / k + r.width / k / 2
-    const x = Math.max(
-      TIP_HALF + 6,
-      Math.min(raw, Math.max(TIP_HALF + 6, base.width - TIP_HALF - 6)),
+  const crumb =
+    route.kind === 'overview' ? (
+      '總覽'
+    ) : route.kind === 'schema' ? (
+      <>
+        schema · <code>{route.key}</code>
+      </>
+    ) : D.implicit ? (
+      <code>{route.key}</code>
+    ) : (
+      <>
+        {D.schemaOfTable(route.key)} · <code>{route.key}</code>
+      </>
     )
-    const vh = window.innerHeight || document.documentElement.clientHeight || 0
-    const up = vh > 0 && r.bottom > vh - 170
-    const y = up
-      ? (r.top - base.top) / k - 8
-      : (r.bottom - base.top) / k + 8
-    setTip({ x, rawX: raw, y, up, adjusted: false, title, body })
-  }, [])
 
-  const tipRef = useRef<HTMLDivElement | null>(null)
-
-  /* 用估計半寬先放，量到實際寬度後再校正一次——窄的 tooltip 才不會被推離圖示 */
-  useLayoutEffect(() => {
-    const el = tipRef.current
-    const wrap = wrapRef.current
-    if (!el || !wrap || !tip || tip.adjusted) return
-    const base = wrap.getBoundingClientRect()
-    const scale = wrap.offsetWidth > 0 ? base.width / wrap.offsetWidth : 1
-    const k = scale > 0.01 ? scale : 1
-    const r = el.getBoundingClientRect()
-    const half = r.width / k / 2
-    const min = half + 6
-    const max = Math.max(min, base.width / k - half - 6)
-    /* 從未夾過的 rawX 重新計算——用 tip.x 會回不到圖示旁邊，它已被估計半寬夾過一次 */
-    const nextX = Math.max(min, Math.min(tip.rawX, max))
-    setTip((prev) => (prev ? { ...prev, x: nextX, adjusted: true } : prev))
-  }, [tip])
-
-  const dimmed = useCallback(
-    (name: string) => {
-      if (focus) return !related?.all.has(name)
-      if (q) return !hitTables.has(name)
-      return false
-    },
-    [focus, related, q, hitTables],
-  )
-
-  const edgeState = useCallback(
-    (p: { child: string; parent: string }) => {
-      if (focus) {
-        if (p.child === focus || p.parent === focus) return 'on'
-        return 'off'
-      }
-      if (hover) {
-        if (p.child === hover || p.parent === hover) return 'on'
-        return 'dim'
-      }
-      if (q) return hitTables.has(p.child) && hitTables.has(p.parent) ? 'on' : 'dim'
-      return 'base'
-    },
-    [focus, hover, q, hitTables],
-  )
-
-  const focusTable = focus ? byName.get(focus) : null
-
-  /* 全寬檢視搬的是同一段 JSX，聚焦、搜尋、展開欄位的狀態因此不會因為切換而重置 */
-  const diagram = (
-    <div className="erd-root erd-wrap" ref={wrapRef}>
-      <div className="erd-root erd-toolbar">
-        <div className="erd-root erd-search">
-          <Search size={15} aria-hidden />
-          <input
-            className="erd-root erd-input"
-            type="search"
-            value={query}
-            placeholder={opts.searchPlaceholder}
-            onChange={(ev) => setQuery(ev.target.value)}
-            aria-label="搜尋表名或欄位名"
-          />
-          {hitLabel ? (
-            <span
-              className={`erd-root erd-hits ${
-                hitTables.size === 0 ? 'erd-hits-none' : 'erd-hits-ok'
-              }`}
-              role="status"
-              aria-live="polite"
-            >
-              {hitLabel}
-            </span>
-          ) : null}
-          {query ? (
-            <button
-              type="button"
-              className="erd-root erd-clear"
-              onClick={() => setQuery('')}
-              aria-label="清除搜尋"
-            >
-              <X size={13} aria-hidden />
-            </button>
-          ) : null}
+  const shell = (
+    <div className={shellCls} ref={shellRef}>
+      <div className="erd-root erd-bar">
+        <button
+          type="button"
+          ref={navBtnRef}
+          className={`erd-root erd-iconbtn${navOpen ? ' erd-on' : ''}`}
+          onClick={() => {
+            /* 窄版 page 的覆蓋式導覽貼在外殼頂端，打開前先把外殼捲進視野 */
+            if (!navOpen && narrow && mode === 'page') {
+              const el = shellRef.current
+              if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' })
+            }
+            setNavOpen((o) => !o)
+          }}
+          aria-label={navOpen ? '收起導覽' : '展開導覽'}
+          aria-expanded={navOpen}
+          title="切換導覽"
+        >
+          <PanelLeft size={15} aria-hidden />
+        </button>
+        <div className="erd-root erd-tabs" role="tablist" aria-label="檢視" onKeyDown={onTabsKey}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'wiki'}
+            aria-controls={mainId}
+            aria-label="Wiki"
+            tabIndex={tab === 'wiki' ? 0 : -1}
+            className={tab === 'wiki' ? 'erd-on' : ''}
+            onClick={toWiki}
+          >
+            <BookOpen size={13} aria-hidden />
+            <span className="erd-root erd-tab-l">Wiki</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'diagram'}
+            aria-controls={mainId}
+            aria-label="Diagram"
+            tabIndex={tab === 'diagram' ? 0 : -1}
+            className={tab === 'diagram' ? 'erd-on' : ''}
+            onClick={toDiagram}
+          >
+            <Workflow size={13} aria-hidden />
+            <span className="erd-root erd-tab-l">Diagram</span>
+          </button>
         </div>
-
-        {hubTables.size > 0 ? (
-          <label className="erd-root erd-toggle">
-            <input
-              type="checkbox"
-              checked={showHubEdges}
-              onChange={(ev) => setShowHubEdges(ev.target.checked)}
-            />
-            顯示 {opts.hubTables.join('、')} 的 {edges.filter(isHubEdge).length} 條連線
-          </label>
-        ) : null}
-
-        <div className="erd-root erd-legend">
-          {data.requirement.map((r) => (
-            <span className="erd-root erd-lg" key={r.key} title={r.title}>
-              <i className={`erd-root erd-dot erd-dot--${r.marker}`} />
-              {r.label}
-            </span>
-          ))}
-        </div>
-
+        {tab === 'wiki' ? (
+          <div className="erd-root erd-bar-crumb">{crumb}</div>
+        ) : D.implicit ? (
+          <div className="erd-root erd-bar-fill" />
+        ) : (
+          <div className="erd-root erd-scope" role="radiogroup" aria-label="Diagram 範圍" onKeyDown={onScopeKey}>
+            <span className="erd-root erd-scope-l">範圍</span>
+            {[null, ...D.schemas.map((x) => x.key)].map((k) => (
+              <button
+                type="button"
+                key={k ?? '*'}
+                role="radio"
+                aria-checked={scope === k}
+                tabIndex={scope === k ? 0 : -1}
+                className={scope === k ? 'erd-on' : ''}
+                onClick={() => pickScope(k)}
+              >
+                {k ? <code>{k}</code> : '全部'}
+              </button>
+            ))}
+          </div>
+        )}
         {mode === 'embed' ? (
           <button
             type="button"
-            className={`erd-root erd-act${wide ? ' erd-act--ghost' : ''}`}
-            onClick={() => setWide(!wide)}
+            ref={wideBtnRef}
+            className={`erd-root erd-pill${wide ? '' : ' erd-pill--gold'}`}
+            onClick={() => setWide((w) => !w)}
           >
+            <Expand size={12} aria-hidden />
             {wide ? '回到本文' : '展開全寬'}
           </button>
         ) : null}
       </div>
-
-      {focusTable ? (
-        <div className="erd-root erd-focusbar">
-          <div>
-            <strong>{focusTable.name}</strong>
-            <span className="erd-root erd-muted">　{focusTable.label}　{opts.sectionPrefix}{focusTable.section}</span>
-          </div>
-          <div className="erd-root erd-muted">
-            指向 {related ? related.parents.size : 0} 張父表
-            {related && related.parents.size
-              ? `（${[...related.parents].join('、')}）`
-              : ''}
-            ；被 {related ? related.children.size : 0} 張子表指向
-            {related && related.children.size
-              ? `（${[...related.children].join('、')}）`
-              : ''}
-          </div>
-          <button type="button" className="erd-root erd-reset" onClick={() => setFocus(null)}>
-            取消聚焦（Esc）
-          </button>
-        </div>
-      ) : (
-        <p className="erd-root erd-hint">
-          {opts.hint}
-          {/* 畫布的操作方式由渲染器自己講 —— 資料檔不該知道它被畫成什麼形式 */}
-          <span className="erd-root erd-hint-canvas">
-            畫布可拖曳平移，⌘/Ctrl＋滾輪縮放，雙擊空白處還原。
-          </span>
-        </p>
-      )}
-
-      <div
-        className={`erd-root erd-viewport erd-viewport--${mode}${panning ? ' erd-viewport--panning' : ''}`}
-        ref={viewportRef}
-        style={opts.canvasHeight ? { height: opts.canvasHeight } : undefined}
-        tabIndex={0}
-        role="application"
-        aria-label="關聯圖畫布，可拖曳平移，⌘/Ctrl 加滾輪縮放"
-        onPointerDown={onPanStart}
-        onPointerMove={onPanMove}
-        onPointerUp={onPanEnd}
-        onPointerCancel={onPanEnd}
-        onKeyDown={onViewportKey}
-        onDoubleClick={(ev) => {
-          if ((ev.target as HTMLElement).closest('.erd-card, button, a, input, label')) return
-          resetView()
-        }}
-      >
+      <div className="erd-root erd-body">
+        {navOpen && narrow ? (
+          /* 覆蓋式導覽的背板：點內容區任何地方就收起 */
+          <div className="erd-root erd-nav-backdrop" aria-hidden onClick={closeNav} />
+        ) : null}
+        {navOpen ? (
+          <ErNav D={D} route={route} go={go} compact={mode === 'embed'} autoFocus={narrow} />
+        ) : null}
         <div
-          className={`erd-root erd-stage${animate ? ' erd-stage--animated' : ''}`}
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}
+          className={`erd-root erd-main${tab === 'diagram' ? ' erd-main--dg' : ''}`}
+          ref={mainRef}
+          id={mainId}
+          role="tabpanel"
         >
-        <div
-          className="erd-root erd-canvas"
-          ref={canvasRef}
-          onClick={(ev) => {
-            /* 拖曳結束後緊接著的 click 不算「點空白處取消聚焦」 */
-            if (draggedRef.current) {
-              draggedRef.current = false
-              return
-            }
-            if (ev.target === ev.currentTarget) setFocus(null)
-          }}
-        >
-          <svg
-            className="erd-root erd-svg"
-            width={canvasSize.w}
-            height={canvasSize.h}
-            viewBox={`0 0 ${canvasSize.w || 1} ${canvasSize.h || 1}`}
-            aria-hidden
-          >
-            <defs>
-              <marker id="erd-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-                <path d="M0,0 L7,3 L0,6 z" />
-              </marker>
-              <marker id="erd-arrow-on" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
-                <path d="M0,0 L7,3 L0,6 z" className="erd-root erd-head--on" />
-              </marker>
-            </defs>
-            {paths.map((p) => {
-              const hubEdge = hubTables.has(p.parent)
-              const state = edgeState(p)
-              if (hubEdge && !showHubEdges && state !== 'on') return null
-              return (
-                <g key={p.id} className={`erd-root erd-edge erd-edge--${state}${hubEdge ? ' erd-edge--opt' : ''}`}>
-                  <path d={p.d} markerEnd={state === 'on' ? 'url(#erd-arrow-on)' : 'url(#erd-arrow)'} />
-                  {state === 'on' ? (
-                    <text x={p.mx} y={p.my - 5} textAnchor="middle">
-                      {p.col}
-                    </text>
-                  ) : null}
-                </g>
-              )
-            })}
-          </svg>
-
-          <div
-            className="erd-root erd-cols"
-            ref={gridRef}
-            style={{ gridTemplateColumns: `repeat(${layoutColumns.length}, max-content)` }}
-          >
-            {layoutColumns.map((col) => (
-              <div className="erd-root erd-col" key={col.key}>
-                {col.groups.map((g) => (
-                  <section className={`erd-root erd-group erd-group--${g}`} key={g}>
-                    <h4 className="erd-root erd-grouphead">{groupLabel[g]}</h4>
-                    {tables.filter((t) => t.group === g).map((t) => {
-                      const isOpen = expanded.has(t.name)
-                      const shown = isOpen ? t.columns : defaultColumns(t)
-                      const hiddenCount = t.columns.length - shown.length
-                      const cls = [
-                        'erd-root erd-card',
-                        dimmed(t.name) ? 'erd-card--dim' : '',
-                        focus === t.name ? 'erd-card--focus' : '',
-                        focus && related?.all.has(t.name) && focus !== t.name ? 'erd-card--rel' : '',
-                        q && hitTables.has(t.name) ? 'erd-card--hit' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')
-                      return (
-                        <div
-                          key={t.name}
-                          className={cls}
-                          ref={(el) => {
-                            if (el) cardRefs.current.set(t.name, el)
-                            else cardRefs.current.delete(t.name)
-                          }}
-                          onMouseEnter={() => setHover(t.name)}
-                          onMouseLeave={() => setHover((h) => (h === t.name ? null : h))}
-                        >
-                          <button
-                            type="button"
-                            className="erd-root erd-cardhead"
-                            aria-pressed={focus === t.name}
-                            onClick={() => setFocus((f) => (f === t.name ? null : t.name))}
-                          >
-                            <span className="erd-root erd-tname">{t.name}</span>
-                            <span className="erd-root erd-tlabel">{t.label}</span>
-                            <span className="erd-root erd-tsec">{opts.sectionPrefix}{t.section}</span>
-                          </button>
-
-                          <ul className="erd-root erd-cols-list">
-                            {shown.map((c) => {
-                              const hit = hitCols.has(`${t.name}.${c.name}`)
-                              return (
-                                <li
-                                  className={`erd-root erd-field${hit ? ' erd-field--hit' : ''}`}
-                                  key={c.name}
-                                >
-                                  <i
-                                    className={`erd-root erd-dot erd-dot--${
-                                      requirementOf(c.required)?.marker ?? 'hollow'
-                                    }`}
-                                    title={
-                                      requirementOf(c.required)?.title ??
-                                      requirementOf(c.required)?.label ??
-                                      c.required
-                                    }
-                                  />
-                                  <span className="erd-root erd-fname">{c.name}</span>
-                                  <span className="erd-root erd-ftype">{c.type}</span>
-                                  <span className="erd-root erd-keys">
-                                    {data.flags.map((f) =>
-                                      c[f.key] ? (
-                                        <b
-                                          className={`erd-root erd-k erd-k--${f.tone ?? 'neutral'}`}
-                                          key={f.key}
-                                          title={f.label}
-                                        >
-                                          {f.badge}
-                                        </b>
-                                      ) : null,
-                                    )}
-                                    {derivationOf(c.derivation) ? (
-                                      <b
-                                        className="erd-root erd-k erd-k--warning"
-                                        title={derivationOf(c.derivation)?.label}
-                                      >
-                                        {derivationOf(c.derivation)?.badge}
-                                      </b>
-                                    ) : null}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="erd-root erd-info"
-                                    aria-label={`${c.name} 的說明`}
-                                    onMouseEnter={(ev) =>
-                                      showTip(
-                                        ev.currentTarget,
-                                        `${c.name}　${c.type}${c.default ? `　預設 ${c.default}` : ''}`,
-                                        c.note,
-                                      )
-                                    }
-                                    onFocus={(ev) =>
-                                      showTip(
-                                        ev.currentTarget,
-                                        `${c.name}　${c.type}${c.default ? `　預設 ${c.default}` : ''}`,
-                                        c.note,
-                                      )
-                                    }
-                                    onMouseLeave={() => setTip(null)}
-                                    onBlur={() => setTip(null)}
-                                  >
-                                    <Info size={12} aria-hidden />
-                                  </button>
-                                </li>
-                              )
-                            })}
-                          </ul>
-
-                          {hiddenCount > 0 || isOpen ? (
-                            <button
-                              type="button"
-                              className="erd-root erd-more"
-                              onClick={() => toggleExpand(t.name)}
-                            >
-                              {isOpen ? (
-                                <>
-                                  收合 <ChevronUp size={12} aria-hidden />
-                                </>
-                              ) : (
-                                <>
-                                  展開全部 {t.columns.length} 欄 <ChevronDown size={12} aria-hidden />
-                                </>
-                              )}
-                            </button>
-                          ) : null}
-                        </div>
-                      )
-                    })}
-                  </section>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-        </div>
-
-        <div className="erd-root erd-zoombar">
-          <button
-            type="button"
-            className="erd-root erd-zbtn"
-            aria-label="縮小"
-            onClick={() => zoomByButton(1 / ZOOM_STEP)}
-            disabled={view.z <= MIN_ZOOM + 0.001}
-          >
-            <Minus size={14} aria-hidden />
-          </button>
-          <span className="erd-root erd-zval" aria-live="off">
-            {Math.round(view.z * 100)}%
-          </span>
-          <button
-            type="button"
-            className="erd-root erd-zbtn"
-            aria-label="放大"
-            onClick={() => zoomByButton(ZOOM_STEP)}
-            disabled={view.z >= MAX_ZOOM - 0.001}
-          >
-            <Plus size={14} aria-hidden />
-          </button>
-          <span className="erd-root erd-zsep" aria-hidden />
-          <button type="button" className="erd-root erd-zbtn" aria-label="還原並置中" onClick={resetView}>
-            <Maximize2 size={13} aria-hidden />
-          </button>
+          {tab === 'wiki' ? (
+            <ErWiki data={data} D={D} opts={opts} route={route} go={go} toDiagram={toDiagram} />
+          ) : (
+            <ErDiagram
+              data={data}
+              opts={opts}
+              fill
+              wide={wide}
+              scope={scopeSet}
+              focus={focus}
+              onFocusChange={onFocusChange}
+              onOpenWiki={openWiki}
+              query={dgQuery}
+              onQueryChange={setDgQuery}
+              showHubEdges={showHubEdges}
+              onShowHubEdgesChange={setShowHubEdges}
+              escapeRef={dgEscape}
+            />
+          )}
         </div>
       </div>
-
-      {tip ? (
-        <div
-          ref={tipRef}
-          className={`erd-root erd-tip${tip.up ? ' erd-tip--up' : ''}`}
-          style={{ left: tip.x, top: tip.y }}
-          role="tooltip"
-        >
-          <div className="erd-root erd-tiphead">{tip.title}</div>
-          <div className="erd-root erd-tipbody">{tip.body}</div>
-        </div>
-      ) : null}
     </div>
   )
 
+  /* 全寬時只換掉包在外殼外面的容器，外殼在樹上的位置不變 ——
+     換位置 React 會重掛，路由以外的狀態（捲動、展開的欄位）就全部歸零。 */
   return (
     <div className="erd-root erd-host">
       <style>{CSS}</style>
       {wide ? (
         <div className="erd-root erd-hold">
-          <span>{data.meta?.title ?? '關聯圖'}已在全寬檢視開啟，按 Esc 或右側按鈕回到本文。</span>
-          <button type="button" className="erd-root erd-act" onClick={() => setWide(false)}>
+          <span>{data.meta?.title ?? '資料庫文件'}已在全寬檢視開啟。</span>
+          <button type="button" className="erd-root erd-pill erd-pill--gold" onClick={() => setWide(false)}>
             回到本文
           </button>
         </div>
-      ) : (
-        diagram
-      )}
-      {wide ? (
-        <div
-          className="erd-root erd-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${data.meta?.title ?? '關聯圖'}（全寬檢視）`}
-        >
-          {diagram}
-        </div>
       ) : null}
+      <div
+        className={`erd-root ${wide ? 'erd-overlay' : 'erd-inline'}${isEmbed ? ' erd-inline--embed' : ''}`}
+        role={wide ? 'dialog' : undefined}
+        aria-modal={wide ? true : undefined}
+        aria-label={wide ? `${data.meta?.title ?? '資料庫文件'}（全寬檢視）` : undefined}
+      >
+        {shell}
+      </div>
     </div>
   )
 }
