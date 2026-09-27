@@ -119,6 +119,33 @@ for (const p of registry.plugins) {
   if (!existsSync(path.join(storeDir, p.id))) fail(`registry 列了 "${p.id}"，但 plugins/${p.id} 不存在`);
 }
 
+// ── 4.5：scripts/checks/*.mjs（plugin 推導、Markdown 等純函式的斷言）──────────
+// 以 Node 原生 strip-types 直接載入 plugin 的 .ts —— 不加 test runner。很快，--skip-build 也照跑。
+if (errors.length === 0) {
+  const [major, minor] = process.versions.node.split(".").map(Number);
+  if (major < 22 || (major === 22 && minor < 6)) {
+    fail(`scripts/checks 需要 Node 22.6 以上（--experimental-strip-types），目前是 ${process.versions.node}`);
+  } else {
+    const checksDir = path.join(root, "scripts", "checks");
+    const checks = existsSync(checksDir)
+      ? (await fs.readdir(checksDir)).filter((f) => f.endsWith(".mjs")).sort()
+      : [];
+    for (const f of checks) {
+      const r = spawnSync(
+        process.execPath,
+        ["--experimental-strip-types", "--disable-warning=ExperimentalWarning", path.join(checksDir, f)],
+        { cwd: root, stdio: "pipe" },
+      );
+      if (r.status !== 0) {
+        const out = (r.stderr?.length ? r.stderr : r.stdout)?.toString() ?? "（無輸出）";
+        fail(`scripts/checks/${f} 失敗：\n${out.trim().split("\n").slice(-20).join("\n")}`);
+      } else {
+        console.log(`  ✓ scripts/checks/${f}`);
+      }
+    }
+  }
+}
+
 // ── 5：配 example 資料真的 build 一次 ──────────────────────
 if (!skipBuild && errors.length === 0) {
   for (const e of entries) {

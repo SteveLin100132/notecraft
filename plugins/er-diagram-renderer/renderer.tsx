@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { erDerive } from './derive'
 import { ErDiagram } from './diagram'
 import { CSS } from './styles'
 import type { ErDiagramData, ErOptions, PluginRendererProps } from './types'
@@ -20,8 +21,12 @@ import { DEFAULT_OPTIONS } from './types'
 
 export type { ErColumn, ErDiagramData, ErGroup, ErOptions, ErSchema, ErTable } from './types'
 
+/** 已印過 dev 警告的資料檔（file.path） */
+const warned = new Set<string>()
+
 export default function ErDiagramRenderer({
   data,
+  file,
   options,
   mode,
 }: PluginRendererProps<ErDiagramData>) {
@@ -35,6 +40,25 @@ export default function ErDiagramRenderer({
     }),
     [data.options, options],
   )
+
+  const D = useMemo(() => erDerive(data), [data])
+
+  /* 資料有瑕疵時不 throw（整頁白掉比少一個分群糟），但 dev 下要讓作者知道。
+     SSR 期不印，免得 build log 與瀏覽器各一次；同一個檔只印一次（多個內嵌、HMR 重掛）。 */
+  useEffect(() => {
+    if (!import.meta.env?.DEV || warned.has(file.path)) return
+    warned.add(file.path)
+    if (D.orphanGroups.length) {
+      console.warn(
+        `[er-diagram-renderer] ${file.path}：${D.orphanGroups.length} 個 group 的 schema 缺漏或無效，已歸入 "${D.schemas[0].key}"：${D.orphanGroups.join(', ')}`,
+      )
+    }
+    if (D.ungroupedTables.length) {
+      console.warn(
+        `[er-diagram-renderer] ${file.path}：${D.ungroupedTables.length} 張表的 group 不存在，已歸入「未分群」：${D.ungroupedTables.join(', ')}`,
+      )
+    }
+  }, [D, file.path])
 
   const [wide, setWide] = useState(false)
   const toggleWide = useCallback(() => setWide((w) => !w), [])

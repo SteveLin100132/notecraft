@@ -24,6 +24,7 @@ import type {
   TipState,
   ViewState,
 } from './types'
+import { matchTable } from './derive'
 import { FIT_PAD, MAX_ZOOM, MIN_ZOOM, TIP_HALF, ZOOM_STEP, clampZoom } from './types'
 
 export interface ErDiagramProps {
@@ -259,13 +260,10 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
     const hitColSet = new Set<string>()
     if (!q) return { hitTables: hitTableSet, hitCols: hitColSet }
     for (const t of tables) {
-      if (t.name.toLowerCase().includes(q) || t.label.toLowerCase().includes(q)) hitTableSet.add(t.name)
-      for (const c of t.columns) {
-        if (c.name.toLowerCase().includes(q)) {
-          hitTableSet.add(t.name)
-          hitColSet.add(`${t.name}.${c.name}`)
-        }
-      }
+      /* 與導覽篩選共用同一個比對函式：兩處查同一個字，結果必須一樣 */
+      const m = matchTable(t, q)
+      if (m.hit) hitTableSet.add(t.name)
+      for (const c of m.columns) hitColSet.add(`${t.name}.${c}`)
     }
     return { hitTables: hitTableSet, hitCols: hitColSet }
   }, [q, tables])

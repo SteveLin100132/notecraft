@@ -10,6 +10,7 @@
       "files": [
         "notecraft-plugin.json",
         "renderer.tsx",
+        "derive.ts",
         "diagram.tsx",
         "styles.ts",
         "types.ts",
