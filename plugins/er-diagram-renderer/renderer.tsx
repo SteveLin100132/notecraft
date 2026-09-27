@@ -21,6 +21,7 @@ import { erDerive } from './derive'
 import type { ErDerived } from './derive'
 import { ErDiagram } from './diagram'
 import { ErNav } from './nav'
+import { ErWiki } from './wiki'
 import { CSS } from './styles'
 import type { ErDiagramData, ErOptions, PluginRendererProps, Route } from './types'
 import { DEFAULT_OPTIONS } from './types'
@@ -365,9 +366,7 @@ export default function ErDiagramRenderer({
           role="tabpanel"
         >
           {tab === 'wiki' ? (
-            <article className="erd-root erd-page">
-              <p className="erd-root erd-lede">{crumb}</p>
-            </article>
+            <ErWiki data={data} D={D} opts={opts} route={route} go={go} toDiagram={toDiagram} />
           ) : (
             <ErDiagram
               data={data}

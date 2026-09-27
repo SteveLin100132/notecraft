@@ -17,6 +17,8 @@
         "nav.tsx",
         "markdown.tsx",
         "markdown-text.ts",
+        "wiki.tsx",
+        "local-diagram.tsx",
         "schema.json",
         "README.md",
         "example/schema.json",
