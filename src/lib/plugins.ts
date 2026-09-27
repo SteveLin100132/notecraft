@@ -478,6 +478,9 @@ export function invalidatePluginCaches(): void {
   configCache = undefined;
   resolvedCache = null;
   validatorCache.clear();
+  /* Ajv 以 $id 記住編譯過的 schema；只清我們自己的 Map 的話，下一次 compile 同一份 schema
+     會丟「schema with key or id … already exists」，dev 下改一個資料檔整站就 500。 */
+  ajv.removeSchema();
 }
 /** 已驗證的 plugins.json 內容；沒有設定檔時 null。供 /plugins 頁顯示映射規則與 options。 */
 export function getPluginsConfig(): PluginsConfig | null {
