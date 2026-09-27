@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ER Diagram Docs — NoteCraft plugin</title>
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/styles.css">
+<link rel="stylesheet" href="er/er.css">
+<style>
+html,body{margin:0;height:100%;background:var(--neutral-100);font-family:var(--font-sans)}
+#root{height:100%}
+a{color:var(--blue-600);text-decoration:none}a:hover{color:var(--blue-800)}
+.demo{display:flex;flex-direction:column;height:100%}
+.demo-top{display:flex;align-items:center;gap:12px;padding:8px 14px;flex:none;background:var(--neutral-900);color:#cbd3df;font-size:12px}
+.demo-top b{color:#fff;font-weight:700}
+.demo-seg{display:flex;gap:2px;padding:2px;border-radius:999px;background:rgba(255,255,255,.08);margin-left:auto}
+.demo-seg button{height:26px;padding:0 14px;border:0;border-radius:999px;background:none;color:#cbd3df;font:inherit;font-size:12px;cursor:pointer}
+.demo-seg button.on{background:#fff;color:var(--neutral-900);font-weight:700}
+.wbf{flex:1;display:flex;min-height:0;background:#fff}
+.wbf-rail{width:52px;flex:none;background:var(--neutral-900)}
+.wbf-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.wbf-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:10px 16px 10px;border-bottom:1px solid var(--border-subtle);flex:none}
+.wbf-crumb{font-size:11px;color:var(--text-muted)}
+.wbf-crumb code{font-family:var(--font-mono)}
+.wbf-title{margin:3px 0 0;font-size:20px;font-weight:700;color:var(--text-strong);line-height:1.25}
+.wbf-body{flex:1;min-height:0}
+.note{flex:1;overflow:auto;background:#fff}
+.note-in{max-width:960px;margin:0 auto;padding:36px 32px 80px;font-size:15px;line-height:1.8;color:var(--text-body)}
+.note-in h1{font-size:26px;color:var(--text-strong);margin:0 0 6px}
+.note-in h2{font-size:18px;color:var(--blue-700);margin:32px 0 8px}
+.note-in .meta{font-size:12px;color:var(--text-muted);margin-bottom:24px}
+.note-in p{margin:0 0 14px}
+.note-in code{font-family:var(--font-mono);font-size:13px;padding:1px 5px;border-radius:3px;background:var(--neutral-100)}
+.note-in .embed{margin:18px 0 24px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="__bundler_thumbnail"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#1b4f9c"/><rect x="18" y="26" width="26" height="20" rx="3" fill="#fff"/><rect x="56" y="54" width="26" height="20" rx="3" fill="#ed9b26"/><path d="M44 36h6a6 6 0 0 1 6 6v12" stroke="#fff" stroke-width="3" fill="none"/></svg></template>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/_ds_bundle.js"></script>
+<script type="text/babel" data-src="er/er-data.jsx">
+(() => {
+// 範例資料：與 schema.json v1.2 同形（新增 schemas 層、各層 description 為 Markdown）
+const c = (name, type, required, x = {}) => ({ name, type, required, ...x });
+const PK = c('id', 'bigint', 'system', { default: 'identity', pk: true, note: '代理主鍵' });
+const AUDIT = [
+  c('created_at', 'timestamptz', 'system', { default: 'now()', note: '建立時間' }),
+  c('updated_at', 'timestamptz', 'system', { derivation: 'trigger', note: '最後更新時間，trigger 維護' }),
+];
+
+const ER_SAMPLE = {
+  $schema: '../schema.json',
+  meta: {
+    title: 'TrendMile 業務系統 schema',
+    source: '業務系統規格書 v3.2 §2',
+    backTo: '/notes/trendmile/spec',
+    description: `業務系統的資料庫結構，涵蓋**客戶經營 → 報價簽約 → 開票收款**的完整流程，以及各模組共用的選項與組織主檔。
+
+## 閱讀順序
+1. 先看 \`crm\`：客戶與案件是所有業務資料的起點
+2. 再看 \`sales\`：合約從案件或報價轉入，發票掛在合約下
+3. \`core\` 是共用主檔，被幾乎每張表指向，Diagram 預設收起它的連線
+
+## 命名慣例
+- 主鍵一律 \`id bigint identity\`，外鍵以 \`<父表>_id\` 命名
+- 金額欄一律 \`numeric(12,0)\`，新台幣不留小數
+- 軟刪除用 \`archived_at\`，不做實體刪除
+
+> 2026-09-01 決議：行政區不做，縣市層即可。`,
+  },
+  options: {
+    defaultRows: 6,
+    hubTables: ['option_item'],
+    sectionPrefix: '§',
+    hint: '點一張表可聚焦它的關聯，其餘變淡；再點一次、點空白處或按 Esc 取消。',
+    searchPlaceholder: '搜尋表名或欄位名（例：quotation、case_id）',
+  },
+  requirement: [
+    { key: 'required', label: '必填', marker: 'solid' },
+    { key: 'condition', label: '條件', marker: 'half', title: '條件必填，條件見說明' },
+    { key: 'nullable', label: '可空', marker: 'hollow' },
+    { key: 'system', label: '系統', marker: 'muted', title: '系統維護，應用層不可寫入' },
+  ],
+  flags: [
+    { key: 'pk', badge: 'PK', tone: 'danger', label: '主鍵' },
+    { key: 'fk', badge: 'FK', tone: 'info', label: '外鍵' },
+    { key: 'unique', badge: 'UQ', tone: 'success', label: '唯一' },
+    { key: 'index', badge: 'IX', tone: 'neutral', label: '索引' },
+  ],
+  derivations: [
+    { key: 'generated', badge: 'GEN', label: '資料庫計算欄' },
+    { key: 'trigger', badge: 'TRG', label: '由 trigger 維護' },
+    { key: 'encrypted', badge: 'ENC', label: '加密儲存' },
+  ],
+  schemas: [
+    { key: 'crm', label: '客戶關係', description: `客戶主檔與業務案件。一個客戶可有多位聯絡人、多個地址，案件記錄從接洽到結案的每一次活動。
+
+案件結案後才可轉為合約，轉換邏輯見 \`sales\`。` },
+    { key: 'sales', label: '合約與帳務', description: `報價、合約、發票與收款。
+
+- 合約可由案件轉入，也可直接建立（\`contract.case_id\` 為空）
+- 合約總額由明細加總，trigger 維護，應用層不可寫
+- 一張發票只對一份合約；分期收款以多筆 \`payment\` 表達` },
+    { key: 'core', label: '主系統', description: `跨模組共用的選項與組織資料。\`option_item\` 是 hub 表，被十幾個欄位指向，Diagram 預設收起它的連線。` },
+  ],
+  groups: [
+    { key: 'customer', label: '客戶', schema: 'crm', description: '客戶本體與其聯絡資訊。' },
+    { key: 'case', label: '案件與派案', schema: 'crm', description: '業務案件與活動紀錄，是合約的上游。' },
+    { key: 'contract', label: '報價與合約', schema: 'sales' },
+    { key: 'billing', label: '開票與收款', schema: 'sales' },
+    { key: 'org', label: '組織', schema: 'core' },
+    { key: 'option', label: '選項主檔', schema: 'core' },
+  ],
+  layout: {
+    columns: [
+      { key: 'c1', groups: ['customer'] },
+      { key: 'c2', groups: ['case'] },
+      { key: 'c3', groups: ['contract', 'billing'] },
+      { key: 'c4', groups: ['org', 'option'] },
+    ],
+  },
+  tables: [
+    { name: 'customer', label: '客戶主檔', section: '2.1', group: 'customer',
+      description: `一筆客戶即一個法人或自然人。\`name\` 原本是合約標題，§4 #1 決議從合約拆出成獨立主檔。
+
+統一編號可空：個人客戶沒有統編，但同一統編不得重複。`,
+      columns: [PK,
+        c('name', 'varchar(120)', 'required', { index: true, note: '公司名稱；§4 #1 從合約拆出' }),
+        c('tax_id', 'char(8)', 'nullable', { unique: true, note: '統一編號，個人客戶為空' }),
+        c('company_city_id', 'bigint', 'nullable', { fk: 'option_item', note: '縣市，type_code＝地區' }),
+        c('industry_id', 'bigint', 'nullable', { fk: 'option_item', note: '產業類別' }),
+        c('owner_id', 'bigint', 'required', { fk: 'employee', index: true, note: '負責業務' }),
+        c('employee_count', 'integer', 'nullable', { note: '公司員工總數' }),
+        c('invoice_title', 'varchar(120)', 'nullable', { note: '發票抬頭' }),
+        c('archived_at', 'timestamptz', 'nullable', { note: '軟刪除時間' }),
+        ...AUDIT] },
+    { name: 'customer_contact', label: '聯絡人子表', section: '2.1', group: 'customer',
+      description: '客戶底下的聯絡窗口。電話與 email 為個資，匯出報表時需遮罩。',
+      columns: [PK,
+        c('customer_id', 'bigint', 'required', { fk: 'customer', index: true, note: '所屬客戶' }),
+        c('name', 'varchar(60)', 'required', { note: '聯絡人姓名', pii: true }),
+        c('title', 'varchar(60)', 'nullable', { note: '職稱' }),
+        c('phone', 'varchar(30)', 'nullable', { pii: true, derivation: 'encrypted', note: '聯絡電話，加密儲存' }),
+        c('email', 'varchar(120)', 'nullable', { pii: true, note: '電子郵件' }),
+        c('is_primary', 'boolean', 'required', { default: 'false', note: '主要聯絡人；每位客戶至多一位' })] },
+    { name: 'customer_address', label: '客戶地址', section: '2.1', group: 'customer',
+      columns: [PK,
+        c('customer_id', 'bigint', 'required', { fk: 'customer', index: true, note: '所屬客戶' }),
+        c('kind_id', 'bigint', 'required', { fk: 'option_item', note: '地址類型：登記／通訊／帳寄' }),
+        c('city_id', 'bigint', 'required', { fk: 'option_item', note: '縣市' }),
+        c('line', 'varchar(200)', 'required', { note: '詳細地址' })] },
+    { name: 'biz_case', label: '案件主檔', section: '2.12', group: 'case',
+      description: `業務從接洽到結案的單位。\`stage\` 走固定流程：接洽 → 需求確認 → 報價 → 結案。
+
+結案分「成交」與「流失」，流失時 \`lost_reason_id\` 必填。成交的案件由業務手動轉為合約。`,
+      columns: [PK,
+        c('case_no', 'varchar(20)', 'system', { unique: true, derivation: 'generated', note: '案件編號，依年度流水配號' }),
+        c('customer_id', 'bigint', 'required', { fk: 'customer', index: true, note: '所屬客戶' }),
+        c('owner_id', 'bigint', 'required', { fk: 'employee', index: true, note: '承辦業務' }),
+        c('stage', 'case_stage', 'required', { default: "'接洽'", note: '目前階段' }),
+        c('source_id', 'bigint', 'nullable', { fk: 'option_item', note: '案件來源' }),
+        c('lost_reason_id', 'bigint', 'condition', { fk: 'option_item', note: '結案原因；stage＝流失時必填' }),
+        c('expected_amount', 'numeric(12,0)', 'nullable', { note: '預估金額' }),
+        ...AUDIT] },
+    { name: 'case_activity', label: '案件活動', section: '2.13', group: 'case',
+      description: '拜訪、電話、會議等每次接觸的紀錄，依時間倒序顯示於案件頁。',
+      columns: [PK,
+        c('case_id', 'bigint', 'required', { fk: 'biz_case', index: true, note: '所屬案件' }),
+        c('actor_id', 'bigint', 'required', { fk: 'employee', note: '記錄者' }),
+        c('kind_id', 'bigint', 'required', { fk: 'option_item', note: '活動類型' }),
+        c('happened_at', 'timestamptz', 'required', { index: true, note: '發生時間' }),
+        c('summary', 'text', 'required', { note: '內容摘要' })] },
+    { name: 'quotation', label: '報價單', section: '2.3', group: 'contract',
+      description: '案件在「報價」階段產生的報價單。同一案件可有多版報價，以 `version` 區分，最新一版才可轉合約。',
+      columns: [PK,
+        c('case_id', 'bigint', 'required', { fk: 'biz_case', index: true, note: '所屬案件' }),
+        c('version', 'smallint', 'required', { default: '1', note: '版次；(case_id, version) 唯一' }),
+        c('valid_until', 'date', 'required', { note: '報價有效期限' }),
+        c('amount', 'numeric(12,0)', 'system', { derivation: 'trigger', note: '由報價明細加總' }),
+        c('approved_by', 'bigint', 'condition', { fk: 'employee', note: '核准主管；金額超過 50 萬時必填' })] },
+    { name: 'contract', label: '合約主檔', section: '2.2', group: 'contract',
+      description: `簽約後的正式合約。可由案件轉入，也可直接建立。
+
+\`total_amount\` 由 \`contract_item\` 加總，trigger 維護；應用層寫入會被拒絕。`,
+      columns: [PK,
+        c('contract_no', 'varchar(20)', 'system', { unique: true, derivation: 'generated', note: '合約編號' }),
+        c('customer_id', 'bigint', 'required', { fk: 'customer', index: true, note: '所屬客戶' }),
+        c('case_id', 'bigint', 'nullable', { fk: 'biz_case', note: '來源案件；直接建約時為空' }),
+        c('quotation_id', 'bigint', 'nullable', { fk: 'quotation', note: '依據的報價單' }),
+        c('sign_item_id', 'bigint', 'condition', { fk: 'option_item', note: '簽約項目，條件見 §4 #4' }),
+        c('pay_method_id', 'bigint', 'nullable', { fk: 'option_item', note: '付款方式' }),
+        c('signed_on', 'date', 'required', { index: true, note: '簽約日' }),
+        c('total_amount', 'numeric(12,0)', 'system', { derivation: 'trigger', note: '由合約明細加總，trigger 維護' }),
+        ...AUDIT] },
+    { name: 'contract_item', label: '合約明細', section: '2.2', group: 'contract',
+      columns: [PK,
+        c('contract_id', 'bigint', 'required', { fk: 'contract', index: true, note: '所屬合約' }),
+        c('service_id', 'bigint', 'required', { fk: 'option_item', note: '服務項目' }),
+        c('qty', 'integer', 'required', { default: '1', note: '數量' }),
+        c('unit_price', 'numeric(12,0)', 'required', { note: '單價' }),
+        c('subtotal', 'numeric(12,0)', 'system', { derivation: 'generated', note: 'qty × unit_price' })] },
+    { name: 'invoice', label: '發票', section: '2.5', group: 'billing',
+      description: '一張發票只對一份合約。作廢不刪除，改以 `voided_at` 標記。',
+      columns: [PK,
+        c('invoice_no', 'char(10)', 'required', { unique: true, note: '發票號碼' }),
+        c('contract_id', 'bigint', 'required', { fk: 'contract', index: true, note: '所屬合約' }),
+        c('issued_on', 'date', 'required', { index: true, note: '開立日' }),
+        c('amount', 'numeric(12,0)', 'required', { note: '含稅金額' }),
+        c('tax', 'numeric(12,0)', 'system', { derivation: 'generated', note: '營業稅 5%' }),
+        c('voided_at', 'timestamptz', 'nullable', { note: '作廢時間' })] },
+    { name: 'payment', label: '收款紀錄', section: '2.6', group: 'billing',
+      description: '分期收款以多筆紀錄表達。累計收款等於發票金額時，發票狀態自動轉為已收訖。',
+      columns: [PK,
+        c('invoice_id', 'bigint', 'required', { fk: 'invoice', index: true, note: '對應發票' }),
+        c('received_on', 'date', 'required', { note: '入帳日' }),
+        c('amount', 'numeric(12,0)', 'required', { note: '本次金額' }),
+        c('method_id', 'bigint', 'required', { fk: 'option_item', note: '收款方式' }),
+        c('bank_ref', 'varchar(40)', 'nullable', { derivation: 'encrypted', note: '銀行交易序號，加密儲存' })] },
+    { name: 'department', label: '部門', section: '1.2', group: 'org',
+      columns: [PK,
+        c('code', 'varchar(20)', 'required', { unique: true, note: '部門代碼' }),
+        c('name', 'varchar(60)', 'required', { note: '部門名稱' }),
+        c('parent_id', 'bigint', 'nullable', { fk: 'department', note: '上層部門' })] },
+    { name: 'employee', label: '員工', section: '1.1', group: 'org',
+      description: '系統使用者與業務承辦人。離職員工保留紀錄，以 `left_on` 標記。',
+      columns: [PK,
+        c('emp_no', 'varchar(12)', 'required', { unique: true, note: '員工編號' }),
+        c('name', 'varchar(60)', 'required', { pii: true, note: '姓名' }),
+        c('department_id', 'bigint', 'required', { fk: 'department', index: true, note: '所屬部門' }),
+        c('email', 'varchar(120)', 'required', { unique: true, pii: true, note: '登入帳號' }),
+        c('left_on', 'date', 'nullable', { note: '離職日' })] },
+    { name: 'option_type', label: '選項集合', section: '1.3', group: 'option',
+      columns: [PK,
+        c('code', 'varchar(40)', 'required', { unique: true, note: '集合代碼，如 地區、產業' }),
+        c('label', 'varchar(80)', 'required', { note: '顯示名稱' }),
+        c('hierarchical', 'boolean', 'required', { default: 'false', note: '是否支援階層' })] },
+    { name: 'option_item', label: '選項項目', section: '1.3', group: 'option',
+      description: `所有下拉選項的共用主檔。以 \`type_code\` 區分集合，\`parent_id\` 支援階層（縣市 → 行政區，目前只用到縣市層）。
+
+被系統中大多數表指向，是本 schema 唯一的 hub 表。`,
+      columns: [PK,
+        c('type_code', 'varchar(40)', 'required', { fk: 'option_type', index: true, note: '所屬選項集合' }),
+        c('code', 'varchar(40)', 'required', { unique: true, note: '選項代碼' }),
+        c('label', 'varchar(80)', 'required', { note: '顯示名稱' }),
+        c('parent_id', 'bigint', 'nullable', { fk: 'option_item', note: '上層選項' }),
+        c('sort_order', 'smallint', 'nullable', { note: '排序' })] },
+  ],
+};
+
+window.ER_SAMPLE = ER_SAMPLE;
+
+})();
+</script>
+<script type="text/babel" data-src="er/er-core.jsx">
+(() => {
+const { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } = React;
+// 共用：圖示、資料推導、Markdown、欄位徽章
+
+const ER_ICON_PATHS = {
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3',
+  x: 'M18 6 6 18M6 6l12 12',
+  plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
+  fit: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+  info: 'M12 16v-4M12 8h.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+  down: 'm6 9 6 6 6-6',
+  up: 'm18 15-6-6-6 6',
+  right: 'm9 18 6-6-6-6',
+  table: 'M3 5h18v14H3zM3 10h18M9 10v9',
+  db: 'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6',
+  book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5',
+  diagram: 'M3 3h7v7H3zM14 14h7v7h-7zM10 6.5h4a2 2 0 0 1 2 2V14',
+  home: 'M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z',
+  back: 'M19 12H5M12 19l-7-7 7-7',
+  expand: 'M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3',
+  link: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
+  arrowR: 'M5 12h14M13 5l7 7-7 7',
+  arrowL: 'M19 12H5M11 19l-7-7 7-7',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  key: 'M15.5 7.5 19 4M21 2l-2 2M15.5 7.5a4.5 4.5 0 1 1-6.4 6.4 4.5 4.5 0 0 1 6.4-6.4zM17 6l3 3',
+  panel: 'M3 3h18v18H3zM9 3v18',
+};
+function ErIcon({ n, s = 14, style }) {
+  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none', ...style }}><path d={ER_ICON_PATHS[n]}></path></svg>;
+}
+
+/* 資料推導：edges 一律由 fk 推，不存 */
+function erDerive(data) {
+  const byName = new Map(data.tables.map((t) => [t.name, t]));
+  const groupByKey = new Map(data.groups.map((g) => [g.key, g]));
+  const schemas = data.schemas && data.schemas.length ? data.schemas : [{ key: '_all', label: '全部' }];
+  const schemaOfGroup = (g) => groupByKey.get(g)?.schema ?? schemas[0].key;
+  const schemaOfTable = (t) => schemaOfGroup(byName.get(t)?.group);
+  const edges = data.tables.flatMap((t) => t.columns.filter((c) => c.fk && byName.has(c.fk)).map((c) => ({
+    id: `${t.name}.${c.name}`, child: t.name, parent: c.fk, col: c.name, self: c.fk === t.name,
+  })));
+  const parentsOf = (n) => edges.filter((e) => e.child === n && !e.self);
+  const childrenOf = (n) => edges.filter((e) => e.parent === n && !e.self);
+  /* 導覽樹順序依 layout.columns → groups，與圖上位置一致 */
+  const groupOrder = data.layout.columns.flatMap((c) => c.groups);
+  data.groups.forEach((g) => { if (!groupOrder.includes(g.key)) groupOrder.push(g.key); });
+  const tree = schemas.map((s) => ({
+    ...s,
+    groups: groupOrder.map((k) => groupByKey.get(k)).filter((g) => g && schemaOfGroup(g.key) === s.key)
+      .map((g) => ({ ...g, tables: data.tables.filter((t) => t.group === g.key) })),
+  }));
+  return { byName, groupByKey, schemas, schemaOfGroup, schemaOfTable, edges, parentsOf, childrenOf, tree };
+}
+
+/* 迷你 Markdown：## / ### / 清單 / 引言 / **粗** / `碼` / [文](#table:x)。
+   反引號內容若恰為表名，自動連到該表的 Wiki。 */
+function ErInline({ text, onLink, tables }) {
+  const parts = [];
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  let last = 0, m, i = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const t = m[0];
+    if (t.startsWith('**')) parts.push(<strong key={i++}>{t.slice(2, -2)}</strong>);
+    else if (t.startsWith('`')) {
+      const v = t.slice(1, -1);
+      if (tables && tables.has(v) && onLink) parts.push(<a key={i++} className="erx-tlink" href={`#table:${v}`} onClick={(e) => { e.preventDefault(); onLink({ kind: 'table', key: v }); }}><code>{v}</code></a>);
+      else if (tables && tables.schemas?.has(v) && onLink) parts.push(<a key={i++} className="erx-tlink" href={`#schema:${v}`} onClick={(e) => { e.preventDefault(); onLink({ kind: 'schema', key: v }); }}><code>{v}</code></a>);
+      else parts.push(<code key={i++}>{v}</code>);
+    } else {
+      const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(t);
+      parts.push(<a key={i++} href={mm[2]}>{mm[1]}</a>);
+    }
+    last = m.index + t.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+function ErMarkdown({ src, onLink, tables }) {
+  if (!src) return null;
+  const blocks = [];
+  const lines = src.split('\n');
+  let i = 0, k = 0;
+  const inl = (t) => <ErInline text={t} onLink={onLink} tables={tables}></ErInline>;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    if (/^###\s/.test(l)) { blocks.push(<h4 key={k++}>{inl(l.slice(4))}</h4>); i++; continue; }
+    if (/^##\s/.test(l)) { blocks.push(<h3 key={k++}>{inl(l.slice(3))}</h3>); i++; continue; }
+    if (/^>\s?/.test(l)) { const q = []; while (i < lines.length && /^>\s?/.test(lines[i])) q.push(lines[i++].replace(/^>\s?/, '')); blocks.push(<blockquote key={k++}>{inl(q.join(' '))}</blockquote>); continue; }
+    if (/^(-|\d+\.)\s/.test(l)) {
+      const ordered = /^\d+\./.test(l); const items = [];
+      while (i < lines.length && /^(-|\d+\.)\s/.test(lines[i])) items.push(lines[i++].replace(/^(-|\d+\.)\s/, ''));
+      const L = ordered ? 'ol' : 'ul';
+      blocks.push(<L key={k++}>{items.map((t, j) => <li key={j}>{inl(t)}</li>)}</L>); continue;
+    }
+    const p = []; while (i < lines.length && lines[i].trim() && !/^(#|>|-\s|\d+\.\s)/.test(lines[i])) p.push(lines[i++]);
+    blocks.push(<p key={k++}>{inl(p.join(' '))}</p>);
+  }
+  return <div className="erx-md">{blocks}</div>;
+}
+
+function ErFlagBadges({ data, col }) {
+  const der = col.derivation ? data.derivations.find((d) => d.key === col.derivation) : null;
+  return <span className="erx-keys">
+    {data.flags.map((f) => col[f.key] ? <b key={f.key} className={`erx-k erx-k--${f.tone ?? 'neutral'}`} title={f.label}>{f.badge}</b> : null)}
+    {der ? <b className="erx-k erx-k--warning" title={der.label}>{der.badge}</b> : null}
+  </span>;
+}
+function ErDot({ data, req }) {
+  const r = data.requirement.find((x) => x.key === req);
+  return <i className={`erx-dot erx-dot--${r?.marker ?? 'hollow'}`} title={r?.title ?? r?.label ?? req}></i>;
+}
+
+Object.assign(window, { ErIcon, erDerive, ErMarkdown, ErInline, ErFlagBadges, ErDot });
+
+})();
+</script>
+<script type="text/babel" data-src="er/er-diagram.jsx">
+(() => {
+const { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } = React;
+// Diagram 分頁：移植自 renderer.tsx v1.1.0（畫布、聚焦、搜尋、hub 收折），新增 schema 範圍與「開啟 Wiki」
+const ERX_MIN_Z = 0.2, ERX_MAX_Z = 2.5, ERX_STEP = 1.25, ERX_PAD = 28;
+const erxClamp = (z) => Math.min(ERX_MAX_Z, Math.max(ERX_MIN_Z, z));
+
+function ErDiagram({ data, D, opts, scope, focus, setFocus, onOpenWiki, height }) {
+  const inScope = useCallback((n) => !scope || scope.has(n), [scope]);
+  const columns = useMemo(() => data.layout.columns
+    .map((c) => ({ ...c, groups: c.groups.filter((g) => data.tables.some((t) => t.group === g && inScope(t.name))) }))
+    .filter((c) => c.groups.length), [data, inScope]);
+  const edges = useMemo(() => D.edges.filter((e) => inScope(e.child) && inScope(e.parent)), [D, inScope]);
+  const crossEdges = scope ? D.edges.filter((e) => inScope(e.child) !== inScope(e.parent)).length : 0;
+  const hub = useMemo(() => new Set(opts.hubTables), [opts]);
+
+  const [hover, setHover] = useState(null);
+  const [expanded, setExpanded] = useState(new Set());
+  const [query, setQuery] = useState('');
+  const [showHub, setShowHub] = useState(false);
+  const [tip, setTip] = useState(null);
+  const [paths, setPaths] = useState([]);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [view, setView] = useState({ x: 0, y: 0, z: 1 });
+  const [animate, setAnimate] = useState(false);
+  const [panning, setPanning] = useState(false);
+  const wrapRef = useRef(null), vpRef = useRef(null), canvasRef = useRef(null), gridRef = useRef(null);
+  const cards = useRef(new Map());
+  const viewRef = useRef(view); viewRef.current = view;
+  const touched = useRef(false), pan = useRef(null), dragged = useRef(false);
+
+  const defaultCols = (t) => {
+    const out = t.columns.filter((c) => c.pk || c.fk);
+    for (const c of t.columns) { if (out.length >= opts.defaultRows) break; if (!c.pk && !c.fk) out.push(c); }
+    return t.columns.filter((c) => out.includes(c));
+  };
+
+  const fit = useCallback((smooth) => {
+    const vp = vpRef.current; if (!vp || !size.w) return;
+    const vw = vp.clientWidth, vh = vp.clientHeight;
+    const z = erxClamp(Math.min((vw - ERX_PAD * 2) / size.w, 1));
+    const sh = size.h * z;
+    setAnimate(smooth);
+    setView({ x: (vw - size.w * z) / 2, y: sh <= vh - ERX_PAD * 2 ? (vh - sh) / 2 : ERX_PAD, z });
+  }, [size.w, size.h]);
+  const resetView = useCallback(() => { touched.current = false; fit(true); }, [fit]);
+  useEffect(() => { if (!touched.current) fit(false); }, [fit]);
+  useEffect(() => { touched.current = false; }, [scope]);
+  useEffect(() => {
+    const vp = vpRef.current; if (!vp) return;
+    const ro = new ResizeObserver(() => { if (!touched.current) fit(false); });
+    ro.observe(vp); return () => ro.disconnect();
+  }, [fit]);
+
+  const zoomAt = useCallback((f, px, py, smooth) => {
+    const cur = viewRef.current, z = erxClamp(cur.z * f);
+    if (Math.abs(z - cur.z) < 1e-4) return;
+    touched.current = true; setAnimate(!!smooth);
+    setView({ x: px - (px - cur.x) * (z / cur.z), y: py - (py - cur.y) * (z / cur.z), z });
+  }, []);
+  const zoomBtn = (f) => { const vp = vpRef.current; zoomAt(f, vp.clientWidth / 2, vp.clientHeight / 2, true); };
+  useEffect(() => {
+    const vp = vpRef.current; if (!vp) return;
+    const onWheel = (ev) => {
+      if (!(ev.ctrlKey || ev.metaKey)) return;
+      ev.preventDefault();
+      const r = vp.getBoundingClientRect();
+      zoomAt(Math.exp(-ev.deltaY * 0.0015), ev.clientX - r.left, ev.clientY - r.top);
+    };
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    return () => vp.removeEventListener('wheel', onWheel);
+  }, [zoomAt]);
+  const onDown = (ev) => {
+    if (ev.button !== 0) return;
+    if (!ev.altKey && ev.target.closest('.erx-card, button, a, input, label')) return;
+    pan.current = { px: ev.clientX, py: ev.clientY, ox: viewRef.current.x, oy: viewRef.current.y, moved: false };
+    setPanning(true); setAnimate(false); ev.currentTarget.setPointerCapture(ev.pointerId);
+  };
+  const onMove = (ev) => {
+    const p = pan.current; if (!p) return;
+    const dx = ev.clientX - p.px, dy = ev.clientY - p.py;
+    if (!p.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+    p.moved = true; touched.current = true;
+    setView((v) => ({ ...v, x: p.ox + dx, y: p.oy + dy }));
+  };
+  const onUp = (ev) => {
+    if (!pan.current) return;
+    dragged.current = pan.current.moved; pan.current = null; setPanning(false);
+    ev.currentTarget.releasePointerCapture?.(ev.pointerId);
+  };
+
+  const q = query.trim().toLowerCase();
+  const { hitT, hitC } = useMemo(() => {
+    const hitT = new Set(), hitC = new Set();
+    if (!q) return { hitT, hitC };
+    for (const t of data.tables) {
+      if (!inScope(t.name)) continue;
+      if (t.name.toLowerCase().includes(q) || t.label.toLowerCase().includes(q)) hitT.add(t.name);
+      for (const c of t.columns) if (c.name.toLowerCase().includes(q)) { hitT.add(t.name); hitC.add(`${t.name}.${c.name}`); }
+    }
+    return { hitT, hitC };
+  }, [q, data, inScope]);
+  const hitLabel = !q ? null : hitT.size === 0 ? '查無符合' : hitC.size === 0 ? `${hitT.size} 張表` : `${hitT.size} 張表・${hitC.size} 個欄位`;
+
+  const focusIn = focus && inScope(focus) ? focus : null;
+  const related = useMemo(() => {
+    if (!focusIn) return null;
+    const parents = new Set(), children = new Set();
+    for (const e of edges) { if (e.self) continue; if (e.child === focusIn) parents.add(e.parent); if (e.parent === focusIn) children.add(e.child); }
+    return { parents, children, all: new Set([...parents, ...children, focusIn]) };
+  }, [focusIn, edges]);
+
+  const measure = useCallback(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const base = canvas.getBoundingClientRect();
+    const k = canvas.offsetWidth > 0 ? base.width / canvas.offsetWidth || 1 : 1;
+    const g = gridRef.current;
+    setSize({ w: g ? g.scrollWidth : 0, h: g ? g.scrollHeight : 0 });
+    const next = [];
+    for (const e of edges) {
+      const a = cards.current.get(e.child), b = cards.current.get(e.parent);
+      if (!a || !b) continue;
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      const ax = (ra.left - base.left) / k, bx = (rb.left - base.left) / k, aw = ra.width / k, bw = rb.width / k;
+      const ay = (ra.top - base.top) / k + Math.min(ra.height / k / 2, 26);
+      const by = (rb.top - base.top) / k + Math.min(rb.height / k / 2, 26);
+      if (e.self) {
+        const x = ax + aw;
+        next.push({ ...e, d: `M ${x} ${ay - 8} C ${x + 26} ${ay - 22}, ${x + 26} ${ay + 22}, ${x} ${ay + 8}`, mx: x + 26, my: ay });
+        continue;
+      }
+      let x1, x2;
+      if (ax + aw / 2 <= bx + bw / 2) { x1 = ax + aw; x2 = bx; } else { x1 = ax; x2 = bx + bw; }
+      const dx = Math.max(28, Math.min(110, Math.abs(x2 - x1) / 2));
+      const c1 = x1 + (x2 >= x1 ? dx : -dx), c2 = x2 + (x2 >= x1 ? -dx : dx);
+      next.push({ ...e, d: `M ${x1} ${ay} C ${c1} ${ay}, ${c2} ${by}, ${x2} ${by}`, mx: (x1 + x2) / 2, my: (ay + by) / 2 });
+    }
+    setPaths(next);
+  }, [edges]);
+  useLayoutEffect(() => { measure(); }, [measure, expanded, q, columns]);
+  useEffect(() => {
+    const ro = new ResizeObserver(() => measure());
+    if (canvasRef.current) ro.observe(canvasRef.current);
+    document.fonts?.ready.then(measure);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  useEffect(() => {
+    const onKey = (ev) => { if (ev.key === 'Escape') { setFocus(null); setTip(null); } };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  }, [setFocus]);
+
+  const showTip = (el, title, body) => {
+    const w = wrapRef.current; if (!w) return;
+    const b = w.getBoundingClientRect(), r = el.getBoundingClientRect();
+    const x = Math.max(166, Math.min(r.left - b.left + r.width / 2, b.width - 166));
+    const up = r.bottom > b.bottom - 120;
+    setTip({ x, y: up ? r.top - b.top - 8 : r.bottom - b.top + 8, up, title, body });
+  };
+
+  const dim = (n) => focusIn ? !related.all.has(n) : q ? !hitT.has(n) : false;
+  const edgeState = (p) => {
+    if (focusIn) return p.child === focusIn || p.parent === focusIn ? 'on' : 'off';
+    if (hover) return p.child === hover || p.parent === hover ? 'on' : 'dim';
+    if (q) return hitT.has(p.child) && hitT.has(p.parent) ? 'on' : 'dim';
+    return 'base';
+  };
+  const hubCount = edges.filter((e) => hub.has(e.parent)).length;
+  const ft = focusIn ? D.byName.get(focusIn) : null;
+  const groupLabel = (g) => D.groupByKey.get(g)?.label ?? g;
+
+  return <div className="erx-dg" ref={wrapRef}>
+    <div className="erx-dg-bar">
+      <div className="erx-search">
+        <ErIcon n="search" s={14}></ErIcon>
+        <input type="search" value={query} placeholder={opts.searchPlaceholder} onChange={(e) => setQuery(e.target.value)} aria-label="搜尋表名或欄位名"></input>
+        {hitLabel ? <span className={`erx-hits ${hitT.size ? 'ok' : 'none'}`} role="status">{hitLabel}</span> : null}
+        {query ? <button type="button" className="erx-clear" onClick={() => setQuery('')} aria-label="清除搜尋"><ErIcon n="x" s={12}></ErIcon></button> : null}
+      </div>
+      {hubCount > 0 ? <label className="erx-toggle"><input type="checkbox" checked={showHub} onChange={(e) => setShowHub(e.target.checked)}></input>顯示 {opts.hubTables.join('、')} 的 {hubCount} 條連線</label> : null}
+      <div className="erx-legend">{data.requirement.map((r) => <span key={r.key} title={r.title}><i className={`erx-dot erx-dot--${r.marker}`}></i>{r.label}</span>)}</div>
+    </div>
+    {ft ? <div className="erx-focusbar">
+      <div><strong>{ft.name}</strong><span className="erx-muted">　{ft.label}{ft.section ? `　${opts.sectionPrefix}${ft.section}` : ''}</span></div>
+      <div className="erx-muted">指向 {related.parents.size} 張父表{related.parents.size ? `（${[...related.parents].join('、')}）` : ''}；被 {related.children.size} 張子表指向{related.children.size ? `（${[...related.children].join('、')}）` : ''}</div>
+      <div className="erx-focusbar-act">
+        <button type="button" className="erx-pill erx-pill--blue" onClick={() => onOpenWiki(ft.name)}><ErIcon n="book" s={12}></ErIcon>開啟 Wiki</button>
+        <button type="button" className="erx-pill" onClick={() => setFocus(null)}>取消聚焦（Esc）</button>
+      </div>
+    </div> : <p className="erx-hint">{opts.hint}<span>畫布可拖曳平移，⌘/Ctrl＋滾輪縮放，雙擊空白處還原。</span>{crossEdges ? <span className="erx-hint-x">另有 {crossEdges} 條跨 schema 連線未顯示。</span> : null}</p>}
+    <div className={`erx-vp${panning ? ' panning' : ''}`} ref={vpRef} style={{ height }} tabIndex={0} role="application" aria-label="關聯圖畫布"
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+      onKeyDown={(ev) => { if (ev.key === '+' || ev.key === '=') zoomBtn(ERX_STEP); else if (ev.key === '-') zoomBtn(1 / ERX_STEP); else if (ev.key === '0') resetView(); }}
+      onDoubleClick={(ev) => { if (!ev.target.closest('.erx-card, button')) resetView(); }}>
+      <div className={`erx-stage${animate ? ' anim' : ''}`} style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
+        <div className="erx-canvas" ref={canvasRef} onClick={(ev) => { if (dragged.current) { dragged.current = false; return; } if (!ev.target.closest('.erx-card')) setFocus(null); }}>
+          <svg className="erx-svg" width={size.w} height={size.h} viewBox={`0 0 ${size.w || 1} ${size.h || 1}`} aria-hidden="true">
+            <defs>
+              <marker id="erx-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" className="erx-head"></path></marker>
+              <marker id="erx-arrow-on" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" className="erx-head on"></path></marker>
+            </defs>
+            {paths.map((p) => {
+              const isHub = hub.has(p.parent), st = edgeState(p);
+              if (isHub && !showHub && st !== 'on') return null;
+              return <g key={p.id} className={`erx-edge ${st}${isHub ? ' opt' : ''}`}>
+                <path d={p.d} markerEnd={st === 'on' ? 'url(#erx-arrow-on)' : 'url(#erx-arrow)'}></path>
+                {st === 'on' ? <text x={p.mx} y={p.my - 5} textAnchor="middle">{p.col}</text> : null}
+              </g>;
+            })}
+          </svg>
+          <div className="erx-cols" ref={gridRef} style={{ gridTemplateColumns: `repeat(${columns.length}, max-content)` }}>
+            {columns.map((col) => <div className="erx-col" key={col.key}>
+              {col.groups.map((g) => <section className="erx-group" key={g}>
+                <h4>{groupLabel(g)}</h4>
+                {data.tables.filter((t) => t.group === g && inScope(t.name)).map((t) => {
+                  const open = expanded.has(t.name), shown = open ? t.columns : defaultCols(t), hidden = t.columns.length - shown.length;
+                  const cls = ['erx-card', dim(t.name) && 'dim', focusIn === t.name && 'focus', focusIn && related.all.has(t.name) && focusIn !== t.name && 'rel', q && hitT.has(t.name) && 'hit'].filter(Boolean).join(' ');
+                  return <div key={t.name} className={cls} ref={(el) => { if (el) cards.current.set(t.name, el); else cards.current.delete(t.name); }}
+                    onMouseEnter={() => setHover(t.name)} onMouseLeave={() => setHover((h) => (h === t.name ? null : h))}>
+                    <button type="button" className="erx-cardhead" aria-pressed={focusIn === t.name} onClick={() => setFocus(focusIn === t.name ? null : t.name)}>
+                      <span className="erx-tname">{t.name}</span><span className="erx-tlabel">{t.label}</span>{t.section ? <span className="erx-tsec">{opts.sectionPrefix}{t.section}</span> : null}
+                    </button>
+                    <ul className="erx-fields">{shown.map((c) => <li key={c.name} className={hitC.has(`${t.name}.${c.name}`) ? 'hit' : ''}>
+                      <ErDot data={data} req={c.required}></ErDot>
+                      <span className="erx-fname">{c.name}</span><span className="erx-ftype">{c.type}</span>
+                      <ErFlagBadges data={data} col={c}></ErFlagBadges>
+                      <button type="button" className="erx-info" aria-label={`${c.name} 的說明`}
+                        onMouseEnter={(e) => showTip(e.currentTarget, `${c.name}　${c.type}${c.default ? `　預設 ${c.default}` : ''}`, c.note)}
+                        onMouseLeave={() => setTip(null)}><ErIcon n="info" s={11}></ErIcon></button>
+                    </li>)}</ul>
+                    {hidden > 0 || open ? <button type="button" className="erx-more" onClick={() => setExpanded((s) => { const n = new Set(s); n.has(t.name) ? n.delete(t.name) : n.add(t.name); return n; })}>
+                      {open ? <>收合 <ErIcon n="up" s={11}></ErIcon></> : <>展開全部 {t.columns.length} 欄 <ErIcon n="down" s={11}></ErIcon></>}
+                    </button> : null}
+                  </div>;
+                })}
+              </section>)}
+            </div>)}
+          </div>
+        </div>
+      </div>
+      <div className="erx-zoombar">
+        <button type="button" aria-label="縮小" onClick={() => zoomBtn(1 / ERX_STEP)} disabled={view.z <= ERX_MIN_Z + 0.001}><ErIcon n="minus" s={13}></ErIcon></button>
+        <span>{Math.round(view.z * 100)}%</span>
+        <button type="button" aria-label="放大" onClick={() => zoomBtn(ERX_STEP)} disabled={view.z >= ERX_MAX_Z - 0.001}><ErIcon n="plus" s={13}></ErIcon></button>
+        <i></i>
+        <button type="button" aria-label="還原並置中" onClick={resetView}><ErIcon n="fit" s={12}></ErIcon></button>
+      </div>
+    </div>
+    {tip ? <div className={`erx-tip${tip.up ? ' up' : ''}`} style={{ left: tip.x, top: tip.y }} role="tooltip"><div>{tip.title}</div>{tip.body}</div> : null}
+  </div>;
+}
+
+/* 局部關聯圖：父表 ← 本表 ← 子表，三欄固定、不縮放 */
+function ErLocalDiagram({ data, D, name, onOpen }) {
+  const boxRef = useRef(null);
+  const refs = useRef(new Map());
+  const [lines, setLines] = useState([]);
+  const parents = D.parentsOf(name), children = D.childrenOf(name);
+  const uniq = (arr, key) => [...new Map(arr.map((e) => [e[key], e])).keys()];
+  const pNames = uniq(parents, 'parent'), cNames = uniq(children, 'child');
+  const self = D.edges.some((e) => e.self && e.child === name);
+  const measure = useCallback(() => {
+    const box = boxRef.current; if (!box) return;
+    const b = box.getBoundingClientRect(); const me = refs.current.get('@'); if (!me) return;
+    const m = me.getBoundingClientRect();
+    const out = [];
+    const link = (el, side, id, label) => {
+      const r = el.getBoundingClientRect();
+      const y1 = r.top - b.top + r.height / 2, y2 = m.top - b.top + m.height / 2;
+      if (side === 'p') { const x1 = m.left - b.left, x2 = r.right - b.left; out.push({ id, d: `M ${x1} ${y2} C ${x1 - 40} ${y2}, ${x2 + 40} ${y1}, ${x2} ${y1}`, label }); }
+      else { const x1 = r.left - b.left, x2 = m.right - b.left; out.push({ id, d: `M ${x1} ${y1} C ${x1 - 40} ${y1}, ${x2 + 40} ${y2}, ${x2} ${y2}`, label }); }
+    };
+    pNames.forEach((p) => { const el = refs.current.get('p:' + p); if (el) link(el, 'p', 'p' + p, parents.filter((e) => e.parent === p).map((e) => e.col).join(', ')); });
+    cNames.forEach((c) => { const el = refs.current.get('c:' + c); if (el) link(el, 'c', 'c' + c, children.filter((e) => e.child === c).map((e) => e.col).join(', ')); });
+    setLines(out);
+  }, [name]);
+  useLayoutEffect(() => { measure(); }, [measure]);
+  useEffect(() => { const ro = new ResizeObserver(measure); if (boxRef.current) ro.observe(boxRef.current); return () => ro.disconnect(); }, [measure]);
+  const t = D.byName.get(name);
+  const node = (n, key, cls) => { const x = D.byName.get(n); return <button type="button" key={key} ref={(el) => el && refs.current.set(key, el)} className={`erx-ln ${cls}`} onClick={() => onOpen(n)}>
+    <span className="erx-tname">{n}</span><span className="erx-ln-l">{x.label}</span></button>; };
+  return <div className="erx-local" ref={boxRef}>
+    <svg className="erx-local-svg" aria-hidden="true">
+      <defs><marker id="erx-la" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="var(--blue-400)"></path></marker></defs>
+      {lines.map((l) => <path key={l.id} d={l.d} markerEnd="url(#erx-la)"></path>)}
+    </svg>
+    <div className="erx-local-col"><div className="erx-local-h">父表 {pNames.length}</div>{pNames.length ? pNames.map((p) => node(p, 'p:' + p, '')) : <div className="erx-local-empty">無</div>}</div>
+    <div className="erx-local-col mid"><div className="erx-local-h">本表</div>
+      <div className="erx-ln me" ref={(el) => el && refs.current.set('@', el)}><span className="erx-tname">{t.name}</span><span className="erx-ln-l">{t.label}</span>{self ? <span className="erx-ln-self">自我參照</span> : null}</div>
+    </div>
+    <div className="erx-local-col"><div className="erx-local-h">子表 {cNames.length}</div>{cNames.length ? cNames.map((c) => node(c, 'c:' + c, '')) : <div className="erx-local-empty">無</div>}</div>
+  </div>;
+}
+
+Object.assign(window, { ErDiagram, ErLocalDiagram });
+
+})();
+</script>
+<script type="text/babel" data-src="er/er-docs.jsx">
+(() => {
+const { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } = React;
+// Docs 外殼：導覽樹 + Wiki / Diagram 分頁。page 與 embed 共用，差在外框與導覽收合
+function ErNav({ D, data, route, go, collapsedInit }) {
+  const [filter, setFilter] = useState('');
+  const [closed, setClosed] = useState(new Set(collapsedInit || []));
+  const f = filter.trim().toLowerCase();
+  const match = (t) => !f || t.name.includes(f) || t.label.toLowerCase().includes(f);
+  const total = data.tables.length;
+  const shown = data.tables.filter(match).length;
+  return <nav className="erx-nav" aria-label="Schema 與資料表">
+    <div className="erx-nav-search">
+      <ErIcon n="search" s={13}></ErIcon>
+      <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="篩選資料表" aria-label="篩選資料表"></input>
+      {f ? <span className={`erx-hits ${shown ? 'ok' : 'none'}`}>{shown}/{total}</span> : null}
+    </div>
+    <div className="erx-nav-scroll">
+      <button type="button" className={`erx-nav-item top${route.kind === 'overview' ? ' on' : ''}`} onClick={() => go({ kind: 'overview' })}>
+        <ErIcon n="home" s={13}></ErIcon><span className="erx-nav-l">總覽</span>
+      </button>
+      <div className="erx-nav-sec">SCHEMAS<span>{D.schemas.length}</span></div>
+      {D.tree.map((s) => {
+        const tables = s.groups.flatMap((g) => g.tables);
+        const vis = tables.filter(match);
+        if (f && !vis.length) return null;
+        const open = f ? true : !closed.has(s.key);
+        return <div key={s.key} className="erx-nav-schema">
+          <div className={`erx-nav-item schema${route.kind === 'schema' && route.key === s.key ? ' on' : ''}`}>
+            <button type="button" className={`erx-caret${open ? ' open' : ''}`} aria-label={open ? '收合' : '展開'} onClick={() => setClosed((c) => { const n = new Set(c); n.has(s.key) ? n.delete(s.key) : n.add(s.key); return n; })}><ErIcon n="right" s={12}></ErIcon></button>
+            <button type="button" className="erx-nav-main" onClick={() => go({ kind: 'schema', key: s.key })}>
+              <ErIcon n="db" s={13}></ErIcon><span className="erx-nav-l"><code>{s.key}</code>{s.label}</span><span className="erx-nav-n">{tables.length}</span>
+            </button>
+          </div>
+          {open ? s.groups.map((g) => {
+            const gt = g.tables.filter(match);
+            if (!gt.length) return null;
+            return <div key={g.key} className="erx-nav-group">
+              <div className="erx-nav-glabel">{g.label}</div>
+              {gt.map((t) => <button type="button" key={t.name} className={`erx-nav-item table${route.kind === 'table' && route.key === t.name ? ' on' : ''}`} onClick={() => go({ kind: 'table', key: t.name })}>
+                <ErIcon n="table" s={12}></ErIcon><span className="erx-nav-l"><code>{t.name}</code><span className="erx-nav-sub">{t.label}</span></span>
+              </button>)}
+            </div>;
+          }) : null}
+        </div>;
+      })}
+    </div>
+  </nav>;
+}
+
+function ErSectionHead({ id, children, count }) {
+  return <h2 className="erx-h2" id={id}>{children}{count != null ? <span className="erx-h2-n">{count}</span> : null}</h2>;
+}
+
+function ErOverview({ data, D, go, linkSet }) {
+  const cols = data.tables.reduce((a, t) => a + t.columns.length, 0);
+  return <article className="erx-page">
+    <div className="erx-eyebrow">DATABASE</div>
+    <h1 className="erx-h1">{data.meta?.title ?? '資料庫 schema'}</h1>
+    <div className="erx-meta">
+      <span><b>{D.schemas.length}</b> schemas</span><span><b>{data.tables.length}</b> 張表</span><span><b>{cols}</b> 個欄位</span><span><b>{D.edges.length}</b> 條外鍵</span>
+      {data.meta?.source ? <span className="erx-meta-src">來源：{data.meta.source}</span> : null}
+    </div>
+    <ErMarkdown src={data.meta?.description} onLink={go} tables={linkSet}></ErMarkdown>
+    <ErSectionHead count={D.schemas.length}>Schemas</ErSectionHead>
+    <div className="erx-schema-list">
+      {D.tree.map((s) => {
+        const n = s.groups.reduce((a, g) => a + g.tables.length, 0);
+        return <button type="button" key={s.key} className="erx-schema-card" onClick={() => go({ kind: 'schema', key: s.key })}>
+          <div className="erx-schema-card-h"><code>{s.key}</code><span>{s.label}</span><em>{n} 張表</em></div>
+          <p>{(s.description || '').split('\n')[0].replace(/[`*]/g, '')}</p>
+          <div className="erx-schema-card-g">{s.groups.map((g) => <span key={g.key}>{g.label}</span>)}</div>
+        </button>;
+      })}
+    </div>
+    <ErSectionHead>語彙</ErSectionHead>
+    <p className="erx-lede">本份資料自訂的標示方式。這些叫法寫在資料檔裡，換專案可以改。</p>
+    <div className="erx-vocab">
+      <div><h4>必填性</h4>{data.requirement.map((r) => <div key={r.key} className="erx-vocab-row"><i className={`erx-dot erx-dot--${r.marker}`}></i><b>{r.label}</b><span>{r.title ?? ''}</span></div>)}</div>
+      <div><h4>欄位徽章</h4>{data.flags.map((f) => <div key={f.key} className="erx-vocab-row"><b className={`erx-k erx-k--${f.tone ?? 'neutral'}`}>{f.badge}</b><b>{f.label}</b></div>)}</div>
+      <div><h4>衍生欄</h4>{data.derivations.map((d) => <div key={d.key} className="erx-vocab-row"><b className="erx-k erx-k--warning">{d.badge}</b><b>{d.label}</b></div>)}</div>
+    </div>
+  </article>;
+}
+
+function ErSchemaPage({ data, D, s, go, linkSet, toDiagram }) {
+  return <article className="erx-page">
+    <div className="erx-eyebrow">SCHEMA</div>
+    <div className="erx-h1-row"><h1 className="erx-h1"><code>{s.key}</code>{s.label}</h1>
+      <button type="button" className="erx-pill erx-pill--blue" onClick={toDiagram}><ErIcon n="diagram" s={12}></ErIcon>在 Diagram 檢視</button></div>
+    <ErMarkdown src={s.description} onLink={go} tables={linkSet}></ErMarkdown>
+    {s.groups.map((g) => <section key={g.key}>
+      <ErSectionHead count={g.tables.length}>{g.label}</ErSectionHead>
+      {g.description ? <p className="erx-lede">{g.description}</p> : null}
+      <div className="erx-tlist">
+        <div className="erx-tlist-h"><span>資料表</span><span>說明</span><span>欄位</span><span>父／子</span></div>
+        {g.tables.map((t) => <button type="button" key={t.name} className="erx-tlist-r" onClick={() => go({ kind: 'table', key: t.name })}>
+          <span><code>{t.name}</code><em>{t.label}</em></span>
+          <span className="erx-tlist-d">{t.description ? t.description.split('\n')[0].replace(/[`*]/g, '') : <i>尚無說明</i>}</span>
+          <span className="tnum">{t.columns.length}</span>
+          <span className="tnum">{new Set(D.parentsOf(t.name).map((e) => e.parent)).size}／{new Set(D.childrenOf(t.name).map((e) => e.child)).size}</span>
+        </button>)}
+      </div>
+    </section>)}
+  </article>;
+}
+
+function ErTablePage({ data, D, t, opts, go, linkSet, toDiagram }) {
+  const { Badge } = window.TrendLinkDesignSystem_b2a0d6;
+  const g = D.groupByKey.get(t.group);
+  const s = D.schemas.find((x) => x.key === D.schemaOfTable(t.name));
+  const parents = D.parentsOf(t.name), children = D.childrenOf(t.name);
+  const selfRefs = D.edges.filter((e) => e.self && e.child === t.name);
+  const keyed = t.columns.filter((c) => c.pk || c.unique || c.index);
+  const derived = t.columns.filter((c) => c.derivation);
+  const der = (k) => data.derivations.find((d) => d.key === k);
+  const req = (k) => data.requirement.find((r) => r.key === k);
+  const open = (n) => go({ kind: 'table', key: n });
+  return <article className="erx-page">
+    <div className="erx-crumbs">
+      <button type="button" onClick={() => go({ kind: 'schema', key: s.key })}><code>{s.key}</code></button><ErIcon n="right" s={11}></ErIcon><span>{g?.label}</span>
+    </div>
+    <div className="erx-h1-row">
+      <h1 className="erx-h1"><code>{t.name}</code>{t.label}</h1>
+      <button type="button" className="erx-pill erx-pill--blue" onClick={toDiagram}><ErIcon n="diagram" s={12}></ErIcon>在 Diagram 聚焦</button>
+    </div>
+    <div className="erx-meta">
+      {t.section ? <Badge tone="blue">{opts.sectionPrefix}{t.section}</Badge> : null}
+      <span><b>{t.columns.length}</b> 個欄位</span>
+      <span><b>{new Set(parents.map((e) => e.parent)).size}</b> 張父表</span>
+      <span><b>{new Set(children.map((e) => e.child)).size}</b> 張子表</span>
+    </div>
+    {t.description ? <ErMarkdown src={t.description} onLink={go} tables={linkSet}></ErMarkdown> : <p className="erx-empty">這張表還沒有說明。在資料檔的 <code>tables[].description</code> 以 Markdown 撰寫。</p>}
+
+    <ErSectionHead id="cols" count={t.columns.length}>欄位</ErSectionHead>
+    <div className="erx-colt-wrap"><table className="erx-colt">
+      <thead><tr><th>欄位</th><th>型別</th><th>必填</th><th>預設</th><th>標示</th><th>說明</th></tr></thead>
+      <tbody>{t.columns.map((c) => <tr key={c.name}>
+        <td><code className="erx-cname">{c.name}</code></td>
+        <td><code className="erx-ctype">{c.type}</code></td>
+        <td><span className="erx-req"><ErDot data={data} req={c.required}></ErDot>{req(c.required)?.label ?? c.required}</span></td>
+        <td>{c.default ? <code className="erx-ctype">{c.default}</code> : <span className="erx-na">—</span>}</td>
+        <td><ErFlagBadges data={data} col={c}></ErFlagBadges></td>
+        <td className="erx-cnote">{c.fk ? <a href={`#table:${c.fk}`} className="erx-fkref" onClick={(e) => { e.preventDefault(); open(c.fk); }}><ErIcon n="arrowR" s={11}></ErIcon><code>{c.fk}.id</code></a> : null}{c.note}</td>
+      </tr>)}</tbody>
+    </table></div>
+
+    <ErSectionHead id="rel" count={parents.length + children.length + selfRefs.length}>關聯</ErSectionHead>
+    <ErLocalDiagram data={data} D={D} name={t.name} onOpen={open} key={t.name}></ErLocalDiagram>
+    <div className="erx-rel">
+      <div>
+        <h4>參照（本表 → 父表）</h4>
+        {parents.length || selfRefs.length ? [...parents, ...selfRefs].map((e) => <button type="button" key={e.id} className="erx-rel-r" onClick={() => open(e.parent)}>
+          <code>{t.name}.{e.col}</code><ErIcon n="arrowR" s={12}></ErIcon><code className="to">{e.parent}.id</code>{e.self ? <em>自我參照</em> : null}{opts.hubTables.includes(e.parent) ? <em>hub</em> : null}
+        </button>) : <p className="erx-empty">沒有外鍵欄位。</p>}
+      </div>
+      <div>
+        <h4>被參照（子表 → 本表）</h4>
+        {children.length ? children.map((e) => <button type="button" key={e.id} className="erx-rel-r" onClick={() => open(e.child)}>
+          <code className="to">{e.child}.{e.col}</code><ErIcon n="arrowR" s={12}></ErIcon><code>{t.name}.id</code>
+        </button>) : <p className="erx-empty">沒有其他表指向這張表。</p>}
+      </div>
+    </div>
+
+    <ErSectionHead id="idx" count={keyed.length}>索引與唯一鍵</ErSectionHead>
+    <div className="erx-kv">{keyed.map((c) => <div key={c.name} className="erx-kv-r">
+      <code className="erx-cname">{c.name}</code>
+      <ErFlagBadges data={data} col={{ pk: c.pk, unique: c.unique, index: c.index }}></ErFlagBadges>
+      <span>{[c.pk && '主鍵', c.unique && '唯一', c.index && '一般索引'].filter(Boolean).join('、')}</span>
+    </div>)}</div>
+
+    {derived.length ? <>
+      <ErSectionHead id="der" count={derived.length}>衍生欄</ErSectionHead>
+      <p className="erx-lede">這些欄位由資料庫維護或特殊儲存，應用層不應直接寫入。</p>
+      <div className="erx-kv">{derived.map((c) => <div key={c.name} className="erx-kv-r">
+        <code className="erx-cname">{c.name}</code><b className="erx-k erx-k--warning">{der(c.derivation)?.badge}</b><span><b>{der(c.derivation)?.label}</b>　{c.note}</span>
+      </div>)}</div>
+    </> : null}
+  </article>;
+}
+
+function ErDocs({ data, options, mode, storeKey, bare }) {
+  const D = useMemo(() => erDerive(data), [data]);
+  const opts = useMemo(() => ({ defaultRows: 6, hubTables: [], sectionPrefix: '§', hint: '點一張表可聚焦它的關聯。', searchPlaceholder: '搜尋表名或欄位名', ...(data.options || {}), ...(options || {}) }), [data, options]);
+  const linkSet = useMemo(() => { const s = new Set(data.tables.map((t) => t.name)); s.schemas = new Set(D.schemas.map((x) => x.key)); return s; }, [data, D]);
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(storeKey) || 'null'); } catch (e) { return null; } })();
+  const [route, setRoute] = useState(saved?.route ?? { kind: 'overview' });
+  const [tab, setTab] = useState(saved?.tab ?? 'wiki');
+  const [dgScope, setDgScope] = useState(saved?.dgScope ?? null);
+  const [focus, setFocus] = useState(null);
+  const [navOpen, setNavOpen] = useState(mode === 'page');
+  const [wide, setWide] = useState(false);
+  const bodyRef = useRef(null);
+  useEffect(() => { localStorage.setItem(storeKey, JSON.stringify({ route, tab, dgScope })); }, [route, tab, dgScope, storeKey]);
+
+  const scopeSet = useMemo(() => dgScope ? new Set(data.tables.filter((t) => D.schemaOfTable(t.name) === dgScope).map((t) => t.name)) : null, [dgScope, data, D]);
+
+  const go = useCallback((r) => {
+    setRoute(r);
+    if (tab === 'diagram') {
+      if (r.kind === 'overview') { setDgScope(null); setFocus(null); }
+      if (r.kind === 'schema') { setDgScope(r.key); setFocus(null); }
+      if (r.kind === 'table') { const sk = D.schemaOfTable(r.key); if (dgScope && dgScope !== sk) setDgScope(sk); setFocus(r.key); }
+    }
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    if (mode === 'embed' && !wide) setNavOpen(false);
+  }, [tab, dgScope, D, mode, wide]);
+
+  const toDiagram = () => {
+    if (route.kind === 'schema') { setDgScope(route.key); setFocus(null); }
+    else if (route.kind === 'table') { setDgScope(D.schemaOfTable(route.key)); setFocus(route.key); }
+    else { setDgScope(null); setFocus(null); }
+    setTab('diagram');
+  };
+  const openWiki = (n) => { setRoute({ kind: 'table', key: n }); setTab('wiki'); };
+  const setFocusSync = useCallback((n) => { setFocus(n); if (n) setRoute({ kind: 'table', key: n }); }, []);
+
+  let page;
+  if (route.kind === 'schema') { const s = D.tree.find((x) => x.key === route.key); page = s ? <ErSchemaPage data={data} D={D} s={s} go={go} linkSet={linkSet} toDiagram={toDiagram}></ErSchemaPage> : null; }
+  else if (route.kind === 'table') { const t = D.byName.get(route.key); page = t ? <ErTablePage data={data} D={D} t={t} opts={opts} go={go} linkSet={linkSet} toDiagram={toDiagram}></ErTablePage> : null; }
+  if (!page) page = <ErOverview data={data} D={D} go={go} linkSet={linkSet}></ErOverview>;
+
+  const isEmbed = mode === 'embed' && !wide;
+  const dgHeight = isEmbed ? 460 : undefined;
+
+  const shell = <div className={`erx-shell erx-shell--${isEmbed ? 'embed' : 'page'}${navOpen ? '' : ' nav-closed'}${bare && isEmbed ? ' bare' : ''}`}>
+    <div className="erx-bar">
+      <button type="button" className={`erx-iconbtn${navOpen ? ' on' : ''}`} onClick={() => setNavOpen(!navOpen)} aria-label="切換導覽" title="切換導覽"><ErIcon n="panel" s={15}></ErIcon></button>
+      {isEmbed && !bare ? <div className="erx-bar-title"><ErIcon n="db" s={14}></ErIcon><b>{data.meta?.title}</b></div> : null}
+      <div className="erx-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === 'wiki'} className={tab === 'wiki' ? 'on' : ''} onClick={() => setTab('wiki')}><ErIcon n="book" s={13}></ErIcon>Wiki</button>
+        <button type="button" role="tab" aria-selected={tab === 'diagram'} className={tab === 'diagram' ? 'on' : ''} onClick={toDiagram}><ErIcon n="diagram" s={13}></ErIcon>Diagram</button>
+      </div>
+      {tab === 'diagram' ? <div className="erx-scope">
+        <span>範圍</span>
+        {[{ key: null, label: '全部' }, ...D.schemas].map((s) => <button type="button" key={s.key ?? 'all'} className={dgScope === s.key ? 'on' : ''} onClick={() => { setDgScope(s.key); if (s.key) setRoute({ kind: 'schema', key: s.key }); else setRoute({ kind: 'overview' }); setFocus(null); }}>{s.key ? <code>{s.key}</code> : s.label}</button>)}
+      </div> : <div className="erx-bar-crumb">{route.kind === 'overview' ? '總覽' : route.kind === 'schema' ? <>schema · <code>{route.key}</code></> : <>{D.schemaOfTable(route.key)} · <code>{route.key}</code></>}</div>}
+      {mode === 'embed' ? <button type="button" className={`erx-pill${wide ? '' : ' erx-pill--gold'}`} onClick={() => setWide(!wide)}><ErIcon n="expand" s={12}></ErIcon>{wide ? '回到本文' : '展開全寬'}</button> : null}
+    </div>
+    <div className="erx-body">
+      {navOpen ? <ErNav D={D} data={data} route={route} go={go}></ErNav> : null}
+      <div className={`erx-main${tab === 'diagram' ? ' dg' : ''}`} ref={bodyRef}>
+        {tab === 'wiki' ? page : <ErDiagram data={data} D={D} opts={opts} scope={scopeSet} focus={focus} setFocus={setFocusSync} onOpenWiki={openWiki} height={dgHeight}></ErDiagram>}
+      </div>
+    </div>
+  </div>;
+
+  if (mode !== 'embed') return shell;
+  return <>
+    {wide ? <div className="erx-hold"><span>{data.meta?.title} 已在全寬檢視開啟。</span><button type="button" className="erx-pill erx-pill--gold" onClick={() => setWide(false)}>回到本文</button></div> : shell}
+    {wide ? <div className="erx-overlay" role="dialog" aria-modal="true">{shell}</div> : null}
+  </>;
+}
+
+Object.assign(window, { ErDocs });
+
+})();
+</script>
+<script type="text/babel">
+function Demo() {
+  const [mode, setMode] = React.useState(() => localStorage.getItem('erx-demo-mode') || 'page');
+  React.useEffect(() => { localStorage.setItem('erx-demo-mode', mode); }, [mode]);
+  const data = window.ER_SAMPLE;
+  return <div className="demo">
+    <div className="demo-top"><b>ER Diagram</b><span>v1.2 提案 · Wiki + Diagram</span>
+      <div className="demo-seg">
+        <button type="button" className={mode === 'page' ? 'on' : ''} onClick={() => setMode('page')}>獨立頁（page）</button>
+        <button type="button" className={mode === 'embed' ? 'on' : ''} onClick={() => setMode('embed')}>內嵌筆記（embed）</button>
+      </div>
+    </div>
+    <div className="wbf">
+      <div className="wbf-rail"></div>
+      {mode === 'page' ? <div className="wbf-main">
+        <div className="wbf-hd">
+          <div><div className="wbf-crumb">trendmile / docs / <code>business.er.json</code></div><h1 className="wbf-title">{data.meta.title}</h1></div>
+          <a className="erx-pill" href={data.meta.backTo} onClick={(e) => e.preventDefault()}><ErIcon n="back" s={12}></ErIcon>回到來源筆記</a>
+        </div>
+        <div className="wbf-body"><ErDocs data={data} mode="page" storeKey="erx-page"></ErDocs></div>
+      </div> : <div className="note"><div className="note-in">
+        <h1>業務系統規格書 §2 資料模型</h1>
+        <div className="meta">trendmile / spec · 更新於 2026-09-24</div>
+        <p>本章描述業務系統的資料庫結構。下方內嵌的是 <code>business.er.json</code>，可在 Wiki 查每張表的欄位與關聯，或切到 Diagram 看全圖。</p>
+        <div className="embed"><ErDocs data={data} mode="embed" storeKey="erx-embed"></ErDocs></div>
+        <h2>2.1 客戶</h2>
+        <p>客戶主檔從合約拆出後，合約改以 <code>customer_id</code> 參照客戶。既有資料的遷移腳本見附錄 B。</p>
+      </div></div>}
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo></Demo>);
+</script>
+</body>
+</html>
