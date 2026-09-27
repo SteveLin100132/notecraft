@@ -479,19 +479,21 @@ Handoff 用 `@media (max-width:760px)`。但**筆記內文欄就是 760px**，�
 
 | Task | 內容 | 章節 | 主要檔案 |
 | :-- | :-- | :-- | :-- |
-| 76 | 資料格式 v1.2：schema、範例改名與新增、型別、registry 登記 | §5.1、§2.1 | `schema.json`、`example/*`、`types.ts`、`registry.json` |
-| 77 | 拆檔（**純搬移、零行為變更**）：`types`／`styles`／`diagram` 自 `renderer.tsx` 切出；v1.1 範例截圖比對 | §4.1 | `renderer.tsx`、`diagram.tsx`、`styles.ts` |
-| 78 | `derive.ts` + 相容規則 + dev warn + `scripts/checks/er-derive.mjs` | §5.2–5.4、§12.1 | `derive.ts`、`scripts/checks/` |
-| 79 | 迷你 Markdown + `stripMarkdown` + 連結白名單 | §8.5 | `markdown.tsx` |
-| 80 | 外殼 + 導覽 + 路由／同步 + 持久化 | §6、§8.1–8.2 | `renderer.tsx`、`nav.tsx` |
-| 81 | Wiki 三頁 + 空狀態 + 隱含模式 | §5.3、§8.3 | `wiki.tsx` |
-| 82 | 局部關聯圖 | §8.4 | `local-diagram.tsx` |
-| 83 | Diagram：scope、跨 scope 提示、開啟 Wiki、全寬搬到 bar | §8.6–8.7 | `diagram.tsx`、`renderer.tsx` |
-| 84 | 響應式（container query）+ 無障礙 + Esc | §9、§10 | `styles.ts`、各元件 |
-| 85 | App 端：`strip-markdown`、`readMeta`、四個出口；notecraftapp 1.3.0 | §11 | `src/lib/*`、`view/[...path].astro` |
-| 86 | `check-plugins` 多範例、README、版號 1.2.0、CHANGELOG、CLAUDE.md（plugin 章節如有需要）、本文 §17 回填 | §12、§2.1 | `scripts/check-plugins.mjs`、README、manifest |
+| [76](tasks/task-76-er-schema-v12-examples.md) | 資料格式 v1.2：schema、範例改名與新增、型別；**`check-plugins` 驗證並 build `example/` 下所有範例** | §5.1、§2.1、§12.1 | `schema.json`、`example/*`、`registry.json`、`scripts/check-plugins.mjs` |
+| [77](tasks/task-77-er-split-files.md) | 拆檔（**純搬移、零行為變更**）：`types`／`styles`／`diagram` 自 `renderer.tsx` 切出；並排截圖比對 | §4.1 | `renderer.tsx`、`types.ts`、`diagram.tsx`、`styles.ts` |
+| [78](tasks/task-78-er-derive-compat-checks.md) | `derive.ts` + 相容規則 + `matchTable` + dev warn；`scripts/checks` 串進 `check-plugins` | §5.2–5.4、§12.1 | `derive.ts`、`scripts/checks/er-derive.mjs` |
+| [79](tasks/task-79-er-mini-markdown.md) | 迷你 Markdown + `stripMarkdown` + 自動連結（含前綴）+ 連結白名單 | §8.5 | `markdown.tsx`、`markdown-text.ts`、`scripts/checks/er-markdown.mjs` |
+| [80](tasks/task-80-er-shell-nav-routing.md) | 外殼（580／sticky／全寬）+ 導覽 + 路由／同步 + 持久化 | §6、§8.1–8.2、§11.2 | `renderer.tsx`、`nav.tsx` |
+| [81](tasks/task-81-er-wiki-pages.md) | Wiki 三頁 + 空狀態 + 隱含模式 | §5.3、§8.3 | `wiki.tsx` |
+| [82](tasks/task-82-er-local-diagram.md) | 局部關聯圖（上限 8） | §8.4 | `local-diagram.tsx` |
+| [83](tasks/task-83-er-diagram-scope.md) | Diagram：scope、跨 scope 提示、開啟 Wiki、`query`／`showHubEdges` 提升 | §8.6、§6.1 | `diagram.tsx`、`renderer.tsx` |
+| [84](tasks/task-84-er-responsive-a11y.md) | 響應式（container query）+ 無障礙 + Esc | §9、§10 | `styles.ts`、各元件 |
+| [85](tasks/task-85-app-meta-description-markdown.md) | App 端：`strip-markdown`、`readMeta`、四個出口、pagefind 全文索引元素；notecraftapp 1.3.0 | §11 | `src/lib/*`、`view/[...path].astro` |
+| [86](tasks/task-86-er-docs-release.md) | README、版號 1.2.0、CHANGELOG、CLAUDE.md、plugin 規格、全面驗收、本文 §17 回填 | §2.1、§12.2 | manifest、registry、README、文件 |
 
-**Task 77 刻意先做且不改行為**：之後每一步的 diff 都能對著「已拆好的 v1.1」看，Diagram 回歸時容易定位。
+依賴：`76 → 77 → 78 → 79`；`80` 依賴 78；`81` 依賴 79＋80；`82` 依賴 81；`83` 依賴 80（可與 81、82 並行）；`84` 依賴 81–83；`85` 依賴 79（可與 80–84 並行）；`86` 最後。
+
+**Task 76 先建護欄**：v1.1 與 v1.2 兩份範例從第一個 commit 起就都驗證、都 build（原排在 Task 86，提前是為了讓之後每一步都有回歸保護）。**Task 77 刻意不改行為**：之後每一步的 diff 都能對著「已拆好的 v1.1」看，Diagram 回歸時容易定位。
 
 ---
 
