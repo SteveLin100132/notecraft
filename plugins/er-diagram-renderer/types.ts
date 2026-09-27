@@ -141,3 +141,9 @@ export interface TipState {
   title: string
   body: string
 }
+
+/** Wiki 的目前頁。Diagram 的範圍與聚焦由它投影而來 */
+export type Route =
+  | { kind: 'overview' }
+  | { kind: 'schema'; key: string }
+  | { kind: 'table'; key: string }
