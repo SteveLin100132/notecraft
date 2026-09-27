@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import type { MutableRefObject } from 'react'
 import { ChevronDown, ChevronUp, Info, Maximize2, Minus, Plus, Search, X } from 'lucide-react'
 import type {
   Edge,
@@ -31,15 +32,18 @@ export interface ErDiagramProps {
   data: ErDiagramData
   /** 已合併三層來源的設定（見 renderer.tsx） */
   opts: ErOptions
-  mode: 'page' | 'embed'
+  /** true：畫布填滿外殼剩餘高度（embed、全寬）；false：依視窗算固定高度（page） */
+  fill: boolean
   /** 是否在全寬檢視中。只用來觸發重新 fit 與量測 —— 畫布搬進覆蓋層後尺寸會變 */
   wide: boolean
-  onToggleWide: () => void
-  /** Esc 時已無聚焦與 tooltip 可退，交給外層收掉全寬 */
-  onEscapeEmpty: () => void
+  /** 聚焦的表。狀態在外殼：聚焦要與 Wiki 的路由同步 */
+  focus: string | null
+  onFocusChange: (name: string | null) => void
+  /** 外殼按 Esc 時先問畫布：有聚焦或 tooltip 可退就退並回 true */
+  escapeRef: MutableRefObject<(() => boolean) | null>
 }
 
-export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty }: ErDiagramProps) {
+export function ErDiagram({ data, opts, fill, wide, focus, onFocusChange, escapeRef }: ErDiagramProps) {
 
   const tables = data.tables
   const layoutColumns = data.layout.columns
@@ -95,7 +99,6 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
     [opts.defaultRows],
   )
 
-  const [focus, setFocus] = useState<string | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
@@ -384,21 +387,19 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
        掛回來的是新的一顆 DOM 節點，沿用舊的 observer 等於在觀察一個已脫離文件的節點。 */
   }, [measure, wide])
 
+  /* Esc 逐層退的第一層：先解聚焦與 tooltip。監聽在外殼（renderer.tsx）統一掛，
+     這裡只回報「有沒有東西可退」—— 有才吃掉這次 Esc，沒有就交給外殼收導覽或全寬。 */
   useEffect(() => {
-    /* Esc 逐層退：先解聚焦與 tooltip，兩者都沒有時才收掉全寬檢視，
-       讀者在全寬下查完一張表按 Esc 才不會整張圖直接跳回本文欄。 */
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key !== 'Escape') return
-      if (focus || tip) {
-        setFocus(null)
-        setTip(null)
-        return
-      }
-      onEscapeEmpty()
+    escapeRef.current = () => {
+      if (!focus && !tip) return false
+      onFocusChange(null)
+      setTip(null)
+      return true
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [focus, tip, onEscapeEmpty])
+    return () => {
+      escapeRef.current = null
+    }
+  }, [focus, tip, onFocusChange, escapeRef])
 
   /* 指標位於畫布上時 + − 0 生效。不綁全域，免得在搜尋框裡打「-」也被吃掉。 */
   const onViewportKey = useCallback(
@@ -552,16 +553,6 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
             </span>
           ))}
         </div>
-
-        {mode === 'embed' ? (
-          <button
-            type="button"
-            className={`erd-root erd-act${wide ? ' erd-act--ghost' : ''}`}
-            onClick={onToggleWide}
-          >
-            {wide ? '回到本文' : '展開全寬'}
-          </button>
-        ) : null}
       </div>
 
       {focusTable ? (
@@ -580,7 +571,7 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
               ? `（${[...related.children].join('、')}）`
               : ''}
           </div>
-          <button type="button" className="erd-root erd-reset" onClick={() => setFocus(null)}>
+          <button type="button" className="erd-root erd-reset" onClick={() => onFocusChange(null)}>
             取消聚焦（Esc）
           </button>
         </div>
@@ -595,7 +586,7 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
       )}
 
       <div
-        className={`erd-root erd-viewport erd-viewport--${mode}${panning ? ' erd-viewport--panning' : ''}`}
+        className={`erd-root erd-viewport erd-viewport--${fill ? 'fill' : 'page'}${panning ? ' erd-viewport--panning' : ''}`}
         ref={viewportRef}
         style={opts.canvasHeight ? { height: opts.canvasHeight } : undefined}
         tabIndex={0}
@@ -624,7 +615,7 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
               draggedRef.current = false
               return
             }
-            if (ev.target === ev.currentTarget) setFocus(null)
+            if (ev.target === ev.currentTarget) onFocusChange(null)
           }}
         >
           <svg
@@ -697,7 +688,7 @@ export function ErDiagram({ data, opts, mode, wide, onToggleWide, onEscapeEmpty 
                             type="button"
                             className="erd-root erd-cardhead"
                             aria-pressed={focus === t.name}
-                            onClick={() => setFocus((f) => (f === t.name ? null : t.name))}
+                            onClick={() => onFocusChange(focus === t.name ? null : t.name)}
                           >
                             <span className="erd-root erd-tname">{t.name}</span>
                             <span className="erd-root erd-tlabel">{t.label}</span>

@@ -1,28 +1,52 @@
 /* ER Diagram Renderer —— NoteCraft plugin
  *
- * 把一份資料庫 schema JSON 畫成可聚焦、可搜尋的實體關聯圖。
+ * 把一份資料庫 schema JSON 渲染成 DBdocs 式的資料庫文件：
+ * 導覽樹（Schema → 分群 → Table）、Wiki（總覽／Schema／Table）、Diagram（可聚焦、可搜尋的關聯圖）。
  *
  * 前身是 TrendMile 專案裡一支 751 行的 tsx，其中 68 KB 是寫死的表定義。
  * 本檔把資料全部移出去，同時把幾個「只對那個專案成立」的常數也一併外部化 ——
  * 五欄版面、必填性語彙、徽章叫法、hub 表、預設顯示欄數、提示文案。
  * 只抽表定義是不夠的：那些常數留著，換一個專案還是得改程式。
  *
- * 檔案分工：renderer.tsx 是入口（設定合併、全寬檢視）；畫布在 diagram.tsx；
- * 型別與常數在 types.ts；樣式在 styles.ts。入口檔名固定為 renderer.tsx（NoteCraft 的 glob 只認它），
- * 其餘檔案由相對 import 帶進打包 —— 新增檔案時記得登記到 plugins/registry.json 的 files。
+ * 檔案分工：renderer.tsx 是入口（外殼、路由與同步、持久化、全寬、Esc）；
+ * nav.tsx 導覽；wiki.tsx 三種 Wiki 頁；diagram.tsx 畫布；derive.ts 資料推導；
+ * markdown*.ts(x) 迷你 Markdown；types.ts 型別；styles.ts 樣式。
+ * 入口檔名固定為 renderer.tsx（NoteCraft 的 glob 只認它），其餘檔案由相對 import 帶進打包 ——
+ * 新增檔案時記得登記到 plugins/registry.json 的 files。
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { BookOpen, Expand, PanelLeft, Workflow } from 'lucide-react'
 import { erDerive } from './derive'
+import type { ErDerived } from './derive'
 import { ErDiagram } from './diagram'
+import { ErNav } from './nav'
 import { CSS } from './styles'
-import type { ErDiagramData, ErOptions, PluginRendererProps } from './types'
+import type { ErDiagramData, ErOptions, PluginRendererProps, Route } from './types'
 import { DEFAULT_OPTIONS } from './types'
 
 export type { ErColumn, ErDiagramData, ErGroup, ErOptions, ErSchema, ErTable } from './types'
 
+type Tab = 'wiki' | 'diagram'
+
 /** 已印過 dev 警告的資料檔（file.path） */
 const warned = new Set<string>()
+
+/** 外殼寬度 ≤ 此值時導覽改為覆蓋在內容上（與 styles.ts 的 container query 同值） */
+const NARROW = 760
+
+const OVERVIEW: Route = { kind: 'overview' }
+
+/** localStorage 殘留的路由可能指向已改名、已刪除的表 —— 驗不過就回總覽，不白屏 */
+function validRoute(r: unknown, D: ErDerived): Route {
+  if (!r || typeof r !== 'object') return OVERVIEW
+  const x = r as { kind?: unknown; key?: unknown }
+  if (x.kind === 'table' && typeof x.key === 'string' && D.byName.has(x.key)) return { kind: 'table', key: x.key }
+  if (x.kind === 'schema' && typeof x.key === 'string' && !D.implicit && D.schemas.some((s) => s.key === x.key)) {
+    return { kind: 'schema', key: x.key }
+  }
+  return OVERVIEW
+}
 
 export default function ErDiagramRenderer({
   data,
@@ -60,11 +84,162 @@ export default function ErDiagramRenderer({
     }
   }, [D, file.path])
 
+  /* ── 狀態 ───────────────────────────────────────────────
+     Wiki 的 route 是唯一真相；Diagram 的 scope／focus 由它投影而來。
+     唯一例外是「取消聚焦」：只清 focus、route 不動（回到 Wiki 仍是最後看的那張表）。 */
+  const [route, setRoute] = useState<Route>(OVERVIEW)
+  const [tab, setTab] = useState<Tab>('wiki')
+  const [scope, setScope] = useState<string | null>(null)
+  const [focus, setFocus] = useState<string | null>(null)
+  const [navOpen, setNavOpen] = useState(mode === 'page')
   const [wide, setWide] = useState(false)
-  const toggleWide = useCallback(() => setWide((w) => !w), [])
-  const closeWide = useCallback(() => setWide(false), [])
+  const [narrow, setNarrow] = useState(false)
 
-  /* 全寬檢視期間鎖住本文捲動，免得覆蓋層底下的頁面跟著滾 */
+  /* ── 持久化 ─────────────────────────────────────────────
+     SSR 與首次 client render 一律用預設值，掛載後才讀 —— 否則 hydration 對不上。
+     代價是 reload 時先閃一下總覽（page 約一幀；embed 捲到才掛載，通常看不到），已定案接受。 */
+  const storeKey = `erd:v1:${file.path}:${mode}`
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(storeKey)
+      const saved = raw ? (JSON.parse(raw) as { route?: unknown; tab?: unknown; scope?: unknown }) : null
+      if (saved) {
+        const r = validRoute(saved.route, D)
+        setRoute(r)
+        if (saved.tab === 'wiki' || saved.tab === 'diagram') setTab(saved.tab)
+        const sc =
+          typeof saved.scope === 'string' && !D.implicit && D.schemas.some((s) => s.key === saved.scope)
+            ? saved.scope
+            : null
+        setScope(sc)
+        if (saved.tab === 'diagram' && r.kind === 'table') setFocus(r.key)
+      }
+    } catch {
+      /* 隱私模式、配額滿、JSON 壞掉：當作沒有 */
+    }
+    setHydrated(true)
+    // 只在掛載時讀一次
+  }, [])
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      window.localStorage.setItem(storeKey, JSON.stringify({ route, tab, scope }))
+    } catch {
+      /* 同上 */
+    }
+  }, [hydrated, storeKey, route, tab, scope])
+
+  /* ── 寬度與捲動 ─────────────────────────────────────── */
+  const shellRef = useRef<HTMLDivElement | null>(null)
+  const mainRef = useRef<HTMLDivElement | null>(null)
+  const firstNarrow = useRef(true)
+  useLayoutEffect(() => {
+    const el = shellRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(() => {
+      const n = el.clientWidth > 0 && el.clientWidth <= NARROW
+      setNarrow(n)
+      /* 窄版一開始就收起導覽，否則手機上 page 模式一進來內容全被蓋住 */
+      if (n && firstNarrow.current) setNavOpen(false)
+      if (el.clientWidth > 0) firstNarrow.current = false
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  /* page 模式外殼隨內容長高、由頁面的捲動容器捲。導覽要 sticky 且自己捲，
+     它的高度上限取「最近的捲動祖先」的可視高度 —— 不寫死工作台頁首幾 px，也不以 id 找容器。 */
+  useLayoutEffect(() => {
+    const el = shellRef.current
+    if (!el || mode !== 'page') return undefined
+    let p: HTMLElement | null = el.parentElement
+    while (p && p !== document.body) {
+      const oy = getComputedStyle(p).overflowY
+      if (oy === 'auto' || oy === 'scroll') break
+      p = p.parentElement
+    }
+    const scroller = p && p !== document.body ? p : null
+    const apply = () => {
+      const h = scroller ? scroller.clientHeight : window.innerHeight
+      el.style.setProperty('--erd-scroll-h', `${h}px`)
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    if (scroller) ro.observe(scroller)
+    window.addEventListener('resize', apply)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', apply)
+    }
+  }, [mode])
+
+  const scrollToTop = useCallback(() => {
+    if (mode === 'page' && !wide) {
+      /* 外殼頂端已捲出視野才捲回來；還看得到就別動，免得畫面跳 */
+      const el = shellRef.current
+      if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' })
+    } else if (mainRef.current) {
+      mainRef.current.scrollTop = 0
+    }
+  }, [mode, wide])
+
+  const autoCloseNav = useCallback(() => {
+    if ((mode === 'embed' && !wide) || narrow) setNavOpen(false)
+  }, [mode, wide, narrow])
+
+  /* ── 路由與同步 ─────────────────────────────────────── */
+  const go = useCallback(
+    (r: Route) => {
+      setRoute(r)
+      if (tab === 'diagram') {
+        if (r.kind === 'overview') {
+          setScope(null)
+          setFocus(null)
+        } else if (r.kind === 'schema') {
+          setScope(r.key)
+          setFocus(null)
+        } else {
+          const sk = D.schemaOfTable(r.key)
+          if (scope && scope !== sk) setScope(sk)
+          setFocus(r.key)
+        }
+      } else {
+        scrollToTop()
+      }
+      autoCloseNav()
+    },
+    [tab, scope, D, scrollToTop, autoCloseNav],
+  )
+
+  /** 切到 Diagram：依目前的 Wiki 頁決定範圍與聚焦 */
+  const toDiagram = useCallback(() => {
+    if (route.kind === 'schema') {
+      setScope(route.key)
+      setFocus(null)
+    } else if (route.kind === 'table') {
+      setScope(D.implicit ? null : D.schemaOfTable(route.key))
+      setFocus(route.key)
+    } else {
+      setScope(null)
+      setFocus(null)
+    }
+    setTab('diagram')
+  }, [route, D])
+
+  const toWiki = useCallback(() => {
+    setTab('wiki')
+    scrollToTop()
+  }, [scrollToTop])
+
+  /** Diagram 裡點卡片：聚焦並同步 Wiki 路由；取消聚焦只清 focus */
+  const onFocusChange = useCallback((name: string | null) => {
+    setFocus(name)
+    if (name) setRoute({ kind: 'table', key: name })
+  }, [])
+
+  /* ── 全寬（僅 embed）──────────────────────────────────── */
+  const wideBtnRef = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
     if (!wide) return undefined
     const prev = document.body.style.overflow
@@ -74,33 +249,161 @@ export default function ErDiagramRenderer({
     }
   }, [wide])
 
-  /* 全寬時只換掉包在畫布外面的容器，<ErDiagram> 在樹上的位置不變 ——
-     換位置 React 會重掛元件，聚焦、搜尋、展開欄位就全部歸零。 */
+  /* ── Esc 逐層退：畫布的聚焦／tooltip → 覆蓋式導覽 → 全寬 ── */
+  const dgEscape = useRef<(() => boolean) | null>(null)
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Escape' || ev.defaultPrevented) return
+      const el = shellRef.current
+      /* 同一篇筆記有兩張圖時，只有焦點所在的那張反應；全寬是模態，不看焦點 */
+      if (!wide && !(el && el.contains(document.activeElement))) return
+      if (tab === 'diagram' && dgEscape.current?.()) {
+        ev.preventDefault()
+        return
+      }
+      if (narrow && navOpen) {
+        ev.preventDefault()
+        setNavOpen(false)
+        return
+      }
+      if (wide) {
+        ev.preventDefault()
+        setWide(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [wide, tab, narrow, navOpen])
+
+  /* ── 畫面 ───────────────────────────────────────────── */
+  const isEmbed = mode === 'embed' && !wide
+  const shellCls = [
+    'erd-root erd-shell',
+    wide ? 'erd-shell--wide' : mode === 'page' ? 'erd-shell--page' : 'erd-shell--embed',
+    navOpen ? '' : 'erd-shell--navclosed',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const crumb =
+    route.kind === 'overview' ? (
+      '總覽'
+    ) : route.kind === 'schema' ? (
+      <>
+        schema · <code>{route.key}</code>
+      </>
+    ) : D.implicit ? (
+      <code>{route.key}</code>
+    ) : (
+      <>
+        {D.schemaOfTable(route.key)} · <code>{route.key}</code>
+      </>
+    )
+
+  const shell = (
+    <div className={shellCls} ref={shellRef}>
+      <div className="erd-root erd-bar">
+        <button
+          type="button"
+          className={`erd-root erd-iconbtn${navOpen ? ' erd-on' : ''}`}
+          onClick={() => {
+            /* 窄版 page 的覆蓋式導覽貼在外殼頂端，打開前先把外殼捲進視野 */
+            if (!navOpen && narrow && mode === 'page') {
+              const el = shellRef.current
+              if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' })
+            }
+            setNavOpen((o) => !o)
+          }}
+          aria-label={navOpen ? '收起導覽' : '展開導覽'}
+          aria-expanded={navOpen}
+          title="切換導覽"
+        >
+          <PanelLeft size={15} aria-hidden />
+        </button>
+        <div className="erd-root erd-tabs" role="tablist" aria-label="檢視">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'wiki'}
+            className={tab === 'wiki' ? 'erd-on' : ''}
+            onClick={toWiki}
+          >
+            <BookOpen size={13} aria-hidden />
+            <span className="erd-root erd-tab-l">Wiki</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'diagram'}
+            className={tab === 'diagram' ? 'erd-on' : ''}
+            onClick={toDiagram}
+          >
+            <Workflow size={13} aria-hidden />
+            <span className="erd-root erd-tab-l">Diagram</span>
+          </button>
+        </div>
+        {tab === 'wiki' ? <div className="erd-root erd-bar-crumb">{crumb}</div> : <div className="erd-root erd-bar-fill" />}
+        {mode === 'embed' ? (
+          <button
+            type="button"
+            ref={wideBtnRef}
+            className={`erd-root erd-pill${wide ? '' : ' erd-pill--gold'}`}
+            onClick={() => setWide((w) => !w)}
+          >
+            <Expand size={12} aria-hidden />
+            {wide ? '回到本文' : '展開全寬'}
+          </button>
+        ) : null}
+      </div>
+      <div className="erd-root erd-body">
+        {navOpen ? (
+          <ErNav D={D} route={route} go={go} compact={mode === 'embed'} autoFocus={narrow} />
+        ) : null}
+        <div
+          className={`erd-root erd-main${tab === 'diagram' ? ' erd-main--dg' : ''}`}
+          ref={mainRef}
+          role="tabpanel"
+        >
+          {tab === 'wiki' ? (
+            <article className="erd-root erd-page">
+              <p className="erd-root erd-lede">{crumb}</p>
+            </article>
+          ) : (
+            <ErDiagram
+              data={data}
+              opts={opts}
+              fill={mode === 'embed' || wide}
+              wide={wide}
+              focus={focus}
+              onFocusChange={onFocusChange}
+              escapeRef={dgEscape}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  /* 全寬時只換掉包在外殼外面的容器，外殼在樹上的位置不變 ——
+     換位置 React 會重掛，路由以外的狀態（捲動、展開的欄位）就全部歸零。 */
   return (
     <div className="erd-root erd-host">
       <style>{CSS}</style>
       {wide ? (
         <div className="erd-root erd-hold">
-          <span>{data.meta?.title ?? '關聯圖'}已在全寬檢視開啟，按 Esc 或右側按鈕回到本文。</span>
-          <button type="button" className="erd-root erd-act" onClick={closeWide}>
+          <span>{data.meta?.title ?? '資料庫文件'}已在全寬檢視開啟。</span>
+          <button type="button" className="erd-root erd-pill erd-pill--gold" onClick={() => setWide(false)}>
             回到本文
           </button>
         </div>
       ) : null}
       <div
-        className={wide ? 'erd-root erd-overlay' : 'erd-root erd-inline'}
+        className={`erd-root ${wide ? 'erd-overlay' : 'erd-inline'}${isEmbed ? ' erd-inline--embed' : ''}`}
         role={wide ? 'dialog' : undefined}
         aria-modal={wide ? true : undefined}
-        aria-label={wide ? `${data.meta?.title ?? '關聯圖'}（全寬檢視）` : undefined}
+        aria-label={wide ? `${data.meta?.title ?? '資料庫文件'}（全寬檢視）` : undefined}
       >
-        <ErDiagram
-          data={data}
-          opts={opts}
-          mode={mode}
-          wide={wide}
-          onToggleWide={toggleWide}
-          onEscapeEmpty={closeWide}
-        />
+        {shell}
       </div>
     </div>
   )

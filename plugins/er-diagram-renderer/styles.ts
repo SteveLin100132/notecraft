@@ -5,6 +5,9 @@
  */
 
 export const CSS = `
+/* DS 沒有的色值只有這一個：衍生欄徽章的字色（warning-50 底上的深金，與工作台一致）。
+   集中在這裡，規則只引用它。 */
+.erd-root.erd-host { --erd-warn-ink: #8a6412; font-family: var(--font-sans); color: var(--text-body); }
 .erd-root.erd-wrap { position: relative; font-family: var(--font-sans); color: var(--text-body); }
 .erd-root .erd-cardhead, .erd-root .erd-cardhead .erd-tname, .erd-root .erd-cardhead .erd-tlabel, .erd-root .erd-cardhead .erd-tsec { color: var(--neutral-0); }
 .erd-root .erd-card--focus .erd-cardhead, .erd-root .erd-card--focus .erd-cardhead .erd-tname, .erd-root .erd-card--focus .erd-cardhead .erd-tlabel, .erd-root .erd-card--focus .erd-cardhead .erd-tsec { color: var(--blue-950); }
@@ -27,9 +30,8 @@ export const CSS = `
 .erd-root .erd-viewport { position: relative; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background-color: var(--surface-page); background-image: radial-gradient(circle, color-mix(in srgb, var(--text-muted) 22%, transparent) 1px, transparent 1px); background-size: 22px 22px; cursor: grab; touch-action: none; outline: none; }
 .erd-root .erd-viewport:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .erd-root .erd-viewport--panning { cursor: grabbing; }
-.erd-root .erd-viewport--embed { height: 560px; }
-.erd-root .erd-viewport--page { height: clamp(420px, calc(100vh - 230px), 1200px); }
-.erd-root .erd-overlay .erd-viewport { height: calc(100vh - 150px); }
+.erd-root .erd-viewport--page { height: clamp(420px, calc(100vh - 250px), 1200px); }
+.erd-root .erd-viewport--fill { flex: 1; min-height: 200px; }
 .erd-root .erd-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: max-content; }
 .erd-root .erd-stage--animated { transition: transform var(--duration-normal) var(--ease-out); }
 .erd-root .erd-canvas { position: relative; width: max-content; }
@@ -69,7 +71,7 @@ export const CSS = `
 .erd-root .erd-k--info { background: var(--blue-50); color: var(--blue-600); }
 .erd-root .erd-k--success { background: var(--success-50); color: var(--success-500); }
 .erd-root .erd-k--neutral { background: var(--neutral-100); color: var(--neutral-600); }
-.erd-root .erd-k--warning { background: var(--warning-50); color: var(--warning-700); }
+.erd-root .erd-k--warning { background: var(--warning-50); color: var(--erd-warn-ink); }
 .erd-root .erd-dot { width: 7px; height: 7px; border-radius: var(--radius-circle); border: 1.5px solid var(--blue-500); flex: 0 0 auto; display: inline-block; }
 .erd-root .erd-dot--solid { background: var(--blue-500); }
 .erd-root .erd-dot--half { background: linear-gradient(90deg, var(--blue-500) 50%, transparent 50%); }
@@ -92,15 +94,94 @@ export const CSS = `
 .erd-root .erd-tip--up { transform: translate(-50%, -100%); }
 .erd-root .erd-tiphead { font-family: var(--font-mono); font-size: 11px; color: var(--orange-300); margin-bottom: 3px; }
 .erd-root .erd-tipbody { font-size: 11.5px; line-height: 1.65; }
-.erd-root .erd-act { appearance: none; font: inherit; font-size: 12px; font-weight: var(--weight-bold); line-height: 1.5; padding: 5px 13px; border-radius: var(--radius-pill); border: 1px solid var(--orange-400); background: var(--orange-400); color: var(--blue-950); cursor: pointer; white-space: nowrap; transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out); }
-.erd-root .erd-act:hover { background: var(--orange-300); border-color: var(--orange-300); }
-.erd-root .erd-act--ghost { background: var(--surface-card); border-color: var(--border-default); color: var(--text-muted); }
-.erd-root .erd-act--ghost:hover { background: var(--surface-card); border-color: var(--blue-400); color: var(--blue-700); }
-.erd-root .erd-act:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .erd-root .erd-hold { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 18px 16px; border: 1px dashed var(--border-default); border-radius: var(--radius-lg); background: var(--surface-sunken); font-size: 13px; color: var(--text-muted); }
-.erd-root .erd-hold .erd-act { margin-left: auto; }
-.erd-root .erd-overlay { position: fixed; inset: 0; z-index: 2147483000; background: var(--surface-page); overflow: auto; padding: 18px clamp(12px, 3vw, 40px) 48px; }
 @media (max-width: 900px) {
   .erd-root .erd-legend { margin-left: 0; }
+}
+
+/* ── 外殼（v1.2）─────────────────────────────────────────
+   斷點看的是外殼自己的寬度（container query），不是視窗：筆記內文欄就是 760px，
+   用 media query 的話桌面上的內嵌永遠吃不到、手機上的獨立頁反而吃得到。 */
+.erd-root.erd-inline, .erd-root.erd-overlay { container: erd / inline-size; }
+.erd-root.erd-shell { display: flex; flex-direction: column; min-width: 0; background: var(--surface-card); font-size: 13px; }
+.erd-root.erd-shell code { font-family: var(--font-mono); }
+.erd-root.erd-shell--page { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+.erd-root.erd-shell--embed { height: 580px; }
+.erd-root.erd-shell--wide { height: 100%; }
+@container erd (max-width: 520px) { .erd-root.erd-shell--embed { height: min(580px, 75vh); } }
+.erd-root .erd-bar { display: flex; align-items: center; gap: 12px; flex: none; height: 44px; padding: 0 14px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-card); }
+.erd-root.erd-shell--page .erd-bar { position: sticky; top: 0; z-index: 6; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.erd-root .erd-iconbtn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); cursor: pointer; }
+.erd-root .erd-iconbtn:hover { background: var(--blue-50); color: var(--blue-700); }
+.erd-root .erd-iconbtn.erd-on { color: var(--blue-700); }
+.erd-root .erd-iconbtn:focus-visible, .erd-root .erd-tabs button:focus-visible, .erd-root .erd-pill:focus-visible, .erd-root .erd-nav button:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.erd-root .erd-tabs { display: flex; gap: 2px; height: 100%; }
+.erd-root .erd-tabs button { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; }
+.erd-root .erd-tabs button:hover { color: var(--blue-700); }
+.erd-root .erd-tabs button.erd-on { color: var(--blue-700); font-weight: var(--weight-bold); background: linear-gradient(var(--orange-400), var(--orange-400)) no-repeat center bottom / calc(100% - 20px) 2px; }
+.erd-root .erd-bar-crumb { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--text-muted); }
+.erd-root .erd-bar-crumb code { color: var(--blue-700); }
+.erd-root .erd-bar-fill { margin-left: auto; }
+.erd-root .erd-pill { display: inline-flex; align-items: center; gap: 5px; flex: none; height: 28px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--radius-pill); background: var(--surface-card); font: inherit; font-size: 12px; font-weight: 600; color: var(--text-body); cursor: pointer; white-space: nowrap; transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out); }
+.erd-root .erd-pill:hover { border-color: var(--blue-400); color: var(--blue-700); }
+.erd-root .erd-pill:active { transform: scale(.97); }
+.erd-root .erd-pill--blue { background: var(--blue-50); border-color: var(--blue-100); color: var(--blue-700); }
+.erd-root .erd-pill--blue:hover { background: var(--blue-100); }
+.erd-root .erd-pill--gold { background: var(--orange-400); border-color: var(--orange-400); color: var(--blue-950); }
+.erd-root .erd-pill--gold:hover { background: var(--orange-300); border-color: var(--orange-300); color: var(--blue-950); }
+.erd-root .erd-hold .erd-pill { margin-left: auto; }
+.erd-root .erd-body { position: relative; flex: 1; display: flex; min-height: 0; }
+.erd-root .erd-main { flex: 1; min-width: 0; overflow: auto; }
+.erd-root.erd-shell--page .erd-main { overflow: visible; }
+.erd-root .erd-main--dg { display: flex; flex-direction: column; padding: 14px 16px 16px; }
+.erd-root .erd-main--dg .erd-wrap.erd-root { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.erd-root.erd-overlay { position: fixed; inset: 0; z-index: 2147483000; background: var(--surface-card); animation: erd-fade 160ms var(--ease-out); }
+@keyframes erd-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── 導覽 ── */
+.erd-root .erd-nav { display: flex; flex-direction: column; flex: 0 0 248px; width: 248px; min-height: 0; border-right: 1px solid var(--border-subtle); background: var(--surface-page); }
+.erd-root.erd-shell--embed .erd-nav { flex-basis: 220px; width: 220px; }
+/* page：導覽 sticky、高度上限取捲動容器的可視高度（renderer 量好寫進 --erd-scroll-h）。
+   導覽比內容短時，欄底色與分隔線由 body 的背景補滿整欄 */
+.erd-root.erd-shell--page .erd-nav { position: sticky; top: 44px; align-self: flex-start; max-height: calc(var(--erd-scroll-h, 100dvh) - 44px); border-right: 0; background: transparent; }
+.erd-root.erd-shell--page:not(.erd-shell--navclosed) .erd-body { background: linear-gradient(to right, var(--surface-page) 0 248px, var(--border-subtle) 248px 249px, transparent 249px); border-radius: 0 0 0 var(--radius-lg); }
+.erd-root .erd-nav-search { display: flex; align-items: center; gap: 6px; flex: none; height: 30px; margin: 10px 10px 4px; padding: 0 8px 0 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); background: var(--surface-card); color: var(--text-muted); }
+.erd-root .erd-nav-search:focus-within { border-color: var(--blue-400); }
+.erd-root .erd-nav-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 12.5px; color: var(--text-strong); }
+.erd-root .erd-nav-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 8px 16px; }
+.erd-root .erd-nav-sec { display: flex; justify-content: space-between; padding: 12px 8px 4px; font-size: 10.5px; font-weight: var(--weight-bold); letter-spacing: .1em; color: var(--text-muted); }
+.erd-root .erd-nav-item { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 30px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: transparent; font: inherit; font-size: 12.5px; color: var(--neutral-700); cursor: pointer; text-align: left; }
+.erd-root .erd-nav-item:hover { background: color-mix(in srgb, var(--blue-700) 6%, transparent); }
+.erd-root .erd-nav-item.erd-on { background: color-mix(in srgb, var(--blue-700) 10%, transparent); color: var(--blue-700); }
+.erd-root .erd-nav-item.erd-on .erd-nav-l { font-weight: var(--weight-bold); }
+.erd-root .erd-nav-item--node { gap: 0; padding: 0 4px 0 0; }
+.erd-root .erd-nav-main { display: flex; flex: 1; align-items: center; gap: 7px; min-width: 0; height: 30px; padding: 0 4px; border: 0; background: none; font: inherit; font-size: 12.5px; color: inherit; cursor: pointer; text-align: left; }
+.erd-root .erd-nav-l { display: flex; flex: 1; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.erd-root .erd-nav-l code { font-size: 12px; color: var(--blue-700); }
+.erd-root .erd-nav-item--node .erd-nav-l { font-weight: 600; color: var(--text-strong); }
+.erd-root .erd-nav-l--group { font-size: 12px; }
+.erd-root .erd-nav-sub { overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--text-muted); }
+.erd-root .erd-nav-colhit { overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--text-muted); }
+.erd-root .erd-nav-colhit code { font-size: 11px; color: var(--blue-700); }
+.erd-root .erd-nav-n { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.erd-root .erd-caret { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 30px; padding: 0; border: 0; background: none; color: var(--text-muted); cursor: pointer; }
+.erd-root .erd-caret svg { transition: transform var(--duration-fast) var(--ease-out); }
+.erd-root .erd-caret--open svg { transform: rotate(90deg); }
+.erd-root .erd-nav-group { margin: 0 0 2px 20px; padding-left: 6px; border-left: 1px solid var(--border-subtle); }
+.erd-root .erd-nav-glabel { padding: 6px 8px 2px; font-size: 10.5px; font-weight: var(--weight-bold); color: color-mix(in srgb, var(--blue-700) 80%, transparent); }
+.erd-root .erd-nav-item--table { min-height: 28px; color: var(--text-muted); }
+.erd-root .erd-nav-item--table code { color: var(--neutral-800); }
+.erd-root .erd-nav-item--table.erd-on code { color: var(--blue-700); }
+.erd-root .erd-nav-item--table.erd-on { box-shadow: inset 2px 0 0 var(--orange-400); }
+
+/* ── 窄外殼：導覽改為覆蓋在內容上 ── */
+@container erd (max-width: 760px) {
+  .erd-root .erd-nav { position: absolute; top: 0; left: 0; bottom: 0; z-index: 7; box-shadow: var(--shadow-lg); }
+  .erd-root.erd-shell--page .erd-nav { bottom: auto; height: min(100%, calc(var(--erd-scroll-h, 100dvh) - 44px)); max-height: none; background: var(--surface-page); }
+  .erd-root.erd-shell--page:not(.erd-shell--navclosed) .erd-body { background: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .erd-root.erd-overlay { animation: none; }
+  .erd-root .erd-pill:active { transform: none; }
 }
 `
