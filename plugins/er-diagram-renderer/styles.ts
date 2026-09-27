@@ -177,7 +177,7 @@ export const CSS = `
 /* ── 窄外殼：導覽改為覆蓋在內容上 ── */
 @container erd (max-width: 760px) {
   .erd-root .erd-nav { position: absolute; top: 0; left: 0; bottom: 0; z-index: 7; box-shadow: var(--shadow-lg); }
-  .erd-root.erd-shell--page .erd-nav { bottom: auto; height: min(100%, calc(var(--erd-scroll-h, 100dvh) - 44px)); max-height: none; background: var(--surface-page); }
+  .erd-root.erd-shell--page .erd-nav { position: absolute; top: 0; bottom: auto; height: min(100%, calc(var(--erd-scroll-h, 100dvh) - 44px)); max-height: none; background: var(--surface-page); }
   .erd-root.erd-shell--page:not(.erd-shell--navclosed) .erd-body { background: none; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -335,4 +335,18 @@ export const CSS = `
 .erd-root .erd-focusbar-act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 .erd-root .erd-focusbar-act .erd-reset { margin-left: 0; }
 .erd-root .erd-hint-cross { margin-left: 6px; color: var(--orange-600); }
+
+/* ── 響應式收尾（v1.2）── */
+.erd-root .erd-nav-backdrop { position: absolute; inset: 0; z-index: 6; background: color-mix(in srgb, var(--blue-950) 12%, transparent); }
+@container erd (max-width: 520px) {
+  .erd-root .erd-bar { gap: 8px; padding: 0 8px; }
+  .erd-root .erd-tabs button { padding: 0 10px; }
+  .erd-root .erd-tab-l, .erd-root .erd-bar-crumb, .erd-root .erd-scope-l { display: none; }
+  .erd-root .erd-search { min-width: 0; flex: 1; }
+  .erd-root .erd-legend { display: none; }
+}
+
+/* embed 的高度固定：提示列與聚焦列不能無限長高，否則畫布被擠到只剩一條縫 */
+.erd-root.erd-shell--embed .erd-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.erd-root.erd-shell--embed .erd-focusbar .erd-muted { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 `

@@ -15,7 +15,8 @@
  * 新增檔案時記得登記到 plugins/registry.json 的 files。
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { BookOpen, Expand, PanelLeft, Workflow } from 'lucide-react'
 import { erDerive } from './derive'
 import type { ErDerived } from './derive'
@@ -193,9 +194,18 @@ export default function ErDiagramRenderer({
     }
   }, [mode, wide])
 
+  const navBtnRef = useRef<HTMLButtonElement | null>(null)
+  /** 收起導覽；焦點原本在導覽裡的話還給導覽開關，免得焦點掉到 body */
+  const closeNav = useCallback(() => {
+    const nav = shellRef.current?.querySelector('.erd-nav')
+    const hadFocus = !!nav && nav.contains(document.activeElement)
+    setNavOpen(false)
+    if (hadFocus) navBtnRef.current?.focus()
+  }, [])
+
   const autoCloseNav = useCallback(() => {
-    if ((mode === 'embed' && !wide) || narrow) setNavOpen(false)
-  }, [mode, wide, narrow])
+    if ((mode === 'embed' && !wide) || narrow) closeNav()
+  }, [mode, wide, narrow, closeNav])
 
   /* ── 路由與同步 ─────────────────────────────────────── */
   const go = useCallback(
@@ -266,6 +276,16 @@ export default function ErDiagramRenderer({
 
   /* ── 全寬（僅 embed）──────────────────────────────────── */
   const wideBtnRef = useRef<HTMLButtonElement | null>(null)
+  /* 進出全寬時焦點都落在同一顆按鈕（外殼沒有重掛，它就是同一個節點）：
+     進去時焦點在覆蓋層內，出來時回到觸發的地方 */
+  const wideMounted = useRef(false)
+  useEffect(() => {
+    if (!wideMounted.current) {
+      wideMounted.current = true
+      return
+    }
+    wideBtnRef.current?.focus()
+  }, [wide])
   useEffect(() => {
     if (!wide) return undefined
     const prev = document.body.style.overflow
@@ -275,7 +295,10 @@ export default function ErDiagramRenderer({
     }
   }, [wide])
 
-  /* ── Esc 逐層退：畫布的聚焦／tooltip → 覆蓋式導覽 → 全寬 ── */
+  /* ── Esc 逐層退：畫布的聚焦／tooltip → 覆蓋式導覽 → 全寬 ──
+     掛在 capture 階段：放大檢視（VizZoom）也在 capture 階段攔 Esc 並 stopPropagation，
+     plugin 的監聽比它早註冊、先執行 —— 有東西可退才攔下（stopImmediatePropagation），
+     沒有就放行，讓 VizZoom 或工作台的 Escape 堆疊照常關自己那一層。一次 Esc 只退一層。 */
   const dgEscape = useRef<(() => boolean) | null>(null)
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -283,23 +306,44 @@ export default function ErDiagramRenderer({
       const el = shellRef.current
       /* 同一篇筆記有兩張圖時，只有焦點所在的那張反應；全寬是模態，不看焦點 */
       if (!wide && !(el && el.contains(document.activeElement))) return
-      if (tab === 'diagram' && dgEscape.current?.()) {
-        ev.preventDefault()
-        return
-      }
-      if (narrow && navOpen) {
-        ev.preventDefault()
-        setNavOpen(false)
-        return
-      }
-      if (wide) {
-        ev.preventDefault()
+      let handled = false
+      if (tab === 'diagram' && dgEscape.current?.()) handled = true
+      else if (narrow && navOpen) {
+        closeNav()
+        handled = true
+      } else if (wide) {
         setWide(false)
+        handled = true
+      }
+      if (handled) {
+        ev.preventDefault()
+        ev.stopImmediatePropagation()
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [wide, tab, narrow, navOpen])
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [wide, tab, narrow, navOpen, closeNav])
+
+  /* ── 鍵盤：分頁與範圍的方向鍵（roving） ──────────────── */
+  const uid = useId()
+  const mainId = `${uid}-main`
+  const onTabsKey = (ev: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return
+    ev.preventDefault()
+    if (tab === 'wiki') toDiagram()
+    else toWiki()
+    const next = ev.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[tab === 'wiki' ? 1 : 0]
+    next?.focus()
+  }
+  const onScopeKey = (ev: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return
+    ev.preventDefault()
+    const keys: (string | null)[] = [null, ...D.schemas.map((x) => x.key)]
+    const i = keys.indexOf(scope)
+    const j = (i + (ev.key === 'ArrowRight' ? 1 : -1) + keys.length) % keys.length
+    pickScope(keys[j])
+    ev.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[j]?.focus()
+  }
 
   /* ── 畫面 ───────────────────────────────────────────── */
   const isEmbed = mode === 'embed' && !wide
@@ -331,6 +375,7 @@ export default function ErDiagramRenderer({
       <div className="erd-root erd-bar">
         <button
           type="button"
+          ref={navBtnRef}
           className={`erd-root erd-iconbtn${navOpen ? ' erd-on' : ''}`}
           onClick={() => {
             /* 窄版 page 的覆蓋式導覽貼在外殼頂端，打開前先把外殼捲進視野 */
@@ -346,11 +391,14 @@ export default function ErDiagramRenderer({
         >
           <PanelLeft size={15} aria-hidden />
         </button>
-        <div className="erd-root erd-tabs" role="tablist" aria-label="檢視">
+        <div className="erd-root erd-tabs" role="tablist" aria-label="檢視" onKeyDown={onTabsKey}>
           <button
             type="button"
             role="tab"
             aria-selected={tab === 'wiki'}
+            aria-controls={mainId}
+            aria-label="Wiki"
+            tabIndex={tab === 'wiki' ? 0 : -1}
             className={tab === 'wiki' ? 'erd-on' : ''}
             onClick={toWiki}
           >
@@ -361,6 +409,9 @@ export default function ErDiagramRenderer({
             type="button"
             role="tab"
             aria-selected={tab === 'diagram'}
+            aria-controls={mainId}
+            aria-label="Diagram"
+            tabIndex={tab === 'diagram' ? 0 : -1}
             className={tab === 'diagram' ? 'erd-on' : ''}
             onClick={toDiagram}
           >
@@ -373,7 +424,7 @@ export default function ErDiagramRenderer({
         ) : D.implicit ? (
           <div className="erd-root erd-bar-fill" />
         ) : (
-          <div className="erd-root erd-scope" role="radiogroup" aria-label="Diagram 範圍">
+          <div className="erd-root erd-scope" role="radiogroup" aria-label="Diagram 範圍" onKeyDown={onScopeKey}>
             <span className="erd-root erd-scope-l">範圍</span>
             {[null, ...D.schemas.map((x) => x.key)].map((k) => (
               <button
@@ -381,6 +432,7 @@ export default function ErDiagramRenderer({
                 key={k ?? '*'}
                 role="radio"
                 aria-checked={scope === k}
+                tabIndex={scope === k ? 0 : -1}
                 className={scope === k ? 'erd-on' : ''}
                 onClick={() => pickScope(k)}
               >
@@ -402,12 +454,17 @@ export default function ErDiagramRenderer({
         ) : null}
       </div>
       <div className="erd-root erd-body">
+        {navOpen && narrow ? (
+          /* 覆蓋式導覽的背板：點內容區任何地方就收起 */
+          <div className="erd-root erd-nav-backdrop" aria-hidden onClick={closeNav} />
+        ) : null}
         {navOpen ? (
           <ErNav D={D} route={route} go={go} compact={mode === 'embed'} autoFocus={narrow} />
         ) : null}
         <div
           className={`erd-root erd-main${tab === 'diagram' ? ' erd-main--dg' : ''}`}
           ref={mainRef}
+          id={mainId}
           role="tabpanel"
         >
           {tab === 'wiki' ? (
