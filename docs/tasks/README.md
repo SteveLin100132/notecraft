@@ -331,6 +331,9 @@
 
 ## v1.14.0 追加功能（§8.1 Phase 4.17 待補）— ER Diagram Renderer v1.2：導覽 + Wiki + Diagram（plugin v1.2.0／notecraftapp v1.3.0）
 
+> **已完成（2026-09-27）**：Task 76–86 全部實作並逐 Task commit 於 `feat/er-diagram-redesign`。四個待驗證項的結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+> 偏離原計畫的幾處：`ResolvedDataFile.description` 直接改為純文字（不另開欄位）；embed 畫布改為填滿剩餘高度；page 導覽高度量捲動祖先而非寫死 offset；`<style>` 的 CSS 不可含 SSR 會跳脫的字元（新增 `er-styles.mjs`）。另順手修了 dev 下 Ajv「schema already exists」的既有問題。
+
 > 規格：[notecraft-er-docs.md](../notecraft-er-docs.md) **v0.2.0**（10 項決策已於 2026-09-27 定案，紀錄見該文件 §16）
 > 設計交付：[design_handoff_er_docs](../prototype/design_handoff_er_docs/)（`README.md` 是像素級規格與相容性要求、`prototype/er/er.css` 是視覺定稿、
 > `prototype/ER Diagram Docs.html` 可離線開啟、`schema.json` 與 `example/schema.json` 是 v1.2 資料規格與範例）

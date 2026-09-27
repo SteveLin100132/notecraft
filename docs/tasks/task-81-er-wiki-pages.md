@@ -76,3 +76,9 @@
 ## 依賴
 
 Task 79、Task 80。
+
+## 實作記錄（2026-09-27）
+
+- 隱含模式的分群卡片不整張可點（沒有分群頁可去），改為表名 chip 各自可點
+- 全站 reset 會吃掉清單符號，`.erd-md` 明確補 `list-style`；參照清單的標籤加 `white-space: nowrap`
+- 順手修 app：dev 下改資料檔後 Ajv「schema already exists」整站 500（獨立 commit `fix(plugins)`）

@@ -103,3 +103,10 @@ State：`route`、`tab`、`scope`、`focus`、`navOpen`（page 預設開、embed
 ## 依賴
 
 Task 78。
+
+## 實作記錄（2026-09-27）
+
+- page 模式導覽的高度上限不寫死 offset：往上找最近的捲動祖先、量它的高度寫進 `--erd-scroll-h`
+- 聚焦狀態與 Esc 監聽提升到外殼，畫布只透過 `escapeRef` 回報有無東西可退
+- **踩到 hydration 失敗**：React SSR 會把 `<style>` 文字裡的 `>`、`"` 跳脫成實體，選擇器壞掉、island 退回 client render。改寫 CSS 並新增 `scripts/checks/er-styles.mjs` 把關
+- 衍生欄徽章原用 `var(--warning-700)`，DS 沒有這個 token，改為 `--erd-warn-ink`

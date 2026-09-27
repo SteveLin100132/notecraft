@@ -66,3 +66,10 @@ Handoff 用 `@media (max-width:760px)`，但**筆記內文欄就是 760px** —�
 ## 依賴
 
 Task 81、82、83。
+
+## 實作記錄（2026-09-27）
+
+- **VizZoom 確實會吃掉 Esc**（capture + stopPropagation）。plugin 改掛 capture、先於 VizZoom 執行，有東西可退才 `stopImmediatePropagation`；實測放大中先取消聚焦、再關放大
+- page 模式的 sticky 規則權重較高、蓋掉窄版的 absolute，窄版規則補上 `position: absolute`
+- 覆蓋式導覽加背板；embed 的提示列限一行、聚焦列關聯文字限兩行
+- 測試環境：Browser pane 未繪製時 ResizeObserver／IntersectionObserver 不觸發，截圖讓頁面繪製後即正常

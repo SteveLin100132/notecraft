@@ -73,3 +73,8 @@
 ## 依賴
 
 Task 76–85。
+
+## 實作記錄（2026-09-27）
+
+- manifest／registry 1.2.0、README 重寫、CLAUDE.md（check-plugins 範圍、`<style>` 字元限制、description 約定）、plugin 規格 §8.2 補一段、設計文件 §17 回填
+- `npm pack --dry-run` 含 plugin 全部 15 個檔與 `src/lib/strip-markdown.ts`，不含 `scripts/checks/`；以本機來源 `install-plugin --yes` 到暫存專案，14 個檔與兩份 example 皆複製

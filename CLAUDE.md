@@ -156,7 +156,12 @@ Astro 的 hydration 指令要在編譯期就知道元件來自哪個模組。渲
 
 repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就等於發佈**。
 因此 `npm run check-plugins` 是必要的護欄：驗 manifest、registry 無漂移、
-example 通過自己的 schema，並實際配 example 資料 build 一次。`prepublishOnly` 會跑它。
+`example/` 底下**所有** `.json` 通過自己的 schema，並實際配這些資料 build 一次（官方 plugin 以此保留舊版資料格式的範例當相容測試）。
+它也串接 `scripts/checks/*.mjs` —— 以 Node 22.6+ 原生 strip-types 直接載入 plugin／app 的純函式 `.ts` 做斷言（不引入 test runner）；
+**被它載入的 `.ts` 只能有 `import type`、不能有 JSX**。`prepublishOnly` 會跑它。
+
+- **plugin 以 `<style>{CSS}</style>` 注入樣式時，CSS 字串不可含 `< > & " '`**：React SSR 會把它們跳脫成實體，`<style>` 裡不會解回來，選擇器壞掉且 hydration 失敗（ER plugin 由 `scripts/checks/er-styles.mjs` 把關）
+- **資料檔 `meta.description` 允許 Markdown**：app 端的 `ResolvedDataFile.description` 已是第一段純文字、`descriptionIndex` 是全文純文字（`src/lib/strip-markdown.ts`）；不要在 app 端直接輸出 `data.meta.description`
 
 ## dev-only API（僅 `astro dev` 期間存在，build 時不輸出）
 
@@ -194,7 +199,7 @@ trim 前後空白 → 過濾空字串 → 同篇內不分大小寫去重（保�
 - Dashboard 統計於 `astro build` 階段透過 Content Collections 預計算為 JSON，**無執行時 API**
 - 元件強制 TypeScript（`.tsx`），禁用 `any`（除非註解說明理由），不可有 required props
 - motion 元件預設 200–400ms ease-out，並用 `useReducedMotion()` 尊重 `prefers-reduced-motion`
-- **沒有 pre-push hook**（`.git/hooks` 只有 sample、也沒有 husky）。每次 commit 前自己跑 `npx tsc --noEmit && npx astro build`；動到 plugin 相關的再跑 `npm run check-plugins`
+- **沒有 pre-push hook**（`.git/hooks` 只有 sample、也沒有 husky）。每次 commit 前自己跑 `npx tsc --noEmit && npx astro build`；動到 plugin 相關的再跑 `npm run check-plugins`（只想跑純函式斷言用 `npm run check:er`，秒級）。注意 `tsc --noEmit` 本來就有數十個既有錯誤（多在 `src/lib/workbench.ts` 等），看的是「有沒有新增」
 
 ## 待釐清項已收斂的決策
 

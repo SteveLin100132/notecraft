@@ -70,3 +70,8 @@ export interface ErSchema { key: string; label: string; description?: string }
 ## 依賴
 
 無。
+
+## 實作記錄（2026-09-27）
+
+- schema.json 換成交付包的 v1.2（逐字比對只多四個選填屬性與三處註解）；原 v1.1 範例 `git mv` 成 `example/schema.v1.1.json`，內容零差異
+- `check-plugins` 以 `exampleFiles()` 取 `manifest.example` + `example/` 底下其餘 `.json`，全部 Ajv 驗證、複製到 fixture 的 `docs/examples/` 一次 build（規則 `examples/*.json`）

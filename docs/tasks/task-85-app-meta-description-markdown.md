@@ -88,3 +88,9 @@ plugin `engines` **不升**（`>=0.6.0`）：舊 app 上只是顯示 Markdown �
 ## 依賴
 
 Task 79。
+
+## 實作記錄（2026-09-27）
+
+- 偏離：`ResolvedDataFile.description` 本身改為第一段純文字（不另開 `descriptionText`），新增 `descriptionIndex` —— 沒有任何出口需要原文，漏改的出口也自動安全
+- pagefind 實測會索引 `hidden` 元素：第二段以後的詞搜得到、欄位名搜不到；純文字描述的頁面輸出與先前逐字相同
+- `app-strip-markdown.mjs` 以 33 組輸入對照 app 與 plugin 兩份實作，逐字相同

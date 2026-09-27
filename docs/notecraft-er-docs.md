@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft — ER Diagram Renderer v1.2（Schema／Table 導覽 + Wiki + Diagram）
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用 plugin 既有技術棧：React + TypeScript + lucide-react，不新增 runtime 套件）
-文件狀態: 定案（待實作）—— §15 的 10 題已於 2026-09-27 逐題確認（紀錄見 §16）
+文件狀態: 已實作（plugin v1.2.0／notecraftapp v1.3.0，Task 76–86，2026-09-27）—— §15 的 10 題已於 2026-09-27 逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-09-27
 更新日期: 2026-09-27
@@ -592,4 +592,40 @@ Handoff 用 `@media (max-width:760px)`。但**筆記內文欄就是 760px**，�
 
 ## 17. 實作後回填
 
-（實作完成後填寫）
+Task 76–86 已全部實作（2026-09-27，plugin v1.2.0／notecraftapp v1.3.0），逐 Task commit 於 `feat/er-diagram-redesign`。
+
+### 待驗證項的結論
+
+| 待驗證項 | 結論 | 寫在 |
+| :-- | :-- | :-- |
+| pagefind 是否索引 `hidden` 屬性的元素 | **會**。build 後以 v1.2 範例 description 第二段以後的詞（「命名慣例」「軟刪除」）在 pagefind 搜得到 `/view/testing/er-v12.er/`；欄位名仍搜不到。不需要改用視覺隱藏 | §11.1 |
+| `VizZoom` 的 capture 階段 Esc 是否破壞逐層退 | **會**：VizZoom 在 window capture 階段攔 Esc 並 `stopPropagation`，plugin 原本在 bubble 階段的監聽收不到。改為 plugin 也掛 capture —— 它比 VizZoom 早註冊、先執行，**有東西可退才** `stopImmediatePropagation`。實測放大檢視中：第一次 Esc 取消聚焦、第二次才關放大 | §10 |
+| page 模式導覽的高度上限（原寫 `--erd-page-offset` 約 110px） | 不寫死：renderer 往上找最近的 `overflow-y: auto/scroll` 祖先、量它的 `clientHeight` 寫進 `--erd-scroll-h`（ResizeObserver 跟著更新），導覽 `max-height: calc(var(--erd-scroll-h) - 44px)`。不以 id 查 `#nc-scroll` | §11.2 |
+| embed 畫布在 580 外殼內的實際高度 | 改為**填滿外殼剩餘高度**（flex），不寫死 440。1280 寬、導覽收起時實測：未聚焦 **434px**；聚焦時聚焦列約 120px、畫布約 330px。提示列在 embed 限一行、聚焦列關聯文字限兩行 | §2.2、§8.1 |
+
+### 實作中新增的決定
+
+| 項目 | 決定 | 為什麼 |
+| :-- | :-- | :-- |
+| **`<style>` 的 CSS 不可含 `< > & " '`** | 子代選擇器用空白、分頁底線改用 `linear-gradient` 背景（不用 `content: ""` 偽元素）；新增 `scripts/checks/er-styles.mjs` 把關，也檢查每條規則以 `.erd-root` 起頭 | React SSR 會把 `<style>` 文字裡的這些字元跳脫成實體，瀏覽器不會在 raw text 元素裡解回來 —— SSR 的選擇器壞掉、hydration 對不上、整個 island 退回 client render。v1.1 的 CSS 剛好沒用到這些字元，是新增 `>` 選擇器時才踩到 |
+| **`ResolvedDataFile.description` 直接是第一段純文字**（未照 §11.1 另開 `descriptionText`） | `description` 改為純文字、新增 `descriptionIndex`（全文）；原文仍在 `data.meta.description` | app 沒有任何出口需要 Markdown 原文；改 `description` 本身的語意，漏改的出口也自動拿到純文字，比多一個欄位安全 |
+| **全寬只換外層容器、不換外殼在樹上的位置** | `.erd-inline`／`.erd-overlay` 是同一個 div 換 class；hold 卡片是它前面的兄弟節點 | 換位置 React 會重掛，路由以外的狀態全歸零。v1.1 靠「同一段 JSX 搬兩處」保住狀態，拆檔後改用這個做法（Task 77 起） |
+| **container 掛在外殼的外層容器上** | `container: erd / inline-size` 掛在 `.erd-inline` 與 `.erd-overlay`，不掛在外殼本身 | 外殼自己的高度（embed 窄版 `min(580px, 75vh)`）也要依寬度切換，元素不能查詢自己；覆蓋層是 fixed、寬度就是視窗，窄版規則自然不觸發 |
+| **窄版導覽的背板與焦點** | 覆蓋式導覽加半透明背板（點擊收起）；開啟時焦點到篩選框、收起時若焦點在導覽內就還給導覽開關 | §10 只寫了全寬的焦點管理；覆蓋式導覽同樣是浮層 |
+| **隱含模式的分群卡片不整張可點** | 卡片本身是靜態的，裡面的表名 chip 各自可點到 Table 頁 | §5.3 原寫「點卡片 → 導覽展開並捲到該分群」，但沒有分群頁可去；表名 chip 直接到表更有用 |
+| **`--warning-700` 不存在於 DS** | v1.1 的衍生欄徽章字色寫的是 `var(--warning-700)`，DS 只有 `--warning-50/500`，實際一直是繼承色。改用集中定義的 `--erd-warn-ink: #8a6412` | §7 以為 v1.1 寫死了 hex，查證後其實是引用了不存在的 token |
+| **`matchTable` 空字串回傳命中** | 導覽沒有篩選字時所有表都顯示；Diagram 只在有字時才呼叫 | 兩處共用一支，行為要能直接套用 |
+| **`#` 視同 `##`** | 迷你 Markdown 的標題規則 `#{1,6}`：一個或兩個 `#` 為 h3、三個以上為 h4 | prototype 只認 `##`／`###`，單一 `#` 開頭的行會卡在段落判定外造成無限迴圈 |
+| **`check-plugins` 需要 Node 22.6+** | 開頭檢查版本，不足時明確報錯；`engines.node` 維持 `>=22.0.0` | 只影響維護者跑 `check-plugins`／`prepublishOnly`，不影響使用者安裝 app |
+
+### 順手修的既有問題
+
+- **dev 下改資料檔後整站 500**（`fix(plugins)` 那筆 commit）：`invalidatePluginCaches()` 只清了 validator 的 Map，Ajv 實例仍以 `$id` 記著舊 schema，下一次 compile 丟「schema with key or id … already exists」。清快取時一併 `ajv.removeSchema()`
+- v1.1 renderer 的 `note` 可能為 `undefined` 的 4 個型別錯誤
+
+### 仍未做的
+
+- 導覽樹的方向鍵移動（roving tabindex）—— §1.3 已列為非目標
+- `tsc --noEmit` 仍有 48 個既有錯誤（`src/lib/workbench.ts` 的 `process` 型別等），與本次改版無關；plugin 目錄內為 0
+- install lint 的「多行 import 未檢查」缺口（§4.1）未修
+- 驗證中發現：Browser pane 未繪製時 ResizeObserver 與 IntersectionObserver 不觸發（`client:visible` 不 hydrate、窄版判定不跑），截圖讓頁面繪製後即正常 —— 是測試環境的特性，不是程式問題

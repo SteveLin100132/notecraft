@@ -82,3 +82,9 @@
 ## 依賴
 
 Task 77。
+
+## 實作記錄（2026-09-27）
+
+- `derive.ts` 另匯出 `IMPLICIT_SCHEMA_KEY`／`UNGROUPED_KEY`；`scripts/checks/er-derive.mjs` 10 項斷言全過
+- `check-plugins` 開頭檢查 Node ≥ 22.6，並以 `--disable-warning=ExperimentalWarning` 執行 checks
+- 新增 v1.2 測試資料檔 `src/content/notes/testing/er-v12.er.json`（後續 Task 驗收共用）；dev warn 實測只印一次
