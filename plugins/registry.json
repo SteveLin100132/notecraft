@@ -10,6 +10,9 @@
       "files": [
         "notecraft-plugin.json",
         "renderer.tsx",
+        "diagram.tsx",
+        "styles.ts",
+        "types.ts",
         "schema.json",
         "README.md",
         "example/schema.json",
