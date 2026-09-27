@@ -327,7 +327,8 @@ export const CSS = `
 .erd-root .erd-ln-more:hover { border-color: var(--blue-400); }
 .erd-root .erd-local--v { grid-template-columns: minmax(0, 1fr); gap: 36px 0; }
 .erd-root .erd-local--v .erd-local-col { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; }
-.erd-root .erd-local--v .erd-local-h { flex-basis: 100%; text-align: center; }
+.erd-root .erd-local--v .erd-local-h { flex-basis: 100%; text-align: left; }
+.erd-root .erd-local--v .erd-local-col--me .erd-local-h { display: none; }
 
 /* ── Diagram 範圍與聚焦列（v1.2）── */
 .erd-root .erd-scope { display: flex; align-items: center; gap: 4px; min-width: 0; margin-left: auto; overflow-x: auto; font-size: 11.5px; color: var(--text-muted); scrollbar-width: none; }

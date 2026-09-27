@@ -1,7 +1,7 @@
 /* ER Diagram Renderer —— Table 頁的局部關聯圖
  *
  * 三欄：父表 ← 本表 ← 子表。箭頭一律指向父表（與 FK 方向相同：子 → 父）。
- * 固定版面、不縮放；連線量測 DOM 後以 SVG 貝茲曲線繪製，容器尺寸變動（含字型晚到）時重算。
+ * 固定版面、不縮放；連線量測 DOM 後以 SVG 直角折線（圓角轉折）繪製，容器尺寸變動（含字型晚到）時重算。
  *
  * 父／子表各最多畫 8 張：hub 表（例：選項主檔）的子表可能上百張，全畫會把頁面拉到數千 px。
  * 超過的以「另有 N 張」chip 帶到下方清單 —— 清單永遠列全部。
@@ -24,6 +24,27 @@ export interface ErLocalDiagramProps {
 interface Line {
   id: string
   d: string
+}
+
+/** 折線轉角的圓角半徑上限 */
+const CORNER = 8
+
+/** 水平走向的直角折線：(x1,y1) 橫向到主幹 midX、沿主幹縱向、再橫向到 (x2,y2)。高度相同時就是一條橫線 */
+function elbowH(x1: number, y1: number, x2: number, y2: number, midX: number): string {
+  const dy = y2 - y1
+  if (Math.abs(dy) < 1) return `M ${x1} ${y1} L ${x2} ${y2}`
+  const sx1 = Math.sign(midX - x1) || 1
+  const sx2 = Math.sign(x2 - midX) || 1
+  const sy = Math.sign(dy)
+  const r = Math.min(CORNER, Math.abs(dy) / 2, Math.abs(midX - x1), Math.abs(x2 - midX))
+  return [
+    `M ${x1} ${y1}`,
+    `H ${midX - sx1 * r}`,
+    `Q ${midX} ${y1} ${midX} ${y1 + sy * r}`,
+    `V ${y2 - sy * r}`,
+    `Q ${midX} ${y2} ${midX + sx2 * r} ${y2}`,
+    `H ${x2}`,
+  ].join(' ')
 }
 
 export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
@@ -57,29 +78,23 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
     })
     const M = rel(m)
     const isVertical = box.clientWidth < VERTICAL_BELOW
-    for (const p of shownP) {
-      const el = nodes.current.get(`p:${p}`)
-      if (!el) continue
-      const P = rel(el.getBoundingClientRect())
-      /* 本表 → 父表，箭頭落在父表 */
-      out.push({
-        id: `p:${p}`,
-        d: isVertical
-          ? `M ${M.cx} ${M.t} C ${M.cx} ${M.t - 28}, ${P.cx} ${P.b + 28}, ${P.cx} ${P.b}`
-          : `M ${M.l} ${M.cy} C ${M.l - 40} ${M.cy}, ${P.r + 40} ${P.cy}, ${P.r} ${P.cy}`,
-      })
-    }
-    for (const c of shownC) {
-      const el = nodes.current.get(`c:${c}`)
-      if (!el) continue
-      const C = rel(el.getBoundingClientRect())
-      /* 子表 → 本表，箭頭落在本表 */
-      out.push({
-        id: `c:${c}`,
-        d: isVertical
-          ? `M ${C.cx} ${C.t} C ${C.cx} ${C.t - 28}, ${M.cx} ${M.b + 28}, ${M.cx} ${M.b}`
-          : `M ${C.l} ${C.cy} C ${C.l - 40} ${C.cy}, ${M.r + 40} ${M.cy}, ${M.r} ${M.cy}`,
-      })
+    const P = shownP.map((p) => [p, nodes.current.get(`p:${p}`)] as const).filter((x): x is readonly [string, HTMLElement] => !!x[1])
+      .map(([p, el]) => [p, rel(el.getBoundingClientRect())] as const)
+    const C = shownC.map((c) => [c, nodes.current.get(`c:${c}`)] as const).filter((x): x is readonly [string, HTMLElement] => !!x[1])
+      .map(([c, el]) => [c, rel(el.getBoundingClientRect())] as const)
+
+    /* 直角折線：同一側的表共用一條主幹，主幹放在欄距正中間 —— 各自取中點的話，
+       節點寬度不一，主幹會散成好幾條錯開的豎線。父表箭頭落在父表、子表箭頭落在本表（同 FK 方向）。 */
+    if (isVertical) {
+      /* 上下三列（窄寬度）：父表、子表各自換行成好幾列，逐一連線會穿過前一列的節點。
+         改為整列一條主幹：本表 → 父表那一列、子表那一列 → 本表 */
+      if (P.length) out.push({ id: 'p', d: `M ${M.cx} ${M.t} V ${Math.max(...P.map(([, r]) => r.b))}` })
+      if (C.length) out.push({ id: 'c', d: `M ${M.cx} ${Math.min(...C.map(([, r]) => r.t))} V ${M.b}` })
+    } else {
+      const pMid = P.length ? (M.l + Math.max(...P.map(([, r]) => r.r))) / 2 : 0
+      const cMid = C.length ? (M.r + Math.min(...C.map(([, r]) => r.l))) / 2 : 0
+      for (const [p, r] of P) out.push({ id: `p:${p}`, d: elbowH(M.l, M.cy, r.r, r.cy, pMid) })
+      for (const [c, r] of C) out.push({ id: `c:${c}`, d: elbowH(r.l, r.cy, M.r, M.cy, cMid) })
     }
     setLines(out)
     // shownP／shownC 由 name 與 D 決定
