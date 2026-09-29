@@ -88,3 +88,13 @@ npx tsc --noEmit && npx astro build && npm run check-plugins
 ## 依賴
 
 Task 88–90。
+
+## 實作記錄（2026-09-29）
+
+- 響應式：1100／900／760／600 逐一截圖，Row 1／Row 2 的欄數、treemap 220 高、底部 Tab bar、無水平捲動皆符合 §1；1400×900 Body 無捲動列
+- 無障礙：以 DOM 檢查 `aria-pressed`／`aria-label`／巢狀（0 筆）；**未跑 axe**（記入規格 §17「仍未做的」）
+- viewer：`tmp/notecraft-test` 與一個 3 篇、無系列無標籤的暫存資料夾各 build 一次，空狀態文案正確、`grep -r "$HOME"` 0 筆；`src/components/wb/dashboard/` 與 `lib/wb-dashboard.ts` 已在 `files` 既有的目錄之下
+- 清理：死碼已在 Task 87 清完，本 Task 只再 grep 一次舊 class（0 筆）
+- 文件：規格 §17、workbench 規格 §8.1／P7 加註、CLAUDE.md、CHANGELOG 1.4.0、README、tasks README、PRD
+- `package.json` → 1.4.0；`npx tsc --noEmit && npx astro build && npm run check-plugins` 通過
+- README 的儀表板截圖未換（記入 §17）

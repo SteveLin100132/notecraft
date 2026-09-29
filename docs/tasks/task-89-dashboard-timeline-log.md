@@ -72,3 +72,10 @@ Row 2 左欄放 `<Timeline …/>`、右欄放 `<UpdateLog …/>`；`sel`／`onSe
 ## 依賴
 
 Task 87。
+
+## 實作記錄（2026-09-29）
+
+- `Timeline.tsx`／`UpdateLog.tsx`；兩處列沿用 `NoteRow.tsx` 的 `rowHandlers` 與 `OpenLink`，容器加 `.sel`；`document.querySelectorAll('button a, a a, a button')` 為 0
+- 日誌卡標題多包一層 `<span>` 才會出省略號（prototype 是直接裁掉）
+- SSR：日誌不輸出清單與空文案、週導覽「—」、日期格空 `<b>`（CSS 補 `min-height:1.2em` 免跳動）；正式 build 的 HTML 確認無 `class="dv-ev`
+- 實測：上一週 → 9/16–9/22、副標「該週共更新 2 篇」、22 日有金點、「下一週」啟用；點日期只剩該日；點時間軸節點開 Drawer 且 Network 只有一次 `wb-index.json`

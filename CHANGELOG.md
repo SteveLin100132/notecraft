@@ -4,6 +4,24 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.4.0] - 2026-09-29
+
+### 變更
+
+- 儀表板「總覽」整頁改版（設計文件 `docs/notecraft-workbench-dashboard.md`）：上列三張 KPI 卡（筆記總數與本週更新各附依閱讀狀態分段的環形圖、AI 待生成）加寫作頻率堆疊長條（8／12／16 週切換），下列三欄等高的「最近更新」時間軸、「系列」（最多 3 個、一鍵開始／繼續閱讀）＋「標籤分布」馬賽克（treemap，點方塊即篩選）、「更新日誌」（週導覽、按日篩選）。整頁填滿一個視窗高度、清單在卡片內捲動；≤980px 改為整頁捲動、≤680px 單欄
+- 時間軸節點與日誌卡片單擊開 Drawer、雙擊開啟，列尾有常駐「開啟」連結，鍵盤語意與筆記列表相同
+- 「本週」「AI 佇列」兩個 Tab 不變
+
+### 移除
+
+- 總覽的「AI 視覺化生成率」百分比卡與「待生成 @ai-visualize 標記」widget（資訊改由「AI 待生成」卡與「AI 佇列」Tab 提供）
+- 總覽的「近 30 日更新」數字
+
+### 內部
+
+- 新增 `npm run check:wb`：treemap 面積守恆／不重疊／成比例、週窗與分格一致的斷言（`scripts/checks/wb-dashboard.mjs`，`check-plugins` 會一併跑）
+- `weekBuckets()` 的 label 改為該週結束日；新增 `weekOf()`、`weekWindow()`、`mdShort()`
+
 ## [1.3.0] - 2026-09-27
 
 ### 新增

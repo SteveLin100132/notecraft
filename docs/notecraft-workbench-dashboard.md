@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft Workbench — Dashboard 總覽改版
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；圖表全部手寫 SVG／CSS）
-文件狀態: 已定案 —— §15 的 6 題已於 2026-09-29 逐題確認（紀錄見 §16），本文即實作依據；實作後回填見 §17
+文件狀態: 已實作（notecraftapp v1.4.0，Task 87–91，2026-09-29）—— §15 的 6 題已於 2026-09-29 逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-09-29
 更新日期: 2026-09-29
@@ -476,4 +476,36 @@ Q1、Q2 影響資料層與 Task 87 的純函式介面，先定；Q3–Q6 只影�
 
 ## 17. 實作後回填
 
-（Task 91 填：SSR 佔位實測、hydration warning 數、treemap 在 viewer 專案的表現、視窗高度不足時的實際行為、與設計稿的最終偏離清單）
+Task 87–91 已全部實作（2026-09-29，隨 notecraftapp v1.4.0），逐 Task commit 於 `feat/dashboard-redesign`。
+
+| 待驗證項 | 結論 |
+| :-- | :-- |
+| SSR 佔位 | 正式 build 的 `index.html`：無 `dv-stack`、無 `dv-ev`（長條與日誌清單不輸出）、本週更新與圖例為「—」、環只有底環；時間軸 7 個節點與 treemap 方塊完整輸出。與 §5.2 表一致 |
+| hydration 警告 | dev console 0 筆（含切週、日篩選、開 Drawer、改閱讀狀態後） |
+| 閱讀狀態即時 | 另寫 localStorage 並 dispatch `nc-reading-changed` 後，兩個環、圖例數字、長條分段、系列卡同幀更新 |
+| viewer 專案 | `tmp/notecraft-test`（有系列、有 plugin）與一個只有 3 篇、無系列無標籤的暫存資料夾各 build 一次：空狀態文案正確、`grep -r "$HOME" dist/` 0 筆、treemap 在 3 塊以內仍填滿 |
+| 視窗高度不足 | 1400×900 時 Body 無捲動列、三張清單卡各自內捲；高度低於 Row 1 + 380 時 Body 整體捲動（§3.1 預期） |
+| 響應式 | 1100：Row 1 三欄＋寫作頻率整列；900：Row 2 兩欄、日誌整列、treemap 220 高；760：底部 Tab bar；600：單欄、無水平捲動 |
+
+### 實作中新增的決定
+
+| 項目 | 決定 | 為什麼 |
+| :-- | :-- | :-- |
+| **閱讀狀態三段用 class 不用 inline background** | `.dv-rs-done`／`.dv-rs-reading`／`.dv-rs-ns` 三條規則放 CSS，元件只掛 class | prototype 是把 hatch 字串塞進 `style`；改成 class 才守得住「規則零色碼」 |
+| **treemap 方塊配色同樣是 class** | `.dv-tile-0`…`.dv-tile-5`、`.dv-tile-rest` | 同上；`tileStyleIndex()` 只回索引 |
+| **`readingVersion` 往下傳** | `DashboardWorkbench` 的 `useReadingVersion()` 回傳值直接當 prop，卡片以它為 memo 依賴 | 規格只寫 `live`；localStorage 變了 `rows` 不會變，沒有版本號 memo 不會重算 |
+| **本週更新的環在 `now` 為 null 時也當 `live=false`** | `live && week !== null` | 「本週」的集合本身要靠今天，SSR 沒有集合就沒有環 |
+| **`.dv-days` 的 `<b>` 給 `min-height:1.2em`** | SSR 日期格是空的，撐住高度避免 hydrate 後跳一下 | §5.2 說「7 格空 `<b>`」，沒說高度 |
+| **日誌卡標題多包一層 `<span>`** | `.dv-ev-t>span{min-width:0;overflow:hidden;text-overflow:ellipsis}` | prototype 把文字直接放 flex 容器裡，長標題是被裁掉而不是省略號 |
+| **`DashboardWorkbench` 的死碼在 Task 87 就清** | `Widget`、`SeriesProgressWidget`、`weekBuckets`／`withinDays(30)`／`maxTag` | 規格排在 Task 91；留著只會讓 tsc 多幾個未使用警告，沒有理由等 |
+| **`.dv-tile` 的中鍵** | `onAuxClick` 攔 `button === 1` 開新分頁 | 與列的規則一致（規格 §6.4 只提 ⌘/Ctrl） |
+| **check 串進 `check-plugins`、另加 `check:wb`** | `scripts/checks/wb-dashboard.mjs` 自動被 `check-plugins` 串跑；`npm run check:wb` 單跑秒級 | 與 `check:er` 同一做法 |
+
+### 與設計稿的最終偏離
+
+§1.3 的清單全數照做，沒有新增偏離。treemap 在 1400×900 的中欄實際高度約 120px（系列卡吃掉 58%），小塊自動退到只顯示數字，與 prototype 相同的取捨。
+
+### 仍未做的
+
+- 沒有跑 axe：本輪以 `read_page`／DOM 檢查 `aria-*` 與巢狀，對比數字是算的不是掃的
+- `README.md` 的儀表板截圖（`docs/screenshots/dashboard.png`）尚未換成新版

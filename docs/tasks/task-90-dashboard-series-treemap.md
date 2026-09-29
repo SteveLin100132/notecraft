@@ -74,3 +74,10 @@
 ## 依賴
 
 Task 87。
+
+## 實作記錄（2026-09-29）
+
+- `SeriesCard.tsx`／`TagTreemap.tsx`；treemap 與方塊等級全走 `lib/wb-dashboard.ts`，元件只量容器（量到 0×0 不更新 `sz`）
+- 方塊配色用 `.dv-tile-{0..5}`／`.dv-tile-rest` class；中鍵以 `onAuxClick` 開新分頁
+- 實測（30 篇、24 個標籤、7 個系列）：12 塊（11 + 其他 13 個）、面積與 count 成比例（#AI 陪跑筆記 18 篇 144×75 vs #專案管理 11 篇 144×46）、hover 出 tooltip「#AI 陪跑筆記／18 篇・29%」且其他 11 塊 `.dim`；系列卡顯示前 3 個、副標「共 7 個系列」、SSR 無 `.dv-btn`
+- 1400×900 的中欄 treemap 實際約 313×121，小塊自動退到只顯示數字——與 prototype 相同的取捨

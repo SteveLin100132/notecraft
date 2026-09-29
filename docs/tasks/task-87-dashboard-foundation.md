@@ -158,3 +158,11 @@ export function tileStyleIndex(i: number, rest: boolean): number;
 ## 依賴
 
 無。
+
+## 實作記錄（2026-09-29）
+
+- token、`dv-` 規則、`ncGrow`、reduced-motion 照 §1–§2 做；閱讀狀態三段與 treemap 六組配色改成 class（`.dv-rs-*`、`.dv-tile-*`），不用 inline `background`，規則零色碼（`awk` 排除 `:root` 後 grep hex／rgba 為 0 筆）
+- 舊 widget 規則連同 860px 那條殘留的 `.wb-grid` 覆寫一起刪；`DashboardWorkbench` 的 `Widget`／`SeriesProgressWidget`／`weekBuckets` 等死碼在本 Task 就清掉（不等 Task 91）
+- `wb-time.ts`：`weekBuckets` 內部改呼叫 `weekOf`，兩者分格由斷言鎖住；`weekWindow` 用當地日建構，跨月／跨年由 `Date` 自行處理
+- `scripts/checks/wb-dashboard.mjs` 11 組斷言全綠；`npm run check:wb` 需 Node 22.6+（shell 預設的舊 Node 會報 `bad option`，用 nvm 的 22.16）
+- tsc 錯誤數 48 → 48（基準不變）；`astro build` 55 頁通過

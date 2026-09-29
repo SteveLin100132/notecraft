@@ -69,3 +69,10 @@
 ## 依賴
 
 Task 87。
+
+## 實作記錄（2026-09-29）
+
+- `Ring.tsx`／`KpiCard.tsx`（`StatKpi`、`AiKpi`、`useReadingParts`）／`FreqChart.tsx`（含 `DvSeg`）
+- SVG 的 `<pattern>` 與 spark 漸層顏色一律 `style={{ fill／stopColor／stroke: "var(--wb-…)" }}`
+- 「本週更新」的環在 `now` 為 null 時也視為 `live=false`（集合本身靠今天）；`readingVersion` 當 memo 依賴，改閱讀狀態後環、圖例、長條分段同幀更新（實測：寫 localStorage + dispatch 事件後 ring 出現 3 個 circle、圖例「已完成 1」）
+- 與 prototype 並排：46px 大數字、環 12px、長條 20px 頂圓角 3px、日期每 2 週一個（12 週）一致；dev console 無 hydration 警告

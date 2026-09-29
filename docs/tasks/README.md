@@ -396,6 +396,8 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 
 ## v1.15.0 追加功能（§8.1 Phase 4.18 待補）— Dashboard 總覽改版（notecraftapp v1.4.0）
 
+> **已完成（2026-09-29）**：Task 87–91 全部實作並逐 Task commit 於 `feat/dashboard-redesign`。實測結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+
 > 規格：[notecraft-workbench-dashboard.md](../notecraft-workbench-dashboard.md) **v0.2.0**（6 項決策已於 2026-09-29 定案，紀錄見該文件 §16；實作後回填見 §17）。
 > 設計交付：[design_handoff_workbench_dashboard](../prototype/design_handoff_workbench_dashboard/)（README、可離線開啟的 prototype、`source/pt-dash2.*`）。
 > 範圍只有 Dashboard 的「總覽」Body：Row 1 三張 KPI ＋ 寫作頻率堆疊長條、Row 2 最近更新／系列＋標籤馬賽克／更新日誌，整頁填滿一個視窗、卡片內捲動。

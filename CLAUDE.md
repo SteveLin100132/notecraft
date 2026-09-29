@@ -20,9 +20,11 @@ src/
 ├── content/notes/              MDX 筆記原始檔
 ├── components/generated/        AI 生成的視覺化元件（一個 id 對應一個 .tsx）
 ├── components/wb/               Workbench 工作台的殼與各頁 island（Rail／Sidebar／Header／NotesWorkbench／Drawer／Palette…）
+├── components/wb/dashboard/     Dashboard「總覽」的七張卡（不是獨立 island，由 DashboardWorkbench 渲染）
 ├── components/islands/          其他 React island（TagEditor、Toc、PluginHost、SeriesNav…）
 ├── layouts/WorkbenchLayout.astro  三欄工作台的殼，所有頁面共用（簡報頁例外）
 ├── lib/workbench.ts             工作台索引（build 期、模組層快取）；client-safe 型別在 lib/wb-types.ts
+├── lib/wb-dashboard.ts          總覽的純函式（treemap／方塊等級／其他 N 個）；只能 import type、無 JSX，scripts/checks/wb-dashboard.mjs 直接載入斷言
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
 ├── pages/
@@ -108,6 +110,7 @@ status: pending | generated | locked | failed
 - 篩選全在 query string（`?folder=`、`?series=`、`?tag=`、`?pending=1`、`?fav=1`、`?view=`），island 內切換用 `history.replaceState`；分組與搜尋字串不進網址
 - `Escape` 走 `lib/wb-escape.ts` 的共用堆疊（Palette → Modal → Drawer → Sidebar 抽屜），浮層不要各自掛 keydown
 - 樣式規則只引用 `--wb-*` token；DS 沒有的七個值集中在 `workbench.css` 開頭
+- **Dashboard 總覽**（v1.4.0，[docs/notecraft-workbench-dashboard.md](docs/notecraft-workbench-dashboard.md)）：兩個瀏覽器端資料來源（今天、localStorage 閱讀進度）只由 `DashboardWorkbench` 各持有一份往下傳（`now`／`live`／`readingVersion`），SSR 一律佔位（「—」、只畫底環、不畫長條、不輸出日誌清單）；class 沿用 prototype 的 `dv-` 名稱、新色值全在 `--wb-dv-*`；treemap 與週窗由 `npm run check:wb` 鎖住
 
 ## Plugin System（v0.6.0）
 
