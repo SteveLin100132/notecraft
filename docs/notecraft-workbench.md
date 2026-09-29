@@ -433,6 +433,8 @@ Prototype 的色碼絕大多數**本來就是 DS 的值**，只是寫成了 hex�
 
 ### 8.1 Dashboard `/`
 
+> **2026-09-29 更新**：總覽 Body 已於 notecraftapp v1.4.0 改版為兩列固定版面（KPI 環形圖、寫作頻率堆疊長條、時間軸、系列、標籤馬賽克、更新日誌），規格見 [notecraft-workbench-dashboard.md](notecraft-workbench-dashboard.md)。本節的 widget grid 描述僅存歷史；三個 Tab、Drawer 與時間基準（§5.4）仍有效。
+
 - 三個 Tab 是同一份資料的三種投影，做成同一個 island，Tab 寫進 `?tab=`
 - 「最近更新」與「待生成標記」的列可單擊開 Drawer（prototype 的 `onSel`），Drawer 資料走 §5.3 的延遲載入
 - **「系列進度」widget 吸收現有的 `ContinueReading` 卡，並在每個系列補一顆「繼續閱讀」小按鈕**（Q15a 已定案，作者提出）：
@@ -865,7 +867,7 @@ Prototype 在這塊著墨很少，正式版的底線：
 | **P4** | `/notes`：List + Toolbar + 篩選 query + Drawer | P3、Q3 Q11 Q14 Q27 | |
 | **P5** | `/notes`：Board、Table、Timeline | P4、Q7 Q26 | |
 | **P6** | Palette ⌘K | P2、Q13 | |
-| **P7** | Dashboard widget grid + 三 Tab | P3、Q10 Q15 | |
+| **P7** | Dashboard widget grid + 三 Tab（總覽於 v1.4.0 改版，見 notecraft-workbench-dashboard.md） | P3、Q10 Q15 | |
 | **P8** | 系列、系列詳情、標籤改版 | P3 | |
 | **P9** | 筆記內文頁首與動作整併 | P3、Q12 Q16 Q17 Q18 | |
 | **P10** | `/plugins`、`/plugins/folder/*`、Plugin Drawer、`/view` 頁首、Switch 與 dev API | P3、Q19 Q21–Q24 | |

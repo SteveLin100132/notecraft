@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.13.0
+文件版本: v1.14.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-09-22
+更新日期: 2026-09-29
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -97,7 +97,7 @@ Project Name: NoteCraft
 ## 5. Site Map（網站地圖）
 
 ```
-NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16）
+NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18）
 ├── /                       Dashboard（widget grid + 總覽／本週／AI 佇列三個 Tab）
 ├── /notes                  筆記列表（List／Board／Table／Timeline 四種 view + Drawer；篩選在 query string）
 ├── /notes/[slug]           筆記檢視頁面（頁首接手標題與動作；dev 動作收進「⋯」選單）
@@ -2615,6 +2615,26 @@ model: haiku
 - **移除**：多標籤篩選、排序切換、`/notes` 的資料檔混排、Dashboard 的簡報統計；設計稿的字數、版型庫、Board「未發佈」欄、「不相容」「渲染錯誤」狀態皆不做
 - 對應實作 Task 59–75；完整設計見 [notecraft-workbench.md](./notecraft-workbench.md)（30 題定案紀錄在其 §16，實作後回填在 §17）
 
+#### Phase 4.17 — ER Diagram Renderer v1.2（v1.14.0 補記）
+
+**目標：官方 ER plugin 從單一畫布升級為「導覽 + Wiki + Diagram」三段式**
+
+- schema v1.2（groups／schemas／Markdown description）、v1.1 資料零修改可渲染；app 端 `meta.description` 允許 Markdown（顯示第一段、索引全文）
+- `npm run check-plugins` 串接 `scripts/checks/*.mjs` 純函式斷言（Node 22.6+ strip-types）
+- 對應實作 Task 76–86；完整設計見 [notecraft-er-docs.md](./notecraft-er-docs.md)（plugin v1.2.0／notecraftapp v1.3.0）
+
+#### Phase 4.18 — Dashboard 總覽改版（v1.14.0 追加）
+
+**目標：儀表板「總覽」在一個視窗高度內看完，卡片內各自捲動**
+
+- Row 1：筆記總數與本週更新（各附依閱讀狀態三段的環形圖）、AI 待生成（連到 `/notes?pending=1`）、寫作頻率堆疊長條（8／12／16 週）
+- Row 2：最近更新時間軸（7 篇）、系列（最多 3 個、一鍵開始／繼續閱讀）＋ 標籤分布馬賽克（treemap，前 11 名 + 其他）、更新日誌（週導覽、按日篩選）
+- 兩個瀏覽器端資料來源（今天、localStorage 閱讀進度）由 island 各持有一份往下傳，SSR 一律佔位；時間基準維持「今天」（Phase 4.16 的 Q10），不採設計稿的「最新更新日」
+- 時間軸節點與日誌卡片沿用工作台的列語意（容器內並排按鈕與常駐「開啟」連結、單擊 Drawer、雙擊開啟）；「本週」「AI 佇列」Tab 不動
+- 響應式三段 1180／980／680；treemap 與週窗由 `npm run check:wb` 的斷言鎖住
+- **移除**：總覽的「AI 視覺化生成率」百分比卡、「待生成標記」widget、「近 30 日」數字；設計稿的資料夾色、四態閱讀狀態、深色模式不做
+- 對應實作 Task 87–91；完整設計見 [notecraft-workbench-dashboard.md](./notecraft-workbench-dashboard.md)（6 題定案紀錄在其 §16，實作後回填在 §17）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2774,6 +2794,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.14.0] - 2026-09-29
+- **Added**: 新增 Phase 4.18 Dashboard 總覽改版規格（notecraftapp v1.4.0）
 
 ### [1.13.0] - 2026-09-22
 - **Added**: 新增 Workbench 工作台改版規格與 Phase 4.16；補上 Phase 4.15 Plugin System 條目；Site Map 更新為三欄工作台的路由（含 /plugins、/settings 與舊網址轉址）

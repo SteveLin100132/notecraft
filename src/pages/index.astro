@@ -1,5 +1,5 @@
 ---
-// Dashboard：12 欄 widget grid + 三個 Tab（規格 §8.1）。整個主區是同一個 island。
+// Dashboard：總覽（docs/notecraft-workbench-dashboard.md）+「本週」「AI 佇列」Tab（workbench §8.1）。整個主區是同一個 island。
 // inline 的 props 只帶精簡列；Drawer 要的完整資料走 /wb-index.json 延遲載入。
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import DashboardWorkbench from "@/components/wb/DashboardWorkbench.tsx";
@@ -8,13 +8,16 @@ import type { WbNoteRow } from "@/lib/wb-types";
 
 const isDev = import.meta.env.DEV;
 const index = await getWorkbenchIndex();
-// 精簡列：拿掉 description 與標記的 prompt，也不帶 promptPath
-const rows: WbNoteRow[] = index.notes.map(({ promptPath: _p, ...r }) => ({
+// 精簡列：拿掉標記的 prompt、不帶 promptPath；description 只有「最近更新」要顯示的最新 7 篇保留
+//（index.notes 已依 updatedAt 遞減）。Dashboard 規格 §4.1。
+const rows: WbNoteRow[] = index.notes.map(({ promptPath: _p, ...r }, i) => ({
   ...r,
-  description: "",
+  description: i < 7 ? r.description : "",
   markers: r.markers.map((m) => ({ ...m, prompt: "" })),
 }));
-const tags = index.tags.slice(0, 10);
+// 標籤分布馬賽克：前 11 名 + 「其他」；分母（全站標記次數）在 build 期算好
+const tags = index.tags.slice(0, 11);
+const tagUseTotal = index.tags.reduce((a, t) => a + t.count, 0);
 ---
 <WorkbenchLayout title="儀表板" rail="dashboard" description="NoteCraft 知識總覽" bare>
   <DashboardWorkbench
@@ -23,6 +26,8 @@ const tags = index.tags.slice(0, 10);
     series={index.series}
     tags={tags}
     tagTotal={index.tags.length}
+    tagUseTotal={tagUseTotal}
+    pending={index.pending}
     workspaceLabel={index.workspaceLabel}
     isDev={isDev}
   />

@@ -44,28 +44,56 @@ export type WeekBucket = { label: string; count: number };
 
 /**
  * 以**今天**為最後一天，每 7 天一格往回 n 格。最後一格 = 今天往回 6 天到今天。
- * 不採 prototype「以最新一篇筆記日期為基準」的做法 —— 那會讓很久沒寫時看起來仍像最近很活躍。
- * label 是該格第一天的 m/d。
+ * 不採 prototype「以最新一篇筆記日期為基準」的做法 —— 那會讓很久沒寫時看起來仍像最近很活躍（Q10、Dashboard 規格 Q2）。
+ * label 是該格**結束日**的 M/D（不補零；Dashboard 規格 §4.2，handoff 的日期標籤是當週結束日）。
  */
 export function weekBuckets(dates: string[], n = 8, now: Date = new Date()): WeekBucket[] {
   const today = startOfLocalDay(now);
   const buckets: WeekBucket[] = [];
   for (let i = n - 1; i >= 0; i--) {
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (i * 7 + 6));
-    buckets.push({ label: `${start.getMonth() + 1}/${start.getDate()}`, count: 0 });
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i * 7);
+    buckets.push({ label: `${end.getMonth() + 1}/${end.getDate()}`, count: 0 });
   }
   for (const s of dates) {
-    const d = daysBetween(s, now);
-    if (Number.isNaN(d) || d < 0) continue;
-    const idx = n - 1 - Math.floor(d / 7);
+    const idx = weekOf(s, n, now);
     if (idx >= 0) buckets[idx].count += 1;
   }
   return buckets;
 }
 
+/** `s` 落在往回 n 週的第幾格（0 = 最早、n−1 = 本週）；不在窗內、未來或不合法 → −1。與 weekBuckets 同一種分格。 */
+export function weekOf(s: string, n: number, now: Date = new Date()): number {
+  const d = daysBetween(s, now);
+  if (Number.isNaN(d) || d < 0) return -1;
+  const idx = n - 1 - Math.floor(d / 7);
+  return idx >= 0 ? idx : -1;
+}
+
+function iso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export type WeekWindow = { start: string; end: string; days: string[] };
+
+/** 以今天為結束日、往前 offset 週的 7 天窗；三者皆 YYYY-MM-DD 當地日（更新日誌的週導覽與日期列）。 */
+export function weekWindow(offset: number, now: Date = new Date()): WeekWindow {
+  const today = startOfLocalDay(now);
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    days.push(iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset * 7 - i)));
+  }
+  return { start: days[0], end: days[6], days };
+}
+
 /** "2026-09-18" → "09/18" */
 export function md(s: string): string {
   return s.length >= 10 ? `${s.slice(5, 7)}/${s.slice(8, 10)}` : s;
+}
+
+/** "2026-09-08" → "9/8"（不補零；Dashboard 總覽的日期標籤） */
+export function mdShort(s: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(s);
+  return m ? `${Number(m[1])}/${Number(m[2])}` : s;
 }
 
 /** "2026-09-18" → "2026/09/18" */
