@@ -4,6 +4,12 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.4.1] - 2026-09-29
+
+### 修正
+
+- 儀表板「更新日誌」卡片裡的系列圖示比系列標題低、不在同一水平：改為與同列其他欄一樣垂直置中，長標題的省略號行為不變
+
 ## [1.4.0] - 2026-09-29
 
 ### 變更
