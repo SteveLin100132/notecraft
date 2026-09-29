@@ -12,6 +12,8 @@ import DvCard from "./DvCard";
 import FreqChart from "./FreqChart";
 import { AiKpi, StatKpi } from "./KpiCard";
 import { DvPatterns } from "./patterns";
+import Timeline from "./Timeline";
+import UpdateLog from "./UpdateLog";
 
 export type OverviewProps = {
   rows: WbNoteRow[];
@@ -44,12 +46,12 @@ export default function Overview({ rows, series, tags, tagTotal, tagUseTotal, pe
           <FreqChart rows={rows} now={now} live={live} readingVersion={readingVersion} />
         </div>
         <div className="dv-row2">
-          <DvCard cls="dv-tl" title="最近更新" />
+          <Timeline rows={rows} sel={sel} onSelect={onSelect} />
           <div className="dv-midcol">
             <DvCard cls="dv-sl" title="系列" />
             <DvCard cls="dv-tags" title="標籤分布" />
           </div>
-          <DvCard cls="dv-log" title="更新日誌" />
+          <UpdateLog rows={rows} now={now} sel={sel} onSelect={onSelect} />
         </div>
       </div>
     </div>
