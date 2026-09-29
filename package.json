@@ -64,6 +64,7 @@
     "sync-skill": "node scripts/sync-skill-template.mjs",
     "check-plugins": "node scripts/check-plugins.mjs",
     "check:er": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/er-derive.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/er-markdown.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/er-styles.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/app-strip-markdown.mjs",
+    "check:wb": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/wb-dashboard.mjs",
     "prepublishOnly": "npm run sync-skill && npm run check-plugins",
     "viewer:view": "node bin/notecraftapp.mjs view",
     "viewer:build": "node bin/notecraftapp.mjs build",
