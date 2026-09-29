@@ -81,7 +81,7 @@ export default function UpdateLog({
                     {r.series ? (
                       <span className="dv-ev-sr">
                         <BookOpen size={11} strokeWidth={1.7} aria-hidden="true" />
-                        {r.series.title}
+                        <span>{r.series.title}</span>
                       </span>
                     ) : null}
                     <span>
