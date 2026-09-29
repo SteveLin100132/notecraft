@@ -8,10 +8,11 @@
 //       .dv-row2  最近更新 ｜ .dv-midcol[系列 / 標籤分布] ｜ 更新日誌
 import type { WbIndex, WbNoteRow, WbSeries, WbTagStat } from "@/lib/wb-types";
 import { withinDays } from "@/lib/wb-time";
-import DvCard from "./DvCard";
 import FreqChart from "./FreqChart";
 import { AiKpi, StatKpi } from "./KpiCard";
 import { DvPatterns } from "./patterns";
+import SeriesCard from "./SeriesCard";
+import TagTreemap from "./TagTreemap";
 import Timeline from "./Timeline";
 import UpdateLog from "./UpdateLog";
 
@@ -48,8 +49,8 @@ export default function Overview({ rows, series, tags, tagTotal, tagUseTotal, pe
         <div className="dv-row2">
           <Timeline rows={rows} sel={sel} onSelect={onSelect} />
           <div className="dv-midcol">
-            <DvCard cls="dv-sl" title="系列" />
-            <DvCard cls="dv-tags" title="標籤分布" />
+            <SeriesCard series={series} live={live} readingVersion={readingVersion} />
+            <TagTreemap tags={tags} tagTotal={tagTotal} tagUseTotal={tagUseTotal} />
           </div>
           <UpdateLog rows={rows} now={now} sel={sel} onSelect={onSelect} />
         </div>
