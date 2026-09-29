@@ -7,7 +7,10 @@
 //       .dv-row1  KPI ｜ KPI ｜ KPI(AI) ｜ 寫作頻率
 //       .dv-row2  最近更新 ｜ .dv-midcol[系列 / 標籤分布] ｜ 更新日誌
 import type { WbIndex, WbNoteRow, WbSeries, WbTagStat } from "@/lib/wb-types";
+import { withinDays } from "@/lib/wb-time";
 import DvCard from "./DvCard";
+import FreqChart from "./FreqChart";
+import { AiKpi, StatKpi } from "./KpiCard";
 import { DvPatterns } from "./patterns";
 
 export type OverviewProps = {
@@ -27,16 +30,18 @@ export type OverviewProps = {
   onSelect: (slug: string) => void;
 };
 
-export default function Overview(_props: OverviewProps) {
+export default function Overview({ rows, series, tags, tagTotal, tagUseTotal, pending, now, live, readingVersion, sel, onSelect }: OverviewProps) {
+  // 「本週」＝今天與前 6 天（與「本週」Tab 同一個定義；Q2）
+  const week = now ? rows.filter((r) => withinDays(r.updatedAt, 7, now)) : null;
   return (
     <div id="nc-scroll" className="wb-body dv-body" data-wb-rows>
       <DvPatterns />
       <div className="dv-wrap">
         <div className="dv-row1">
-          <DvCard cls="dv-kpi" label="筆記總數" />
-          <DvCard cls="dv-kpi" label="本週更新" />
-          <DvCard cls="dv-kpi dv-kpi-ai" label="AI 待生成" />
-          <DvCard cls="dv-freq" title="寫作頻率" />
+          <StatKpi label="筆記總數" value={rows.length} rows={rows} live={live} readingVersion={readingVersion} />
+          <StatKpi label="本週更新" value={week ? week.length : null} rows={week ?? []} live={live && week !== null} readingVersion={readingVersion} />
+          <AiKpi markers={pending.markers} notes={pending.notes} />
+          <FreqChart rows={rows} now={now} live={live} readingVersion={readingVersion} />
         </div>
         <div className="dv-row2">
           <DvCard cls="dv-tl" title="最近更新" />
