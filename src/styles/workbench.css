@@ -263,7 +263,9 @@
 .dv-ev-t>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .dv-ev-s{display:flex;gap:12px;font-size:11px;color:var(--wb-ink-3);padding-left:14px;min-width:0;overflow:hidden}
 .dv-ev-s span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
-.dv-ev-s .dv-ev-sr{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--wb-blue-l);display:inline-block}.dv-ev-sr svg{vertical-align:-1px;margin-right:3px}
+/* 系列名：prototype 用 inline-block + svg vertical-align，圖示與文字不在同一水平；改成與其他欄一樣的 inline-flex 置中，省略號落在內層 span */
+.dv-ev-s .dv-ev-sr{min-width:0;color:var(--wb-blue-l)}.dv-ev-sr svg{flex:none}
+.dv-ev-sr>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dv-empty{padding:24px 0;text-align:center;font-size:12.5px;color:var(--wb-ink-3)}
 .dv-full{flex:none;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--wb-line);border-radius:6px;background:var(--wb-panel);font:inherit;font-size:13px;font-weight:700;color:var(--wb-ink);cursor:pointer;text-decoration:none}
 .dv-full:hover{background:var(--wb-bg);border-color:var(--wb-dv-hover-line);color:var(--wb-ink)}
