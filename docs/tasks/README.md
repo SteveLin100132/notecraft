@@ -394,6 +394,44 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 > 其次是 [Task 85](task-85-app-meta-description-markdown.md)：它改的是**所有 plugin** 的 description 出口與 pagefind 標記，
 > 標記搬錯位置資料檔頁會**整頁掉出全文索引**（與 Task 72 同一類風險），只有實際搜尋才看得出來。
 
+## v1.15.0 追加功能（§8.1 Phase 4.18 待補）— Dashboard 總覽改版（notecraftapp v1.4.0）
+
+> 規格：[notecraft-workbench-dashboard.md](../notecraft-workbench-dashboard.md) **v0.2.0**（6 項決策已於 2026-09-29 定案，紀錄見該文件 §16；實作後回填見 §17）。
+> 設計交付：[design_handoff_workbench_dashboard](../prototype/design_handoff_workbench_dashboard/)（README、可離線開啟的 prototype、`source/pt-dash2.*`）。
+> 範圍只有 Dashboard 的「總覽」Body：Row 1 三張 KPI ＋ 寫作頻率堆疊長條、Row 2 最近更新／系列＋標籤馬賽克／更新日誌，整頁填滿一個視窗、卡片內捲動。
+> 「本週」「AI 佇列」Tab、Drawer、殼都不動。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 87](task-87-dashboard-foundation.md) | 地基：token、`dv-` 樣式、時間工具、純函式與斷言、island props | §3、§4、§7、§9 | `workbench.css`（`--wb-dv-*`、刪舊 widget 規則、移植 `pt-dash2.css`）、`wb-time.ts`（`weekOf`／`weekWindow`／`mdShort`）、`lib/wb-dashboard.ts`、`scripts/checks/wb-dashboard.mjs`、`index.astro`、`dashboard/Overview.tsx` 骨架 |
+| [Task 88](task-88-dashboard-kpi-freq.md) | Row 1：三張 KPI 與寫作頻率 | §5、§6.1 | `dashboard/Ring.tsx`、`KpiCard.tsx`、`FreqChart.tsx` |
+| [Task 89](task-89-dashboard-timeline-log.md) | 最近更新（時間軸）與更新日誌 | §6.2、§6.5、§8 | `dashboard/Timeline.tsx`、`UpdateLog.tsx`；列的容器 DOM 與 `rowHandlers` |
+| [Task 90](task-90-dashboard-series-treemap.md) | 系列卡與標籤分布馬賽克 | §6.3、§6.4 | `dashboard/SeriesCard.tsx`、`TagTreemap.tsx`（ResizeObserver、tooltip） |
+| [Task 91](task-91-dashboard-responsive-cleanup-release.md) | 響應式、無障礙、viewer 空狀態、清理、文件回填、發版 | §9–§14、§17 | 刪 `DashboardWorkbench` 舊 JSX、CLAUDE.md／PRD／CHANGELOG、v1.4.0 |
+
+**順序**：87 是地基，先做；88、89、90 只依賴 87，可並行；91 收尾。
+
+```
+87 ─┬─ 88 ─┐
+    ├─ 89 ─┼─ 91
+    └─ 90 ─┘
+```
+
+> **交付節奏**：全程在 `feat/dashboard-redesign` 單一分支上，依 Task 逐步 commit，**Task 91 完成後才併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`（Task 87 起加 `npm run check:wb`；`check-plugins` 會自動串到它）。
+>
+> **幾條貫穿整批的規則**：
+> - **兩個瀏覽器端資料來源**（今天、localStorage 閱讀進度）**SSR 一律以佔位輸出**（「—」、只畫底環、不畫長條、不輸出日誌清單），真值只在 `useEffect` 後進 render；`now` 與 `live` 只由 `DashboardWorkbench` 持有一份往下傳
+> - **時間基準是今天**（workbench Q10、本批 Q2），不是 handoff 的「最新更新日」
+> - **閱讀狀態三態**、**資料夾不分色**、**系列 accent 三種**——handoff 的四態、`FOLDER_COLOR`、`green` 都不移植
+> - **列的 DOM**：時間軸節點與日誌卡片是容器內並排的 `<button class="wb-row-main">` 與常駐 `<a class="wb-row-open">`，不巢狀（workbench §8.2.1）
+> - **class 一律沿用 prototype 的 `dv-` 名稱**；`workbench.css` 規則零色碼，新色值全部收成 `--wb-dv-*` token；SVG 內的顏色用 `style`，不用 `fill="var(…)"` 屬性
+> - **被 `scripts/checks` 載入的 `wb-dashboard.ts` 只能 `import type`、不能有 JSX**
+> - `id="nc-scroll"` 留在總覽 Body 上；驗畫面前確認 Browser pane **可見**（隱藏時 ResizeObserver 量到 0）
+
+> **本批最大風險**：Row 2 的「整頁不捲、卡片內捲」靠一整條 `flex:1 1 0; min-height:0` 鏈（`.dv-row2>.dv-card`、`.dv-midcol`、`.dv-tags`、`.dv-tm`），漏一層就退化成整頁捲動而 build 全綠——Task 88／89 驗收各附「視窗 900 高、清單超出」的截圖。
+> 其次是 hydration：任何人把 `new Date()` 或 `readingStatus()` 放進 render 初值就會 mismatch，dev console 零警告才算過。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

@@ -407,7 +407,7 @@ Handoff 的三個斷點 **1180／980／680** 直接採用（以視窗寬度算�
     └─ 90 ─┘
 ```
 
-**交付節奏**：全程在 `feat/dashboard-redesign` 單一分支，依 Task 逐步 commit，91 完成後併回 `main`。每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`（`tsc` 本來就有數十個既有錯誤，看的是有沒有新增）。Task 文件接續既有編號 87–91，展開時放進 `docs/tasks/`，索引與依賴圖補進 `tasks/README.md`。
+**交付節奏**：全程在 `feat/dashboard-redesign` 單一分支，依 Task 逐步 commit，91 完成後併回 `main`。每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`（`tsc` 本來就有數十個既有錯誤，看的是有沒有新增）。Task 文件已展開為 [Task 87](tasks/task-87-dashboard-foundation.md)、[88](tasks/task-88-dashboard-kpi-freq.md)、[89](tasks/task-89-dashboard-timeline-log.md)、[90](tasks/task-90-dashboard-series-treemap.md)、[91](tasks/task-91-dashboard-responsive-cleanup-release.md)（2026-09-29），索引與依賴圖見 [tasks/README.md](tasks/README.md)。
 
 ---
 
