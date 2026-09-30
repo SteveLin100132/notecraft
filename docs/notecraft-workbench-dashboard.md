@@ -468,7 +468,7 @@ Q1、Q2 影響資料層與 Task 87 的純函式介面，先定；Q3–Q6 只影�
 | Q1 | 時間軸節點與日誌圓點的顏色 | **不分色**，一律 `--wb-blue-l`；`FOLDER_COLOR` 不移植、`--c` inline style 不做 | 2026-09-29 |
 | Q2 | 時間基準 | **維持 workbench Q10：今天**（瀏覽器 `Date.now()`、當地日界線）。handoff 的「最新 `updated`」不採用；本週更新／寫作頻率／更新日誌三處同一基準，與「本週」Tab 定義一致 | 2026-09-29 |
 | Q3 | 「前往佇列」去向 | `ROUTES.aiQueue`（`/notes?pending=1`），真連結 `<a>`；與 Rail 一致 | 2026-09-29 |
-| Q4 | 三個 Tab 去留 | **保留**「總覽／本週／AI 佇列」，`?tab=` 行為不動；本次只換總覽 Body。「本週」與「更新日誌」的重複接受（前者是完整 `NoteRow` 列） | 2026-09-29 |
+| Q4 | 三個 Tab 去留 | **保留**「總覽／本週／AI 佇列」，`?tab=` 行為不動；本次只換總覽 Body。「本週」與「更新日誌」的重複接受（前者是完整 `NoteRow` 列）。**2026-09-30 起「本週」Tab 由「更新月曆」取代**（notecraftapp v1.5.0），見 [notecraft-workbench-calendar.md](notecraft-workbench-calendar.md) | 2026-09-29 |
 | Q5 | 系列卡顯示數 | **最多 3 個**：依 v1.0.0 排序（進行中 → 未開始 → 已讀完）取前 3；「查看全部」到 `/series` | 2026-09-29 |
 | Q6 | AI 待生成文字色對比 | **改用既有 `--wb-warn-ink`**（約 5.3:1），不新增 `--wb-dv-ai-warn`；與 warn pill 同色 | 2026-09-29 |
 

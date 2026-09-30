@@ -1,7 +1,7 @@
 {
   "name": "notecraftapp",
   "type": "module",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。用 npx 一行指令在任何 md/mdx 資料夾啟動漂亮 UI。",
   "keywords": [
     "notecraft",
@@ -64,7 +64,7 @@
     "sync-skill": "node scripts/sync-skill-template.mjs",
     "check-plugins": "node scripts/check-plugins.mjs",
     "check:er": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/er-derive.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/er-markdown.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/er-styles.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/app-strip-markdown.mjs",
-    "check:wb": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/wb-dashboard.mjs",
+    "check:wb": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/wb-dashboard.mjs && node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/checks/wb-calendar.mjs",
     "prepublishOnly": "npm run sync-skill && npm run check-plugins",
     "viewer:view": "node bin/notecraftapp.mjs view",
     "viewer:build": "node bin/notecraftapp.mjs build",

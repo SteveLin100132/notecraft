@@ -434,6 +434,43 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 > **本批最大風險**：Row 2 的「整頁不捲、卡片內捲」靠一整條 `flex:1 1 0; min-height:0` 鏈（`.dv-row2>.dv-card`、`.dv-midcol`、`.dv-tags`、`.dv-tm`），漏一層就退化成整頁捲動而 build 全綠——Task 88／89 驗收各附「視窗 900 高、清單超出」的截圖。
 > 其次是 hydration：任何人把 `new Date()` 或 `readingStatus()` 放進 render 初值就會 mismatch，dev console 零警告才算過。
 
+## v1.15.0 追加功能（§8.1 Phase 4.19）— 首頁「更新月曆」頁籤 ✅ 已完成（2026-09-30 / notecraftapp v1.5.0）
+
+> 規格：[notecraft-workbench-calendar.md](../notecraft-workbench-calendar.md) **v0.2.0**（5 項決策已於 2026-09-30 定案，紀錄見該文件 §16；實作後回填見 §17）。
+> 設計交付：[design_handoff_update_calendar](../prototype/design_handoff_update_calendar/)（README、可離線開啟的 prototype、`source/pt-cal.*`）。
+> 範圍只有 Dashboard 的第二個 Tab：「本週」（近 7 日 `NoteRow` 列表）換成「更新月曆」——月檢視每篇一顆閱讀狀態色塊、週檢視每篇一張卡片，點了開既有 Drawer。
+> 「總覽」「AI 佇列」Tab、Drawer、殼都不動。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 92](task-92-calendar-foundation.md) | 地基：token、`cal-` 樣式、純函式與斷言、Tab 改名、空殼 | §2–§5、§7、§9 | `workbench.css`（`--wb-cal-*`、`--wb-a-blue-12`、移植 `pt-cal.css`）、`lib/wb-calendar.ts`、`scripts/checks/wb-calendar.mjs`、`DashboardWorkbench.tsx`（`calendar` Tab、`?tab=week` 相容、刪舊列表）、`dashboard/Calendar.tsx` 空殼 |
+| [Task 93](task-93-calendar-month-view.md) | 月檢視：state、日期格、色塊、導覽、圖例、週月切換 | §4.4、§5、§6.1–§6.4、§8 | `dashboard/Calendar.tsx`、`CalCell.tsx`、`CalDot.tsx` |
+| [Task 94](task-94-calendar-week-view.md) | 週檢視：卡片（容器 DOM）、格內捲動、週標題 | §6.5、§7.3、§10 | `dashboard/CalNote.tsx`；`Calendar.tsx`／`CalCell.tsx` 的週分支 |
+| [Task 95](task-95-calendar-responsive-cleanup-release.md) | 響應式、無障礙、viewer 實測、清理、文件回填、發版 | §9–§14、§17 | CLAUDE.md／workbench.md／Dashboard 文件／PRD／CHANGELOG、v1.5.0 |
+
+**順序**：92 是地基，先做；93、94 只依賴 92，可並行；95 收尾。
+
+```
+92 ─┬─ 93 ─┐
+    └─ 94 ─┴─ 95
+```
+
+> **交付節奏**：全程在 `feat/dashboard-update-calendar` 單一分支上，依 Task 逐步 commit，**Task 95 完成後才併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build && npm run check:wb`。
+>
+> **幾條貫穿整批的規則**：
+> - **今天與閱讀狀態都在瀏覽器**：`now`／`live`／`readingVersion` 只由 `DashboardWorkbench` 持有一份往下傳；`anchor` 初值 `null`、SSR **不輸出任何日期格**（只有工具列「—」與星期列）；真值只在 `useEffect` 後進 render
+> - **月曆用日曆週（週日→週六）**，總覽 KPI 與更新日誌維持滾動 7 天（Q1）；日期一律 `YYYY-MM-DD` 當地日字串進出，`wb-calendar.ts` 不 import `wb-time.ts`
+> - **閱讀狀態三態**，直接沿用總覽的 `DV_RS` 與 `.dv-rs-*` class；handoff 的「未發佈」不移植；色塊底色走 class、不寫 inline `style`
+> - **列的 DOM**：週卡片是容器內並排 `<button class="wb-row-main">` 與常駐 `<a class="wb-row-open">`；月色塊是純 `<button>` 走 `rowHandlers`、無開啟連結（Q2，treemap 方塊同一例外）
+> - **class 一律沿用 prototype 的 `cal-` 名稱**；`workbench.css` 規則零色碼，新底色收成 `--wb-cal-*`；`cal-` 規則要放在 Task 74 的 860px 媒體規則**之前**，否則手機底部留白被蓋掉
+> - **格子底色上的小字用 `--wb-muted-ink`**（Q5；handoff 的 `--wb-ink-3` 在淡藍底只有 3.8:1）
+> - **被 `scripts/checks` 載入的 `wb-calendar.ts` 只能 `import type`、不能有 JSX**
+> - `id="nc-scroll"` 留在月曆 Body 上；驗畫面前確認 Browser pane **可見**（隱藏時 island 不 hydrate）
+
+> **本批最大風險**：hydration——任何人把 `iso(new Date())` 寫進 `anchor` 初值就 mismatch，dev console 零警告才算過。
+> 其次是「整月一屏」：6 列月份在矮視窗會撐開格區，捲動必須發生在 `#nc-scroll`、不是整頁（Task 93 附 2026-08 在 768 高的截圖）。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

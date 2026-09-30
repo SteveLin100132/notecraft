@@ -20,11 +20,12 @@ src/
 ├── content/notes/              MDX 筆記原始檔
 ├── components/generated/        AI 生成的視覺化元件（一個 id 對應一個 .tsx）
 ├── components/wb/               Workbench 工作台的殼與各頁 island（Rail／Sidebar／Header／NotesWorkbench／Drawer／Palette…）
-├── components/wb/dashboard/     Dashboard「總覽」的七張卡（不是獨立 island，由 DashboardWorkbench 渲染）
+├── components/wb/dashboard/     Dashboard「總覽」的七張卡＋「更新月曆」的 Calendar／CalCell／CalDot／CalNote（不是獨立 island，由 DashboardWorkbench 渲染）
 ├── components/islands/          其他 React island（TagEditor、Toc、PluginHost、SeriesNav…）
 ├── layouts/WorkbenchLayout.astro  三欄工作台的殼，所有頁面共用（簡報頁例外）
 ├── lib/workbench.ts             工作台索引（build 期、模組層快取）；client-safe 型別在 lib/wb-types.ts
 ├── lib/wb-dashboard.ts          總覽的純函式（treemap／方塊等級／其他 N 個）；只能 import type、無 JSX，scripts/checks/wb-dashboard.mjs 直接載入斷言
+├── lib/wb-calendar.ts           更新月曆的純函式（月格／日曆週／翻頁／標題）；同樣只能 import type、不 import wb-time.ts，scripts/checks/wb-calendar.mjs 斷言
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
 ├── pages/
@@ -103,6 +104,7 @@ status: pending | generated | locked | failed
   （`/notes`、Dashboard、`/plugins`、`/settings`）由**同一個 island** 渲染，layout 以 `bare` 掛它；只有 Toolbar 與 Body 由 island 輸出的用 `bareBody`
 - **`id="nc-scroll"` 不可拿掉**：`Toc`、筆記頁 inline script 靠它找捲動容器。island 自己輸出 Body 時也要帶這個 id
 - **列的 DOM 規則**：單擊開 Drawer 的列是容器，內含並排的 `<button class="wb-row-main">` 與常駐的 `<a class="wb-row-open">`，**連結不可包在按鈕裡**；
+  格狀的小目標（標籤分布 treemap 方塊、月曆的 14px 色塊）例外：純 `<button>` 走 `rowHandlers`、無常駐開啟連結（Dashboard §6.4、Calendar Q2）；
   單擊即導覽的列（系列、標籤、資料檔）整列是 `<a>`
 - **資料夾與顯示用路徑一律來自真實檔案路徑**（`WbNoteRow.path`），不是會被 slug 化的 `entry.id`；`?folder=` 的值也是真實路徑。slug 只用於 `/notes/<slug>` 與 localStorage key
 - **本機絕對路徑不得出現在任何輸出的 HTML／JSON**（`/wb-index.json` 序列化後若含 cwd 會直接 throw）。唯一例外是 dev-only 的 `vscode://` 連結
@@ -111,6 +113,7 @@ status: pending | generated | locked | failed
 - `Escape` 走 `lib/wb-escape.ts` 的共用堆疊（Palette → Modal → Drawer → Sidebar 抽屜），浮層不要各自掛 keydown
 - 樣式規則只引用 `--wb-*` token；DS 沒有的七個值集中在 `workbench.css` 開頭
 - **Dashboard 總覽**（v1.4.0，[docs/notecraft-workbench-dashboard.md](docs/notecraft-workbench-dashboard.md)）：兩個瀏覽器端資料來源（今天、localStorage 閱讀進度）只由 `DashboardWorkbench` 各持有一份往下傳（`now`／`live`／`readingVersion`），SSR 一律佔位（「—」、只畫底環、不畫長條、不輸出日誌清單）；class 沿用 prototype 的 `dv-` 名稱、新色值全在 `--wb-dv-*`；treemap 與週窗由 `npm run check:wb` 鎖住
+- **更新月曆**（v1.5.0，[docs/notecraft-workbench-calendar.md](docs/notecraft-workbench-calendar.md)）：`?tab=calendar`（舊 `?tab=week` 視同）。月曆用**日曆週（週日→週六）**，總覽 KPI「本週更新」與更新日誌仍是滾動 7 天，兩者數字可以不同；`anchor` 由 `now` 推、SSR 不輸出任何日期格；`view`／`anchor` 不進網址；新底色在 `--wb-cal-*`、格子上的小字用 `--wb-muted-ink`；`cal-` 規則必須放在 860px 媒體規則之前；月格與日曆週由 `check:wb` 鎖住
 
 ## Plugin System（v0.6.0）
 
