@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft Workbench — 空狀態插圖（更新日誌／AI 佇列）
 文件類型: Design Document
-文件版本: v0.1.0
+文件版本: v0.2.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；插圖為 inline SVG）
-文件狀態: 已定案、待實作 —— §13 的 4 題已於 2026-09-30 逐題確認（紀錄見 §14）
+文件狀態: 已實作（notecraftapp v1.5.1，Task 96–97，2026-09-30）—— §13 的 4 題已於 2026-09-30 逐題確認（紀錄見 §14）；實作後回填見 §15
 文件作者: 建宇
 建立日期: 2026-09-30
 更新日期: 2026-09-30
@@ -369,3 +369,17 @@ export default function EmptyState({
 - **`.pt-empty-btn:hover` 要明寫 `color:var(--wb-blue-l)`**：改成 `<a>` 後，全站 `a:hover` 會把字色蓋成 `--wb-blue`（#1b4f9c）。`.dv-btn:hover` 也是同樣寫法
 - SVG 顏色實測（Chrome）：藍框 `rgb(44,110,187)`、底 `rgb(255,255,255)`、白勾 `rgb(255,255,255)`，token 都有吃到
 - AI 佇列空狀態在「無標記」的暫時筆記夾驗證：頁首「待生成」pill 自動消失、「前往筆記」→ `/notes`、console 零錯誤
+
+### Task 97（2026-09-30）
+
+- npx viewer（`tmp/notecraft-test`，1280×760）：更新日誌本週 0 篇 → 空狀態、套用矮視窗規則（清單 148、內容 140），不裁切；AI 佇列有 1 個待生成標記，列表照常
+- `grep -r "$HOME" dist/` 有 1 筆：`dist/notes/testing/資料檔內嵌測試/index.html` 內嵌 ER plugin 的 `rendererPath`。**main 上既有、與本次無關**（已用 stash 比對），另開任務處理
+- `npx tsc --noEmit` 48 個既有錯誤、未增加；`npx astro build`、`npm run check-plugins` 通過
+
+### 與設計稿的最終偏離
+
+- 「前往筆記」是 `<a href="/notes">`；矮視窗縮圖＋拿掉 padding；選日期文案（Q1）；深色模式不做
+
+### 仍未做的
+
+- Safari 實機檢查 SVG 上色：這次的驗證環境只有 Chromium。寫法與 `patterns.tsx` 相同（`style` 內的 CSS 變數是標準 CSS，各瀏覽器都支援），風險低

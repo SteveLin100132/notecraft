@@ -471,9 +471,9 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 > **本批最大風險**：hydration——任何人把 `iso(new Date())` 寫進 `anchor` 初值就 mismatch，dev console 零警告才算過。
 > 其次是「整月一屏」：6 列月份在矮視窗會撐開格區，捲動必須發生在 `#nc-scroll`、不是整頁（Task 93 附 2026-08 在 768 高的截圖）。
 
-## v1.16.0 追加功能（§8.1 Phase 4.20 待補）— 空狀態插圖（notecraftapp v1.5.1）
+## v1.16.0 追加功能（§8.1 Phase 4.20）— 空狀態插圖 ✅ 已完成（2026-09-30 / notecraftapp v1.5.1）
 
-> 規格：[notecraft-workbench-empty-states.md](../notecraft-workbench-empty-states.md) **v0.1.0**（4 項決策已於 2026-09-30 定案，紀錄見該文件 §14）。
+> 規格：[notecraft-workbench-empty-states.md](../notecraft-workbench-empty-states.md) **v0.2.0**（4 項決策已於 2026-09-30 定案，紀錄見該文件 §14；實作後回填見 §15）。
 > 設計交付：[design_handoff_empty_states](../prototype/design_handoff_empty_states/)（README、prototype、`source/pt-dash*.jsx`）。
 > 範圍只有兩處：總覽「更新日誌」卡片與「AI 佇列」分頁的空狀態，換成共用的插圖元件 `EmptyState`。資料、state、其他頁面的空狀態都不動。
 

@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.15.0
+文件版本: v1.16.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -97,7 +97,7 @@ Project Name: NoteCraft
 ## 5. Site Map（網站地圖）
 
 ```
-NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19）
+NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19；v1.16.0 空狀態插圖，見 Phase 4.20）
 ├── /                       Dashboard（widget grid + 總覽／本週／AI 佇列三個 Tab）
 ├── /notes                  筆記列表（List／Board／Table／Timeline 四種 view + Drawer；篩選在 query string）
 ├── /notes/[slug]           筆記檢視頁面（頁首接手標題與動作；dev 動作收進「⋯」選單）
@@ -2649,6 +2649,17 @@ model: haiku
 - **移除**：近 7 日 `NoteRow` 列表（資訊仍在總覽的更新日誌）；設計稿的「未發佈」狀態、深色模式不做
 - 對應實作 Task 92–95；完整設計見 [notecraft-workbench-calendar.md](./notecraft-workbench-calendar.md)（5 題定案紀錄在其 §16，實作後回填在 §17）
 
+#### Phase 4.20 — 空狀態插圖（v1.16.0 追加）
+
+**目標：沒有資料時看起來是「正常地沒有東西」，不是壞掉**
+
+- 總覽「更新日誌」卡片與「AI 佇列」分頁的單行灰字換成插圖式空狀態（132×104 插圖＋標題＋說明＋選用按鈕），兩處共用 `EmptyState` 元件
+- 更新日誌三種文案：本週 0 篇「本週還沒有動靜，寫下第一篇吧。」、過去週 0 篇「切換到其他週看看，或回到本週。」、選了沒更新的日期且整週有更新「這一天沒有更新的筆記」；空狀態不捲、在卡片剩餘高度內置中，矮視窗時插圖縮小
+- AI 佇列清空：「AI 佇列已清空」＋「前往筆記」連結（`/notes`）
+- 插圖顏色全走既有 `--wb-*` token、不新增 token；資料與 state 不變
+- **不做**：其他頁面的空狀態（篩選無結果等）、深色模式
+- 對應實作 Task 96–97；完整設計見 [notecraft-workbench-empty-states.md](./notecraft-workbench-empty-states.md)（4 題定案紀錄在其 §14，實作後回填在 §15）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2808,6 +2819,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.16.0] - 2026-09-30
+- **Added**: 新增 Phase 4.20 空狀態插圖規格（notecraftapp v1.5.1）
 
 ### [1.15.0] - 2026-09-30
 - **Added**: 新增 Phase 4.19 首頁「更新月曆」頁籤規格（notecraftapp v1.5.0）

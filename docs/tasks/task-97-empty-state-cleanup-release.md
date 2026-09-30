@@ -25,6 +25,13 @@
 
 ## 驗收
 
-- [ ] `npx tsc --noEmit && npx astro build && npm run check-plugins` 綠；tsc 錯誤數不增加
-- [ ] `grep -r "$HOME" dist/` 0 筆
-- [ ] 截圖附在 PR
+- [x] `npx tsc --noEmit && npx astro build && npm run check-plugins` 綠；tsc 錯誤數不增加
+- [ ] `grep -r "$HOME" dist/` 0 筆 —— 仍有 1 筆 main 上既有的（見實作記錄），本分支未新增
+- [ ] 截圖附在 PR —— 未附（gh CLI 無法上傳圖片）；實測數字記在規格 §15
+
+## 實作記錄（2026-09-30）
+
+- viewer（`tmp/notecraft-test`，1280×760）：更新日誌空狀態套用矮視窗規則、不裁切
+- Safari 未實測（驗證環境只有 Chromium），記在規格 §15「仍未做的」
+- `grep -r "$HOME" dist/` 有 1 筆既有問題（ER plugin 內嵌的 `rendererPath`，main 上就有），另開任務
+- PRD v1.16.0（Phase 4.20）；CLAUDE.md、Dashboard 文件 §6.5／§6.6 同步
