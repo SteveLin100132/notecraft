@@ -4,6 +4,18 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.5.1] - 2026-09-30
+
+### 變更
+
+- 儀表板「更新日誌」卡片與「AI 佇列」分頁沒有資料時，改為插圖式空狀態（插圖＋標題＋說明；設計文件 `docs/notecraft-workbench-empty-states.md`），取代原本的單行灰字
+- 更新日誌依情境顯示三種文案：本週沒有更新、過去某週沒有更新、選了沒有更新的日期（整週有更新時）；空狀態不出現捲軸，視窗較矮時插圖自動縮小
+- AI 佇列清空時顯示「AI 佇列已清空」與「前往筆記」連結
+
+### 內部
+
+- 新增 `src/components/wb/EmptyState.tsx`；插圖顏色全走既有 `--wb-*` token，不新增 token
+
 ## [1.5.0] - 2026-09-30
 
 ### 變更

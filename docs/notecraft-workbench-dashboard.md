@@ -267,7 +267,7 @@ Handoff 用「資料中最大的 `updated`」當基準，好處是 demo 資料�
 - 日期格是 `<button aria-pressed={pick === s}>`；有更新的格加 `.has`（金色小點）
 - 事件卡 `.dv-ev` 的 DOM 同 §6.2：容器內 `<button class="wb-row-main">` + `<a class="wb-row-open">`。第二行的系列名稱是純文字（藍色），**不是**第二個連結，避免卡片內有兩個可點目標
 - 「查看全部筆記」`.dv-full` 是 `<a href="/notes">`
-- 空狀態文案「這段期間沒有更新的筆記」只在 `now !== null` 之後出現
+- 空狀態只在 `now !== null` 之後出現；v1.5.1 起是插圖式 `EmptyState`（清單加 `is-empty`、不捲），文案三種，見 [notecraft-workbench-empty-states.md](notecraft-workbench-empty-states.md) §4.1
 
 ### 6.6 空資料
 
@@ -278,7 +278,7 @@ Handoff 用「資料中最大的 `updated`」當基準，好處是 demo 資料�
 | 沒有標籤 | 標籤卡副標「0 個標籤」、內容「尚無標籤」 |
 | 沒有待生成 | AI 卡大數字 0、「分布於 0 篇筆記」，spark 照畫 |
 
-不做額外的空狀態插圖。
+不做額外的空狀態插圖。（v1.5.1 起更新日誌與 AI 佇列例外，見 [notecraft-workbench-empty-states.md](notecraft-workbench-empty-states.md)；本表其他項目不變。）
 
 ---
 

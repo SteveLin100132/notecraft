@@ -471,6 +471,21 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 > **本批最大風險**：hydration——任何人把 `iso(new Date())` 寫進 `anchor` 初值就 mismatch，dev console 零警告才算過。
 > 其次是「整月一屏」：6 列月份在矮視窗會撐開格區，捲動必須發生在 `#nc-scroll`、不是整頁（Task 93 附 2026-08 在 768 高的截圖）。
 
+## v1.16.0 追加功能（§8.1 Phase 4.20）— 空狀態插圖 ✅ 已完成（2026-09-30 / notecraftapp v1.5.1）
+
+> 規格：[notecraft-workbench-empty-states.md](../notecraft-workbench-empty-states.md) **v0.2.0**（4 項決策已於 2026-09-30 定案，紀錄見該文件 §14；實作後回填見 §15）。
+> 設計交付：[design_handoff_empty_states](../prototype/design_handoff_empty_states/)（README、prototype、`source/pt-dash*.jsx`）。
+> 範圍只有兩處：總覽「更新日誌」卡片與「AI 佇列」分頁的空狀態，換成共用的插圖元件 `EmptyState`。資料、state、其他頁面的空狀態都不動。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 96](task-96-empty-state-component.md) | `EmptyState` 元件、樣式、兩處接入、最矮卡片量測 | §2–§8 | `wb/EmptyState.tsx`、`workbench.css`（`.pt-empty*`、`.dv-log-list.is-empty`）、`dashboard/UpdateLog.tsx`、`DashboardWorkbench.tsx` |
+| [Task 97](task-97-empty-state-cleanup-release.md) | 響應式與 viewer 實測、文件回填、發版 | §7、§10、§15 | 規格／Dashboard 文件／CLAUDE.md／PRD／CHANGELOG、v1.5.1 |
+
+> **交付節奏**：全程在 `feat/dashboard-empty-states` 單一分支，Task 97 完成後開 PR 併回 main。每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`。
+>
+> **貫穿規則**：SVG 顏色用 `style` 寫 CSS 變數（不用 `stroke="var(…)"`）；TSX 與 CSS 零色碼、不新增 token；class 沿用 prototype 的 `pt-empty*`；「前往筆記」是 `<a href="/notes">`。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。
