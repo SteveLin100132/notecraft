@@ -90,3 +90,10 @@
 ## 依賴
 
 Task 92。
+
+## 實作記錄（2026-09-30）
+
+- `Calendar.tsx`／`CalCell.tsx`／`CalDot.tsx`；`anchor` 用 `now ? calIso(now) : null` 的 lazy 初值加 effect（規格 §17 有說明），`counts` 以 `readingVersion` 為刻意依賴
+- 實測 2026-09：35 格、5 列 108px 等高、8/30 與 8/31 補位、9/1 顯示「9/1」、30 日膠囊、27–30 淡藍底、22 日 2 顆色塊；2026-02：28 格 136px；2026-08：42 格；1400×900 Body 無捲動列，1400×700 翻到 8 月仍一屏
+- 1 月 31 日 → 2 月、「本週」回當月都對；改閱讀狀態後色塊 class 與圖例同幀變；單擊 Drawer、`.sel` 描邊、`Escape` 關閉；dev console 0 hydration warning
+- `.cal-wd`、`.cal-cell-h span` computed color `rgb(79,91,110)`

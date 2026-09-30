@@ -36,6 +36,7 @@ shot plugins     "http://localhost:4329/plugins?tab=installed"
 | 檔名 | 頁面 | 重點 |
 | --- | --- | --- |
 | `dashboard.png` | `/` | widget grid：筆記總數、AI 生成率、近 8 週長條、最近更新、系列進度、標籤分布、待生成標記 |
+| `dashboard-calendar.png` | `/?tab=calendar` | 更新月曆的月檢視：色塊、當週淡藍底、今天膠囊、圖例與週／月切換（v1.5.0） |
 | `notes-list.png` | `/notes` | List view 依資料夾分組、Toolbar 的分組與篩選 chip、列尾常駐的「開啟」箭頭 |
 | `notes-drawer.png` | `/notes` 點一列 | 右側 480px Drawer：摘要、Metadata、標記、同系列章節 |
 | `notes-board.png` | `/notes?view=board` | 三欄（未開始／閱讀中／已完成）；先在 localStorage 放幾個閱讀狀態畫面才不會全擠在第一欄 |

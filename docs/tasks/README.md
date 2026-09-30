@@ -434,7 +434,7 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 > **本批最大風險**：Row 2 的「整頁不捲、卡片內捲」靠一整條 `flex:1 1 0; min-height:0` 鏈（`.dv-row2>.dv-card`、`.dv-midcol`、`.dv-tags`、`.dv-tm`），漏一層就退化成整頁捲動而 build 全綠——Task 88／89 驗收各附「視窗 900 高、清單超出」的截圖。
 > 其次是 hydration：任何人把 `new Date()` 或 `readingStatus()` 放進 render 初值就會 mismatch，dev console 零警告才算過。
 
-## v1.16.0 追加功能（§8.1 Phase 4.19 待補）— 首頁「更新月曆」頁籤（notecraftapp v1.5.0）
+## v1.15.0 追加功能（§8.1 Phase 4.19）— 首頁「更新月曆」頁籤 ✅ 已完成（2026-09-30 / notecraftapp v1.5.0）
 
 > 規格：[notecraft-workbench-calendar.md](../notecraft-workbench-calendar.md) **v0.2.0**（5 項決策已於 2026-09-30 定案，紀錄見該文件 §16；實作後回填見 §17）。
 > 設計交付：[design_handoff_update_calendar](../prototype/design_handoff_update_calendar/)（README、可離線開啟的 prototype、`source/pt-cal.*`）。

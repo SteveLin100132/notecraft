@@ -332,6 +332,7 @@ export async function getWorkbenchIndex(): Promise<WbIndex>   // 模組層快取
 - 日期一律以**瀏覽器當地時區**的日界線比較（`new Date(y, m-1, d)`），不用 UTC，否則台灣時間早上八點前「今天」會算成昨天
 - **長條圖的週窗**：以今天為最後一天，每 7 天一格、往回 8 格（第 8 格 = 今天往回 6 天到今天）。不採用 prototype「以最新一篇筆記的日期為基準」的做法 —— 那會讓很久沒寫的時候看起來仍像最近很活躍
 - **一律以 `updatedAt` 為準**，文案寫「更新」而非「新增」。現況 Dashboard 的「本週新增／本月新增」（以 `createdAt` 計）隨之取消
+- **兩種「週」並存**（2026-09-30，calendar Q1）：本節與總覽的「本週」是**滾動 7 天**（今天與前 6 天）；「更新月曆」Tab 的週檢視、當週高亮、「本週」按鈕是**日曆週**（週日→週六）。同一頁兩個「本週」數字可以不同，這是刻意的
 - 已知副作用：批次改名或刪除標籤會改寫所有受影響筆記的 `updatedAt`（dev API 的既有規定），當週的長條會因此衝高。接受，不另做排除
 - `src/lib/dates.ts` 的 `daysAgo()` 本來就在未帶基準日時取當下時間，但它用 `toISOString()` 取日期，那是 **UTC**；改成取當地日期。`index.astro` 傳入寫死 `TODAY` 的呼叫點一併清掉
 
@@ -434,6 +435,7 @@ Prototype 的色碼絕大多數**本來就是 DS 的值**，只是寫成了 hex�
 ### 8.1 Dashboard `/`
 
 > **2026-09-29 更新**：總覽 Body 已於 notecraftapp v1.4.0 改版為兩列固定版面（KPI 環形圖、寫作頻率堆疊長條、時間軸、系列、標籤馬賽克、更新日誌），規格見 [notecraft-workbench-dashboard.md](notecraft-workbench-dashboard.md)。本節的 widget grid 描述僅存歷史；三個 Tab、Drawer 與時間基準（§5.4）仍有效。
+> **2026-09-30 更新**：「本週」Tab 已於 notecraftapp v1.5.0 改為「更新月曆」（`?tab=calendar`，舊 `?tab=week` 視同），規格見 [notecraft-workbench-calendar.md](notecraft-workbench-calendar.md)。近 7 日的 `NoteRow` 列表不再存在。
 
 - 三個 Tab 是同一份資料的三種投影，做成同一個 island，Tab 寫進 `?tab=`
 - 「最近更新」與「待生成標記」的列可單擊開 Drawer（prototype 的 `onSel`），Drawer 資料走 §5.3 的延遲載入

@@ -75,3 +75,9 @@
 ## 依賴
 
 Task 92。
+
+## 實作記錄（2026-09-30）
+
+- `CalNote.tsx`（容器 + `.wb-row-main` 直排 + `OpenLink`）；`readingSeg()` 與 `CalDot` 共用
+- 兩處小修：`.cal-note-st` 加 `white-space:nowrap`（窄格子裡「待開始」會被擠成直排）、系列標題多包一層 `<span>` 讓省略號生效
+- 實測 2026 年 9/20 – 9/26：2 張卡片（標籤 2 個 + 「+1」、無系列）、`button a, a button` 為 0、每張卡一個 `wb-row-open`；週標題「2026 年 9/27 – 10/3」、首格「9/27」、無 `.thiswk`；viewer 專案 8 篇同一格內捲

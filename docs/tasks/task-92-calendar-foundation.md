@@ -112,3 +112,11 @@ export function groupByDay<T extends { updatedAt: string }>(rows: T[]): Record<s
 ## 依賴
 
 無。
+
+## 實作記錄（2026-09-30）
+
+- token、`cal-` 規則照 §1–§2 移植；`awk` 排除 `:root` 後 grep hex／rgba 為 0；`.cal-body` 在第 318 行、860px 的 `.wb-body{padding-bottom}` 在第 744 行，順序正確
+- 移植時就把 `.cal-note` 容器化、`.dv-rs-*` 走 class、四處小字改 `--wb-muted-ink`；`.cal-more` 與週檢視的 `.thiswk` 還原規則沒搬
+- `wb-calendar.ts` 自帶 3 行 `parse`／`addDays`／`calIso`，不 import `wb-time.ts`；`scripts/checks/wb-calendar.mjs` 12 組斷言全綠（含 2026-02 四列、2026-08 六列、1 月 31 日翻月、跨年週標題）
+- `DashboardWorkbench`：`NoteRow`／`withinDays` import 與 `week` 集合一併刪掉；`?tab=week` 視同 `calendar`
+- tsc 48 → 48；`astro build` 55 頁；`dist/index.html` 沒有任何 `cal-` 節點（Tab 初值是總覽，月曆不在 SSR 裡）

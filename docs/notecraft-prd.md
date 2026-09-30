@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.14.0
+文件版本: v1.15.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-09-29
+更新日期: 2026-09-30
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -97,7 +97,7 @@ Project Name: NoteCraft
 ## 5. Site Map（網站地圖）
 
 ```
-NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18）
+NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19）
 ├── /                       Dashboard（widget grid + 總覽／本週／AI 佇列三個 Tab）
 ├── /notes                  筆記列表（List／Board／Table／Timeline 四種 view + Drawer；篩選在 query string）
 ├── /notes/[slug]           筆記檢視頁面（頁首接手標題與動作；dev 動作收進「⋯」選單）
@@ -2635,6 +2635,20 @@ model: haiku
 - **移除**：總覽的「AI 視覺化生成率」百分比卡、「待生成標記」widget、「近 30 日」數字；設計稿的資料夾色、四態閱讀狀態、深色模式不做
 - 對應實作 Task 87–91；完整設計見 [notecraft-workbench-dashboard.md](./notecraft-workbench-dashboard.md)（6 題定案紀錄在其 §16，實作後回填在 §17）
 
+#### Phase 4.19 — 首頁「更新月曆」頁籤（v1.15.0 追加）
+
+**目標：儀表板的第二個 Tab 從「近 7 日列表」改為月曆，一眼看出哪天更新了什麼、讀到哪**
+
+- 「本週」Tab 改名「更新月曆」（`?tab=calendar`，舊 `?tab=week` 視同）；每篇筆記依 `updatedAt` 落在日期格，顏色即閱讀狀態（與總覽寫作頻率同一組三段配色）
+- **月檢視**：每篇一顆 14px 色塊，所有日期格等高、整月一屏不捲動；前後月補位格、今天膠囊、當週淡藍底。**週檢視**：每篇一張卡片（狀態、標題、系列、標籤最多 2 個＋N、AI 已生成/總數），筆記多時只有該格內捲
+- 工具列：‹ ›（月／週）、「本週」回今天、標題與「共更新 N 篇」、三段圖例計數、週／月切換；點色塊或卡片開既有 Drawer、雙擊開筆記
+- **月曆用日曆週（週日→週六）**；總覽 KPI「本週更新」與更新日誌維持滾動 7 天，兩者數字可以不同（刻意）。`view`／`anchor` 是元件 state，不進網址
+- 今天與閱讀狀態都在瀏覽器：anchor 由 island 的 `now` 推、SSR 不輸出任何日期格；閱讀狀態變動即時重繪色塊與圖例
+- 月色塊是純按鈕（與標籤 treemap 方塊同一例外，無常駐開啟連結）；週卡片沿用工作台列語意（容器內並排按鈕與常駐「開啟」連結）
+- 新底色收成 `--wb-cal-*` token；格子上的小字改用 `--wb-muted-ink`（設計稿的灰在淡藍底只有 3.8:1）；月格與日曆週由 `npm run check:wb` 的斷言鎖住
+- **移除**：近 7 日 `NoteRow` 列表（資訊仍在總覽的更新日誌）；設計稿的「未發佈」狀態、深色模式不做
+- 對應實作 Task 92–95；完整設計見 [notecraft-workbench-calendar.md](./notecraft-workbench-calendar.md)（5 題定案紀錄在其 §16，實作後回填在 §17）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2794,6 +2808,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.15.0] - 2026-09-30
+- **Added**: 新增 Phase 4.19 首頁「更新月曆」頁籤規格（notecraftapp v1.5.0）
 
 ### [1.14.0] - 2026-09-29
 - **Added**: 新增 Phase 4.18 Dashboard 總覽改版規格（notecraftapp v1.4.0）

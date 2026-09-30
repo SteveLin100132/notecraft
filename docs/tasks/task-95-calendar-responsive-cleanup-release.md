@@ -82,3 +82,11 @@
 ## 依賴
 
 Task 93、94。
+
+## 實作記錄（2026-09-30）
+
+- 響應式五個寬度（1400／1100／900／760／375）與 1400×700 逐一量過，數字在規格 §17；760 底部 Tab bar 沒遮到最後一列，375 只有格區橫捲
+- viewer：`tmp/notecraft-test` 8 篇集中在 7/5 那週，月檢視空、週檢視同格內捲、無系列無標籤卡片正確；console 0 錯誤
+- 沒有跑 axe、沒有逐鍵走 Tab 序（用 DOM 順序與 computed style 代替），已記在規格 §17
+- 文件：規格 §17、workbench.md §8.1／§5.4、Dashboard 文件 Q4 加註、CLAUDE.md（目錄、列的 DOM 例外、更新月曆一段）、PRD Phase 4.19 + `/bump-prd`、CHANGELOG 1.5.0、README 文案與 `dashboard-calendar.png`、`CAPTURE.md`
+- `npm version minor` → 1.5.0；`npx tsc --noEmit && npx astro build && npm run check-plugins` 全綠

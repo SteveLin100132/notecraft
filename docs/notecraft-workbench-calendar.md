@@ -4,7 +4,7 @@ Project Name: NoteCraft Workbench — 首頁「更新月曆」頁籤
 文件版本: v0.2.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；月曆全部 CSS grid，無圖表函式庫）
-文件狀態: 已定案 —— §15 的 5 題已於 2026-09-30 逐題確認（紀錄見 §16），本文即實作依據；實作後回填 §17
+文件狀態: 已實作（notecraftapp v1.5.0，Task 92–95，2026-09-30）—— §15 的 5 題已於 2026-09-30 逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-09-30
 更新日期: 2026-09-30
@@ -479,4 +479,39 @@ Q1、Q2 影響 `wb-calendar.ts` 介面與 `CalDot` 的 DOM，Task 92 動工前�
 
 ## 17. 實作後回填
 
-（Task 95 完成時回填：SSR 佔位實測、hydration 警告數、4 列與 6 列月份的截圖、viewer 專案表現、實作中新增的決定、與設計稿的最終偏離清單）
+Task 92–95 已全部實作（2026-09-30，隨 notecraftapp v1.5.0），逐 Task commit 於 `feat/dashboard-update-calendar`。
+
+| 待驗證項 | 結論 |
+| :-- | :-- |
+| SSR 佔位 | 正式 build 的 `index.html` 完全沒有 `cal-` 節點：island 的 Tab 初值是「總覽」，月曆只在切 Tab 或 `?tab=calendar` 的 effect 之後才掛，掛的時候 `now` 已在。`anchor` 仍以 `now ? calIso(now) : null` 做 lazy 初值，伺服器與首次 client render 兩邊都是 null，§5.1 的空殼分支保留但實際上只會出現在 `now` 尚未到的極端情況 |
+| hydration 警告 | dev console 0 筆（含 `?tab=calendar` 直達、翻月、翻週、切檢視、開 Drawer、改閱讀狀態後） |
+| 4 列／6 列月份 | 2026-02：28 格、無補位格、每列 136px 等高；2026-08：42 格、前後補位格、每列 108px；1400×900 時 Body `scrollHeight === clientHeight`（無捲動列）。1400×**700** 翻到 8 月每格 77px 仍一屏放完 —— Body 要到視窗高約 640 以下才會捲動 |
+| 閱讀狀態即時 | 另寫 localStorage 並 dispatch `nc-reading-changed`：卡片狀態列 `dv-rs-done`、文字「已完成」、圖例「已完成 1／待開始 1」同幀更新；還原後回「待開始」 |
+| Drawer 與列語意 | 單擊卡片主區 Drawer 開、`.sel` 與 `aria-pressed` 同步、`Escape` 關閉；`button a, a button` 為 0；每張卡恰一個 `wb-row-open` |
+| viewer 專案 | `tmp/notecraft-test`（8 篇、集中在 2026-07-05 那週）：月檢視當月 0 篇、圖例三個 0、格子照畫；週檢視 8 張卡片在同一格內捲，無系列／無標籤的卡片只剩狀態列與標題；console 0 筆錯誤 |
+| 響應式 | 1400：格 147px；1100：138px；900：110px、格區 `scrollWidth === clientWidth`（7×96+36 = 708 還塞得下）；760：Rail 變底部 54px Tab bar、最後一列底 826 < Body 底 846，`.cal-body` 沒蓋掉底部留白；375：格 96px、**格區**橫向捲動（708/335）、`documentElement` 無橫向捲動（375/375） |
+| 對比 | `.cal-wd`、`.cal-cell-h span`、`.cal-note-st` 的 computed color 皆 `rgb(79,91,110)`（`--wb-muted-ink`，Q5） |
+| 斷言 | `npm run check:wb`：wb-dashboard 11 組 + wb-calendar 12 組全綠 |
+| build | `npx tsc --noEmit` 48 → 48（基準不變）；`astro build` 55 頁；`grep -r "$HOME" dist/` 0 筆 |
+
+### 實作中新增的決定
+
+| 項目 | 決定 | 為什麼 |
+| :-- | :-- | :-- |
+| **`anchor` 用 lazy 初值** | `useState(() => (now ? calIso(now) : null))` 加一個 `now` 變動的 effect，而不是只靠 effect | 月曆掛載時 `now` 幾乎一定已在；只靠 effect 會多一幀「—」空殼再跳成整月。初值在 `now` 為 null 時仍是 null，兩邊一致 |
+| **`readingSeg()` 共用** | `CalDot.tsx` export，`CalNote` 也用 | 兩處的「`live ? readingStatus : not-started` → `DV_RS` 段」完全相同 |
+| **`.cal-note-st` 加 `white-space:nowrap`** | 規格沒寫 | 容器化後右側多了開啟連結，800px 視窗的窄格子裡「待開始」被擠成直排三個字 |
+| **`.cal-note-sr` 的省略號落在內層 `<span>`** | 系列標題多包一層 | prototype 把 `text-overflow` 放在 flex 容器上不會生效；與更新日誌 `.dv-ev-sr` 同一個修正 |
+| **導覽按鈕 `disabled` 樣式** | `opacity:.5; cursor:default`，hover 底色只在 `:not(:disabled)` | prototype 沒有 disabled 態（它永遠有 anchor） |
+| **reduced-motion 也取消 hover 位移** | `.cal-dot:hover,.cal-note:hover{transform:none}` | 只關 transition 的話放大／上移仍會瞬間發生 |
+| **今天的格子加 `aria-current="date"`** | 純樣式的膠囊不帶語意 | 規格 §10 |
+| **`check:wb` 串跑兩支** | `wb-dashboard.mjs && wb-calendar.mjs` | 與規格 §4.3 相同；`check-plugins` 自動掃 `scripts/checks/*.mjs` |
+
+### 與設計稿的最終偏離
+
+§1.3 的清單全數照做（三態、無深色、日曆週、月色塊純按鈕、週卡片容器化、`calendar` Tab key、不進網址、「本週」文案、小字改 `--wb-muted-ink`、不做「還有 N 篇」）。另加上表的 nowrap 與內層 span 兩條，都是版面修正、數值不變。
+
+### 仍未做的
+
+- 沒有跑 axe：`aria-*`、巢狀、對比是用 DOM 與 computed style 逐項查的，不是掃的
+- Tab 序沒有逐鍵走完：只確認 DOM 順序（導覽 → 本週 → 週／月 → 色塊／卡片主區 → 開啟連結）與 `data-wb-rowfocus` 都在

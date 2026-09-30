@@ -18,6 +18,8 @@
 
 ![Dashboard](./docs/screenshots/dashboard.png)
 
+![Update calendar](./docs/screenshots/dashboard-calendar.png)
+
 <details>
 <summary>更多畫面：筆記列表、Drawer 預覽、Board、Plugin 管理</summary>
 
@@ -50,7 +52,7 @@
 - **筆記轉簡報** — 一篇筆記一鍵變成 16:9 多頁簡報，`/present/<slug>` 可全螢幕播放。**筆記裡的互動元件原樣搬進投影片，播放時照樣能點、能拖**
 - **即時 preview** — `serve` 內建背景 rebuild + SSE auto reload：Claude Code 在另一個 terminal 寫檔、viewer 這邊瀏覽器自動刷新，全程免手動重啟
 - **工作台（v1.0.0）** — 三欄殼：Rail + 檔案樹 Sidebar + 主區。筆記列表有 List／Board／Table／Timeline 四種 view 與側邊 Drawer 預覽，Board 拖曳即改閱讀狀態；`⌘K` 指令面板跨頁跳轉並含 pagefind 全文搜尋
-- **儀表板** — 一個視窗看完：筆記總數與本週更新（依閱讀狀態分段的環形圖）、AI 待生成、寫作頻率堆疊長條（8／12／16 週）、最近更新時間軸、系列進度（一鍵繼續閱讀）、標籤分布馬賽克、按週按日的更新日誌；另有「本週」「AI 佇列」兩個 Tab
+- **儀表板** — 一個視窗看完：筆記總數與本週更新（依閱讀狀態分段的環形圖）、AI 待生成、寫作頻率堆疊長條（8／12／16 週）、最近更新時間軸、系列進度（一鍵繼續閱讀）、標籤分布馬賽克、按週按日的更新日誌；另有「更新月曆」（每篇筆記依更新日落在月／週格子裡、顏色即閱讀狀態）與「AI 佇列」兩個 Tab
 - **系列** — 多份筆記串成有順序的閱讀路徑，含進度條與單鍵推進；資料檔頁也能是一章
 - **Plugin** — 結構化 JSON 交給可安裝的渲染器畫成頁面；`/plugins` 看得到映射規則、命中檔與外掛檔案，可在 dev 一鍵啟用／停用
 - **巢狀資料夾原生支援** — `guides/oauth/flow.mdx` 直接對到 `/notes/guides/oauth/flow`
