@@ -4,6 +4,24 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.5.0] - 2026-09-30
+
+### 變更
+
+- 儀表板的「本週」Tab 改為「更新月曆」（設計文件 `docs/notecraft-workbench-calendar.md`）：每篇筆記依更新日落在日期格，顏色即閱讀狀態（與總覽寫作頻率同一組配色）。**月檢視**每篇一顆色塊、整月一屏不捲動；**週檢視**每篇一張卡片（狀態、標題、系列、標籤、AI 已生成／總數），筆記多時只有該格內捲。‹ › 翻月／翻週、「本週」回今天、三段圖例計數、週／月切換
+- 點色塊或卡片開既有的筆記 Drawer、雙擊開啟；週卡片有常駐「開啟」連結，鍵盤語意與筆記列表相同
+- 月曆用**日曆週（週日→週六）**；總覽「本週更新」與更新日誌仍是滾動 7 天，兩者數字可以不同
+- 網址 `?tab=calendar`；舊的 `?tab=week` 仍可用、視同月曆
+
+### 移除
+
+- 儀表板「本週」Tab 的近 7 日筆記列表（資訊仍在總覽的「更新日誌」）
+
+### 內部
+
+- 新增 `src/lib/wb-calendar.ts`（月格／日曆週／翻頁／標題的純函式）與 `scripts/checks/wb-calendar.mjs`；`npm run check:wb` 一併跑
+- `workbench.css` 新增 `--wb-cal-*` 四個底色與 `--wb-a-blue-12`；月曆規則放在 860px 媒體規則之前
+
 ## [1.4.1] - 2026-09-29
 
 ### 修正
