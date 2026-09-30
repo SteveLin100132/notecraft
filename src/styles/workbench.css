@@ -347,7 +347,8 @@
 .cal-note.sel{background:var(--wb-a-blue-08)}
 .cal-note>.wb-row-main{flex:1;min-width:0;height:auto;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:0;text-align:left}
 .cal-note>.wb-row-open{align-self:flex-start}
-.cal-note-st{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--wb-muted-ink)}
+/* 狀態文字 nowrap：容器化後右側多了開啟連結，窄格子裡「待開始」會被擠成直排 */
+.cal-note-st{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--wb-muted-ink);white-space:nowrap}
 .cal-note-st i{width:34px;height:8px;border-radius:999px;flex:none}
 .cal-note-t{font-size:12.5px;font-weight:600;color:var(--wb-ink);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-wrap:pretty}
 .cal-note-sr{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--wb-blue);min-width:0}
