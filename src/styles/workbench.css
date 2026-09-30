@@ -28,7 +28,7 @@
   /* ── Dashboard 總覽（規格 docs/notecraft-workbench-dashboard.md §7.2；照 handoff 原值，Q28 精神）── */
   --wb-dv-warn-n: #c47a12;        /* AI 待生成大數字 */
   --wb-dv-ai-ok: #23855a;         /* AI x/y 全部生成；系列卡綠勾勾 */
-  --wb-dv-hover-line: #9dbde6;    /* .dv-btn／.dv-ev／.dv-full hover 邊框；第 5 名方塊斜紋前景 */
+  --wb-dv-hover-line: #9dbde6;    /* .dv-btn／.dv-ev／.dv-full／.pt-empty-btn hover 邊框；第 5 名方塊斜紋前景 */
   --wb-dv-tip-bg: #132033;        /* 標籤 tooltip 底 */
   --wb-dv-tip-ink-2: #b9c6d8;     /* tooltip 第二行 */
   --wb-dv-day-on: #e6effa;        /* 日誌選中日期底 */
@@ -274,6 +274,12 @@
 .dv-ev-s .dv-ev-sr{min-width:0;color:var(--wb-blue-l)}.dv-ev-sr svg{flex:none}
 .dv-ev-sr>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dv-empty{padding:24px 0;text-align:center;font-size:12.5px;color:var(--wb-ink-3)}
+/* 更新日誌空狀態：不捲、在卡片剩餘高度內垂直置中（docs/notecraft-workbench-empty-states.md §4.1、§5.1） */
+.dv-log-list.is-empty{overflow:hidden;justify-content:center}
+.dv-log-list.is-empty .pt-empty{padding:8px 16px;margin:0;min-height:0}
+.dv-log-list.is-empty .pt-empty svg{flex:none}
+/* 矮視窗（Row 2 貼近 min-height:380 時清單只剩 ~143px，內容 ~184px）：插圖縮 0.75、拿掉上下 padding（規格 Q3、§15）。≤980px 時清單高度＝內容，不需要 */
+@media(min-width:981px) and (max-height:820px){.dv-log-list.is-empty .pt-empty{padding:0 16px}.dv-log-list.is-empty .pt-empty svg{width:99px;height:78px;margin-bottom:6px}}
 .dv-full{flex:none;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--wb-line);border-radius:6px;background:var(--wb-panel);font:inherit;font-size:13px;font-weight:700;color:var(--wb-ink);cursor:pointer;text-decoration:none}
 .dv-full:hover{background:var(--wb-bg);border-color:var(--wb-dv-hover-line);color:var(--wb-ink)}
 /* 中欄與標籤分布 */
@@ -463,6 +469,14 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .wb-host{padding:26px 32px 60px;max-width:none}
 .wb-host.bleed{padding:0;max-width:none}
 .wb-empty{padding:56px 16px;text-align:center;color:var(--wb-ink-3);font-size:13px}
+/* 空狀態插圖（pt-dash.jsx 的 PtEmpty；docs/notecraft-workbench-empty-states.md §5）。「前往筆記」是 <a>，多了 inline-flex 與 text-decoration */
+.pt-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:28px 16px;margin:auto 0}
+.wb-body .pt-empty{padding:72px 16px}
+.pt-empty svg{margin-bottom:8px}
+.pt-empty-t{font-size:14px;font-weight:700;color:var(--wb-ink)}
+.pt-empty-s{font-size:12.5px;line-height:1.7;color:var(--wb-ink-3);max-width:280px;text-wrap:pretty}
+.pt-empty-btn{display:inline-flex;align-items:center;margin-top:10px;height:32px;padding:0 16px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-panel);font:inherit;font-size:12.5px;font-weight:700;color:var(--wb-blue-l);cursor:pointer;text-decoration:none}
+.pt-empty-btn:hover{background:var(--wb-bg);border-color:var(--wb-dv-hover-line);color:var(--wb-blue-l)}
 /* palette */
 .wb-pal-scrim{position:fixed;inset:0;background:var(--wb-a-ink-32);z-index:var(--wb-z-overlay);display:flex;justify-content:center;padding-top:14vh;border:none}
 .wb-pal{width:560px;max-width:92vw;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:12px;box-shadow:0 20px 50px var(--wb-a-ink-28);overflow:hidden;align-self:flex-start}

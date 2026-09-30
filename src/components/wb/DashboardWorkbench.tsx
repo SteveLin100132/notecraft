@@ -12,6 +12,7 @@ import WbHeader from "./WbHeader";
 import NoteDrawer from "./NoteDrawer";
 import Overview from "./dashboard/Overview";
 import Calendar from "./dashboard/Calendar";
+import EmptyState from "./EmptyState";
 import { Ic, Pill } from "./ui";
 import { useWbIndex } from "./useWbIndex";
 
@@ -119,7 +120,16 @@ export default function DashboardWorkbench({
       ) : tab === "ai" ? (
         <div id="nc-scroll" className="wb-body flush" data-wb-rows>
           {stats.pendingRows.length === 0 ? (
-            <div className="wb-empty">沒有待生成的標記</div>
+            <EmptyState
+              kind="ai"
+              title="AI 佇列已清空"
+              sub="所有 @ai-visualize 標記都已生成完成。新增標記後會出現在這裡。"
+              action={
+                <a className="pt-empty-btn" href="/notes">
+                  前往筆記
+                </a>
+              }
+            />
           ) : (
             stats.pendingRows.map((r) => (
               <section key={r.slug} aria-label={r.title}>
