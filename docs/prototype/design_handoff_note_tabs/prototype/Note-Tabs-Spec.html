@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteCraft 筆記頁籤 — 設計規格</title>
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/styles.css">
+<style>
+:root{--wb-blue:#1b4f9c;--wb-blue-d:#163f7d;--wb-blue-l:#2c6ebb;--wb-gold:#ed9b26;--wb-bg:#f6f8fb;--wb-panel:#fff;--wb-line:#e1e6ee;--wb-line-2:#eef1f6;--wb-ink:#161c28;--wb-ink-2:#2b3546;--wb-ink-3:#6c798e;--wb-ok:#2e9e6b;--wb-warn:#e3a008}
+html,body{margin:0;background:var(--wb-bg);color:var(--wb-ink);font-family:"Noto Sans TC","Noto Sans",sans-serif;font-size:14px}
+a{color:var(--wb-blue-l);text-decoration:none}a:hover{color:var(--wb-blue-d)}
+.sp{max-width:1180px;margin:0 auto;padding:40px 28px 80px}
+.sp-eb{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--wb-ink-3)}
+h1{font-size:30px;font-weight:800;color:var(--wb-blue);margin:6px 0 10px;line-height:1.25}
+.sp-lead{font-size:14px;line-height:1.85;color:var(--wb-ink-2);max-width:760px;margin:0;text-wrap:pretty}
+.sp-lead+.sp-lead{margin-top:8px}
+h2{font-size:19px;font-weight:700;margin:52px 0 6px;display:flex;align-items:baseline;gap:10px}
+h2 .n{font-size:12px;font-weight:700;color:var(--wb-gold);font-variant-numeric:tabular-nums}
+h3{font-size:14px;font-weight:700;margin:24px 0 8px;color:var(--wb-ink)}
+.sp-sub{font-size:13px;color:var(--wb-ink-3);line-height:1.8;margin:0 0 16px;max-width:780px;text-wrap:pretty}
+p,li{line-height:1.85;color:var(--wb-ink-2);text-wrap:pretty}
+ul{padding-left:20px;margin:6px 0}
+code,.kbd{font-family:var(--font-mono);font-size:12px;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:4px;padding:1px 5px;color:var(--wb-ink-2)}
+.fr{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,79,156,.06)}
+.fr-h{height:34px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--wb-line);font-size:12px;color:var(--wb-ink-3)}
+.fr-h b{color:var(--wb-ink);font-size:12.5px}
+.fr-h .sz{margin-left:auto;font-family:var(--font-mono);font-size:11px;font-variant-numeric:tabular-nums}
+.fr-v{position:relative;overflow:hidden;background:var(--wb-bg)}
+.fr-v iframe{position:absolute;top:0;left:0;border:0;transform-origin:0 0;background:#fff}
+.fr-cap{padding:10px 14px 12px;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2);border-top:1px solid var(--wb-line-2);text-wrap:pretty}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.gm{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:18px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;overflow:hidden}
+th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--wb-ink-3);background:var(--wb-bg);padding:8px 12px;border-bottom:1px solid var(--wb-line)}
+td{padding:8px 12px;border-bottom:1px solid var(--wb-line-2);vertical-align:top;line-height:1.7;color:var(--wb-ink-2)}
+tr:last-child td{border-bottom:none}
+td:first-child{color:var(--wb-ink);font-weight:500;white-space:nowrap}
+.tw{overflow-x:auto}
+.dec{display:flex;flex-direction:column;gap:10px}
+.dec-i{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;padding:12px 16px}
+.dec-q{font-weight:700;font-size:13.5px;display:flex;gap:10px}
+.dec-q span{color:var(--wb-gold);font-variant-numeric:tabular-nums;flex:none}
+.dec-o{margin:6px 0 0 26px;font-size:13px;line-height:1.8;color:var(--wb-ink-2)}
+.dec-o b{color:var(--wb-blue)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid var(--wb-line)}
+</style>
+</head>
+<body>
+<div class="sp">
+<div class="sp-eb">NOTECRAFT 工作台 ・ 功能設計</div>
+<h1>筆記頁籤</h1>
+<p class="sp-lead">讀者可同時開啟多份筆記與資料檔渲染頁，在主區最上方的頁籤列切換，不必回列表或 Sidebar 重找。網站是 Astro 靜態 MPA，所以頁籤是一份存在 <code>localStorage</code> 的「已開啟清單」：每次換頁重畫頁籤列，切回某頁籤時還原上次的捲動位置。</p>
+<p class="sp-lead">下方畫面都是工作台 Prototype 的實際渲染（以 <code>?tabsDemo=</code> 參數帶入示範資料，不寫入你的 localStorage）。<a href="NoteCraft-Workbench-Tabs.html" target="_blank">開啟 Prototype</a> 可直接操作：雙擊列表開頁籤、右鍵、拖曳、<span class="kbd">⌥ ,</span> <span class="kbd">⌥ .</span> 切換。</p>
+
+<h2><span class="n">01</span>桌面版</h2>
+<p class="sp-sub">1440 × 860。頁籤列 34px，位於 Header 之上；Rail、Sidebar、Header、Toolbar 都不動。</p>
+<div class="stack">
+<div class="fr" data-screen-label="桌面・一般"><div class="fr-h"><b>筆記頁 ・ 4 個頁籤</b>第一個已固定，第四個是資料檔（金色 icon）<span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?tabsDemo=normal"></div><div class="fr-cap">active 頁籤以白底接上 Header，頂端 2px 品牌藍線；其他頁籤沉在 <code>--wb-bg</code>。固定頁籤顯示圖釘、沒有 ✕，與一般頁籤之間以 2px 分隔線隔開。最右側「4 ▾」是全部頁籤下拉。</div></div>
+<div class="fr" data-screen-label="桌面・溢出"><div class="fr-h"><b>溢出 ・ 15 個頁籤</b>active 在第 10 個<span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?tabsDemo=overflow"></div><div class="fr-cap">頁籤縮到最小 120px 後改為水平捲動，左右出現 28px 漸層遮罩；滑鼠滾輪的垂直量轉成水平捲動。切換頁籤時自動把 active 捲進可視範圍（保留 24px 邊距）。</div></div>
+<div class="g2">
+<div class="fr" data-screen-label="桌面・右鍵選單"><div class="fr-h"><b>右鍵選單</b><span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?tabsDemo=menu"></div><div class="fr-cap">選單頂端顯示頁籤標題，避免在 15 個頁籤時右鍵錯對象。固定頁籤的「關閉」為 disabled。</div></div>
+<div class="fr" data-screen-label="桌面・全部頁籤"><div class="fr-h"><b>⋯ 全部頁籤下拉</b><span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?tabsDemo=all"></div><div class="fr-cap">可篩選的清單，固定與一般分區，顯示完整路徑；底部是「重開剛關閉的」與「全部關閉」（不含固定）。</div></div>
+<div class="fr" data-screen-label="桌面・非筆記頁"><div class="fr-h"><b>/notes List view</b>頁籤列照常顯示，沒有 active<span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?tabsDemo=list"></div><div class="fr-cap">所有頁籤都是一般態，Header 正常接在下方。<span class="kbd">⌥ .</span> 在非頁籤頁時會直接回到最後讀的那篇。</div></div>
+<div class="fr" data-screen-label="桌面・空狀態"><div class="fr-h"><b>空狀態</b><span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?tabsDemo=empty"></div><div class="fr-cap">列保留 34px，改顯示一行提示。高度與 SSR 佔位一致，第一次開筆記時版面不會往下推。</div></div>
+</div>
+</div>
+
+<h2><span class="n">02</span>平板與手機</h2>
+<p class="sp-sub">平板（≤1100）保留水平頁籤列，Sidebar 漢堡鈕下移到頁籤列下方的 Header 區（top 9 → 43px）。手機（≤860）隱藏頁籤列，Header 右上角放一顆計數鈕，點開是底部抽屜。</p>
+<div class="gm">
+<div class="fr" style="grid-column:1/-1" data-screen-label="平板"><div class="fr-h"><b>平板</b>Sidebar 收成抽屜<span class="sz">980×740</span></div><div class="fr-v" data-w="980" data-h="740" data-src="?tabsDemo=normal"></div></div>
+<div class="fr" data-screen-label="手機・收合"><div class="fr-h"><b>手機 ・ 收合</b><span class="sz">390×780</span></div><div class="fr-v" data-w="390" data-h="780" data-src="?tabsDemo=normal"></div><div class="fr-cap">計數鈕 32×32（含外框的熱區 44），與左上漢堡鈕對稱。數字外框藍色表示目前頁面是其中一個頁籤。</div></div>
+<div class="fr" data-screen-label="手機・清單"><div class="fr-h"><b>手機 ・ 清單展開</b><span class="sz">390×780</span></div><div class="fr-v" data-w="390" data-h="780" data-src="?tabsDemo=sheet"></div><div class="fr-cap">每列 52px，標題＋路徑兩行；右側 44×44 關閉鈕。底部抽屜蓋過 Tab bar，最高 72%。</div></div>
+</div>
+
+<h2><span class="n">03</span>尺寸與 token</h2>
+<div class="tw"><table>
+<tr><th>元素</th><th>規格</th><th>token</th></tr>
+<tr><td>頁籤列</td><td>高 34px，底線 1px；右側全部頁籤鈕 24px pill，左右 margin 6 / 8</td><td>底 <code>--wb-bg</code>、線 <code>--wb-line</code></td></tr>
+<tr><td>單一頁籤</td><td>寬 120–200px（flex 收縮）、固定頁籤上限 150px；padding 0 6 0 10、gap 6；右側 1px 分隔線</td><td>字 12.5px</td></tr>
+<tr><td>一般</td><td>透明底，標題灰</td><td><code>--wb-ink-3</code>，icon <code>--wb-ink-3</code></td></tr>
+<tr><td>hover</td><td>淡藍底，標題加深，✕ 出現</td><td><code>rgba(27,79,156,.04)</code>、<code>--wb-ink-2</code></td></tr>
+<tr><td>active</td><td>白底、蓋住底線（margin-bottom −1）、頂端 inset 2px 藍線、字重 500、✕ 常駐</td><td><code>--wb-panel</code>、<code>--wb-blue</code>、<code>--wb-ink</code>，icon <code>--wb-blue-l</code></td></tr>
+<tr><td>focus-visible</td><td>inset 2px 外框（與 active 藍線疊加）</td><td><code>--wb-blue-l</code></td></tr>
+<tr><td>icon</td><td>13px doc；資料檔一律金色</td><td><code>--wb-gold</code></td></tr>
+<tr><td>關閉 ✕</td><td>18×18、圓角 4、12px 線寬 2；hover 底 <code>rgba(22,28,40,.08)</code></td><td></td></tr>
+<tr><td>拖曳</td><td>來源 opacity .45；落點左側 2px 藍線</td><td><code>--wb-blue-l</code></td></tr>
+<tr><td>右鍵／下拉</td><td>選單寬 232 / 340、圓角 8、項目高 30 / 32、快捷鍵用 mono 10.5px 鍵帽</td><td>陰影 <code>0 12px 32px rgba(22,28,40,.18)</code></td></tr>
+<tr><td>手機計數鈕</td><td>32×32 外框鈕，內含 18px 圓角 4 的數字框（11px bold、tabular-nums）</td><td>active <code>--wb-blue-l</code></td></tr>
+</table></div>
+
+<h2><span class="n">04</span>互動規則</h2>
+<h3>位置與麵包屑</h3>
+<p>頁籤列放在主區最上方、Header 之上。麵包屑保留不簡化：頁籤只顯示標題，資料夾位置（<code>NoteCraft / 筆記 / 01-前端</code>）仍需要麵包屑提供，且麵包屑是回到資料夾列表的唯一一鍵入口。兩者分工是「頁籤 = 我開了什麼」、「麵包屑 = 這篇在哪裡」。</p>
+<h3>開啟與聚焦</h3>
+<ul>
+<li>所有開啟入口（列表雙擊、列上「開啟」、Drawer「開啟筆記」、Sidebar、⌘K、Dashboard 列、資料檔列）走同一個規則：同一網址已有頁籤就聚焦它，否則在目前 active 的右側插入新頁籤（不在頁籤頁時加到最後）。</li>
+<li>頁籤的 key 是 <code>note:{slug}</code> 或 <code>view:{id}</code>。系列、標籤、Dashboard、Plugin 列表、設定頁不開頁籤。</li>
+<li>關閉 active 頁籤時導覽到右鄰，沒有右鄰就左鄰；最後一個也關了就回 <code>/notes</code>。</li>
+<li>中鍵點頁籤 = 關閉。固定頁籤不能用 ✕ 或 <span class="kbd">⌥ W</span> 關閉，需先取消固定。</li>
+</ul>
+<h3>關閉 ✕：active 常駐，其他 hover 才出現</h3>
+<p>與 VS Code 相同的折衷。15 個頁籤時每個都有 ✕ 會很吵，也容易誤關；active 常駐是因為「看完這篇就關」是最常見的動作。✕ 的位置在隱藏時仍佔位，hover 時標題不會跳動。觸控裝置（<code>pointer: coarse</code>）一律常駐。</p>
+<h3>不做預覽頁籤</h3>
+<p>單擊列已經會開 Drawer 預覽，Drawer 就是本工作台的「暫時檢視」。若再加斜體暫時頁籤，單擊會同時觸發兩種預覽，且 MPA 下暫時頁籤每次都要整頁導覽，比 Drawer 慢得多。所以規則是：單擊 = Drawer，開啟 = 固定的一般頁籤。</p>
+<h3>溢出：捲動＋全部頁籤下拉＋20 個上限</h3>
+<ul>
+<li>頁籤先收縮到 120px，再改水平捲動，左右漸層遮罩提示還有內容。</li>
+<li>尾端「N ▾」常駐，點開是可篩選的全部頁籤清單；數量少時也保留，位置穩定。</li>
+<li>未固定頁籤上限 20。開第 21 個時自動關閉「最久未切換」的未固定頁籤，toast 告知標題，並可用 <span class="kbd">⌥ ⇧ T</span> 重開。固定頁籤不計入上限。</li>
+</ul>
+<h3>狀態小點：預設不顯示</h3>
+<p>頁籤上已有 icon、標題、✕／圖釘，再加閱讀狀態或 AI 待生成點會和 ✕ 搶視線，而且這兩種資訊在 Header 的 pill 已經看得到。建議預設關閉，改放在頁籤的 tooltip（標題、路徑、待生成數）。Prototype 的 Tweaks「頁籤狀態點」可切換 AI 待生成／閱讀狀態兩種版本比較。</p>
+<h3>刪除筆記（dev-only）</h3>
+<p>刪除成功後關閉對應頁籤（不進「最近關閉」堆疊），active 規則同一般關閉。若是在別處刪除、或 build 後檔案消失，下次渲染頁籤列時清掉解析不到的頁籤，toast「筆記已不存在，對應頁籤已關閉」。</p>
+<h3>⌘K Palette</h3>
+<p>最上方新增「已開啟的頁籤」分區（無查詢時列 6 個，有查詢時最多 4 個相符），目前頁面標「目前」，固定標「已固定」。Enter 優先選頁籤。</p>
+<h3>拖曳排序</h3>
+<p>只在 <code>pointer: fine</code> 裝置啟用 HTML5 drag，與 Board 規則一致。固定與一般頁籤各自排序，不能跨區拖。觸控裝置不提供；手機的清單抽屜也不排序。</p>
+
+<h2><span class="n">05</span>鍵盤與語意</h2>
+<div class="tw"><table>
+<tr><th>動作</th><th>快捷鍵</th><th>說明</th></tr>
+<tr><td>下一個／上一個頁籤</td><td><span class="kbd">⌥ .</span> ／ <span class="kbd">⌥ ,</span></td><td>循環切換。不在頁籤頁時，任一鍵回到最後讀的那篇。</td></tr>
+<tr><td>關閉目前頁籤</td><td><span class="kbd">⌥ W</span></td><td>固定頁籤不作用。</td></tr>
+<tr><td>重開剛關閉的</td><td><span class="kbd">⌥ ⇧ T</span></td><td>最近 10 筆，連同捲動位置一起還原。</td></tr>
+<tr><td>全部頁籤</td><td>⌘K 後直接看「已開啟的頁籤」</td><td>不另佔快捷鍵。</td></tr>
+</table></div>
+<p>⌘W／⌘T／⌘數字／⌃Tab 會被瀏覽器攔走，所以用 Option（Windows 為 Alt）。實作要比對 <code>event.code</code>（<code>Comma</code>、<code>Period</code>、<code>KeyW</code>、<code>KeyT</code>），因為 macOS 的 Option 會把 <code>event.key</code> 變成特殊字元。輸入框內不攔截。</p>
+<p>頁籤列：<code>role="tablist"</code> + <code>aria-label="已開啟的頁籤"</code>；每個頁籤 <code>role="tab"</code>，目前頁面 <code>aria-selected="true"</code>，主區 Body 是對應的 <code>tabpanel</code>。roving tabindex：只有一個頁籤 <code>tabindex=0</code>（預設 active，否則第一個），<span class="kbd">← →</span> 移動焦點、<span class="kbd">Home</span> <span class="kbd">End</span> 跳頭尾、<span class="kbd">Enter</span> 開啟、<span class="kbd">Delete</span> 關閉、<span class="kbd">⇧ F10</span> 開右鍵選單。✕ 按鈕 <code>tabindex=-1</code>，以 Delete 取代。</p>
+
+<h2><span class="n">06</span>MPA 落地</h2>
+<ul>
+<li><b>資料：</b><code>localStorage["nc.tabs.v1"] = { tabs: [{ kind, id, key, pinned, scroll, at }], closed: [...] }</code>。標題、路徑在渲染時從 build 產出的筆記索引解析，不存 localStorage，避免改名後顯示舊標題。</li>
+<li><b>SSR 佔位：</b>Astro layout 輸出一個空的 34px <code>.nt-bar</code>（手機寬度 <code>display:none</code>），island 以 <code>client:load</code> 讀 localStorage 後補上頁籤。空清單時顯示提示文字，高度不變，所以 hydrate 前後零位移。</li>
+<li><b>捲動還原：</b>Body 捲動時 debounce 220ms 寫入目前頁籤的 <code>scroll</code>；<code>pagehide</code> 再補寫一次。新頁面 hydrate 後在下一個 frame 設定 <code>scrollTop</code>（等 MDX 圖表撐開高度）。</li>
+<li><b>多分頁同步：</b>監聽 <code>storage</code> 事件，其他瀏覽器分頁增減頁籤時重畫。</li>
+<li><b>在新視窗開啟：</b>直接 <code>window.open(url)</code>，新視窗共用同一份清單。</li>
+</ul>
+
+<h2><span class="n">07</span>待決問題</h2>
+<div class="dec">
+<div class="dec-i"><div class="dec-q"><span>Q1</span>頁籤上是否顯示狀態小點？</div><div class="dec-o">建議：<b>不顯示，資訊放 tooltip</b>。次選：只顯示 AI 待生成（橘點），閱讀狀態不顯示。Tweaks 可比較。</div></div>
+<div class="dec-i"><div class="dec-q"><span>Q2</span>未固定頁籤上限是否定在 20？</div><div class="dec-o">建議：<b>20，超過自動關最久未用的</b>，並 toast 告知。次選：不設上限，只靠捲動與下拉。</div></div>
+<div class="dec-i"><div class="dec-q"><span>Q3</span>快捷鍵用 ⌥ , / ⌥ . 是否可接受？</div><div class="dec-o">建議：<b>⌥ , ／ ⌥ .</b>（與 ⌘K 不衝突、不被瀏覽器攔截）。次選：<code>⌥ [</code> ／ <code>⌥ ]</code>，與 VS Code 的方括號直覺較接近，但部分鍵盤配置需按 Shift。另需確認是否加 <code>⌥ 1–9</code> 跳第 N 個（Linux Firefox 會攔截 Alt+數字）。</div></div>
+<div class="dec-i"><div class="dec-q"><span>Q4</span>新頁籤插入位置？</div><div class="dec-o">建議：<b>插在 active 右側</b>（從一篇跳到相關筆記時兩者相鄰）。次選：一律加在最後，順序較好預測。</div></div>
+<div class="dec-i"><div class="dec-q"><span>Q5</span>系列詳情頁要不要也能開頁籤？</div><div class="dec-o">建議：<b>暫不開</b>，系列頁是導覽頁，讀者主要停留在章節筆記。若之後觀察到常在系列頁與章節間來回，再加 <code>series:{id}</code>。</div></div>
+<div class="dec-i"><div class="dec-q"><span>Q6</span>簡報模式（全螢幕 Present／版型庫）是否顯示頁籤列？</div><div class="dec-o">建議：<b>不顯示</b>，維持現在全螢幕不帶殼的行為；離開簡報回到原頁籤。</div></div>
+</div>
+</div>
+<script>
+(function(){
+  var base="NoteCraft-Workbench-Tabs.html";
+  var vs=[].slice.call(document.querySelectorAll(".fr-v"));
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&!e.target.dataset.loaded){var v=e.target;v.dataset.loaded=1;var f=document.createElement("iframe");f.src=base+v.dataset.src;f.width=v.dataset.w;f.height=v.dataset.h;f.loading="lazy";f.title=v.parentNode.querySelector(".fr-h b").textContent;v.appendChild(f);fit();}})},{rootMargin:"400px"});
+  vs.forEach(function(v){io.observe(v)});
+  function fit(){vs.forEach(function(v){var w=+v.dataset.w,h=+v.dataset.h,s=v.clientWidth/w;v.style.height=(h*s)+"px";var f=v.querySelector("iframe");if(f)f.style.transform="scale("+s+")";})}
+  window.addEventListener("resize",fit);fit();
+})();
+</script>
+</body>
+</html>
