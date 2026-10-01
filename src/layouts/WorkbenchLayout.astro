@@ -147,7 +147,7 @@ const index = await getWorkbenchIndex();
       </main>
     </div>
     <SidebarLive client:idle />
-    <Palette client:idle />
+    <Palette client:idle workspace={index.workspaceLabel} />
     <ToastHost client:idle />
     {isDev && <NewNoteModal client:idle />}
     <script is:inline>

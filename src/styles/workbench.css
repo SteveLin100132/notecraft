@@ -582,6 +582,31 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .nt-empty{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:0 14px;font-size:12px;color:var(--wb-ink-3);white-space:nowrap;overflow:hidden}
 .nt-empty svg{flex:none}
 .nt-empty-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* 右鍵選單、全部頁籤下拉：position:fixed、與 Palette 同在 overlay 層（prototype 是 .wb-app 內的 absolute） */
+.nt-pop-scrim{position:fixed;inset:0;z-index:var(--wb-z-overlay)}
+.nt-pop{position:fixed;z-index:var(--wb-z-overlay);background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;box-shadow:0 12px 32px var(--wb-a-ink-18);padding:4px;animation:wbFade 120ms ease-out;max-width:calc(100vw - 16px);box-sizing:border-box;font-size:13px;color:var(--wb-ink)}
+.nt-pop-h{padding:6px 10px 6px;font-size:11px;color:var(--wb-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid var(--wb-line-2);margin-bottom:4px}
+.nt-pop-sep{height:1px;background:var(--wb-line-2);margin:4px 0}
+.nt-mi{width:100%;height:30px;display:flex;align-items:center;gap:8px;padding:0 8px;border:none;background:none;border-radius:5px;font:inherit;font-size:12.5px;color:var(--wb-ink-2);cursor:pointer;text-align:left}
+.nt-mi:hover:not(:disabled),.nt-mi:focus-visible{background:var(--wb-a-blue-08);color:var(--wb-ink);outline:none}
+.nt-mi:disabled{color:var(--wb-ink-3);opacity:.55;cursor:default}
+.nt-mi-ic{width:14px;display:flex;color:var(--wb-ink-3)}
+.nt-mi-l{flex:1}
+.nt-kbd{font-family:var(--font-mono);font-size:10.5px;font-weight:400;color:var(--wb-ink-3);border:1px solid var(--wb-line);border-radius:4px;padding:0 4px;line-height:16px;background:var(--wb-bg)}
+.nt-all-in{display:flex;align-items:center;gap:7px;height:34px;padding:0 8px;border-bottom:1px solid var(--wb-line-2);margin-bottom:4px}
+.nt-all-in input{flex:1;min-width:0;border:none;outline:none;background:none;font:inherit;font-size:12.5px;color:var(--wb-ink)}
+.nt-all-list{max-height:340px;overflow:auto}
+.nt-all-sec{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--wb-ink-3);padding:6px 8px 3px}
+.nt-all-row{height:32px;display:flex;align-items:center;gap:4px;padding:0 6px 0 0;border-radius:5px}
+.nt-all-row:hover,.nt-all-row:has(.nt-all-main:focus-visible){background:var(--wb-a-blue-06)}
+.nt-all-row.on{background:var(--wb-a-blue-10)}
+.nt-all-main{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:8px;padding-left:8px;color:inherit;text-decoration:none;outline:none}
+.nt-all-row.on .nt-all-t{color:var(--wb-blue-l);font-weight:700}
+.nt-all-t{font-size:12.5px;color:var(--wb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0;max-width:60%}
+.nt-all-p{flex:1;min-width:0;font-size:10.5px;color:var(--wb-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt-all-f{display:flex;justify-content:space-between;gap:8px;padding:6px 4px 2px;border-top:1px solid var(--wb-line-2);margin-top:4px}
+.nt-all-f .wb-mini{display:inline-flex;align-items:center;gap:6px}
+.nt-all-f .wb-mini:disabled{opacity:.5;cursor:default}
 /* ── 行動版（≤860px）：單欄、側欄抽屜、底部 tab bar、只提供 List ── */
 .wb-mburger{display:none;width:32px;height:32px;border:1px solid var(--wb-line);border-radius:6px;background:var(--wb-panel);color:var(--wb-ink-2);align-items:center;justify-content:center;cursor:pointer;position:absolute;top:9px;left:12px;z-index:6}
 .wb-sb-scrim{display:none}

@@ -12,6 +12,8 @@ export interface TabStoreHandle {
   get(): TabStore;
   update(fn: (s: TabStore) => TabStore): TabStore;
   subscribe(cb: () => void): () => void;
+  /** 強制重讀 localStorage 並通知（bfcache 還原時用：期間其他頁的寫入收不到 storage 事件） */
+  refresh(): void;
   /** 目前頁面的頁籤 key（非頁籤頁為 null）；給 Palette 標「目前」 */
   setActive(key: string | null): void;
   getActive(): string | null;
@@ -68,6 +70,11 @@ function createTabStore(workspace: string): TabStoreHandle {
       return () => {
         subs.delete(cb);
       };
+    },
+    refresh() {
+      raw = undefined;
+      read();
+      emit();
     },
     setActive(k) {
       active = k;

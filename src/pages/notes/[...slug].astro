@@ -15,7 +15,7 @@ import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
 import { getDataFiles } from "@/lib/plugins";
-import { noteRelPath, promptPathOf } from "@/lib/workbench";
+import { getWorkbenchIndex, noteRelPath, promptPathOf } from "@/lib/workbench";
 import { notesFolderHref } from "@/lib/wb-routes";
 import { ROOT_GROUP } from "@/lib/wb-types";
 
@@ -57,6 +57,8 @@ const seriesNavData = series
 // 麵包屑第三段 = 筆記所在資料夾（真實路徑，不是 slug）
 const relPath = noteRelPath(note);
 const promptPath = promptPathOf(relPath);
+// 頁籤的 localStorage key 依工作區分開；刪除筆記時要關掉對應頁籤（note-tabs §8.2）
+const workspaceLabel = (await getWorkbenchIndex()).workspaceLabel;
 const folderPath = relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
 const aiPill =
   pendingMarkers.length > 0
@@ -98,6 +100,7 @@ const toc = headings
         vscodeHref={vscodeHref}
         pendingIds={pendingIds}
         componentIds={markers.map((m) => m.id)}
+        workspace={workspaceLabel}
       />
     )}
   </Fragment>
