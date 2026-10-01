@@ -3,7 +3,8 @@
 //
 // MPA 下頁籤是存在 localStorage 的已開啟清單：每次換頁由這個 island 重畫、ensure 目前頁面，
 // idle 時以 /wb-index.json 校正快照並清掉已不存在的頁籤；也負責 ⌥ 快捷鍵與 #nc-scroll 的捲動記錄／還原。
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   close,
   closable,
@@ -33,6 +34,7 @@ import { useTabStore } from "./useTabStore";
 import TabStrip from "./TabStrip";
 import TabMenu from "./TabMenu";
 import TabAll from "./TabAll";
+import TabSheet from "./TabSheet";
 
 export interface TabBarProps {
   /** 目前頁面（筆記頁、資料檔頁）；其他頁為 null */
@@ -94,6 +96,11 @@ export default function TabBar({ self = null, workspace = "" }: TabBarProps) {
   const activeKey = self ? tabKey(self.kind, self.id) : null;
   const [pop, setPop] = useState<Pop | null>(null);
   const closePop = useCallback(() => setPop(null), []);
+  // 手機計數鈕：portal 進 layout 預留的 #nt-count-slot（在 Header 區，規格 §3.2）。effect 後才取，SSR 不渲染
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [sheet, setSheet] = useState<HTMLElement | null>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
+  useEffect(() => setSlot(document.getElementById("nt-count-slot")), []);
 
   // 目前頁面加入／聚焦（bfcache 還原時再跑一次，更新 at）
   const ensureSelf = useCallback(() => {
@@ -218,6 +225,7 @@ export default function TabBar({ self = null, workspace = "" }: TabBarProps) {
       handle.refresh();
       ensureSelf();
       setPop(null);
+      setSheet(null);
     };
     window.addEventListener("pageshow", onShow);
     return () => window.removeEventListener("pageshow", onShow);
@@ -314,6 +322,34 @@ export default function TabBar({ self = null, workspace = "" }: TabBarProps) {
           y={pop.y}
           returnFocus={pop.focus}
           onClose={closePop}
+          onActivate={activate}
+          onCloseTab={onClose}
+          onReopen={reopen}
+          onCloseAll={() => closeAndNavigate(handle, closeAll, activeKey)}
+        />
+      ) : null}
+      {slot && tabs
+        ? createPortal(
+            <button
+              type="button"
+              className={"nt-count" + (activeKey && tabs.some((t) => t.key === activeKey) ? " on" : "")}
+              aria-label={`已開啟 ${tabs.length} 個頁籤`}
+              aria-haspopup="dialog"
+              aria-expanded={!!sheet}
+              onClick={(e) => setSheet(e.currentTarget)}
+            >
+              <span className="tnum">{tabs.length}</span>
+            </button>,
+            slot,
+          )
+        : null}
+      {sheet && tabs ? (
+        <TabSheet
+          tabs={tabs}
+          activeKey={activeKey}
+          canReopen={(store?.closed.length ?? 0) > 0}
+          returnFocus={sheet}
+          onClose={closeSheet}
           onActivate={activate}
           onCloseTab={onClose}
           onReopen={reopen}

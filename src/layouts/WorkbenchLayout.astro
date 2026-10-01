@@ -115,6 +115,8 @@ const index = await getWorkbenchIndex();
         <button type="button" class="wb-mburger" id="wb-mburger" aria-label="開啟側欄" aria-expanded="false" aria-controls="wb-sb">
           <Icon name="layers" size={16} stroke={1.7} />
         </button>
+        {/* 手機（≤860）的頁籤計數鈕位置：SSR 是空框，TabBar 以 portal 填入按鈕 */}
+        <div class="nt-count-slot" id="nt-count-slot" data-pagefind-ignore></div>
         {bare ? (
           <slot />
         ) : (
