@@ -52,3 +52,13 @@
 - [ ] dev console 零 hydration warning（範例 JSON、cURL 在 SSR 與 client 一致）
 - [ ] `grep -n "dangerouslySetInnerHTML" plugins/openapi-renderer` 0 筆；`npm run check-plugins` 通過（registry 補上新檔）
 - [ ] `npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-10-01）
+
+- 選擇器寫法比照 ER：外層 `.oar-root`、內部 `.oar-root .oar-x`；狀態 class 一律帶前綴（`oar-on`／`oar-open`／`oar-dep`／`oar-done`…），不用 prototype 的裸 `on`／`open`，免得撞到 app 的 CSS
+- prototype 的四條 `>` 子選擇器：`.oa-main>div` → `.oar-main-col`；`.oa-media-bar>span:first-child` → `.oar-media-l`；`.oa-f.dep>…` 兩條 → 欄位自己的名稱與說明加 `oar-f-own`（刪除線只套在本欄位、不往子層傳）
+- 欄位樹的 caret 改名 `oar-fcaret`，避免與導覽的 `oar-caret` 同名不同尺寸
+- `oar-styles.mjs` 改為小型括號解析器逐一檢查選擇器（ER 的逐行檢查擋不了多行的 token 區塊），另檢查 `--wb-oa-` 殘留與規則內的色碼字面值（只允許在 `.oar-root` 的 `--oar-*` 定義）
+- `LinkCtx`：型別 chip 等連結在 page 模式攔下點擊走元件內路由，embed 沒有 `go`、讓瀏覽器直接導到文件頁 —— 同一組元件兩種模式共用
+- 未做「元件展示區」：Task 101–103 直接以完整頁面對照 prototype 驗收（見 Task 104 的手動驗證）
+- `check:oar`（含 styles）、`check-plugins --skip-build` 通過；`dangerouslySetInnerHTML` 0 筆；plugin 無 tsc 錯誤

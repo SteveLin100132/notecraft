@@ -39,13 +39,17 @@
         "notecraft-plugin.json",
         "renderer.tsx",
         "README.md",
+        "atoms.tsx",
         "derive.ts",
         "example/health.openapi.json",
         "example/orders.openapi.json",
         "example/petstore.openapi.json",
         "examples.ts",
         "markdown-text.ts",
+        "markdown.tsx",
+        "schema-tree.tsx",
         "schema.json",
+        "styles.ts",
         "types.ts"
       ],
       "tags": [
