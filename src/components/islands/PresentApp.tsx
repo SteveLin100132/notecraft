@@ -9,6 +9,7 @@ import type { Deck } from "@/lib/decks";
 import { SlideFrame, useMeasure } from "@/components/deck/SlideFrame";
 import { dkt } from "@/components/deck/theme";
 import type { DeckTheme } from "@/components/deck/theme";
+import { withBase } from "@/lib/base";
 
 const THEME_KEY = "nc-deck-theme";
 
@@ -298,7 +299,7 @@ export default function PresentApp({ slug }: { slug: string }) {
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: c.stage, fontFamily: "var(--font-sans)" }}>
       <header style={{ flex: "none", height: 64, display: "flex", alignItems: "center", gap: 14, padding: "0 20px", background: c.chrome, borderBottom: `1px solid ${c.border}` }}>
-        <GhostBtn dark={dark} icon={<ChevronLeft size={16} />} onClick={() => { location.href = `/notes/${slug}`; }}>
+        <GhostBtn dark={dark} icon={<ChevronLeft size={16} />} onClick={() => { location.href = withBase(`/notes/${slug}`); }}>
           返回筆記
         </GhostBtn>
         <div style={{ width: 1, height: 26, background: c.border }} />

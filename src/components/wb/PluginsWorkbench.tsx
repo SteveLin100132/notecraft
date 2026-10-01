@@ -10,6 +10,7 @@ import DataFileRow from "./DataFileRow";
 import PluginDrawer from "./PluginDrawer";
 import { GroupHeader, Ic, Pill, SearchBox, StatStrip } from "./ui";
 import { PluginSwitch, PluginToggleButton } from "./PluginToggle";
+import { withBase } from "@/lib/base";
 
 type Tab = "files" | "installed";
 
@@ -86,7 +87,7 @@ export default function PluginsWorkbench({
     <>
       <WbHeader
         title="Plugin 資料檔"
-        crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin" }]}
+        crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "Plugin" }]}
         pills={[
           { label: `${files.length} 個資料檔`, tone: "muted" },
           { label: `已裝 ${plugins.length} 個外掛` },

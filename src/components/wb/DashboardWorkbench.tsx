@@ -15,6 +15,7 @@ import Calendar from "./dashboard/Calendar";
 import EmptyState from "./EmptyState";
 import { Ic, Pill } from "./ui";
 import { useWbIndex } from "./useWbIndex";
+import { withBase } from "@/lib/base";
 
 type Tab = "overview" | "calendar" | "ai";
 const TABS: { key: Tab; label: string }[] = [
@@ -108,7 +109,7 @@ export default function DashboardWorkbench({
     <>
       <WbHeader
         title="儀表板"
-        crumbs={[{ label: "NoteCraft", href: "/" }, { label: "工作區" }]}
+        crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "工作區" }]}
         pills={[{ label: `${rows.length} 篇筆記`, tone: "muted" }, ...(stats.pending ? [{ label: `${stats.pending} 待生成`, tone: "warn" as const }] : [])]}
         tabs={TABS}
         activeTab={tab}
@@ -125,7 +126,7 @@ export default function DashboardWorkbench({
               title="AI 佇列已清空"
               sub="所有 @ai-visualize 標記都已生成完成。新增標記後會出現在這裡。"
               action={
-                <a className="pt-empty-btn" href="/notes">
+                <a className="pt-empty-btn" href={withBase("/notes")}>
                   前往筆記
                 </a>
               }
@@ -133,7 +134,7 @@ export default function DashboardWorkbench({
           ) : (
             stats.pendingRows.map((r) => (
               <section key={r.slug} aria-label={r.title}>
-                <a className="wb-gh wb-gc-warn" href={`/notes/${r.slug}`}>
+                <a className="wb-gh wb-gc-warn" href={withBase(`/notes/${r.slug}`)}>
                   <span className="wb-sp11" />
                   <Ic icon={FileText} size={13} />
                   <span className="wb-gh-n">{r.title}</span>
@@ -143,7 +144,7 @@ export default function DashboardWorkbench({
                 {r.markers
                   .filter((m) => m.status !== "generated")
                   .map((m) => (
-                    <a key={m.id} className="wb-row" href={`/notes/${r.slug}`}>
+                    <a key={m.id} className="wb-row" href={withBase(`/notes/${r.slug}`)}>
                       <span className="wb-dot warn" aria-hidden="true" />
                       <span className="wb-row-t">{m.id}</span>
                       <span className="wb-row-p">{m.prompt}</span>

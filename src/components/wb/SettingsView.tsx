@@ -16,6 +16,7 @@ import {
 import { toast } from "@/lib/prompts";
 import WbHeader from "./WbHeader";
 import { GroupHeader, Ic, Seg, StatStrip } from "./ui";
+import { withBase } from "@/lib/base";
 
 type Tab = "settings" | "about";
 
@@ -96,7 +97,7 @@ export default function SettingsView({ about, isDev = false }: { about: AboutDat
     <>
       <WbHeader
         title="設定與關於"
-        crumbs={[{ label: "NoteCraft", href: "/" }, { label: "設定" }]}
+        crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "設定" }]}
         tabs={[
           { key: "settings", label: "設定" },
           { key: "about", label: "關於" },

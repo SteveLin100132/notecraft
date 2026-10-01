@@ -8,8 +8,9 @@ import { ArrowRight, FileText } from "lucide-react";
 import type { WbNoteRow } from "@/lib/wb-types";
 import { md } from "@/lib/wb-time";
 import { AiPill, Ic, TagChips } from "./ui";
+import { withBase } from "@/lib/base";
 
-export const noteHref = (slug: string): string => `/notes/${slug}`;
+export const noteHref = (slug: string): string => withBase(`/notes/${slug}`);
 
 /** 供列、卡片、表格列共用的點擊與鍵盤語意。回傳可直接展開到元素上的 handlers。 */
 export function rowHandlers(slug: string, onSelect: (slug: string) => void) {

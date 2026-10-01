@@ -3,7 +3,10 @@
 //
 // scripts/checks/wb-tabs.mjs 以 Node 原生 strip-types 直接載入本檔做斷言，所以：
 // **只能 import type、不能有 JSX、不碰 window／localStorage／Date.now()**（時間由呼叫端傳入）。
+// 唯一例外是帶副檔名的 ./base.ts（純函式；Node 下沒有 import.meta.env，前綴是空字串）。
 // 所有函式回傳新物件，不改傳入值。
+
+import { withBase } from "./base.ts";
 
 export type TabKind = "note" | "view";
 
@@ -253,7 +256,7 @@ export function refreshSnapshot(store: TabStore, resolve: (t: TabEntry) => TabSn
 }
 
 export function hrefOf(t: Pick<TabEntry, "kind" | "id">): string {
-  return t.kind === "note" ? `/notes/${t.id}` : `/view/${t.id}`;
+  return withBase(t.kind === "note" ? `/notes/${t.id}` : `/view/${t.id}`);
 }
 
 /** title 屬性：標題／路徑／待生成數 */

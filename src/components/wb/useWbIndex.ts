@@ -3,12 +3,13 @@
 // **呼叫 load() 才發請求** —— 沒開面板、沒點列的頁面完全不會抓。
 import { useCallback, useEffect, useState } from "react";
 import type { WbIndex } from "@/lib/wb-types";
+import { withBase } from "@/lib/base";
 
 let pending: Promise<WbIndex> | null = null;
 
 export function loadWbIndex(): Promise<WbIndex> {
   if (!pending) {
-    pending = fetch("/wb-index.json")
+    pending = fetch(withBase("/wb-index.json"))
       .then((r) => {
         if (!r.ok) throw new Error(`wb-index.json ${r.status}`);
         return r.json() as Promise<WbIndex>;

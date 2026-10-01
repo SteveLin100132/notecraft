@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 // 壓縮頁首（README §3.4）：麵包屑、返回鍵、h1、pill、右側動作、連結型 Tab。
 // React 版在 WbHeader.tsx（給頁首由 island 自己渲染的頁面用）。**兩份的 DOM 結構必須一致**。
 import Icon from "@/components/Icon.astro";
@@ -30,13 +31,13 @@ const isDev = import.meta.env.DEV;
         {crumbs.map((c, i) => (
           <>
             {i > 0 && <span aria-hidden="true">{"  /  "}</span>}
-            {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
+            {c.href ? <a href={withBase(c.href)}>{c.label}</a> : <span>{c.label}</span>}
           </>
         ))}
       </nav>
       <div class="wb-hd-title-row">
         {back && (
-          <a class="wb-dw-x" href={back} title="返回" aria-label="返回"><Icon name="arrowLeft" size={15} stroke={1.7} /></a>
+          <a class="wb-dw-x" href={withBase(back)} title="返回" aria-label="返回"><Icon name="arrowLeft" size={15} stroke={1.7} /></a>
         )}
         <h1
           class:list={["wb-hd-title", { clamp2: clampTwo }]}

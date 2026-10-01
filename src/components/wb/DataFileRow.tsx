@@ -3,10 +3,11 @@ import { FileText } from "lucide-react";
 import type { WbDataFile } from "@/lib/wb-types";
 import { md } from "@/lib/wb-time";
 import { Ic } from "./ui";
+import { withBase } from "@/lib/base";
 
 export default function DataFileRow({ file }: { file: WbDataFile }) {
   return (
-    <a className="wb-row" href={`/view/${file.routePath}`}>
+    <a className="wb-row" href={withBase(`/view/${file.routePath}`)}>
       <Ic icon={FileText} size={13} color="var(--wb-gold)" />
       <span className="wb-row-t">{file.title}</span>
       <span className="wb-row-p">{file.relPath}</span>

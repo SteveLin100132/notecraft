@@ -6,6 +6,7 @@ import type { SeriesAccent, SeriesIconName } from "@/data/series";
 import { seriesProgress } from "@/lib/reading-progress";
 import { GroupHeader, Pill, Progress, SearchBox, StatStrip } from "@/components/wb/ui";
 import { useReadingVersion } from "./seriesShared";
+import { withBase } from "@/lib/base";
 
 export type SeriesChapterLite = { ref: string; title: string; tags: string[] };
 export type SeriesCardData = {
@@ -53,7 +54,7 @@ export default function SeriesOverview({ series = [] }: { series?: SeriesCardDat
           <div className="wb-empty">沒有符合條件的系列。</div>
         ) : (
           list.map(({ s, p }) => (
-            <a key={s.id} className={`wb-row wb-acc-${s.accent}`} href={`/series/${s.id}`}>
+            <a key={s.id} className={`wb-row wb-acc-${s.accent}`} href={withBase(`/series/${s.id}`)}>
               <span className="wb-sb-swatch" aria-hidden="true" />
               <span className="wb-row-t">{s.title}</span>
               <span className="wb-row-p">

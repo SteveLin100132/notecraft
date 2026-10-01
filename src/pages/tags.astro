@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagsManager from "@/components/islands/TagsManager.tsx";
 import { getWorkbenchIndex } from "@/lib/workbench";
@@ -9,7 +10,7 @@ const index = await getWorkbenchIndex();
 <WorkbenchLayout
   title="標籤"
   description="依標籤瀏覽筆記"
-  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "標籤" }]}
+  crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "標籤" }]}
   pills={[{ label: `${index.tags.length} 個標籤`, tone: "muted" }]}
   bareBody
 >

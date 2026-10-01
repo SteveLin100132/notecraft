@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 // 資料檔檢視頁（Task 48）。
 //
 // 這條路由刻意不套 BaseLayout 的 1120 版心與 34/40/80 padding —— 資料檔頁就是滿版畫面。
@@ -42,16 +43,16 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
   title={file.title}
   description={file.description}
   rail="plugins"
-  back="/plugins"
+  back={withBase("/plugins")}
   flush
   indexHeader
   pagefindTitle
   tab={{ kind: "view", id: file.routePath, title: file.title, path: file.relPath, pending: 0 }}
-  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin", href: "/plugins" }, { label: file.relPath }]}
+  crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "Plugin", href: withBase("/plugins") }, { label: file.relPath }]}
   pills={[
     { label: file.pluginId },
     ...(series
-      ? [{ label: `${series.series.title} #${series.index + 1}`, href: `/series/${series.series.id}`, class: `series wb-acc-${series.series.accent}` }]
+      ? [{ label: `${series.series.title} #${series.index + 1}`, href: withBase(`/series/${series.series.id}`), class: `series wb-acc-${series.series.accent}` }]
       : []),
   ]}
 >
@@ -61,7 +62,7 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
   </Fragment>
   <Fragment slot="actions">
     {backTo && (
-      <a href={backTo} class="wb-btn-ghost">
+      <a href={withBase(backTo)} class="wb-btn-ghost">
         <Icon name="notes" size={14} stroke={1.7} /> 回到來源筆記
       </a>
     )}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Clipboard, Play, Sparkles, Star } from "lucide-react";
 import { FAVORITES_EVENT, isFavorite, toggleFavorite } from "@/lib/favorites";
 import { buildDeckPrompt, buildRegeneratePrompt, copyToClipboard, toast } from "@/lib/prompts";
+import { withBase } from "@/lib/base";
 
 /**
  * 簡報按鈕的三段式：有 deck → solid「簡報」；無 deck 且 dev → ghost「生成簡報」（複製提示詞）；
@@ -23,7 +24,7 @@ export function DeckAction({
   const [copied, setCopied] = useState(false);
   if (hasDeck) {
     return (
-      <a className="wb-btn-solid" href={`/present/${slug.normalize("NFC")}`}>
+      <a className="wb-btn-solid" href={withBase(`/present/${slug.normalize("NFC")}`)}>
         <Play size={13} strokeWidth={1.7} aria-hidden="true" /> 簡報
       </a>
     );

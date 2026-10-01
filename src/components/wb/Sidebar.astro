@@ -1,4 +1,5 @@
 ---
+import { BASE, withBase } from "@/lib/base";
 // Sidebar：240px 檔案樹（README §3.3）。四個區段順序固定：資料夾／系列／Plugin 資料檔／其他。
 // 這裡畫的全是 build 期已知的東西。靠 client 才知道的三件事不在這：
 //   - 展開狀態、目前項目高亮、捲動位置 → 緊接在後的 inline script（首次繪製前套用，不閃）
@@ -27,8 +28,8 @@ const dataFolders = Array.from(dataDirs.entries())
   .sort((a, b) => (a.dir === "" ? -1 : b.dir === "" ? 1 : a.dir.localeCompare(b.dir, "zh-Hant")));
 ---
 <button type="button" class="wb-sb-scrim" id="wb-sb-scrim" aria-label="關閉側欄" hidden></button>
-<nav class="wb-sb" id="wb-sb" aria-label="工作區" data-wb-current-folder={folderPath}>
-  <a class="wb-sb-ws" href="/">
+<nav class="wb-sb" id="wb-sb" aria-label="工作區" data-wb-current-folder={folderPath} data-wb-base={BASE}>
+  <a class="wb-sb-ws" href={withBase("/")}>
     <span class="wb-sb-ws-mark"><Logo size={30} /></span>
     <div style="min-width:0;text-align:left">
       <div class="wb-sb-ws-name">NoteCraft 工作台</div>
@@ -39,7 +40,7 @@ const dataFolders = Array.from(dataDirs.entries())
     <div class="wb-sb-sec">資料夾</div>
     <div class="wb-sb-item" style="padding-left:10px" data-wb-all-notes>
       <span class="wb-sp11"></span>
-      <a class="wb-sb-link" href="/notes">
+      <a class="wb-sb-link" href={withBase("/notes")}>
         <Icon name="layers" size={14} style="color:var(--wb-ink-3);flex:none" />
         <span class="wb-sb-label">全部筆記</span>
         <span class="wb-badge-n tnum">{index.notes.length}</span>
@@ -49,11 +50,11 @@ const dataFolders = Array.from(dataDirs.entries())
 
     {series.length > 0 && (
       <>
-        <div class="wb-sb-sec" style="margin-top:8px">系列<a class="wb-sb-foot-a" style="padding:0;font-size:11px" href="/series">全部</a></div>
+        <div class="wb-sb-sec" style="margin-top:8px">系列<a class="wb-sb-foot-a" style="padding:0;font-size:11px" href={withBase("/series")}>全部</a></div>
         {series.map((s) => (
           <div class:list={["wb-sb-item", `wb-acc-${s.accent}`]} style="padding-left:10px" data-wb-series={s.id} data-wb-refs={JSON.stringify(s.chapters.map((c) => c.ref))}>
             <span class="wb-sp11"></span>
-            <a class="wb-sb-link" href={`/series/${s.id}`}>
+            <a class="wb-sb-link" href={withBase(`/series/${s.id}`)}>
               <span class="wb-sb-swatch"></span>
               <span class="wb-sb-label">{s.title}</span>
               <span class="wb-sb-prog" aria-hidden="true"><i style="width:0%"></i></span>
@@ -91,7 +92,7 @@ const dataFolders = Array.from(dataDirs.entries())
     <div class="wb-sb-sec" style="margin-top:8px">其他</div>
     <div class="wb-sb-item" style="padding-left:10px" data-wb-path="/tags">
       <span class="wb-sp11"></span>
-      <a class="wb-sb-link" href="/tags">
+      <a class="wb-sb-link" href={withBase("/tags")}>
         <Icon name="tag" size={14} style="color:var(--wb-ink-3);flex:none" />
         <span class="wb-sb-label">標籤</span>
         <span class="wb-badge-n tnum">{index.tags.length}</span>
@@ -119,7 +120,10 @@ const dataFolders = Array.from(dataDirs.entries())
     var open = [];
     try { var raw = JSON.parse(localStorage.getItem(KEY) || "[]"); if (Array.isArray(raw)) open = raw.filter(function (x) { return typeof x === "string"; }); } catch (e) {}
 
+    // 站台部署在子路徑時，先去掉前綴再比對路由（前綴由 build 期寫在 data-wb-base）
+    var base = sb.getAttribute("data-wb-base") || "";
     var path = location.pathname.replace(/\/+$/, "") || "/";
+    if (base && (path === base || path.indexOf(base + "/") === 0)) path = path.slice(base.length) || "/";
     var qs = new URLSearchParams(location.search);
     var curFolder = path === "/notes" ? (qs.get("folder") || "") : (sb.getAttribute("data-wb-current-folder") || "");
 

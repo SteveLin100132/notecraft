@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 import { render } from "astro:content";
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import TagEditor from "@/components/islands/TagEditor.tsx";
@@ -75,11 +76,11 @@ const toc = headings
 <WorkbenchLayout
   title={note.data.title}
   description={note.data.description}
-  back="/notes"
+  back={withBase("/notes")}
   folderPath={folderPath}
   crumbs={[
-    { label: "NoteCraft", href: "/" },
-    { label: "筆記", href: "/notes" },
+    { label: "NoteCraft", href: withBase("/") },
+    { label: "筆記", href: withBase("/notes") },
     { label: folderPath || ROOT_GROUP, href: notesFolderHref(folderPath) },
   ]}
   pills={[aiPill]}

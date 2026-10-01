@@ -9,6 +9,7 @@ import { mdShort, weekWindow } from "@/lib/wb-time";
 import { OpenLink, rowHandlers } from "../NoteRow";
 import DvCard from "./DvCard";
 import EmptyState from "../EmptyState";
+import { withBase } from "@/lib/base";
 
 const WD = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -112,7 +113,7 @@ export default function UpdateLog({
       ) : (
         <div className="dv-log-list" aria-hidden="true" />
       )}
-      <a className="dv-full" href="/notes">
+      <a className="dv-full" href={withBase("/notes")}>
         查看全部筆記
       </a>
     </DvCard>
