@@ -13,7 +13,7 @@
       由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。以 Astro + MDX 為核心，用 <code>npx</code> 一行指令就能在任何 md／mdx 資料夾啟動三欄工作台；搭配 Claude Code，把筆記裡的標記自動變成互動圖表，還能一鍵轉成簡報。
     </b>
     <br />
-    <a href="#">Website(TODO)</a> |
+    <a href="https://stevelin100132.github.io/notecraft/">Website</a> |
     <a href="#">Documentation(TODO)</a> |
     <a href="https://stevelin100132.github.io/">About Author</a>
   </p>
