@@ -14,6 +14,7 @@ import { getAllNotes, parseMarkers, tagStats, type Note } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
 import { getDataFiles, getInactiveMatches, getPlugins, getPluginsConfig } from "@/lib/plugins";
 import { hasDeck } from "@/lib/decks";
+import { readdirFollowSync } from "@/lib/fs-walk.mjs";
 import type {
   WbChapter,
   WbDataFile,
@@ -140,17 +141,12 @@ function assetRole(rel: string, manifest: { dataSchema?: string; example?: strin
 
 function listAssets(dir: string): string[] {
   const out: string[] = [];
-  const walk = (d: string, prefix: string) => {
-    let ents: fs.Dirent[];
-    try {
-      ents = fs.readdirSync(d, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  const walk = (d: string, prefix: string, chain?: Set<string>) => {
+    const ents = readdirFollowSync(d, chain);
     for (const e of ents.sort((a, b) => a.name.localeCompare(b.name))) {
       if (e.name.startsWith(".") || e.name === "node_modules") continue;
       const rel = prefix ? `${prefix}/${e.name}` : e.name;
-      if (e.isDirectory()) walk(path.join(d, e.name), rel);
+      if (e.isDirectory()) walk(path.join(d, e.name), rel, e.chain);
       else if (e.isFile()) out.push(rel);
     }
   };

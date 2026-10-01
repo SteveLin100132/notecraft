@@ -17,6 +17,7 @@ import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
 import { tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
+import { readdirFollow } from "../src/lib/fs-walk.mjs";
 import { installPlugin, listStore, removePlugin } from "./install-plugin.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -155,17 +156,12 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   // Pass 1：md/mdx 內容檔
   let mdxCount = 0;
   let latestMdx = { mtime: 0, path: "" };
-  async function walkMdx(dir) {
-    let ents;
-    try {
-      ents = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walkMdx(dir, chain) {
+    const ents = await readdirFollow(dir, chain);
     for (const e of ents) {
       if (e.isDirectory()) {
         if (e.name.startsWith(".")) continue;
-        await walkMdx(path.join(dir, e.name));
+        await walkMdx(path.join(dir, e.name), e.chain);
       } else if (e.name.endsWith(".mdx") || e.name.endsWith(".md")) {
         mdxCount += 1;
         const p = path.join(dir, e.name);
@@ -181,17 +177,12 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   // 維持一致比省幾毫秒重要。
   let jsonCount = 0;
   let latestJson = { mtime: 0, path: "" };
-  async function walkJson(dir) {
-    let ents;
-    try {
-      ents = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walkJson(dir, chain) {
+    const ents = await readdirFollow(dir, chain);
     for (const e of ents) {
       if (e.isDirectory()) {
         if (e.name.startsWith(".") || e.name === "node_modules") continue;
-        await walkJson(path.join(dir, e.name));
+        await walkJson(path.join(dir, e.name), e.chain);
       } else if (e.name.endsWith(".json")) {
         jsonCount += 1;
         const p = path.join(dir, e.name);
@@ -205,17 +196,12 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   // Pass 1.6（Task 56）：已安裝的 plugin 套件
   let pluginFileCount = 0;
   let latestPlugin = { mtime: 0, path: "" };
-  async function walkPlugins(dir) {
-    let ents;
-    try {
-      ents = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walkPlugins(dir, chain) {
+    const ents = await readdirFollow(dir, chain);
     for (const e of ents) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) {
-        await walkPlugins(p);
+        await walkPlugins(p, e.chain);
       } else if (/\.(tsx|ts|json)$/.test(e.name)) {
         pluginFileCount += 1;
         const st = statSync(p);
@@ -234,16 +220,12 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
     configDirs.push(path.join(userCwd, ".notecraft"));
   }
   for (const configDir of configDirs) {
-    try {
-      const ents = await fs.readdir(configDir, { withFileTypes: true });
-      for (const e of ents) {
-        if (!e.isFile() || !e.name.endsWith(".json")) continue;
-        const p = path.join(configDir, e.name);
-        const s = statSync(p);
-        if (s.mtimeMs > latestConfig.mtime) latestConfig = { mtime: s.mtimeMs, path: p };
-      }
-    } catch {
-      // 沒 .notecraft 資料夾就跳過
+    // 沒 .notecraft 資料夾時 readdirFollow 回空陣列，自然跳過
+    for (const e of await readdirFollow(configDir)) {
+      if (!e.isFile() || !e.name.endsWith(".json")) continue;
+      const p = path.join(configDir, e.name);
+      const s = statSync(p);
+      if (s.mtimeMs > latestConfig.mtime) latestConfig = { mtime: s.mtimeMs, path: p };
     }
   }
 
@@ -292,29 +274,19 @@ async function writeMeta(cacheDir, notesDir, fileCount, extra = {}) {
 async function countPluginInputs(notesDir, userCwd) {
   let jsonCount = 0;
   let pluginFileCount = 0;
-  async function walkJson(dir) {
-    let ents;
-    try {
-      ents = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walkJson(dir, chain) {
+    const ents = await readdirFollow(dir, chain);
     for (const e of ents) {
       if (e.isDirectory()) {
         if (e.name.startsWith(".") || e.name === "node_modules") continue;
-        await walkJson(path.join(dir, e.name));
+        await walkJson(path.join(dir, e.name), e.chain);
       } else if (e.name.endsWith(".json")) jsonCount += 1;
     }
   }
-  async function walkPlugins(dir) {
-    let ents;
-    try {
-      ents = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walkPlugins(dir, chain) {
+    const ents = await readdirFollow(dir, chain);
     for (const e of ents) {
-      if (e.isDirectory()) await walkPlugins(path.join(dir, e.name));
+      if (e.isDirectory()) await walkPlugins(path.join(dir, e.name), e.chain);
       else if (/\.(tsx|ts|json)$/.test(e.name)) pluginFileCount += 1;
     }
   }
@@ -327,17 +299,12 @@ async function countPluginInputs(notesDir, userCwd) {
 
 async function countMdx(dir) {
   let count = 0;
-  async function walk(d) {
-    let ents;
-    try {
-      ents = await fs.readdir(d, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walk(d, chain) {
+    const ents = await readdirFollow(d, chain);
     for (const e of ents) {
       if (e.isDirectory()) {
         if (e.name.startsWith(".")) continue;
-        await walk(path.join(d, e.name));
+        await walk(path.join(d, e.name), e.chain);
       } else if (e.name.endsWith(".mdx") || e.name.endsWith(".md")) count += 1;
     }
   }

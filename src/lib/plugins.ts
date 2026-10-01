@@ -16,6 +16,7 @@ import path from "node:path";
 import picomatch from "picomatch";
 import { stripMarkdownAll, stripMarkdownFirst } from "./strip-markdown";
 import { pickMeta } from "./plugin-meta";
+import { readdirFollowSync } from "./fs-walk.mjs";
 import Ajv2020Module from "ajv/dist/2020.js";
 import type { ValidateFunction } from "ajv";
 import type {
@@ -196,18 +197,14 @@ interface ScannedFile {
   mtimeMs: number;
 }
 
-function walk(dir: string, base: string, out: ScannedFile[]): void {
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return; // 權限或競態；當作沒有檔案，不中斷 build
-  }
+function walk(dir: string, base: string, out: ScannedFile[], chain?: Set<string>): void {
+  // 權限或競態讀不到時 readdirFollowSync 回空陣列（當作沒有檔案，不中斷 build）
+  const entries = readdirFollowSync(dir, chain);
   for (const e of entries) {
     if (e.name.startsWith(".") || SKIP_DIRS.has(e.name)) continue;
     const abs = path.join(dir, e.name);
     if (e.isDirectory()) {
-      walk(abs, base, out);
+      walk(abs, base, out, e.chain);
     } else if (e.isFile()) {
       out.push({
         relPath: path.relative(base, abs).split(path.sep).join("/"),

@@ -5,6 +5,7 @@ import { promises as fs } from "node:fs";
 import fsSync from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { readdirFollow } from "../lib/fs-walk.mjs";
 
 // ── 路徑決策 & 安全檢查 ────────────────────────────────────────────────
 
@@ -90,18 +91,13 @@ function json(res, status, body) {
 
 async function listMdx(root) {
   const out = [];
-  async function walk(dir) {
-    let ents;
-    try {
-      ents = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  async function walk(dir, chain) {
+    const ents = await readdirFollow(dir, chain);
     for (const e of ents) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) {
         if (e.name.startsWith(".")) continue;
-        await walk(p);
+        await walk(p, e.chain);
       } else if (e.name.endsWith(".mdx") || e.name.endsWith(".md")) {
         out.push(p);
       }
@@ -334,23 +330,18 @@ async function handleFolderList(cwd, notesRoot, res) {
   // 回傳格式不變：字串陣列、以 / 結尾；父層恆排在子層之前。
   const SKIP = new Set(["node_modules", "dist"]);
   const folders = [displayRoot];
-  const walk = async (absDir, relPrefix) => {
-    let ents;
-    try {
-      ents = await fs.readdir(absDir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  const walk = async (absDir, relPrefix, chain) => {
+    const ents = await readdirFollow(absDir, chain);
     const dirs = ents
       .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !SKIP.has(e.name))
       .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
     for (const e of dirs) {
       const rel = `${relPrefix}${e.name}/`;
       folders.push(`${displayRoot}${rel}`);
-      await walk(path.join(absDir, e.name), rel);
+      await walk(path.join(absDir, e.name), rel, e.chain);
     }
   };
-  await walk(notesRoot, "");
+  await walk(notesRoot, "", undefined);
   return json(res, 200, { folders });
 }
 
