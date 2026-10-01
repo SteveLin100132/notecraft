@@ -4,6 +4,23 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.6.0] - 2026-10-01
+
+### 新增
+
+- 新的官方 plugin **`openapi-renderer`**（1.0.0，設計文件 `docs/notecraft-openapi-renderer.md`）：把筆記資料夾內的 OpenAPI 3.0／3.1 文件（JSON）渲染成 API 文件 —— tag → operation 導覽（文字與 method 篩選）、總覽／Tag／Operation／Schema 四種頁面、參數表與欄位樹（`$ref`、循環參照、`oneOf`／`anyOf`／`allOf`、超過三層「深入」）、範例 JSON 與 cURL／fetch、可分享的深連結（`#op/…`、`#schema/…`）。3.2 以 3.1 規則盡力渲染並警示，Swagger 2.0 顯示轉檔指引。安裝：`npx notecraftapp install-plugin openapi-renderer`
+- plugin manifest 新增選填的 `meta`：以 JSON Pointer 指定資料檔的標題／描述／「回到來源筆記」從哪裡取（例：OpenAPI 的 `/info/title`），省略時沿用資料檔的 `meta.*`
+- `<PluginView>` 新增 `options`（只影響這一處內嵌，例：指定要顯示哪一支 operation）與 `anchor`（「開啟完整檢視頁」連結附帶的 hash）
+
+### 修正
+
+- 筆記內嵌資料檔時，外框的「資料檔 · <plugin 名稱>」膠囊在窄寬度下不再斷成多行
+
+### 內部
+
+- 新增 `src/lib/plugin-meta.ts`（JSON Pointer 取值）與 `scripts/checks/app-plugin-meta.mjs`；`npm run check:oar` 跑 OpenAPI plugin 的推導、範例、Markdown 對照與樣式斷言
+- 規模測試用的 OpenAPI 產生器 `scripts/fixtures/oar-large-spec.mjs`（20 個 tag、280 支 operation）
+
 ## [1.5.1] - 2026-09-30
 
 ### 變更

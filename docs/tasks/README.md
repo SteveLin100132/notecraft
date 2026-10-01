@@ -486,9 +486,13 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 >
 > **貫穿規則**：SVG 顏色用 `style` 寫 CSS 變數（不用 `stroke="var(…)"`）；TSX 與 CSS 零色碼、不新增 token；class 沿用 prototype 的 `pt-empty*`；「前往筆記」是 `<a href="/notes">`。
 
-## v1.17.0 追加功能（§8.1 Phase 4.21）— OpenAPI Renderer（plugin `openapi-renderer` v1.0.0／notecraftapp v1.6.0）
+## v1.17.0 追加功能（§8.1 Phase 4.21）— OpenAPI Renderer（plugin `openapi-renderer` v1.0.0／notecraftapp v1.6.0）✅ 已完成（2026-10-01）
 
-> 規格：[notecraft-openapi-renderer.md](../notecraft-openapi-renderer.md) **v0.2.0**（9 項決策已於 2026-10-01 定案，紀錄見該文件 §16）。
+> **已完成（2026-10-01）**：Task 98–104 全部實作於 `feat/openapi-renderer`。實測結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+> 偏離原計畫的幾處：Esc 改為晚一拍（`setTimeout`）判斷 `defaultPrevented`；導覽 path 截斷長度 19／21（handoff 24／26）；
+> 順手修了 `GeneratedFrame` 資料檔膠囊在窄寬度斷行；極大 spec 產生器放 `scripts/fixtures/`（不放 `scripts/checks/`）。
+
+> 規格：[notecraft-openapi-renderer.md](../notecraft-openapi-renderer.md) **v1.0.0**（9 項決策已於 2026-10-01 定案，紀錄見該文件 §16；實作後回填見 §17）。
 > 設計交付：[design_handoff_openapi_renderer](../prototype/design_handoff_openapi_renderer/)（`README.md` 是像素級規格、`prototype/oa/oa.css` 是視覺定稿、
 > `prototype/OpenAPI Renderer Prototype.html` 需經本機 http server 開啟、`example/` 是三份範例 spec）
 

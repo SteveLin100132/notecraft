@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft — OpenAPI Renderer v1.0（官方 plugin `openapi-renderer`）
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用 plugin 既有技術棧：React + TypeScript + lucide-react，不新增 runtime 套件；不引入 Swagger UI／Redoc／Markdown 函式庫）
-文件狀態: 已定案、待實作 —— §15 的 9 題已於 2026-10-01 確認（Q1–Q6、Q9 逐題詢問；Q7、Q8 依建議定案，紀錄見 §16）；下一步展開 Task 98–104
+文件狀態: 已實作（plugin v1.0.0／notecraftapp v1.6.0，Task 98–104，2026-10-01）—— §15 的 9 題已於 2026-10-01 確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-10-01
 更新日期: 2026-10-01
@@ -549,3 +549,38 @@ Task 編號接續 97，已展開於 `docs/tasks/`（索引見 [tasks/README.md](
 | Q7 | CSS 變數命名 | **`--oar-*`**，定義在 `.oar-root`（依建議定案，未逐題詢問；如有異議再改） | 2026-10-01 |
 | Q8 | embed 卡高度 | **不固定、隨內容長高**（依建議定案，未逐題詢問；如有異議再改） | 2026-10-01 |
 | Q9 | 範例資料公開 | **官方 store 以 Swagger Petstore 為範例**（`manifest.example`），另放 orders（邊界案例）與 health（極小）。`countsalary-platform.openapi.json` 不進 store，**handoff 資料夾內那份也已刪除**、不進版控；極大規模改由 check 腳本程式產生。handoff README 與 prototype 仍保留這個檔名的字樣（prototype 的 large 資料是 `makeLarge()` 程式產生的假資料），不影響實作 | 2026-10-01 |
+
+---
+
+## 17. 實作後回填
+
+### 待驗證項的結論
+
+| 項目 | 結論 |
+| :-- | :-- |
+| manifest `meta` pointer（Q1） | `/view` 頁首、`<title>`、⌘K、`/wb-index.json` 都顯示 `info.title`；pagefind 以 `info.title` 與 `info.description` 全文（`descriptionIndex`）都搜得到資料檔頁，operation 內容不進索引（同 ER） |
+| hydration | `/view/…#op/createOrder/responses/409` 冷載入：一幀後切到該 op、選中 409，dev console 零 hydration 警告；內嵌四張卡同樣零警告 |
+| 極大 spec（產生器 280 支、20 tag） | `derive` 遠低於 300ms 上限；導覽只展開目前 tag（首次只 render 11 列 op）；選中項捲入導覽可視區 |
+| Esc 與工作台共存 | 篩選中開 ⌘K 按 Esc：只關 Palette，plugin 的篩選字串保留 |
+| 寬度 | 1440（外殼 1138）並排；1024（外殼 962）樹與範例上下排；375（外殼 365）導覽覆蓋式、預設收合、參數表兩行、無水平捲動 |
+| 內嵌 | 外框只有 `GeneratedFrame` 一層；「開啟完整檢視頁」帶 `anchor`；放大檢視（VizZoom）中卡片寬 1296、關閉後回原位 |
+
+### 實作中新增的決定
+
+| 項目 | 決定 | 理由 |
+| :-- | :-- | :-- |
+| Esc 的處理時機 | 不在 keydown 當下判斷，`setTimeout(0)` 後看 `defaultPrevented` 再逐層退 | `wb-escape` 也掛在 window 的 bubble 階段，誰先註冊誰先跑；晚一拍才能確定 Palette／Drawer 有沒有處理過，順序怎樣都不搶 |
+| 導覽 path 截斷長度 | 有前綴 19、無前綴 21 字元（handoff 是 24／26） | handoff 的數字是以它的等寬字量的；實際字型下 24／26 會再被 CSS ellipsis 切一次（`/v2/…/{payrollId}/…`），調整後 280 支 op 的導覽零裁切（唯一例外是帶「棄用」標的列，prototype 亦同） |
+| 覆蓋式導覽的焦點 | 開啟時焦點進篩選框；Esc 先關覆蓋導覽，焦點還給開關 | §10 要求；handoff 未畫 |
+| 深連結到回應 | 捲的是 Responses 的標題（帶 `scroll-margin-top`），不是整個 section | 捲 section 會讓標題躲在 sticky bar 下 |
+| 「被哪些 operation 使用」 | 直接與間接放在同一個清單，中間以「間接使用」分隔列 | 照 prototype；無直接使用時分隔列不畫上框線 |
+| `GeneratedFrame` 的資料檔膠囊 | 加 `white-space: nowrap`、`flex: none` | 「資料檔 · API 文件」在筆記版心內會斷成三行；ER 的膠囊同樣受惠 |
+| 範例檔 | `petstore.openapi.json` 改用作者提供的官方完整版（含 `externalDocs`） | handoff 那份被刪減過 |
+| 主 repo 測試資料 | `src/content/notes/testing/openapi/`（三份範例 + Swagger 2.0）、`testing/openapi-內嵌測試.mdx`；orders 加 `x-notecraft-back-to` 驗證回到來源筆記 | 比照 ER 的 `testing/er-v12.er.json` |
+
+### 仍未做的
+
+- 試打 API、YAML、外部 `$ref`（§1.3 非目標）
+- 內嵌資料瘦身（Q4）
+- 實機（非模擬）手機測試：僅以瀏覽器 375×812 模擬驗證
+

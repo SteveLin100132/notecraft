@@ -138,6 +138,8 @@ status: pending | generated | locked | failed
 
 - **`plugins.json` 頂層 `disabled: string[]`**（v1.0.0）：停用的 plugin 其所有規則在比對前就略過、等同不存在，也不參與安裝檢查（壞掉的 plugin 先停用，站仍 build 得出來）。停用不是解除安裝，renderer 仍在 client chunk
 - **`meta.backTo` 是 app 層約定的第三個 meta 欄位**（與 `meta.title`、`meta.description` 並列）：「回到來源筆記」的站內路徑，只接受單一 `/` 開頭，不符者忽略並 warn
+- **manifest 的 `meta`（v1.6.0）以 JSON Pointer 改指上述三個欄位的來源**（例：OpenAPI 的 `/info/title`、`/x-notecraft-back-to`），給資料格式不是自己定的 plugin 用；省略的鍵退回 `meta.<鍵>`。取值在 `src/lib/plugin-meta.ts`，之後的清理（去 Markdown、backTo 驗證）與 `meta.*` 相同
+- **`<PluginView src options anchor>`（v1.6.0）**：`options` 淺合併在規則的 options 之上、只影響這一處內嵌；`anchor` 是「開啟完整檢視頁」連結的 hash，app 不解讀。prop 叫 `src`（不是 `file`）
 - **入口固定 `renderer.tsx`**，manifest 不放 `entry`；吃哪些檔完全由 `plugins.json` 的 `files` 決定，manifest 也不放 `accepts`
 - **`files` 的基準是 notesDir** —— 資料檔必須放在筆記資料夾內；不允許比對 `.md` / `.mdx`
 - **一檔被多條規則命中 → 第一條勝**，build 印 warn
@@ -165,10 +167,24 @@ repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就�
 因此 `npm run check-plugins` 是必要的護欄：驗 manifest、registry 無漂移、
 `example/` 底下**所有** `.json` 通過自己的 schema，並實際配這些資料 build 一次（官方 plugin 以此保留舊版資料格式的範例當相容測試）。
 它也串接 `scripts/checks/*.mjs` —— 以 Node 22.6+ 原生 strip-types 直接載入 plugin／app 的純函式 `.ts` 做斷言（不引入 test runner）；
-**被它載入的 `.ts` 只能有 `import type`、不能有 JSX**。`prepublishOnly` 會跑它。
+**被它載入的 `.ts` 只能有 `import type`（或帶副檔名的相對 import，如 `./derive.ts`）、不能有 JSX**。`prepublishOnly` 會跑它。
+規模測試用的產生器放 `scripts/fixtures/`，**不要放 `scripts/checks/`**（那裡每支 `.mjs` 都會被當成檢查執行）。
 
-- **plugin 以 `<style>{CSS}</style>` 注入樣式時，CSS 字串不可含 `< > & " '`**：React SSR 會把它們跳脫成實體，`<style>` 裡不會解回來，選擇器壞掉且 hydration 失敗（ER plugin 由 `scripts/checks/er-styles.mjs` 把關）
+- **plugin 以 `<style>{CSS}</style>` 注入樣式時，CSS 字串不可含 `< > & " '`**：React SSR 會把它們跳脫成實體，`<style>` 裡不會解回來，選擇器壞掉且 hydration 失敗（ER plugin 由 `scripts/checks/er-styles.mjs`、OpenAPI plugin 由 `oar-styles.mjs` 把關）
 - **資料檔 `meta.description` 允許 Markdown**：app 端的 `ResolvedDataFile.description` 已是第一段純文字、`descriptionIndex` 是全文純文字（`src/lib/strip-markdown.ts`）；不要在 app 端直接輸出 `data.meta.description`
+
+### OpenAPI Renderer（官方 plugin，v1.0.0／app v1.6.0）
+
+[docs/notecraft-openapi-renderer.md](docs/notecraft-openapi-renderer.md)；像素級規格在 `docs/prototype/design_handoff_openapi_renderer/`。
+
+- 只保證 OAS 3.0／3.1；其他 3.x 以 3.1 規則盡力渲染並警示；**Swagger 2.0 不 build fail**，dataSchema 放行、頁面顯示轉檔指引、SSR 時在 build log warn 一次
+- dataSchema 只驗外形；`$ref` 斷掉、operationId 重複等瑕疵由 `derive.ts` 容錯並在 dev console warn，不 throw
+- 路由照 app 規則只去 `.json`：`api/orders.openapi.json` → `/view/api/orders.openapi`
+- page 模式位置與 hash 雙向同步（`#tag/x`、`#op/<operationId 或 method/path>[/responses/409]`、`#schema/X`），`replaceState`；**SSR 一律總覽、一律 cURL**，hash 與 `localStorage`（`oar:v1:lang`）都在 effect 後才讀
+- **embed 不讀寫 hash、不掛 keydown、不畫外框**（外框是 `GeneratedFrame`）；連結走 `LinkCtx`（page 攔下走元件內路由、embed 是指向 `/view/…#…` 的真連結）
+- Esc 晚一拍處理（`setTimeout` 後看 `defaultPrevented`）：工作台 `wb-escape` 也掛在 window，這樣不管誰先註冊都不會搶走 Palette／Drawer 的 Esc
+- CSS 變數是 `--oar-*`（不是 handoff 的 `--wb-oa-*`，`--wb-*` 是 app 的命名空間）；斷點一律 container query
+- 與 ER **不共用模組**（各自安裝）：`markdown-text.ts` 各持一份，由 `oar-markdown.mjs` 對照兩邊輸出；骨架樣式以相同數值對齊
 
 ## dev-only API（僅 `astro dev` 期間存在，build 時不輸出）
 
@@ -206,7 +222,7 @@ trim 前後空白 → 過濾空字串 → 同篇內不分大小寫去重（保�
 - Dashboard 統計於 `astro build` 階段透過 Content Collections 預計算為 JSON，**無執行時 API**
 - 元件強制 TypeScript（`.tsx`），禁用 `any`（除非註解說明理由），不可有 required props
 - motion 元件預設 200–400ms ease-out，並用 `useReducedMotion()` 尊重 `prefers-reduced-motion`
-- **沒有 pre-push hook**（`.git/hooks` 只有 sample、也沒有 husky）。每次 commit 前自己跑 `npx tsc --noEmit && npx astro build`；動到 plugin 相關的再跑 `npm run check-plugins`（只想跑純函式斷言用 `npm run check:er`，秒級）。注意 `tsc --noEmit` 本來就有數十個既有錯誤（多在 `src/lib/workbench.ts` 等），看的是「有沒有新增」
+- **沒有 pre-push hook**（`.git/hooks` 只有 sample、也沒有 husky）。每次 commit 前自己跑 `npx tsc --noEmit && npx astro build`；動到 plugin 相關的再跑 `npm run check-plugins`（只想跑純函式斷言用 `npm run check:er`／`npm run check:oar`，秒級）。本機 shell 預設 Node 16，`scripts/checks` 需要 22.6+（`.nvmrc` 是 22）。注意 `tsc --noEmit` 本來就有數十個既有錯誤（多在 `src/lib/workbench.ts` 等），看的是「有沒有新增」
 
 ## 待釐清項已收斂的決策
 

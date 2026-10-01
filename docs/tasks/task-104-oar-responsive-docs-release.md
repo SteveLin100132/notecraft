@@ -47,3 +47,11 @@
 - [ ] `npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加；`npm run check-plugins`、`check:oar`、`check:er`、`check:wb` 全過
 - [ ] CLAUDE.md、規格 §17、tasks README、PRD、CHANGELOG 更新
 - [ ] PR 已開
+
+## 實作記錄（2026-10-01）
+
+- 響應式以瀏覽器模擬驗證：1440（外殼 1138，並排）、1024（962，上下排）、375（365，覆蓋式導覽、預設收合、參數表兩行、無水平捲動）
+- 覆蓋式導覽：開啟時焦點進篩選框；Esc 先關導覽、焦點還給開關；選了 op 自動收起
+- pagefind（`npm run build` 後以 preview 查詢）：`Petstore`、`訂單服務`、`design first approach`（`info.description` 第二段以後）都命中資料檔頁；operation 內容不進索引
+- 文件：規格 §17、CLAUDE.md（Plugin System 規則與 OpenAPI Renderer 段）、plugin system 文件 §6.1／§7.3（Task 98）、CHANGELOG 1.6.0、tasks README、PRD
+- 未做：實機手機測試（規格 §17「仍未做的」）
