@@ -504,11 +504,11 @@ function CostSummaryPage(p: CustomSlideProps) {
 }
 
 const deck: Deck = {
-  slug: "trendlink-內部客戶與業務流程整合系統提案草稿",
+  slug: "private/trendlink-內部客戶與業務流程整合系統提案草稿",
   title: "內部客戶與業務流程整合系統提案",
   eyebrow: "SYSTEM PROPOSAL",
   generatedAt: "2026-08-02",
-  source: "src/content/notes/trendlink-內部客戶與業務流程整合系統提案草稿.mdx",
+  source: "src/content/notes/private/trendlink-內部客戶與業務流程整合系統提案草稿.mdx",
   slides: [
     {
       layout: "cover",
@@ -731,7 +731,7 @@ const deck: Deck = {
         },
       ],
       cta: "回到筆記閱讀完整評估與成本估算",
-      ctaMeta: "/notes/trendlink-內部客戶與業務流程整合系統提案草稿",
+      ctaMeta: "/notes/private/trendlink-內部客戶與業務流程整合系統提案草稿",
     },
   ],
 };

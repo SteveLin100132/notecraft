@@ -11,6 +11,7 @@ import type { SeriesDef } from "@/data/series";
 import { parseMarkers, type Note } from "@/lib/notes";
 import type { ResolvedDataFile } from "@/lib/plugin-types";
 import { getInactiveMatches } from "@/lib/plugins";
+import { withBase } from "@/lib/base";
 
 export type { SeriesDef };
 
@@ -175,7 +176,7 @@ export function getSeriesChapters(
       chapters.push({
         kind: "data",
         ref,
-        href: `/view/${file.routePath}`,
+        href: withBase(`/view/${file.routePath}`),
         title: file.title,
         description: file.description,
         markersTotal: 0,
@@ -194,7 +195,7 @@ export function getSeriesChapters(
     chapters.push({
       kind: "note",
       ref: note.id,
-      href: `/notes/${note.id}`,
+      href: withBase(`/notes/${note.id}`),
       title: note.data.title,
       description: note.data.description,
       markersTotal: ms.length,

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import type { PillTone } from "./ui";
+import { withBase } from "@/lib/base";
 
 export type WbCrumb = { label: string; href?: string };
 export type WbHeaderPill = { label: string; tone?: PillTone; href?: string; className?: string };
@@ -41,13 +42,13 @@ export default function WbHeader<T extends string>({
             {crumbs.map((c, i) => (
               <span key={i}>
                 {i > 0 ? <span aria-hidden="true">{"  /  "}</span> : null}
-                {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
+                {c.href ? <a href={withBase(c.href)}>{c.label}</a> : <span>{c.label}</span>}
               </span>
             ))}
           </nav>
           <div className="wb-hd-title-row">
             {back ? (
-              <a className="wb-dw-x" href={back} title="返回" aria-label="返回">
+              <a className="wb-dw-x" href={withBase(back)} title="返回" aria-label="返回">
                 <ArrowLeft size={15} strokeWidth={1.7} aria-hidden="true" />
               </a>
             ) : null}

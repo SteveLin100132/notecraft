@@ -225,11 +225,11 @@ function ParallelPromptPage({ dark }: CustomSlideProps) {
 }
 
 const deck: Deck = {
-  slug: "ssr-專案dutymate-ai-憲章與-workflow-設計",
+  slug: "private/ssr-專案dutymate-ai-憲章與-workflow-設計",
   title: "SDD Workflow：轉場有條件，退回有上限",
   eyebrow: "DUTY MATE · AI 憲章與 WORKFLOW",
   generatedAt: "2026-07-31",
-  source: "src/content/notes/ssr-專案dutymate-ai-憲章與-workflow-設計.mdx",
+  source: "src/content/notes/private/ssr-專案dutymate-ai-憲章與-workflow-設計.mdx",
   slides: [
     {
       layout: "cover",
@@ -412,7 +412,7 @@ const deck: Deck = {
         },
       ],
       cta: "回到筆記看完整互動流程圖與各階段提示詞範本",
-      ctaMeta: "/notes/ssr-專案dutymate-ai-憲章與-workflow-設計",
+      ctaMeta: "/notes/private/ssr-專案dutymate-ai-憲章與-workflow-設計",
     },
   ],
 };

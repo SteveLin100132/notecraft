@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 // 工作台樣式對照頁（僅 dev）。getStaticPaths 在正式 build 回傳空陣列 → dist/ 不會有這一頁。
 // 用途：與 docs/prototype/design_handoff_workbench/NoteCraft-Workbench-standalone.html 並排比對。
 import "@/styles/global.css";
@@ -17,7 +18,7 @@ export function getStaticPaths() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href={withBase("/favicon.svg")} />
     <title>Workbench 樣式頁</title>
   </head>
   <body>
@@ -36,7 +37,7 @@ export function getStaticPaths() {
         <div class="wb-hd">
           <div class="wb-hd-top">
             <div style="min-width:0">
-              <div class="wb-crumb"><a href="/">NoteCraft</a>  /  <span>dev</span>  /  <span>樣式頁</span></div>
+              <div class="wb-crumb"><a href={withBase("/")}>NoteCraft</a>  /  <span>dev</span>  /  <span>樣式頁</span></div>
               <div class="wb-hd-title-row">
                 <a class="wb-dw-x" href="#" title="返回"><Icon name="arrowLeft" size={15} stroke={1.7} /></a>
                 <h1 class="wb-hd-title">Workbench 樣式頁</h1>

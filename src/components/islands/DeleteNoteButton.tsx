@@ -3,6 +3,7 @@ import { Trash2, X, AlertTriangle, FileText } from "lucide-react";
 import { pushEscape } from "@/lib/wb-escape";
 import { getTabStore } from "@/lib/wb-tabs-store";
 import { close as closeTabs } from "@/lib/wb-tabs";
+import { withBase } from "@/lib/base";
 
 type Props = {
   slug: string;
@@ -57,7 +58,7 @@ export function useDeleteNote({ slug, title, componentIds, path, workspace }: Pr
         /* localStorage 不可用時略過 */
       }
     }
-    window.location.replace("/notes");
+    window.location.replace(withBase("/notes"));
   };
 
   const dialog = open ? (

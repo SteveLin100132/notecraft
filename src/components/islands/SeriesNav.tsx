@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, ArrowRight, BookOpen, Database } from "lucid
 import { ACCENT, type SeriesAccent, type SeriesIconName } from "@/data/series";
 import { seriesProgress } from "@/lib/reading-progress";
 import { SeriesIcon, ProgressBar, useReadingVersion } from "./seriesShared";
+import { withBase } from "@/lib/base";
 
 export type SeriesNavChapter = {
   /** 識別碼原字串，也是閱讀進度的 key */
@@ -60,7 +61,7 @@ export default function SeriesNav({ series }: { series: SeriesNavData }) {
           >
             <SeriesIcon name={series.icon} size={20} />
           </span>
-          <a href={`/series/${series.id}`} style={{ minWidth: 0, flex: 1, textDecoration: "none", color: "inherit" }}>
+          <a href={withBase(`/series/${series.id}`)} style={{ minWidth: 0, flex: 1, textDecoration: "none", color: "inherit" }}>
             <div style={{ fontSize: 10, letterSpacing: ".16em", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
               {series.eyebrow}
             </div>
@@ -69,7 +70,7 @@ export default function SeriesNav({ series }: { series: SeriesNavData }) {
             </div>
           </a>
           <a
-            href={`/series/${series.id}`}
+            href={withBase(`/series/${series.id}`)}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--blue-600)", fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", flex: "none" }}
           >
             查看系列 <ArrowRight size={14} />

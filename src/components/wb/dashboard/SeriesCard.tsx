@@ -6,6 +6,7 @@ import { Check, ChevronRight } from "lucide-react";
 import { seriesProgress } from "@/lib/reading-progress";
 import type { WbSeries } from "@/lib/wb-types";
 import DvCard from "./DvCard";
+import { withBase } from "@/lib/base";
 
 const MAX = 3;
 
@@ -36,7 +37,7 @@ export default function SeriesCard({ series, live, readingVersion }: { series: W
       title="系列"
       sub={`共 ${all.length} 個系列`}
       right={
-        <a className="dv-link" href="/series">
+        <a className="dv-link" href={withBase("/series")}>
           查看全部
         </a>
       }
@@ -45,7 +46,7 @@ export default function SeriesCard({ series, live, readingVersion }: { series: W
         {all.length === 0 ? (
           <div className="dv-sl-empty">
             尚未定義系列。
-            <a className="dv-link" href="/series">
+            <a className="dv-link" href={withBase("/series")}>
               了解怎麼建立
             </a>
           </div>
@@ -53,7 +54,7 @@ export default function SeriesCard({ series, live, readingVersion }: { series: W
         {items.map(({ s, p, next, state }) => (
           <div key={s.id} className={`dv-sl-row wb-acc-${s.accent}`}>
             <div className="dv-sl-top">
-              <a className="dv-sl-n" href={`/series/${s.id}`}>
+              <a className="dv-sl-n" href={withBase(`/series/${s.id}`)}>
                 <span className="dv-sw" aria-hidden="true" />
                 {s.title}
               </a>

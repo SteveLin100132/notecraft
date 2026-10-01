@@ -21,6 +21,7 @@ import BoardView from "./views/BoardView";
 import TableView from "./views/TableView";
 import TimelineView from "./views/TimelineView";
 import { Chip, GroupHeader, SearchBox, Seg } from "./ui";
+import { withBase } from "@/lib/base";
 
 export type NotesSeriesInfo = { id: string; title: string; accent: SeriesAccent; dataChapters: number };
 
@@ -140,7 +141,7 @@ export default function NotesWorkbench({
     <>
       <WbHeader
         title={scopeLabel}
-        crumbs={[{ label: "NoteCraft", href: "/" }, { label: "筆記", href: "/notes" }, { label: scopeLabel }]}
+        crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "筆記", href: withBase("/notes") }, { label: scopeLabel }]}
         pills={pills}
         tabs={(narrow ? (["list"] as WbView[]) : [...WB_VIEWS]).map((v) => ({ key: v, label: VIEW_LABEL[v] }))}
         activeTab={view}
@@ -152,7 +153,7 @@ export default function NotesWorkbench({
           <>
             <span className="wb-tb-lbl">
               此系列另有 {activeSeries.dataChapters} 個資料檔章節　
-              <a className="wb-sb-foot-a" style={{ padding: 0 }} href={`/series/${activeSeries.id}`}>
+              <a className="wb-sb-foot-a" style={{ padding: 0 }} href={withBase(`/series/${activeSeries.id}`)}>
                 系列總覽 →
               </a>
             </span>

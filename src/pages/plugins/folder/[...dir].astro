@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 // /plugins/folder/<dir>：某資料夾底下的資料檔，平列不分組。<dir> 可含 /；根目錄用保留字 _root。
 // 這頁唯一的互動是搜尋，用幾行 inline script 過濾 DOM，不拉 island。
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
@@ -24,9 +25,9 @@ const pluginCount = new Set(files.map((f) => f.pluginId)).size;
 <WorkbenchLayout
   title={label}
   rail="plugins"
-  back="/plugins"
+  back={withBase("/plugins")}
   description={`${label} 底下的資料檔`}
-  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin", href: "/plugins" }, { label }]}
+  crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "Plugin", href: withBase("/plugins") }, { label }]}
   pills={[{ label: `${files.length} 個資料檔`, tone: "muted" }, { label: `${pluginCount} 個 plugin` }]}
   flush
 >

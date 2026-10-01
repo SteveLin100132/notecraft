@@ -8,6 +8,7 @@ import { daysAgoLabel, ymd } from "@/lib/wb-time";
 import { AiPill, SeriesPill } from "./ui";
 import { CopyPromptAction, DeckAction, FavoriteIcon } from "./actions";
 import { noteHref } from "./NoteRow";
+import { withBase } from "@/lib/base";
 
 export default function NoteDrawer({
   row,
@@ -52,7 +53,7 @@ export default function NoteDrawer({
           <div className="wb-dw-pills">
             <AiPill markers={row.markers} hasFrontmatter={row.hasFrontmatter} />
             {row.series ? (
-              <SeriesPill accent={row.series.accent} title={row.series.title} index={row.series.index} href={`/series/${row.series.id}`} />
+              <SeriesPill accent={row.series.accent} title={row.series.title} index={row.series.index} href={withBase(`/series/${row.series.id}`)} />
             ) : null}
           </div>
           <div className="wb-dw-actions">
@@ -83,7 +84,7 @@ export default function NoteDrawer({
               <span className="wb-dw-mv" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {row.tags.length
                   ? row.tags.map((t) => (
-                      <a key={t} className="wb-tagchip" href={`/notes?tag=${encodeURIComponent(t)}`}>
+                      <a key={t} className="wb-tagchip" href={withBase(`/notes?tag=${encodeURIComponent(t)}`)}>
                         {t}
                       </a>
                     ))
@@ -119,7 +120,7 @@ export default function NoteDrawer({
             <>
               <div className="wb-dw-sec">
                 同系列章節
-                <a className="wb-sb-foot-a" style={{ padding: 0, fontSize: 11, marginLeft: "auto" }} href={`/series/${series.id}`}>
+                <a className="wb-sb-foot-a" style={{ padding: 0, fontSize: 11, marginLeft: "auto" }} href={withBase(`/series/${series.id}`)}>
                   系列總覽 →
                 </a>
               </div>

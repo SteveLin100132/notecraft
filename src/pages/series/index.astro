@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import SeriesOverview from "@/components/islands/SeriesOverview.tsx";
 import type { SeriesCardData } from "@/components/islands/SeriesOverview.tsx";
@@ -23,7 +24,7 @@ const cards: SeriesCardData[] = index.series
 <WorkbenchLayout
   title="系列"
   description="把相關筆記串成有順序的閱讀路徑"
-  crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列" }]}
+  crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "系列" }]}
   pills={[{ label: `${cards.length} 個系列`, tone: "muted" }]}
   bareBody
 >

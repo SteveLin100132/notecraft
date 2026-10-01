@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 // 資料夾樹的一個節點（遞迴、不限層數；子層每層縮排 +14px）。
 // 列是容器：裡面並排「收合鈕」與「連結」，不把按鈕包進連結裡。
 import Icon from "@/components/Icon.astro";
@@ -20,7 +21,7 @@ const pad = 10 + depth * 14;
   ) : (
     <span class="wb-sp11"></span>
   )}
-  <a class="wb-sb-link" href={`/notes?folder=${encodeURIComponent(node.path)}`}>
+  <a class="wb-sb-link" href={withBase(`/notes?folder=${encodeURIComponent(node.path)}`)}>
     <Icon name="folder" size={depth ? 13 : 14} style={`color:${depth ? "var(--wb-ink-3)" : "var(--wb-blue-l)"};flex:none`} />
     <span class="wb-sb-label" style={depth ? "font-size:12.5px" : undefined}>{node.name}</span>
     <span class="wb-badge-n tnum">{node.count}</span>

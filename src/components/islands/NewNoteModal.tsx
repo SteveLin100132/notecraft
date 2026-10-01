@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus, X, ArrowRight, Edit3, Check, ChevronDown } from "lucide-react";
 import { pushEscape } from "@/lib/wb-escape";
+import { withBase } from "@/lib/base";
 
 // FOLDERS 由 GET /api/folders 動態載入（依 NOTECRAFT_NOTES_DIR 或 fallback 到 src/content/notes/），
 // 若 API 不可用則退回單一 root 選項避免壞掉。
@@ -250,7 +251,7 @@ export default function NewNoteModal() {
               <a href={done.vscode} className="nc-btn-link">
                 <Edit3 size={16} /> 以 VS Code 編輯
               </a>
-              <a href={`/notes/${done.slug}`} className="nc-btn-link nc-btn-primary">
+              <a href={withBase(`/notes/${done.slug}`)} className="nc-btn-link nc-btn-primary">
                 前往筆記 <ArrowRight size={16} />
               </a>
             </div>

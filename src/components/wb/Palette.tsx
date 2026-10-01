@@ -9,6 +9,7 @@ import { getTabStore } from "@/lib/wb-tabs-store";
 import { hrefOf } from "@/lib/wb-tabs";
 import { AiPill, Ic, Pill } from "./ui";
 import { useWbIndex } from "./useWbIndex";
+import { stripBase, withBase } from "@/lib/base";
 
 export const PALETTE_EVENT = "nc-open-palette";
 
@@ -21,7 +22,7 @@ function loadPagefind(): Promise<PagefindApi | null> {
   if (import.meta.env.DEV) return Promise.resolve(null);
   if (!pagefindPromise) {
     // 字串相加是為了避開 Vite 的靜態分析，否則 dev server 會嘗試解析這個不存在的模組。
-    const url = "/pagefind/" + "pagefind.js";
+    const url = withBase("/pagefind/") + "pagefind.js";
     pagefindPromise = import(/* @vite-ignore */ url).then(
       (mod) => mod as PagefindApi,
       () => null,
@@ -49,7 +50,8 @@ function excerptNodes(excerpt: string): ReactNode[] {
   });
 }
 function slugFromUrl(url: string): string | null {
-  const m = /^\/notes\/(.+?)\/?$/.exec(url.split(/[?#]/)[0]);
+  // pagefind 依自身載入位置推出 baseUrl，部署在子路徑時 url 會帶前綴
+  const m = /^\/notes\/(.+?)\/?$/.exec(stripBase(url.split(/[?#]/)[0]));
   if (!m) return null;
   try {
     return decodeURIComponent(m[1]);
@@ -169,7 +171,7 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
         label: "筆記",
         items: notes.map((r) => ({
           key: "n:" + r.slug,
-          href: `/notes/${r.slug}`,
+          href: withBase(`/notes/${r.slug}`),
           node: (
             <>
               <Ic icon={FileText} size={13} color="var(--wb-ink-3)" />
@@ -184,7 +186,7 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
         label: "系列",
         items: series.map((s) => ({
           key: "s:" + s.id,
-          href: `/series/${s.id}`,
+          href: withBase(`/series/${s.id}`),
           node: (
             <>
               <span className={`wb-sb-swatch wb-acc-${s.accent}`} />
@@ -199,7 +201,7 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
         label: "標籤",
         items: tags.map((t) => ({
           key: "t:" + t.name,
-          href: `/notes?tag=${encodeURIComponent(t.name)}`,
+          href: withBase(`/notes?tag=${encodeURIComponent(t.name)}`),
           node: (
             <>
               <Ic icon={Tag} size={13} color="var(--wb-ink-3)" />
@@ -214,7 +216,7 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
         label: "資料檔",
         items: files.map((f) => ({
           key: "d:" + f.routePath,
-          href: `/view/${f.routePath}`,
+          href: withBase(`/view/${f.routePath}`),
           node: (
             <>
               <Ic icon={FileText} size={13} color="var(--wb-gold)" />
@@ -231,7 +233,7 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
         label: "內文",
         items: body.map((h) => ({
           key: "p:" + h.url,
-          href: h.url,
+          href: withBase(h.url),
           node: (
             <>
               <Ic icon={FileText} size={13} color="var(--wb-ink-3)" />

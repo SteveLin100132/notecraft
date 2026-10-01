@@ -1,0 +1,73 @@
+# 官方網站：site/（Landing）＋ /demo（用 NoteCraft 本身 build 的公開筆記工作台），部署到 GitHub Pages。
+# 網址：https://stevelin100132.github.io/notecraft/ 與 /notecraft/demo/
+#
+# 需要在 repo 的 Settings → Pages 把 Source 設成「GitHub Actions」。
+# private 筆記（src/content/notes/private/）在 .gitignore 裡，CI 的 checkout 本來就沒有；
+# 它們的簡報 deck 會被 prune-demo-decks 刪掉，不會跟著 Demo 發佈。
+
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+
+      - name: Build landing (site/)
+        working-directory: site
+        run: |
+          npm ci
+          npx astro build
+
+      - name: Build demo workbench
+        env:
+          NOTECRAFT_BASE: /notecraft/demo
+        run: |
+          npm ci
+          node scripts/site/prune-demo-decks.mjs
+          # 不要直接輸出到 site/dist/demo：SSR chunk 會從 site/node_modules 解析到第二份 react-dom，
+          # 兩份 React 混用，build 在 hooks 處失敗。先輸出到根目錄的 dist-demo，再組合。
+          npx astro build --outDir dist-demo
+          npx pagefind --site dist-demo
+
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p _pages
+          cp -R site/dist/. _pages/
+          cp -R dist-demo _pages/demo
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

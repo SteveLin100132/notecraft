@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Hash, Plus, X } from "lucide-react";
+import { withBase } from "@/lib/base";
 
 type Props = {
   slug: string;
@@ -119,7 +120,7 @@ export default function TagEditor({ slug, initialTags, editable, suggestions }: 
           {editable ? (
             <span>{tg}</span>
           ) : (
-            <a href={`/notes?tag=${encodeURIComponent(tg)}`} style={{ color: "inherit", textDecoration: "none" }}>
+            <a href={withBase(`/notes?tag=${encodeURIComponent(tg)}`)} style={{ color: "inherit", textDecoration: "none" }}>
               {tg}
             </a>
           )}

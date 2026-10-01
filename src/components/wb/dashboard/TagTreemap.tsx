@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { tileStyleIndex, tileTier, topTagsWithRest, treemap } from "@/lib/wb-dashboard";
 import type { WbTagStat } from "@/lib/wb-types";
 import DvCard from "./DvCard";
+import { withBase } from "@/lib/base";
 
 const MAX = 11;
 /** handoff 的預設估算尺寸：SSR 與量測前用它決定文字等級 */
@@ -14,7 +15,7 @@ const TIP_W = 180;
 type Tip = { x: number; y: number; l: string; v: number; p: number };
 
 function tagHref(name: string): string {
-  return `/notes?tag=${encodeURIComponent(name)}`;
+  return withBase(`/notes?tag=${encodeURIComponent(name)}`);
 }
 
 export default function TagTreemap({ tags, tagTotal, tagUseTotal }: { tags: WbTagStat[]; tagTotal: number; tagUseTotal: number }) {
@@ -58,7 +59,7 @@ export default function TagTreemap({ tags, tagTotal, tagUseTotal }: { tags: WbTa
       title="標籤分布"
       sub={`${tagTotal} 個標籤・共標記 ${tagUseTotal} 次`}
       right={
-        <a className="dv-link" href="/tags">
+        <a className="dv-link" href={withBase("/tags")}>
           查看全部
         </a>
       }
@@ -81,7 +82,7 @@ export default function TagTreemap({ tags, tagTotal, tagUseTotal }: { tags: WbTa
             const ph = (t.h / 100) * sz.h;
             const tier = tileTier(pw, ph);
             const label = t.l ?? "#" + t.k;
-            const href = rest ? "/tags" : tagHref(t.k);
+            const href = rest ? withBase("/tags") : tagHref(t.k);
             return (
               <button
                 key={t.k}

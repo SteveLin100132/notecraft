@@ -1,4 +1,5 @@
 ---
+import { withBase } from "@/lib/base";
 // Rail：最左 52px 深色圖示列（README §3.2）。5 個入口；搜尋鈕只 dispatch 事件，由 Palette 接。
 // `ai` 的高亮靠 ?pending=1 判斷，靜態站 build 期看不到 query → 由 WorkbenchLayout 的 inline script 補判。
 import Icon from "@/components/Icon.astro";
@@ -13,9 +14,9 @@ export interface Props {
 const { active = "", pending = 0 } = Astro.props;
 ---
 <nav class="wb-rail" aria-label="主要導覽">
-  <a class="wb-rail-mark" href="/" aria-label="NoteCraft 首頁"><Logo size={28} /></a>
+  <a class="wb-rail-mark" href={withBase("/")} aria-label="NoteCraft 首頁"><Logo size={28} /></a>
   <div class="wb-rail-group">
-    <a class:list={["wb-rail-btn", { on: active === "dashboard" }]} href="/" title="儀表板" aria-label="儀表板" data-rail="dashboard" aria-current={active === "dashboard" ? "page" : undefined}>
+    <a class:list={["wb-rail-btn", { on: active === "dashboard" }]} href={withBase("/")} title="儀表板" aria-label="儀表板" data-rail="dashboard" aria-current={active === "dashboard" ? "page" : undefined}>
       <Icon name="home" size={17} stroke={1.7} />
     </a>
     <button type="button" class="wb-rail-btn" title="搜尋（⌘K）" aria-label="搜尋" data-wb-open-palette>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { WbDataFile, WbPlugin } from "@/lib/wb-types";
 import DrawerShell from "./DrawerShell";
 import { Pill } from "./ui";
+import { withBase } from "@/lib/base";
 
 export default function PluginDrawer({
   plugin,
@@ -104,7 +105,7 @@ export default function PluginDrawer({
           {p.matched.map((r) => {
             const f = byRoute.get(r);
             return (
-              <a key={r} className="wb-marker link" href={`/view/${r}`}>
+              <a key={r} className="wb-marker link" href={withBase(`/view/${r}`)}>
                 <span className="wb-dot ok" aria-hidden="true" />
                 <span className="wb-marker-t">{f?.title ?? r}</span>
                 <span className="wb-marker-s">{f?.relPath ?? r}</span>

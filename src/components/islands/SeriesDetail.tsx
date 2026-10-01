@@ -7,6 +7,7 @@ import { toast } from "@/lib/prompts";
 import WbHeader from "@/components/wb/WbHeader";
 import { GroupHeader, Ic, MiniButton, Pill, Progress, StatStrip } from "@/components/wb/ui";
 import { useReadingVersion } from "./seriesShared";
+import { withBase } from "@/lib/base";
 
 export type DetailChapter = {
   /** 筆記或資料檔頁；兩者一視同仁，只有型別標示不同 */
@@ -55,14 +56,14 @@ export default function SeriesDetail({ series, isDev = false }: { series: Series
     <>
       <WbHeader
         title={series.title}
-        back="/series"
-        crumbs={[{ label: "NoteCraft", href: "/" }, { label: "系列", href: "/series" }, { label: series.title }]}
+        back={withBase("/series")}
+        crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "系列", href: withBase("/series") }, { label: series.title }]}
         pills={[
           { label: `${p.done}/${p.total} 已讀`, tone: "muted" },
           { label: `${p.pct}%`, tone: "ok" },
         ]}
         actions={
-          <a className="wb-btn-ghost" href={`/notes?series=${encodeURIComponent(series.id)}`}>
+          <a className="wb-btn-ghost" href={withBase(`/notes?series=${encodeURIComponent(series.id)}`)}>
             <Ic icon={Layers} size={14} /> 在筆記列表中篩選
           </a>
         }

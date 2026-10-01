@@ -1316,11 +1316,11 @@ function TasksRailPage({ dark }: CustomSlideProps) {
 // ── deck ────────────────────────────────────────────────────────────────────
 
 const deck: Deck = {
-  slug: "勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
+  slug: "private/勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
   title: "收斂到 L1–L3",
   eyebrow: "PoC · 勞動法遵決策支援系統",
   generatedAt: "2026-08-07",
-  source: "src/content/notes/勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx",
+  source: "src/content/notes/private/勞動法遵決策支援系統-poc-l1-l3-檢索閉環.mdx",
   slides: [
     {
       layout: "cover",
@@ -1790,7 +1790,7 @@ const deck: Deck = {
         },
       ],
       cta: "回到筆記看完整的四道閘門判定邏輯、CHECK 約束與 Create SQL",
-      ctaMeta: "/notes/勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
+      ctaMeta: "/notes/private/勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
     },
   ],
 };

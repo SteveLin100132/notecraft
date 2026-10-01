@@ -5,6 +5,7 @@ import { markerCounts, type WbNoteRow } from "@/lib/wb-types";
 import { mdShort } from "@/lib/wb-time";
 import { OpenLink, rowHandlers } from "../NoteRow";
 import DvCard from "./DvCard";
+import { withBase } from "@/lib/base";
 
 export default function Timeline({ rows, sel, onSelect }: { rows: WbNoteRow[]; sel: string | null; onSelect: (slug: string) => void }) {
   const list = rows.slice(0, 7);
@@ -14,7 +15,7 @@ export default function Timeline({ rows, sel, onSelect }: { rows: WbNoteRow[]; s
       title="最近更新"
       sub={`最新 ${list.length} 篇`}
       right={
-        <a className="dv-link" href="/notes">
+        <a className="dv-link" href={withBase("/notes")}>
           查看全部
         </a>
       }

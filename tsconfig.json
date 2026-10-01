@@ -10,5 +10,5 @@
   },
   "include": [".astro/types.d.ts", "**/*"],
   "//exclude": "docs/prototype 存放設計交接的原型碼（含刻意寫成 diff 註解、非合法語法的 .jsx），不參與型別檢查",
-  "exclude": ["dist", "docs/prototype"]
+  "exclude": ["dist", "docs/prototype", "site"]
 }

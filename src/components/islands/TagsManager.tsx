@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Edit3, Trash2, ArrowRight, Layers, Search, Tag } from "lucide-react";
 import { GroupHeader, Ic, MiniButton, Progress, SearchBox, Seg, StatStrip } from "@/components/wb/ui";
 import { ymd } from "@/lib/wb-time";
+import { withBase } from "@/lib/base";
 
 export type TagRow = { name: string; count: number; lastUsed: string };
 
@@ -143,7 +144,7 @@ export default function TagsManager({ initial, devMode, noteCount = 0 }: Props) 
                   <span className="wb-row-p" />
                 </>
               ) : (
-                <a className="wb-row-main" href={`/notes?tag=${encodeURIComponent(s.name)}`}>
+                <a className="wb-row-main" href={withBase(`/notes?tag=${encodeURIComponent(s.name)}`)}>
                   <Ic icon={Tag} size={13} color="var(--wb-ink-3)" />
                   <span className="wb-row-t">{s.name}</span>
                   <span className="wb-row-p">最後使用 {ymd(s.lastUsed)}</span>

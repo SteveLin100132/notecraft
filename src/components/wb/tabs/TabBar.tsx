@@ -26,6 +26,7 @@ import {
   type TabSelf,
   type TabStore,
 } from "@/lib/wb-tabs";
+import { withBase } from "@/lib/base";
 import type { TabStoreHandle } from "@/lib/wb-tabs-store";
 import { loadWbIndex } from "@/components/wb/useWbIndex";
 import { markerCounts } from "@/lib/wb-types";
@@ -64,7 +65,7 @@ export function closeAndNavigate(
     dest = (prefer && after.tabs.find((t) => t.key === prefer)) || neighborAfterClose(before, activeKey, new Set(gone));
   }
   handle.update(op);
-  if (leaving) location.assign(dest ? hrefOf(dest) : "/notes");
+  if (leaving) location.assign(dest ? hrefOf(dest) : withBase("/notes"));
 }
 
 /** 關閉單一頁籤（固定的無作用） */
