@@ -1659,3 +1659,121 @@
   }
 }
 
+/* ════════ FIG. 2 Before／After ════════ */
+.cmp {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  --split: 42%;
+}
+.cmp > .f2-frame-body {
+  flex: 1;
+}
+.cmp-before {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  /* 只留分界線左側；被裁掉的區域不吃滑鼠事件 */
+  clip-path: inset(0 calc(100% - var(--split)) 0 0);
+  display: flex;
+  align-items: center;
+  padding: clamp(16px, 2.5vw, 28px);
+}
+.cmp-card {
+  width: min(100%, 520px);
+  padding: 18px 20px;
+  border: 1.5px dashed var(--ink-2);
+  background: var(--paper);
+}
+.cmp-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.cmp-pill {
+  padding: 2px 8px;
+  border: 1px solid var(--mark-paper);
+  color: var(--mark-paper);
+  font-weight: 700;
+  font-size: 13px;
+}
+.cmp-prompt {
+  margin: 14px 0 0;
+  font-size: 17px;
+  line-height: 1.7;
+}
+.cmp-prompt span {
+  display: block;
+}
+.cmp-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.cmp-tag {
+  position: absolute;
+  top: 10px;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.cmp-tag--before {
+  left: 10px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.cmp-tag--after {
+  right: 10px;
+  background: var(--sheet);
+  color: var(--line);
+  z-index: 1;
+}
+.cmp-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 32px;
+  margin-left: -16px;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 2;
+  outline: none;
+}
+.cmp-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 15px;
+  border-left: 2px solid var(--sheet);
+}
+.cmp-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  background: var(--sheet);
+  color: var(--line);
+  border: 2px solid var(--paper);
+  transition: transform 150ms var(--ease-out);
+}
+.cmp-handle:hover .cmp-knob,
+.cmp-handle:active .cmp-knob {
+  transform: scale(1.08);
+}
+.cmp-handle:focus-visible .cmp-knob {
+  outline: 2px solid var(--mark-paper);
+  outline-offset: 2px;
+}
+
