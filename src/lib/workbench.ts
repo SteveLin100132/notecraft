@@ -225,6 +225,8 @@ async function build(): Promise<WbIndex> {
       path: c.kind === "data" ? (c.relPath ?? "") : (relPathBySlug.get(c.ref) ?? c.ref),
       ...(c.pluginId ? { pluginId: c.pluginId } : {}),
     }));
+    // 零章節的系列（章節全是不在此站的 private 筆記）整個略過：標題與描述也不該出現在輸出的 HTML／JSON
+    if (chapters.length === 0) continue;
     series.push({
       id: s.id,
       title: s.title,
