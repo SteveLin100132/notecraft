@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-demo
+_pages
 .astro
 .netlify
 .DS_Store
@@ -11,3 +13,6 @@ tmp/
 
 # 私有筆記：不進 git、不 publish 到 Netlify（含內部基礎架構手冊與其截圖）
 src/content/notes/private/
+
+# impeccable 審查用的整頁截圖（每次重截會覆寫，不進版控）
+.impeccable/review/
