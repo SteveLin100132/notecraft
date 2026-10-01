@@ -4,6 +4,7 @@ import Fig1 from "../components/Fig1.tsx";
 import Fig2 from "../components/Fig2.tsx";
 import CopyCommand from "../components/CopyCommand.tsx";
 import CommandDemo from "../components/CommandDemo.tsx";
+import Tour, { SCENES } from "../components/Tour.tsx";
 import { readReleases, readVersion } from "../lib/changelog";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
@@ -24,56 +25,6 @@ const GITHUB = "https://github.com/SteveLin100132/notecraft";
 const NPM = "https://www.npmjs.com/package/notecraftapp";
 const DEMO = `${base}demo/`;
 
-type Callout = { ref: number; name: string; x: number; y: number; lx?: number };
-const plates: { n: number; file: string; title: string; text: string; callouts: Callout[] }[] = [
-  {
-    n: 5, file: "dashboard", title: "儀表板", text: "筆記總數與閱讀狀態、AI 待生成、寫作頻率、系列進度、標籤分布與更新日誌，一個視窗看完。",
-    callouts: [
-      { ref: 70, name: "筆記總數與閱讀狀態", x: 448, y: 300 },
-      { ref: 72, name: "寫作頻率", x: 1290, y: 330 },
-      { ref: 74, name: "系列進度", x: 960, y: 528, lx: 880 },
-      { ref: 76, name: "標籤分布", x: 1010, y: 890, lx: 1100 },
-    ],
-  },
-  {
-    n: 6, file: "notes-list", title: "筆記列表", text: "依資料夾、系列、標籤或月份分組；篩選全在網址參數，可以分享。",
-    callouts: [
-      { ref: 78, name: "資料夾樹", x: 170, y: 133, lx: 140 },
-      { ref: 80, name: "分組切換", x: 410, y: 176, lx: 440 },
-      { ref: 82, name: "AI 生成狀態", x: 1424, y: 339 },
-    ],
-  },
-  {
-    n: 7, file: "notes-drawer", title: "Drawer 預覽", text: "單擊一列在右側預覽摘要、標記與同系列章節，雙擊才進筆記。",
-    callouts: [
-      { ref: 84, name: "選中的列", x: 560, y: 297 },
-      { ref: 86, name: "預覽抽屜", x: 1300, y: 76, lx: 1220 },
-      { ref: 88, name: "同系列章節", x: 1290, y: 760, lx: 1400 },
-    ],
-  },
-  {
-    n: 8, file: "note-tabs", title: "筆記頁籤", text: "固定、拖曳、右鍵管理；⌥. 與 ⌥, 切換，回來停在上次讀到的位置。",
-    callouts: [
-      { ref: 90, name: "頁籤列", x: 880, y: 20, lx: 900 },
-      { ref: 92, name: "閱讀狀態", x: 690, y: 328, lx: 640 },
-      { ref: 94, name: "目錄", x: 1340, y: 250 },
-    ],
-  },
-  {
-    n: 9, file: "dashboard-calendar", title: "更新月曆", text: "每篇筆記落在它的更新日，顏色就是閱讀狀態。",
-    callouts: [
-      { ref: 96, name: "當日更新的筆記", x: 735, y: 735 },
-      { ref: 98, name: "月／週切換", x: 1540, y: 186 },
-    ],
-  },
-  {
-    n: 10, file: "plugins", title: "Plugin 管理", text: "已安裝的外掛、映射規則與命中的資料檔。",
-    callouts: [
-      { ref: 100, name: "已安裝的外掛", x: 400, y: 325 },
-      { ref: 102, name: "啟用狀態", x: 1533, y: 325 },
-    ],
-  },
-];
 
 const claims = [
   {
@@ -118,7 +69,7 @@ const legend = [
   [30, "標記開頭"], [32, "id"], [34, "type"], [36, "prompt"], [38, "status"], [40, "寫回的 JSX"],
   [50, "專案根目錄"], [52, "筆記資料夾"], [54, "生成元件"], [56, "plugin 與系列設定"], [58, "skill 與 subagent"],
   [60, "筆記內嵌"], [62, "放大畫布"], [64, "簡報"],
-  ...plates.flatMap((p) => p.callouts.map((c) => [c.ref, c.name] as const)),
+  ...SCENES.flatMap((sc) => sc.steps.map((p) => [p.ref, p.name] as const)),
 ] as const;
 ---
 
@@ -383,33 +334,8 @@ const legend = [
           <span><b>NoteCraftApp 說明書</b></span>
           <span>第 3 頁</span>
         </div>
-        <h2 data-reveal class="paper-title" id="sec-emb"><span>實施方式：</span><span>工作台的各個畫面。</span></h2>
-        <div class="plates">
-          {plates.map((p) => (
-            <figure class="plate" data-draw>
-              <div class="plate-img">
-                <img src={`${base}plates/${p.file}.webp`} alt={`${p.title}的畫面`} width="1600" height="1000" loading="lazy" decoding="async" />
-                {/* 參照編號在圖框上緣之外（y < 0），只有引線伸進畫面，不壓在內容上 */}
-                <svg class="plate-marks" viewBox="0 -110 1600 1110" aria-hidden="true">
-                  {p.callouts.map((c) => {
-                    const lx = c.lx ?? c.x;
-                    return (
-                      <g>
-                        <path d={`M${lx} -44 C ${lx} -10, ${c.x} -10, ${c.x} ${Math.max(0, c.y - 18)} L ${c.x} ${c.y}`} class="pm-line" />
-                        <circle cx={c.x} cy={c.y} r="8" class="pm-dot" />
-                        <text x={lx} y="-56" text-anchor="middle" class="pm-num">{c.ref}</text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-              <figcaption>
-                <span class="fig-no">FIG. {p.n}</span>
-                <span><b>{p.title}</b>　{p.text}<span class="plate-refs">{p.callouts.map((c) => <span><span class="ref">{c.ref}</span> {c.name}</span>)}</span></span>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        <h2 data-reveal class="paper-title" id="sec-emb"><span>實施方式：</span><span>從你想做的事開始。</span></h2>
+        <Tour client:visible base={base} />
 
         <div class="emb-grid">
           <div class="spec">
