@@ -21,7 +21,7 @@
 ![Update calendar](./docs/screenshots/dashboard-calendar.png)
 
 <details>
-<summary>更多畫面：筆記列表、Drawer 預覽、Board、Plugin 管理</summary>
+<summary>更多畫面：筆記列表、Drawer 預覽、筆記頁籤、Board、Plugin 管理</summary>
 
 **筆記列表（List view）** — 依資料夾／系列／標籤／月份分組，篩選全在網址參數，`⌘K` 隨時跨頁跳轉。
 
@@ -30,6 +30,10 @@
 **Drawer 預覽** — 單擊一列在右側預覽摘要、Metadata、`@ai-visualize` 標記與同系列章節；雙擊或列尾的箭頭才進筆記。
 
 ![Note drawer](./docs/screenshots/notes-drawer.png)
+
+**筆記頁籤** — 開過的筆記與資料檔會在最上方留下頁籤，可固定、拖曳、右鍵管理；`⌥.`／`⌥,` 切換，切回來會停在上次讀到的位置。右側「全部頁籤」可篩選、重開剛關閉的。
+
+![Note tabs](./docs/screenshots/note-tabs.png)
 
 **Board view** — 依閱讀狀態分三欄，拖曳卡片就改狀態。
 
