@@ -4,24 +4,47 @@
   package.json 的 repository 填成真實 GitHub URL 就行。
 -->
 
-# NoteCraftApp
+<div align="center">
+  <img src="public/favicon.svg" width="72" alt="NoteCraft logo" />
+  <h1>NoteCraftApp</h1>
+  <br />
+  <p>
+    <b>
+      由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。以 Astro + MDX 為核心，用 <code>npx</code> 一行指令就能在任何 md／mdx 資料夾啟動三欄工作台；搭配 Claude Code，把筆記裡的標記自動變成互動圖表，還能一鍵轉成簡報。
+    </b>
+    <br />
+    <a href="#">Website(TODO)</a> |
+    <a href="#">Documentation(TODO)</a> |
+    <a href="https://stevelin100132.github.io/">About Author</a>
+  </p>
+  <br />
+  <div>
+    <a href="https://www.npmjs.com/package/notecraftapp"><img alt="npm" src="https://img.shields.io/npm/v/notecraftapp" /></a>
+    <a href="#系統需求"><img alt="node" src="https://img.shields.io/node/v/notecraftapp" /></a>
+    <img alt="Astro" src="https://img.shields.io/badge/Astro-5+-bc52ee.svg" />
+    <img alt="React" src="https://img.shields.io/badge/React-18+-61dafb.svg" />
+    <img alt="MDX" src="https://img.shields.io/badge/MDX-3+-1b1f24.svg" />
+    <img alt="TailwindCSS" src="https://img.shields.io/badge/TailwindCSS-3+-38bdf8.svg" />
+    <a href="#license"><img alt="license" src="https://img.shields.io/npm/l/notecraftapp" /></a>
+    <a href="https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2FSteveLin100132%2Fnotecraft"><img alt="visitors" src="https://api.visitorbadge.io/api/combined?path=https%3A%2F%2Fgithub.com%2FSteveLin100132%2Fnotecraft&countColor=%23263759&style=flat" /></a>
+  </div>
+</div>
+<br />
 
-**由 AI 生成視覺化與動態互動元件、嵌入筆記的個人筆記 Web App。**
+![NoteCraft Banner](./docs/assets/github-repo-banner.webp)
 
-用 `npx` 一行指令在任何專案的 md/mdx 資料夾啟動漂亮 UI；搭配 [Claude Code](https://claude.com/claude-code)，讓 AI 把 MDX 中的「這裡放張流程圖」標記自動變成 React 互動元件、寫回筆記。
+NoteCraftApp 是一款為寫技術筆記的人打造的筆記工作台。它直接讀你專案裡的 md／mdx 資料夾，提供資料夾樹、四種筆記檢視、系列閱讀進度、⌘K 全站搜尋與多筆記頁籤；在 MDX 裡用 `@ai-visualize` 標記描述想要的圖，Claude Code 就會生成 React 互動元件並寫回筆記。同一份筆記還能一鍵轉成簡報，結構化的 JSON 資料檔（ER 圖、OpenAPI 文件）則交給可安裝的 plugin 渲染。寫筆記、補圖表、轉簡報，都在同一本筆記裡完成。
 
-<p>
-  <a href="https://www.npmjs.com/package/notecraftapp"><img alt="npm" src="https://img.shields.io/npm/v/notecraftapp"></a>
-  <a href="#系統需求"><img alt="node" src="https://img.shields.io/node/v/notecraftapp"></a>
-  <a href="#license"><img alt="license" src="https://img.shields.io/npm/l/notecraftapp"></a>
-</p>
+<details>
+<summary>更多畫面：儀表板、更新月曆、筆記列表、Drawer 預覽、筆記頁籤、Board、Plugin 管理</summary>
+
+**儀表板** — 筆記總數與閱讀狀態、AI 待生成、寫作頻率、最近更新、系列進度、標籤分布、更新日誌。
 
 ![Dashboard](./docs/screenshots/dashboard.png)
 
-![Update calendar](./docs/screenshots/dashboard-calendar.png)
+**更新月曆** — 每篇筆記依更新日落在日期格，顏色就是閱讀狀態；有月與週兩種檢視。
 
-<details>
-<summary>更多畫面：筆記列表、Drawer 預覽、Board、Plugin 管理</summary>
+![Update calendar](./docs/screenshots/dashboard-calendar.png)
 
 **筆記列表（List view）** — 依資料夾／系列／標籤／月份分組，篩選全在網址參數，`⌘K` 隨時跨頁跳轉。
 
@@ -30,6 +53,10 @@
 **Drawer 預覽** — 單擊一列在右側預覽摘要、Metadata、`@ai-visualize` 標記與同系列章節；雙擊或列尾的箭頭才進筆記。
 
 ![Note drawer](./docs/screenshots/notes-drawer.png)
+
+**筆記頁籤** — 開過的筆記與資料檔會在最上方留下頁籤，可固定、拖曳、右鍵管理；`⌥.`／`⌥,` 切換，切回來會停在上次讀到的位置。右側「全部頁籤」可篩選、重開剛關閉的。
+
+![Note tabs](./docs/screenshots/note-tabs.png)
 
 **Board view** — 依閱讀狀態分三欄，拖曳卡片就改狀態。
 

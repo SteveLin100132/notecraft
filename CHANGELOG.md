@@ -4,6 +4,27 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.7.0] - 2026-10-01
+
+### 新增
+
+- 工作台的**筆記頁籤**（設計文件 `docs/notecraft-workbench-note-tabs.md`）：主區最上方一條頁籤列，開過的筆記與資料檔頁會留下頁籤，不用回列表或側欄重找。可固定、拖曳排序（滑鼠裝置）、中鍵關閉；右鍵選單有關閉其他／關閉右側／全部關閉、固定、複製連結、在新視窗開啟；右側「全部頁籤」可篩選並重開剛關閉的
+- 切回頁籤時回到上次的捲動位置（網址帶 `#標題` 時以標題為準）
+- 鍵盤：`⌥.`／`⌥,` 切換頁籤、`⌥W` 關閉、`⌥⇧T` 重開剛關閉的；頁籤列本身可用方向鍵、`Home`／`End`、`Delete` 操作
+- 未固定頁籤上限 20 個，超過時自動關閉最久沒看的那個並提示
+- ⌘K 指令面板最上方新增「已開啟的頁籤」
+- 手機改為 Header 右上角的頁籤計數鈕，點開是底部抽屜
+
+### 變更
+
+- 平板寬度的側欄開關按鈕下移到 Header 區，讓位給頁籤列
+- dev 環境刪除筆記時一併關閉它的頁籤
+
+### 內部
+
+- 新增 `src/lib/wb-tabs.ts`（頁籤清單純函式）、`src/lib/wb-tabs-store.ts`（localStorage，key 依工作區分開）、`src/lib/toast.ts`（ToastHost 掛載前的提示佇列）；`check:wb` 串上 `scripts/checks/wb-tabs.mjs`
+- `WorkbenchLayout` 新 prop `tab`：筆記頁與資料檔頁以它宣告自己是頁籤
+
 ## [1.6.0] - 2026-10-01
 
 ### 新增

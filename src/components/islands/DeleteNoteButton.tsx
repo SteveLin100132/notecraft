@@ -1,14 +1,24 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Trash2, X, AlertTriangle, FileText } from "lucide-react";
 import { pushEscape } from "@/lib/wb-escape";
+import { getTabStore } from "@/lib/wb-tabs-store";
+import { close as closeTabs } from "@/lib/wb-tabs";
 
-type Props = { slug: string; title: string; componentIds: string[]; /** 顯示用路徑（相對 notesDir） */ path?: string };
+type Props = {
+  slug: string;
+  title: string;
+  componentIds: string[];
+  /** 顯示用路徑（相對 notesDir） */
+  path?: string;
+  /** 工作區名稱：刪除時一併關掉這篇的頁籤（規格 docs/notecraft-workbench-note-tabs.md §8.2） */
+  workspace?: string;
+};
 
 /**
  * 刪除筆記的對話框與邏輯，拆成 hook 讓「⋯」選單（MoreMenu）與獨立按鈕都能用。
  * 回傳 open() 與要掛在畫面上的 dialog 節點。
  */
-export function useDeleteNote({ slug, title, componentIds, path }: Props): { open: () => void; dialog: ReactNode } {
+export function useDeleteNote({ slug, title, componentIds, path, workspace }: Props): { open: () => void; dialog: ReactNode } {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,6 +47,15 @@ export function useDeleteNote({ slug, title, componentIds, path }: Props): { ope
       void fetch(`/api/notes/${encodeURIComponent(slug)}`, { method: "DELETE", keepalive: true });
     } catch {
       /* 送出失敗也照常導頁；筆記仍會留在列表中，可重試 */
+    }
+    // 同步關掉這篇的頁籤（不走「導覽到鄰居」：刪除後回列表是既有行為），
+    // 下一頁的 idle 校正才不會再跳一次「筆記已不存在」
+    if (workspace !== undefined) {
+      try {
+        getTabStore(workspace).update((s) => closeTabs(s, [`note:${slug}`]));
+      } catch {
+        /* localStorage 不可用時略過 */
+      }
     }
     window.location.replace("/notes");
   };

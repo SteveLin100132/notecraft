@@ -46,6 +46,7 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
   flush
   indexHeader
   pagefindTitle
+  tab={{ kind: "view", id: file.routePath, title: file.title, path: file.relPath, pending: 0 }}
   crumbs={[{ label: "NoteCraft", href: "/" }, { label: "Plugin", href: "/plugins" }, { label: file.relPath }]}
   pills={[
     { label: file.pluginId },

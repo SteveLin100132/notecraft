@@ -538,3 +538,43 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。
+
+## v1.18.0 追加功能（§8.1 Phase 4.22）— 筆記頁籤（notecraftapp v1.7.0）✅ 已完成（2026-10-01）
+
+> **已完成（2026-10-01）**：Task 105–108 全部實作於 `feat/note-tabs`。實測結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+> 偏離原計畫的幾處：浮層改 `position:fixed`、overlay 層；下拉與手機抽屜的列同樣是「連結＋並排關閉鈕」；
+> 「關閉其他／右側」關到目前頁面時導覽到被點的頁籤。bfcache、axe、README 截圖未做（見規格 §17「仍未做的」）。
+
+> 規格：[notecraft-workbench-note-tabs.md](../notecraft-workbench-note-tabs.md) **v1.0.0**（5 項決策已於 2026-10-01 定案，紀錄見該文件 §16；實作後回填見 §17）。
+> 設計交付：[design_handoff_note_tabs](../prototype/design_handoff_note_tabs/)（`README.md` 是像素級規格、`prototype/wb/pt-tabs.css` 是視覺定稿、
+> `prototype/NoteCraft-Workbench-Tabs.html` 需經本機 http server 開啟、`Note-Tabs-Spec.html` 是各狀態畫面）
+
+在工作台主區最上方、Header 之上加一條 34px 頁籤列（VS Code 式）：筆記與資料檔頁開啟後留下頁籤，可固定、拖曳、右鍵管理、⌥ 快捷鍵切換，切回時還原捲動位置；手機改為 Header 右上的計數鈕＋底部抽屜。
+MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `client:load` island 重畫。
+
+> **規格與設計稿不一致時，一律以規格為準。** 主要偏離：localStorage 存標題快照、idle 時以 `/wb-index.json` 校正（Q1）；
+> 頁籤是 `<a role="tab">` 並排 ✕ 按鈕，不是 `div role=tab` 包按鈕（Q2）；key 為 `nc-tabs-v1:<workspaceLabel>`（Q5）；
+> 網址有 hash 時不還原捲動；狀態小點與 `?tabsDemo=` 不移植。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 105](task-105-tabs-store-pure-functions.md) | 地基：純函式、store、斷言、Toast 佇列 | §4、§6.6、§11 | `lib/wb-tabs.ts`、`lib/wb-tabs-store.ts`、`lib/toast.ts`、`scripts/checks/wb-tabs.mjs`、`ToastHost.tsx`、`check:wb` |
+| [Task 106](task-106-tabs-desktop-strip.md) | 桌面頁籤列：layout 佔位、頁籤 DOM、溢出、拖曳、樣式 | §3、§5、§6.1–§6.4、§10、§12.1 | `WorkbenchLayout.astro`（`tab` prop）、`notes/[...slug].astro`、`view/[...path].astro`、`wb/tabs/TabBar.tsx`／`TabStrip.tsx`、`workbench.css`（`.nt-*`、`--wb-a-blue-04`） |
+| [Task 107](task-107-tabs-menu-shortcuts-scroll.md) | 右鍵選單、全部頁籤、快捷鍵、捲動還原、Palette、刪除筆記 | §6.3、§6.5、§7、§8、§12.2 | `TabMenu.tsx`、`TabAll.tsx`、`TabBar.tsx`、`Palette.tsx`、`MoreMenu.tsx`、`DeleteNoteButton.tsx` |
+| [Task 108](task-108-tabs-responsive-docs-release.md) | 平板、手機計數鈕與抽屜、viewer 實測、文件回填、發版 | §9、§11、§12、§17 | `TabSheet.tsx`、`workbench.css` RWD、CLAUDE.md／workbench.md／PRD／CHANGELOG、v1.7.0 |
+
+**順序**：一條直線，每一步都依賴前一步。
+
+```
+105 ─ 106 ─ 107 ─ 108
+```
+
+> **交付節奏**：全程在 `feat/note-tabs` 單一分支上，依 Task 逐步 commit，**Task 108 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `wb-tabs.ts` 的再跑 `npm run check:wb`。
+>
+> **幾條貫穿整批的規則**：
+> - **`wb-tabs.ts` 只能 `import type`、不能有 JSX、不碰 `window`／`localStorage`／`Date.now()`**（`scripts/checks` 直接載入）
+> - **SSR 只輸出 34px 空列**（與手機的 32×32 空計數框），頁籤內容一律 hydrate 後才畫；hydrate 前後 `#nc-scroll` 位置不得改變
+> - **每次寫 store 都先重讀 localStorage**，不拿 React state 當來源（多個瀏覽器分頁同時開）
+> - 浮層（選單、下拉、手機抽屜）走 `wb-escape` 堆疊；`workbench.css` 規則零色碼；`.nt-*` 規則放在第一個 860px 殼響應式區塊之前
+> - 快捷鍵只用 `⌥`、比對 `event.code`，焦點在輸入元件內不攔截

@@ -21,11 +21,14 @@ src/
 ├── components/generated/        AI 生成的視覺化元件（一個 id 對應一個 .tsx）
 ├── components/wb/               Workbench 工作台的殼與各頁 island（Rail／Sidebar／Header／NotesWorkbench／Drawer／Palette…）
 ├── components/wb/dashboard/     Dashboard「總覽」的七張卡＋「更新月曆」的 Calendar／CalCell／CalDot／CalNote（不是獨立 island，由 DashboardWorkbench 渲染）
+├── components/wb/tabs/          筆記頁籤：TabBar（island 入口，layout 每頁掛）＋TabStrip／TabMenu／TabAll／TabSheet／TabPop
 ├── components/islands/          其他 React island（TagEditor、Toc、PluginHost、SeriesNav…）
 ├── layouts/WorkbenchLayout.astro  三欄工作台的殼，所有頁面共用（簡報頁例外）
 ├── lib/workbench.ts             工作台索引（build 期、模組層快取）；client-safe 型別在 lib/wb-types.ts
 ├── lib/wb-dashboard.ts          總覽的純函式（treemap／方塊等級／其他 N 個）；只能 import type、無 JSX，scripts/checks/wb-dashboard.mjs 直接載入斷言
 ├── lib/wb-calendar.ts           更新月曆的純函式（月格／日曆週／翻頁／標題）；同樣只能 import type、不 import wb-time.ts，scripts/checks/wb-calendar.mjs 斷言
+├── lib/wb-tabs.ts               頁籤清單的純函式（ensure／close／固定／移動／LRU／鄰居／重開）；只能 import type、不碰 window，scripts/checks/wb-tabs.mjs 斷言
+├── lib/wb-tabs-store.ts         頁籤的 localStorage 讀寫（每次寫入先重讀、storage 事件同步）；lib/toast.ts 是 ToastHost 掛載前的提示佇列
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
 ├── pages/
@@ -114,6 +117,10 @@ status: pending | generated | locked | failed
 - 樣式規則只引用 `--wb-*` token；DS 沒有的七個值集中在 `workbench.css` 開頭
 - **Dashboard 總覽**（v1.4.0，[docs/notecraft-workbench-dashboard.md](docs/notecraft-workbench-dashboard.md)）：兩個瀏覽器端資料來源（今天、localStorage 閱讀進度）只由 `DashboardWorkbench` 各持有一份往下傳（`now`／`live`／`readingVersion`），SSR 一律佔位（「—」、只畫底環、不畫長條、不輸出日誌清單）；class 沿用 prototype 的 `dv-` 名稱、新色值全在 `--wb-dv-*`；treemap 與週窗由 `npm run check:wb` 鎖住
 - **更新月曆**（v1.5.0，[docs/notecraft-workbench-calendar.md](docs/notecraft-workbench-calendar.md)）：`?tab=calendar`（舊 `?tab=week` 視同）。月曆用**日曆週（週日→週六）**，總覽 KPI「本週更新」與更新日誌仍是滾動 7 天，兩者數字可以不同；`anchor` 由 `now` 推、SSR 不輸出任何日期格；`view`／`anchor` 不進網址；新底色在 `--wb-cal-*`、格子上的小字用 `--wb-muted-ink`；`cal-` 規則必須放在 860px 媒體規則之前；月格與日曆週由 `check:wb` 鎖住
+- **筆記頁籤**（v1.7.0，[docs/notecraft-workbench-note-tabs.md](docs/notecraft-workbench-note-tabs.md)）：Header 之上 34px 頁籤列，由 layout 每頁掛 `TabBar client:load`；頁面以 layout 的 **`tab` prop** 宣告自己是頁籤（目前只有筆記頁與 `/view` 資料檔頁）。
+  清單存 `nc-tabs-v1:<workspaceLabel>`（依工作區分開），**含標題快照**、idle 時以 `/wb-index.json` 覆寫並清掉已不存在的；SSR 只輸出空列（手機是空的計數框）。
+  頁籤是 `<a role="tab">` 並排 ✕（中鍵關閉）；捲動還原遇網址 hash 讓位、還原期間不記錄；快捷鍵只用 ⌥ 且比對 `event.code`、輸入元件內不攔；
+  頁面剛載入時要發的提示走 `lib/toast.ts`（`nc-toast` 事件在 ToastHost 掛載前會遺失）；刪除筆記要先關掉對應頁籤
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）
