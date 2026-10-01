@@ -28,6 +28,31 @@
         "database",
         "diagram"
       ]
+    },
+    {
+      "id": "openapi-renderer",
+      "title": "API 文件",
+      "description": "把 OpenAPI 3.0／3.1 文件（JSON）渲染成可導覽、可篩選的 API 文件：tag → operation 導覽、參數與欄位樹、範例與 cURL",
+      "version": "1.0.0",
+      "dir": "plugins/openapi-renderer",
+      "files": [
+        "notecraft-plugin.json",
+        "renderer.tsx",
+        "README.md",
+        "derive.ts",
+        "example/health.openapi.json",
+        "example/orders.openapi.json",
+        "example/petstore.openapi.json",
+        "examples.ts",
+        "markdown-text.ts",
+        "schema.json",
+        "types.ts"
+      ],
+      "tags": [
+        "api",
+        "openapi",
+        "documentation"
+      ]
     }
   ]
 }

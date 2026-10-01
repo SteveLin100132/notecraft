@@ -62,3 +62,14 @@ OpenAPI 子集型別（`OpenApiDoc`、`Operation`、`Parameter`、`RequestBody`�
 - [ ] 本機放一份 `swagger: "2.0"` 的檔：build 成功、頁面顯示轉檔指引卡、build log 有一行 warn
 - [ ] `derive.ts`／`examples.ts`／`markdown-text.ts` 內 `grep -n "^import [^t]"` 0 筆（只有 `import type`）
 - [ ] `npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-10-01）
+
+- `example/petstore.openapi.json` 改用作者提供的官方完整版（含 `externalDocs`，handoff 那份被刪減過）
+- `examples.ts` 以 `./derive.ts`（帶副檔名）import 純函式：Node strip-types 需要副檔名，tsconfig 已開 `allowImportingTsExtensions`、Vite 也吃
+- 極大 spec 產生器放在 `scripts/fixtures/oar-large-spec.mjs`（**不放** `scripts/checks/`：`check-plugins` 會執行那裡的每一支 `.mjs`）；同一支兼 CLI，寫出本機手動驗證用的檔
+  - 280 支 operation、20 個 tag；`derive` 實測遠低於 300ms 上限
+- tag 共同前綴依 handoff 規則「每支 path 在前綴之後都還有東西」：orders 的前綴是 `/v1/organizations/{orgId}`（不是 `…/orders`，因為 `…/orders` 本身就是其中一支 path）
+- `deref` 保留 3.1 的 `$ref` 兄弟 `description`（規格 §5.3）
+- 測試資料：`src/content/notes/testing/openapi/` 放三份範例 + 一份 Swagger 2.0；`.notecraft/plugins.json` 加 `**/*.openapi.json` 規則。極大 spec 寫到 `src/content/notes/private/`（gitignored）
+- 驗收結果：`check:oar`、`check-plugins`（3 份 example 一起 build）通過；`/view/testing/openapi/*` 的 `<title>` 都是 `info.title`（Task 98 的 pointer 實測）；Swagger 2.0 build 成功且 build log 有一行 warn；`/wb-index.json` 的 description 已去除 Markdown；tsc 無新增錯誤
