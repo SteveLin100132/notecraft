@@ -37,12 +37,12 @@ export const SERIES: SeriesDef[] = [
     icon: "code",
     slugs: [
       "建立-bump-prd-hook-的認知調整歷程",
-      "ssr-專案dutymate-ai-憲章與-workflow-設計",
+      "private/ssr-專案dutymate-ai-憲章與-workflow-設計",
       "五個-lang-函式庫還是服務",
       "rag-embedding-選型-mistral-與-voyage",
       "勞動法遵決策支援系統-poc-範圍與技術選型",
       "勞動法遵決策支援系統-poc-任務拆解與分工",
-      "勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
+      "private/勞動法遵決策支援系統-poc-l1-l3-檢索閉環",
       "非結構化文件-pii-去識別化",
     ],
   },
@@ -54,11 +54,12 @@ export const SERIES: SeriesDef[] = [
       "AI 顧問陪跑 Workshop 會議紀錄：紀錄與 AI 顧問 Danny Workshop 會議中的 AI 技術交流與專案討論，包含對 AI 技術的理解、實驗過程、專案規劃與管理等面向的內容，作為未來 AI 專案參考與學習的資源。",
     accent: "navy",
     icon: "bolt",
+    // 章節皆為 private 筆記（2026-10-01 移入，理由同下方 trendlink-infra-runbook）
     slugs: [
-      "ai-顧問陪跑-workshop-20260611",
-      "ai-顧問陪跑-workshop-20260618",
-      "ai-顧問陪跑-workshop-20260625",
-      "ai-顧問陪跑-workshop-20260702",
+      "private/ai-顧問陪跑-workshop-20260611",
+      "private/ai-顧問陪跑-workshop-20260618",
+      "private/ai-顧問陪跑-workshop-20260625",
+      "private/ai-顧問陪跑-workshop-20260702",
     ],
   },
   {
@@ -107,9 +108,10 @@ export const SERIES: SeriesDef[] = [
     description: "提案系列：展示於公司內部相關專案的提案，作為個人經歷的紀錄。",
     accent: "navy",
     icon: "bookOpen",
+    // 章節皆為 private 筆記（2026-10-01 移入）
     slugs: [
-      "trendlink-內部客戶與業務流程整合系統提案草稿",
-      "trendlink-ai-入門工作坊提案草稿",
+      "private/trendlink-內部客戶與業務流程整合系統提案草稿",
+      "private/trendlink-ai-入門工作坊提案草稿",
     ],
   },
 ];
