@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, X, Code2, Tag } from "lucide-react";
+import { registerToastHost, type ToastDetail } from "@/lib/toast";
 
 type Toast = { id: number; msg: string; icon?: string };
 
@@ -13,12 +14,12 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 export default function ToastHost() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   useEffect(() => {
-    const on = (e: Event) => {
-      const ce = e as CustomEvent<{ msg: string; icon?: string }>;
+    const push = (detail: ToastDetail) => {
       const id = Date.now() + Math.random();
-      setToasts((t) => [...t, { id, ...ce.detail }]);
+      setToasts((t) => [...t, { id, ...detail }]);
       setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
     };
+    const on = (e: Event) => push((e as CustomEvent<ToastDetail>).detail);
     window.addEventListener("nc-toast", on as EventListener);
 
     // 顯示由前一個頁面（如刪除筆記後導頁）暫存的提示
@@ -26,16 +27,19 @@ export default function ToastHost() {
       const pending = sessionStorage.getItem("nc-toast-next");
       if (pending) {
         sessionStorage.removeItem("nc-toast-next");
-        const detail = JSON.parse(pending) as { msg: string; icon?: string };
-        const id = Date.now() + Math.random();
-        setToasts((t) => [...t, { id, ...detail }]);
-        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+        push(JSON.parse(pending) as ToastDetail);
       }
     } catch {
       /* sessionStorage / JSON 不可用時略過 */
     }
 
-    return () => window.removeEventListener("nc-toast", on as EventListener);
+    // lib/toast.ts：掛載前（例如 client:load 的頁籤列）排隊的提示，在這裡一次送出
+    const unregister = registerToastHost(push);
+
+    return () => {
+      window.removeEventListener("nc-toast", on as EventListener);
+      unregister();
+    };
   }, []);
 
   return (
