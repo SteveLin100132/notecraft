@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.16.0
+文件版本: v1.17.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-09-30
+更新日期: 2026-10-01
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -2819,6 +2819,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.17.0] - 2026-10-01
+- **Added**: 新增官方 OpenAPI Renderer plugin、manifest meta pointer 與 PluginView options／anchor
 
 ### [1.16.0] - 2026-09-30
 - **Added**: 新增 Phase 4.20 空狀態插圖規格（notecraftapp v1.5.1）

@@ -38,6 +38,16 @@
       "properties": {
         "notecraftapp": { "type": "string", "description": "semver range，例：>=0.6.0" }
       }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "資料檔的標題／描述／backTo 從哪裡取（JSON Pointer）。省略的鍵退回資料檔的 meta.<鍵>。給資料格式不是自己定的 plugin 用（例：OpenAPI 的 /info/title）。需要 notecraftapp >=1.6.0。",
+      "properties": {
+        "title": { "type": "string", "pattern": "^(/|$)", "description": "例：/info/title" },
+        "description": { "type": "string", "pattern": "^(/|$)", "description": "例：/info/description（允許 Markdown，app 會去除標記）" },
+        "backTo": { "type": "string", "pattern": "^(/|$)", "description": "例：/x-notecraft-back-to（值必須是 / 開頭的站內路徑）" }
+      }
     }
   }
 }

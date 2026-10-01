@@ -1,0 +1,40 @@
+---
+title: "OpenAPI 內嵌測試"
+description: "在筆記內文嵌入 openapi-renderer 的單一 operation 卡與總覽縮影，並驗證 PluginView 的 options／anchor 與找不到 operation 時的錯誤。"
+tags: ["測試", "Plugin"]
+createdAt: "2026-10-01"
+updatedAt: "2026-10-01"
+---
+
+import PluginView from "@/components/PluginView.astro";
+
+這篇測 `openapi-renderer` 的內嵌模式：外框由 app 提供（只有一層）、`options.operation` 指定要看哪一支、`anchor` 讓「開啟完整檢視頁」直接到那一支。
+
+## 單一 operation：建立訂單
+
+<PluginView src="testing/openapi/orders.openapi.json" options={{ operation: "createOrder" }} anchor="op/createOrder" />
+
+## 單一 operation：列出訂單
+
+同一份 spec 在同一篇筆記內嵌第二次，按 Esc、點目錄錨點都不該互相干擾。
+
+<PluginView src="testing/openapi/orders.openapi.json" options={{ operation: "listOrders" }} anchor="op/listOrders" />
+
+## 總覽縮影
+
+沒有指定 `operation` 時，顯示整份 API 的 tag 清單，點一列到文件頁的該 tag。
+
+<PluginView src="testing/openapi/petstore.openapi.json" />
+
+## 找不到 operation
+
+`operation` 打錯時，卡片內顯示錯誤，不會讓 build 失敗。
+
+<PluginView src="testing/openapi/orders.openapi.json" options={{ operation: "nope" }} />
+
+## 對應的獨立頁
+
+- [/view/testing/openapi/orders.openapi](/view/testing/openapi/orders.openapi)：頁首應該有「回到來源筆記」，連回這一篇
+- [/view/testing/openapi/petstore.openapi](/view/testing/openapi/petstore.openapi)：OAS 3.2，頁首與總覽有警示
+- [/view/testing/openapi/health.openapi](/view/testing/openapi/health.openapi)：極小文件，不顯示導覽
+- [/view/testing/openapi/legacy-swagger2.openapi](/view/testing/openapi/legacy-swagger2.openapi)：Swagger 2.0，只有轉檔指引

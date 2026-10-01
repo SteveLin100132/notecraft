@@ -2,6 +2,7 @@
 // MDX 內嵌的資料檔（Task 53）。
 //
 //   <PluginView src="planning/schema.json" />
+//   <PluginView src="api/orders.openapi.json" options={{ operation: "createOrder" }} anchor="op/createOrder" />
 //
 // 與獨立頁的差別在版心：內文只有 760px，寬元件在這裡會被擠壓，
 // 因此**要**包 GeneratedFrame（外框卡片 + 放大檢視）。獨立頁本來就是全寬，不包（Q22）。
@@ -17,8 +18,13 @@ export interface Props {
   /** 相對 notesDir 的資料檔路徑，含副檔名 */
   src: string;
   caption?: string;
+  /** 淺合併在 plugins.json 規則的 options 之上，只影響這一處內嵌（Task 98） */
+  options?: Record<string, unknown>;
+  /** 附加在「開啟完整檢視頁」連結後的 hash（不含 #）。app 不解讀內容，由 plugin 的 README 說明格式 */
+  anchor?: string;
 }
-const { src, caption } = Astro.props;
+const { src, caption, options, anchor } = Astro.props;
+const hash = anchor?.trim().replace(/^#/, "") || undefined;
 
 const wanted = src.trim().replace(/^\.\//, "").replace(/^\/+/, "");
 const file =
@@ -50,6 +56,7 @@ const rendererPath = plugin ? path.join(plugin.dir, "renderer.tsx") : undefined;
     routePath: file.routePath,
     pluginTitle: plugin?.manifest.title ?? file.pluginId,
     absPath: file.absPath,
+    anchor: hash,
   }}
 >
   <PluginHost
@@ -57,7 +64,7 @@ const rendererPath = plugin ? path.join(plugin.dir, "renderer.tsx") : undefined;
     pluginId={file.pluginId}
     data={file.data}
     file={{ path: file.relPath, name: path.basename(file.relPath), updatedAt: file.updatedAt }}
-    options={file.options}
+    options={{ ...file.options, ...(options ?? {}) }}
     mode="embed"
     rendererPath={rendererPath}
     isDev={isDev}

@@ -3,7 +3,15 @@
   "plugins": [
     {
       "plugin": "er-diagram-renderer",
-      "files": ["**/*.er.json"]
+      "files": [
+        "**/*.er.json"
+      ]
+    },
+    {
+      "plugin": "openapi-renderer",
+      "files": [
+        "**/*.openapi.json"
+      ]
     }
   ]
 }

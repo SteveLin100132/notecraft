@@ -11,8 +11,9 @@ export interface Props {
    * 資料檔模式：外框結構、間距、圓角、陰影、放大檢視全部不動，只換標示 ——
    * 膠囊改橘色 Database、mono 改成真實資料檔路徑、dev 按鈕改「以 VS Code 編輯」
    * 並多一顆「開啟完整檢視頁」。「重新生成」對資料檔不成立（它不是 AI 生成的）。
+   * `anchor`：附加在「開啟完整檢視頁」後的 hash（不含 #），由 <PluginView anchor> 傳入，app 不解讀。
    */
-  dataFile?: { relPath: string; routePath: string; pluginTitle: string; absPath: string };
+  dataFile?: { relPath: string; routePath: string; pluginTitle: string; absPath: string; anchor?: string };
 }
 const { id, type = "free", caption, prompt, dataFile } = Astro.props;
 const isDev = import.meta.env.DEV;
@@ -35,7 +36,7 @@ const label = TYPE_LABELS[type] ?? "視覺化";
   >
     {dataFile ? (
       <span
-        style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--orange-50);color:var(--orange-600);"
+        style="display:inline-flex;flex:none;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:var(--orange-50);color:var(--orange-600);"
       >
         <Icon name="database" size={13} /> 資料檔
         <span style="opacity:.75;">· {dataFile.pluginTitle}</span>
@@ -53,7 +54,7 @@ const label = TYPE_LABELS[type] ?? "視覺化";
     </code>
     {dataFile && (
       <a
-        href={`/view/${dataFile.routePath}`}
+        href={`/view/${dataFile.routePath}${dataFile.anchor ? `#${dataFile.anchor}` : ""}`}
         title="開啟完整檢視頁"
         style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--neutral-200);background:#fff;color:var(--text-muted);font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;"
       >
