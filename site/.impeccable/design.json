@@ -1,0 +1,577 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T08:38:02+00:00",
+  "title": "Design System: NoteCraftApp 官網",
+  "scope": "site/ 官方網站專用；不適用於 repo 根目錄的主程式（src/、--wb-*、trendlink-design）與 /demo。",
+  "extensions": {
+    "colorMeta": {
+      "sheet": {
+        "role": "primary",
+        "displayName": "說明書深藍 Sheet Blue",
+        "canonical": "#1b4f9c",
+        "tonalRamp": [
+          "oklch(15% 0.13 258)",
+          "oklch(25% 0.13 258)",
+          "oklch(35% 0.13 258)",
+          "oklch(45% 0.13 258)",
+          "oklch(55% 0.13 258)",
+          "oklch(65% 0.13 258)",
+          "oklch(80% 0.13 258)",
+          "oklch(95% 0.13 258)"
+        ],
+        "note": "≈ oklch(44% 0.13 258)；logo 底色、theme-color"
+      },
+      "mark": {
+        "role": "secondary",
+        "displayName": "橙色參照編號（藍底）Mark",
+        "canonical": "#f7bd63",
+        "tonalRamp": [
+          "oklch(15% 0.12 72)",
+          "oklch(25% 0.12 72)",
+          "oklch(35% 0.12 72)",
+          "oklch(45% 0.12 72)",
+          "oklch(55% 0.12 72)",
+          "oklch(65% 0.12 72)",
+          "oklch(80% 0.12 72)",
+          "oklch(95% 0.12 72)"
+        ],
+        "note": "≈ oklch(84% 0.12 72)；對 sheet 4.7:1"
+      },
+      "mark-strong": {
+        "role": "secondary",
+        "displayName": "星芒橙 Mark Strong",
+        "canonical": "#ed9b26",
+        "tonalRamp": [
+          "oklch(15% 0.15 68)",
+          "oklch(25% 0.15 68)",
+          "oklch(35% 0.15 68)",
+          "oklch(45% 0.15 68)",
+          "oklch(55% 0.15 68)",
+          "oklch(65% 0.15 68)",
+          "oklch(80% 0.15 68)",
+          "oklch(95% 0.15 68)"
+        ],
+        "note": "≈ oklch(76% 0.15 68)；logo 星芒，只用於填色、粗線、大字"
+      },
+      "mark-paper": {
+        "role": "secondary",
+        "displayName": "橙色參照編號（白底）Mark Paper",
+        "canonical": "#9a5400",
+        "tonalRamp": [
+          "oklch(15% 0.12 60)",
+          "oklch(25% 0.12 60)",
+          "oklch(35% 0.12 60)",
+          "oklch(45% 0.12 60)",
+          "oklch(55% 0.12 60)",
+          "oklch(65% 0.12 60)",
+          "oklch(80% 0.12 60)",
+          "oklch(95% 0.12 60)"
+        ],
+        "note": "≈ oklch(52% 0.12 60)；對 paper 5.8:1"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "線稿白 Line",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(25% 0 0)",
+          "oklch(35% 0 0)",
+          "oklch(45% 0 0)",
+          "oklch(55% 0 0)",
+          "oklch(65% 0 0)",
+          "oklch(80% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "半透白 Line Soft",
+        "canonical": "rgb(255 255 255 / 0.34)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(25% 0 0)",
+          "oklch(35% 0 0)",
+          "oklch(45% 0 0)",
+          "oklch(55% 0 0)",
+          "oklch(65% 0 0)",
+          "oklch(80% 0 0)",
+          "oklch(95% 0 0)"
+        ],
+        "note": "圖頁細線，不當字色"
+      },
+      "line-faint": {
+        "role": "neutral",
+        "displayName": "淡透白 Line Faint",
+        "canonical": "rgb(255 255 255 / 0.14)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(25% 0 0)",
+          "oklch(35% 0 0)",
+          "oklch(45% 0 0)",
+          "oklch(55% 0 0)",
+          "oklch(65% 0 0)",
+          "oklch(80% 0 0)",
+          "oklch(95% 0 0)"
+        ],
+        "note": "圖頁最弱的線"
+      },
+      "on-sheet-2": {
+        "role": "neutral",
+        "displayName": "藍底次要字 On-sheet 2",
+        "canonical": "#c9d8ee",
+        "tonalRamp": [
+          "oklch(15% 0.035 258)",
+          "oklch(25% 0.035 258)",
+          "oklch(35% 0.035 258)",
+          "oklch(45% 0.035 258)",
+          "oklch(55% 0.035 258)",
+          "oklch(65% 0.035 258)",
+          "oklch(80% 0.035 258)",
+          "oklch(95% 0.035 258)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "說明頁白 Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(25% 0 0)",
+          "oklch(35% 0 0)",
+          "oklch(45% 0 0)",
+          "oklch(55% 0 0)",
+          "oklch(65% 0 0)",
+          "oklch(80% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "墨黑 Ink",
+        "canonical": "#111418",
+        "tonalRamp": [
+          "oklch(15% 0.008 255)",
+          "oklch(25% 0.008 255)",
+          "oklch(35% 0.008 255)",
+          "oklch(45% 0.008 255)",
+          "oklch(55% 0.008 255)",
+          "oklch(65% 0.008 255)",
+          "oklch(80% 0.008 255)",
+          "oklch(95% 0.008 255)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "次要墨 Ink 2",
+        "canonical": "#5a5f68",
+        "tonalRamp": [
+          "oklch(15% 0.015 260)",
+          "oklch(25% 0.015 260)",
+          "oklch(35% 0.015 260)",
+          "oklch(45% 0.015 260)",
+          "oklch(55% 0.015 260)",
+          "oklch(65% 0.015 260)",
+          "oklch(80% 0.015 260)",
+          "oklch(95% 0.015 260)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "細規線 Rule",
+        "canonical": "#d5d9df",
+        "tonalRamp": [
+          "oklch(15% 0.01 255)",
+          "oklch(25% 0.01 255)",
+          "oklch(35% 0.01 255)",
+          "oklch(45% 0.01 255)",
+          "oklch(55% 0.01 255)",
+          "oklch(65% 0.01 255)",
+          "oklch(80% 0.01 255)",
+          "oklch(95% 0.01 255)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "章節線 Rule Strong",
+        "canonical": "#111418",
+        "tonalRamp": [
+          "oklch(15% 0.008 255)",
+          "oklch(25% 0.008 255)",
+          "oklch(35% 0.008 255)",
+          "oklch(45% 0.008 255)",
+          "oklch(55% 0.008 255)",
+          "oklch(65% 0.008 255)",
+          "oklch(80% 0.008 255)",
+          "oklch(95% 0.008 255)"
+        ]
+      },
+      "tint": {
+        "role": "neutral",
+        "displayName": "淡藍底 Tint",
+        "canonical": "#e9f0fa",
+        "tonalRamp": [
+          "oklch(15% 0.02 258)",
+          "oklch(25% 0.02 258)",
+          "oklch(35% 0.02 258)",
+          "oklch(45% 0.02 258)",
+          "oklch(55% 0.02 258)",
+          "oklch(65% 0.02 258)",
+          "oklch(80% 0.02 258)",
+          "oklch(95% 0.02 258)"
+        ],
+        "note": "白紙上的已完成／新增"
+      },
+      "del-bg": {
+        "role": "neutral",
+        "displayName": "刪除底 Del Bg",
+        "canonical": "#f8ece8",
+        "tonalRamp": [
+          "oklch(15% 0.02 35)",
+          "oklch(25% 0.02 35)",
+          "oklch(35% 0.02 35)",
+          "oklch(45% 0.02 35)",
+          "oklch(55% 0.02 35)",
+          "oklch(65% 0.02 35)",
+          "oklch(80% 0.02 35)",
+          "oklch(95% 0.02 35)"
+        ],
+        "note": "僅 diff 刪除行"
+      },
+      "del-ink": {
+        "role": "neutral",
+        "displayName": "刪除字 Del Ink",
+        "canonical": "#8a2a12",
+        "tonalRamp": [
+          "oklch(15% 0.12 35)",
+          "oklch(25% 0.12 35)",
+          "oklch(35% 0.12 35)",
+          "oklch(45% 0.12 35)",
+          "oklch(55% 0.12 35)",
+          "oklch(65% 0.12 35)",
+          "oklch(80% 0.12 35)",
+          "oklch(95% 0.12 35)"
+        ],
+        "note": "僅 diff 刪除行"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "首頁主張，兩行，480px 以上不換行。"
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "每張圖頁／說明頁的頁標題與收尾標題。"
+      },
+      "version-numeral": {
+        "displayName": "Version numeral",
+        "purpose": "版本歷程的目前版本號，每個數字 3px 底線。"
+      },
+      "claim-number": {
+        "displayName": "Claim number",
+        "purpose": "請求項序號，mark-paper；560px 以下 30px。"
+      },
+      "fig-number": {
+        "displayName": "FIG. number",
+        "purpose": "圖說開頭的 FIG. n，20–22px。"
+      },
+      "reference-numeral": {
+        "displayName": "Reference numeral",
+        "purpose": "參照編號；行內跟隨字級，圖中依圖尺度放大，wdth 76–78。"
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "首頁摘要，最寬 34em。"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "說明頁內文，欄寬上限 68ch。"
+      },
+      "claim-legal": {
+        "displayName": "Claim legal",
+        "purpose": "請求項法律句型，最寬 46em。"
+      },
+      "section-label": {
+        "displayName": "Section label",
+        "purpose": "【節名】、符號說明、指令一覽。"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "頁眉、書目欄、段落編號。"
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "指令列、標記原文、diff、資料夾樹、檔名。"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "全站唯一的緩動曲線（--ease-out）。"
+      },
+      {
+        "name": "hover",
+        "value": "160ms–180ms",
+        "purpose": "按鈕、連結、複製鈕、節點的底色／字色變化。"
+      },
+      {
+        "name": "state",
+        "value": "260ms",
+        "purpose": "爆炸圖層的淡化與 glow（實體平面）出現。"
+      },
+      {
+        "name": "lift",
+        "value": "transform translateY(-12px) 320ms",
+        "purpose": "選中部件浮起；reduced-motion 時無過渡。"
+      },
+      {
+        "name": "explode-entrance",
+        "value": "950ms，delay calc(150ms + i × 70ms)，自 translateY(--dy) 與 opacity 0",
+        "purpose": "FIG. 1 進場一次；僅在 prefers-reduced-motion: no-preference。"
+      },
+      {
+        "name": "leaders-fade",
+        "value": "500ms，delay 700ms",
+        "purpose": "FIG. 1 引線在爆炸後淡入。"
+      },
+      {
+        "name": "type-switch",
+        "value": "0ms（以 key 重掛，瞬切）",
+        "purpose": "FIG. 2 type 切換不做轉場。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce)",
+        "purpose": "直接終態、浮起無過渡、scroll-behavior: auto。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "cmd-full-width",
+        "value": "480px"
+      },
+      {
+        "name": "legend-2col",
+        "value": "520px"
+      },
+      {
+        "name": "claims-compact",
+        "value": "560px"
+      },
+      {
+        "name": "spec-single",
+        "value": "640px"
+      },
+      {
+        "name": "nav-compact",
+        "value": "760px"
+      },
+      {
+        "name": "sheet-head-single",
+        "value": "860px"
+      },
+      {
+        "name": "paper-grid-single",
+        "value": "960px"
+      },
+      {
+        "name": "hero-single",
+        "value": "1000px"
+      },
+      {
+        "name": "f2-frame-container",
+        "value": "520px (container query)"
+      }
+    ],
+    "layout": {
+      "maxWidth": "1360px",
+      "gutter": "clamp(16px, 4vw, 56px)",
+      "specGrid": "5.5em | minmax(0, 68ch), gap 20px"
+    },
+    "borders": [
+      {
+        "name": "hairline",
+        "value": "1px",
+        "purpose": "頁眉、表格列、圖說上緣、格線"
+      },
+      {
+        "name": "frame",
+        "value": "1.5px",
+        "purpose": "按鈕、指令列、圖版、diff、標記原文上下框"
+      },
+      {
+        "name": "node",
+        "value": "1.25px",
+        "purpose": "流程節點、時間軸點"
+      },
+      {
+        "name": "section",
+        "value": "2px",
+        "purpose": "章節起點、表頭、收尾"
+      },
+      {
+        "name": "numeral-underline",
+        "value": "3px",
+        "purpose": "版本大數字底線"
+      }
+    ],
+    "fontSources": [
+      "@fontsource-variable/archivo/wdth.css",
+      "@fontsource-variable/noto-sans-tc",
+      "@fontsource-variable/jetbrains-mono"
+    ]
+  },
+  "components": [
+    {
+      "name": "外框按鈕（圖頁）",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "全站唯一的按鈕：直角外框，hover 反白填滿。",
+      "html": "<div class=\"ds-sheet\"><a class=\"ds-btn\" href=\"#\">進入 Demo 工作台 <svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" aria-hidden=\"true\"><path d=\"M2 7h10M8 3l4 4-4 4\"/></svg></a></div>",
+      "css": ".ds-sheet{background:var(--sheet, #1b4f9c);color:var(--line, #ffffff);padding:24px} .ds-btn{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 18px;border:1.5px solid currentColor;border-radius:0;color:inherit;font:600 15px/1 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;text-decoration:none;transition:background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),color 180ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-btn:hover{background:var(--line, #ffffff);color:var(--sheet, #1b4f9c)} .ds-btn:focus-visible{outline:2px solid var(--mark, #f7bd63);outline-offset:3px}"
+    },
+    {
+      "name": "外框按鈕（說明頁）",
+      "kind": "button",
+      "refersTo": "button-outline-hover-paper",
+      "description": "說明頁上的同一顆按鈕，hover 填墨黑。",
+      "html": "<div class=\"ds-paper\"><a class=\"ds-btn-p\" href=\"#\">GitHub</a></div>",
+      "css": ".ds-paper{background:var(--paper, #ffffff);color:var(--ink, #111418);padding:24px} .ds-btn-p{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1.5px solid currentColor;border-radius:0;color:inherit;font:600 15px/1 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;text-decoration:none;transition:background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),color 180ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-btn-p:hover{background:var(--ink, #111418);color:var(--paper, #ffffff)} .ds-btn-p:focus-visible{outline:2px solid var(--sheet, #1b4f9c);outline-offset:3px}"
+    },
+    {
+      "name": "指令列",
+      "kind": "custom",
+      "refersTo": "command-bar",
+      "description": "主行動：npx 指令與實心複製鈕。",
+      "html": "<div class=\"ds-sheet2\"><div class=\"ds-cmd\"><code class=\"ds-cmd-text\"><span class=\"ds-cmd-p\">$</span>npx notecraftapp view ./docs</code><button type=\"button\" class=\"ds-cmd-copy\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><rect x=\"5\" y=\"5\" width=\"8.5\" height=\"8.5\"/><path d=\"M3 10.5V2.5h8\"/></svg>複製</button></div></div>",
+      "css": ".ds-sheet2{background:var(--sheet, #1b4f9c);color:var(--line, #ffffff);padding:24px} .ds-cmd{display:inline-flex;align-items:stretch;min-height:52px;border:1.5px solid var(--line, #ffffff)} .ds-cmd-text{display:flex;align-items:center;gap:12px;padding:0 18px;font:16px \"JetBrains Mono Variable\", ui-monospace, monospace;white-space:nowrap} .ds-cmd-p{color:var(--on-sheet-2, #c9d8ee)} .ds-cmd-copy{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:108px;padding:0 16px;border:0;border-left:1.5px solid var(--line, #ffffff);background:var(--line, #ffffff);color:var(--sheet, #1b4f9c);font:600 15px/1 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;cursor:pointer;transition:background-color 160ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-cmd-copy:hover{background:var(--mark, #f7bd63)} .ds-cmd-copy:focus-visible{outline:2px solid var(--mark, #f7bd63);outline-offset:3px}"
+    },
+    {
+      "name": "頁眉",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "每個區塊頂端：文件名與頁序，只承載這兩樣。",
+      "html": "<div class=\"ds-paper2\"><div class=\"ds-runhead\"><span><b>NoteCraftApp 說明書</b></span><span>第 1 頁</span></div></div>",
+      "css": ".ds-paper2{background:var(--paper, #ffffff);padding:0 24px 24px} .ds-runhead{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:18px 0 10px;border-bottom:1px solid var(--rule, #d5d9df);font:13px \"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;letter-spacing:.02em;color:var(--ink-2, #5a5f68)} .ds-runhead b{font-weight:600;color:var(--ink, #111418)}"
+    },
+    {
+      "name": "段落編號內文",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "【節名】與掛在左欄的【0001】段落編號，內含行內參照編號。",
+      "html": "<div class=\"ds-spec\"><h3>【內容】</h3><span class=\"ds-pn\">【0004】</span><p>筆記留在你的 git repo<span class=\"ds-ref\"> 10</span>。在需要圖的地方寫一段標記<span class=\"ds-ref\"> 30</span>。</p></div>",
+      "css": ".ds-spec{display:grid;grid-template-columns:5.5em minmax(0,68ch);column-gap:20px;background:var(--paper, #ffffff);color:var(--ink, #111418);padding:24px;font:17px/1.75 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif} .ds-spec h3{grid-column:2;margin:0 0 .6em;font-size:15px;letter-spacing:.08em;font-weight:700} .ds-pn{font:13px/1.75rem \"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;padding-top:.15em;color:var(--ink-2, #5a5f68);text-align:right;font-variant-numeric:tabular-nums} .ds-spec p{margin:0 0 1.1em} .ds-ref{font-family:\"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:'wdth' 78;font-weight:700;color:var(--mark-paper, #9a5400)}"
+    },
+    {
+      "name": "請求項",
+      "kind": "card",
+      "refersTo": "claim",
+      "description": "窄體大序號＋法律句型＋白話句；列間細線。",
+      "html": "<ol class=\"ds-claims\"><li class=\"ds-claim\"><span class=\"ds-claim-n\">3.</span><div><p class=\"ds-legal\">如請求項 2 所述之工作台，其中元件未通過型別檢查與建置驗證前，不寫回筆記。</p><p class=\"ds-plain\">壞掉的元件不會出現在你的筆記裡。</p></div></li></ol>",
+      "css": ".ds-claims{list-style:none;margin:0;padding:0 24px;background:var(--paper, #ffffff);border-top:2px solid var(--rule-strong, #111418)} .ds-claim{display:grid;grid-template-columns:4.5rem minmax(0,1fr);gap:16px;padding:22px 0;border-bottom:1px solid var(--rule, #d5d9df)} .ds-claim-n{font:700 40px/1 \"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:'wdth' 72;color:var(--mark-paper, #9a5400)} .ds-legal{margin:0;max-width:46em;font:500 18px/1.7 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;color:var(--ink, #111418)} .ds-plain{margin:8px 0 0;font:16px/1.75 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;color:var(--ink-2, #5a5f68)} .ds-plain::before{content:'白話：';font-weight:700;color:var(--ink, #111418)}"
+    },
+    {
+      "name": "圖版與框外參照編號",
+      "kind": "card",
+      "refersTo": "plate-frame",
+      "description": "截圖圖版：1.5px 墨框，編號在框外上緣，只有引線伸進畫面。",
+      "html": "<figure class=\"ds-plate\"><div class=\"ds-plate-img\"><svg class=\"ds-pm\" viewBox=\"0 -110 1600 1110\" aria-hidden=\"true\"><path d=\"M448 -44 C 448 -10, 448 -10, 448 282 L 448 300\" class=\"ds-pm-line\"/><circle cx=\"448\" cy=\"300\" r=\"8\" class=\"ds-pm-dot\"/><text x=\"448\" y=\"-56\" text-anchor=\"middle\" class=\"ds-pm-num\">70</text></svg></div><figcaption><span class=\"ds-figno\">FIG. 5</span><span><b>儀表板</b>　一個視窗看完。</span></figcaption></figure>",
+      "css": ".ds-plate{margin:0;padding:6.9% 24px 24px;background:var(--paper, #ffffff)} .ds-plate-img{position:relative;aspect-ratio:16/10;border:1.5px solid var(--ink, #111418);background:var(--tint, #e9f0fa)} .ds-pm{position:absolute;left:0;top:-11%;width:100%;height:111%;overflow:visible} .ds-pm-line{fill:none;stroke:var(--ink, #111418);stroke-width:2.5} .ds-pm-dot{fill:var(--ink, #111418);stroke:var(--paper, #ffffff);stroke-width:3} .ds-pm-num{font-family:\"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:'wdth' 76;font-weight:700;font-size:60px;fill:var(--mark-paper, #9a5400)} .ds-plate figcaption{display:flex;gap:14px;align-items:baseline;margin-top:12px;font:15px \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;color:var(--ink-2, #5a5f68)} .ds-plate b{color:var(--ink, #111418)} .ds-figno{font:700 20px/1 \"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:'wdth' 72;color:var(--ink, #111418)}"
+    },
+    {
+      "name": "流程節點",
+      "kind": "custom",
+      "refersTo": "diagram-node",
+      "description": "FIG. 2 元件框內的節點：預設、已完成、作用中、被擋下。",
+      "html": "<div class=\"ds-nodes\"><button class=\"ds-node is-done\">note-scanner<span>完成</span></button><button class=\"ds-node is-on\">component-generator<span>進行中</span></button><button class=\"ds-node is-blocked\">mdx-writer<span>被擋下</span></button></div>",
+      "css": ".ds-nodes{display:grid;gap:10px;padding:24px;background:var(--paper, #ffffff)} .ds-node{display:flex;justify-content:space-between;align-items:baseline;gap:12px;min-height:48px;padding:10px 14px;border:1.25px solid var(--ink, #111418);border-radius:0;background:var(--paper, #ffffff);color:var(--ink, #111418);font:600 14px/1.3 \"JetBrains Mono Variable\", ui-monospace, monospace;text-align:left;cursor:pointer;transition:background-color 160ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-node span{font:13px/1.3 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;color:var(--ink-2, #5a5f68)} .ds-node:hover{background:var(--tint, #e9f0fa)} .ds-node.is-done{background:var(--tint, #e9f0fa)} .ds-node.is-on{background:var(--sheet, #1b4f9c);border-color:var(--sheet, #1b4f9c);color:var(--line, #ffffff)} .ds-node.is-on span{color:var(--on-sheet-2, #c9d8ee)} .ds-node.is-blocked{color:var(--ink-2, #5a5f68);border-color:var(--mark-paper, #9a5400);border-style:dashed} .ds-node:focus-visible{outline:2px solid var(--sheet, #1b4f9c);outline-offset:3px}"
+    },
+    {
+      "name": "爆炸圖部件（線稿轉實體）",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "FIG. 1 的一層：hover／選中時平面填白、墨線轉藍、浮起 12px；引線與編號轉橙。",
+      "html": "<div class=\"ds-fig\"><svg viewBox=\"0 0 320 200\" width=\"320\" height=\"200\"><g class=\"ds-layer\"><g class=\"ds-lift\"><polygon points=\"60,120 160,70 260,120 160,170\" class=\"ds-face\"/><line x1=\"110\" y1=\"120\" x2=\"200\" y2=\"95\" class=\"ds-ink\"/><line x1=\"120\" y1=\"135\" x2=\"210\" y2=\"110\" class=\"ds-ink\"/></g><path d=\"M260 120 Q 285 120 290 95\" class=\"ds-leader\"/><text x=\"282\" y=\"88\" class=\"ds-num\">12</text></g></svg></div>",
+      "css": ".ds-fig{background:var(--sheet, #1b4f9c);padding:24px} .ds-face{fill:var(--sheet, #1b4f9c);stroke:var(--line, #ffffff);stroke-width:1.5;stroke-linejoin:round;transition:fill 260ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-ink{stroke:var(--line, #ffffff);stroke-width:1.1;transition:stroke 260ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-lift{transition:transform 320ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-leader{fill:none;stroke:var(--line, #ffffff);stroke-width:1;opacity:.7} .ds-num{font-family:\"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:'wdth' 76;font-weight:700;font-size:30px;fill:var(--mark, #f7bd63)} .ds-layer{cursor:pointer} .ds-layer:hover .ds-lift{transform:translateY(-12px)} .ds-layer:hover .ds-face{fill:var(--line, #ffffff);stroke-width:2.5} .ds-layer:hover .ds-ink{stroke:var(--sheet, #1b4f9c);stroke-width:1.6} .ds-layer:hover .ds-leader{stroke:var(--mark, #f7bd63);stroke-width:1.8;opacity:1} .ds-layer:hover .ds-num{fill:var(--line, #ffffff);text-decoration:underline} @media (prefers-reduced-motion: reduce){.ds-lift{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "NoteCraftApp 說明書",
+    "overview": "**Creative North Star: \"NoteCraftApp 說明書\"**\n\n整個官網是一份專利說明書形式的產品規格：FIG. 圖號、引線與參照編號、【0001】段落編號、符號說明、請求項。文字與圖是同一份文件，彼此用參照編號互相指認，就像 `@ai-visualize` 讓筆記與元件共用同一份原始碼。版面不是「行銷頁加插圖」，而是「說明頁與圖頁輪流裝訂」。\n\n物質感只有兩種紙：深藍滿版的圖頁（白色細線稿）與白底黑字的說明頁。深度不靠陰影，而是畫在圖裡：等角爆炸圖的側面、選中部件浮起 12px。分隔一律是規格書的細線與圖框，角全部是直角。密度偏高、行文偏長，以耐讀的黑體撐住長段落，以窄體數字撐住編號系統。\n\n版面借用專利說明書的形式，但絕不冒充專利：頁面上沒有專利號、沒有官方機關標誌，請求項之後明寫「並未申請專利」。",
+    "keyCharacteristics": [
+      "圖頁（深藍）與說明頁（白）交替，每頁頂端是頁眉：左側文件名「NoteCraftApp 說明書」，右側「圖頁 n／4」或「第 n 頁」。",
+      "參照編號（橙）是全站唯一的訊號色；所有被指認的東西都經由編號回到符號說明。",
+      "編號類文字（FIG.、參照編號、請求項序號、版本號）一律 Archivo 窄寬度粗體。",
+      "無圓角、無陰影、無漸層、無玻璃；分隔用 1px 細線、1.5px 圖框、2px 章節線。",
+      "圖可以操作：點參照編號，線稿部件轉為實體並浮起。"
+    ],
+    "rules": [
+      {
+        "name": "兩種紙規則（The Two Papers Rule）",
+        "body": "區塊底色只有 `sheet` 與 `paper` 兩種，依頁序交替。`tint`、`del-bg` 只出現在行或節點的狀態上，不能當區塊底。",
+        "section": "colors"
+      },
+      {
+        "name": "被指認才是橙規則（The Pointed-At Rule）",
+        "body": "橙色只表示「這個東西被編號指認了／這就是生成出來的那一塊」：參照編號、請求項序號、圖中的生成元件，以及互動回饋（作用中的引線、圖頁上的 focus、複製鈕 hover、文字選取）。橙色不做裝飾底、不做內文字色、不做區塊背景。",
+        "section": "colors"
+      },
+      {
+        "name": "橙色分紙規則（The Mark-per-Paper Rule）",
+        "body": "藍底用 `mark`，白底用 `mark-paper`，`mark-strong` 只給填色、粗線與大字。換了紙就換橙，不能混用。",
+        "section": "colors"
+      },
+      {
+        "name": "窄體編號規則（The Narrow Numeral Rule）",
+        "body": "會被引用的數字（FIG.、參照編號、請求項序號、版本號）一律 Archivo 700、`wdth` 66–78；內文裡的普通數字不套。",
+        "section": "typography"
+      },
+      {
+        "name": "方括號規則（The Bracket Rule）",
+        "body": "說明頁的節名寫成【節名】，段落編號寫成【0001】四位數，掛在 5.5em 寬的左欄、靠右、13px、`ink-2`。編號連續、跨頁不重來。",
+        "section": "typography"
+      },
+      {
+        "name": "圖說在下規則（The Caption-Below Rule）",
+        "body": "每張圖下方是圖說：上緣一條細線、12px 間距、「FIG. n」在前、說明在後，同一行基線對齊。圖說以外不另設圖標題。",
+        "section": "layout"
+      },
+      {
+        "name": "編號在框外規則（The Callouts-Outside Rule）",
+        "body": "產品截圖圖版的參照編號放在圖框上緣之外（圖框上方留寬度 6.9% 的空間），只有引線與端點伸進畫面，不壓在截圖內容上。",
+        "section": "layout"
+      },
+      {
+        "name": "深度畫在圖裡規則（The Drawn Depth Rule）",
+        "body": "需要立體感時畫出來（等角側面、位移），不要用陰影。卡片、按鈕、圖框一律是平的。",
+        "section": "elevation"
+      },
+      {
+        "name": "線稿轉實體規則（The Solidify-on-Select Rule）",
+        "body": "部件被選中時：平面填成白色、墨線改成深藍、側面填 `on-sheet-2`、外框加粗到 2.5px、整層上移 12px（320ms）；其他層降到 62% 不透明度。對應的引線與端點轉橙、編號轉白並加底線。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 讓每個區塊以頁眉開頭，並依序在 `sheet` 與 `paper` 之間交替（兩種紙規則）。",
+      "**Do** 每加一個被指認的部件，就給它一個偶數參照編號，並加進符號說明。",
+      "**Do** 藍底用 `mark`、白底用 `mark-paper`；`mark-strong` 只給填色、粗線與大字。",
+      "**Do** 圖下方放「FIG. n」圖說，上緣一條細線。",
+      "**Do** 新的可操作元件沿用「線稿轉實體」與「選中即填 `sheet`」兩種狀態語彙。",
+      "**Do** 動畫只用 `cubic-bezier(0.16, 1, 0.3, 1)`；hover 160–180ms、狀態 260–320ms；進場只演一次，並尊重 `prefers-reduced-motion`。",
+      "**Do** 每張出貨的點陣圖附同名 `.json` 出處紀錄。"
+    ],
+    "donts": [
+      "**Don't** 使用 `box-shadow`、漸層、毛玻璃或圓角卡片；深度畫在線稿裡。",
+      "**Don't** 把橙色用在參照編號、序號、生成元件與互動回饋以外的地方。",
+      "**Don't** 在頁面放專利號、官方機關標誌或「已獲專利」字樣；請求項之後保留「並未申請專利」聲明。",
+      "**Don't** 把參照編號壓在截圖內容上；編號放框外，只有引線進畫面。",
+      "**Don't** 在頁眉放標語或區塊說明；它只承載文件名與頁序。",
+      "**Don't** 把 `line-soft`、`line-faint` 當字色；它們是線。",
+      "**Don't** 引用 `--wb-*` token 或 trendlink-design 的值；那是主程式的系統，不是本站的。"
+    ]
+  }
+}

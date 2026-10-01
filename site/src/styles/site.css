@@ -1,0 +1,227 @@
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/noto-sans-tc/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
+
+/* ── 兩種紙：深藍圖紙（FIG. 圖頁）與白色說明頁；參照編號是唯一的訊號色 ── */
+:root {
+  --sheet: #1b4f9c;
+  --line: #ffffff;
+  --line-soft: rgb(255 255 255 / 0.34);
+  --line-faint: rgb(255 255 255 / 0.14);
+  --on-sheet-2: #c9d8ee;
+  --mark: #f7bd63;          /* 藍底上的參照編號（4.7:1） */
+  --mark-strong: #ed9b26;   /* logo 星芒：只用於填色、粗線、大字 */
+  --paper: #ffffff;
+  --ink: #111418;
+  --ink-2: #5a5f68;
+  --mark-paper: #9a5400;    /* 白底上的參照編號（5.8:1） */
+  --rule: #d5d9df;
+  --rule-strong: #111418;
+  --tint: #e9f0fa;          /* 深藍的極淡底，白紙上的「已完成／新增」 */
+  --del-bg: #f8ece8;
+  --del-ink: #8a2a12;
+
+  --f-latin: "Archivo Variable", "Noto Sans TC Variable", system-ui, sans-serif;
+  --f-cjk: "Noto Sans TC Variable", "Archivo Variable", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --gutter: clamp(16px, 4vw, 56px);
+  --maxw: 1360px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scrollbar-color: var(--sheet) var(--paper);
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-cjk);
+  font-size: 17px;
+  line-height: 1.75;
+  font-optical-sizing: auto;
+  font-variant-numeric: tabular-nums;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--mark);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 3px;
+}
+.sheet :focus-visible {
+  outline-color: var(--mark);
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--f-mono);
+  font-size: 0.9em;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* ── 紙 ── */
+.sheet {
+  background: var(--sheet);
+  color: var(--line);
+  position: relative;
+}
+.paper {
+  background: var(--paper);
+  color: var(--ink);
+  position: relative;
+}
+
+/* 頁眉：圖頁的「第 n／N 圖頁」與說明頁的章名 */
+.runhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding-top: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--f-latin);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.sheet .runhead {
+  border-bottom-color: var(--line-soft);
+  color: var(--on-sheet-2);
+}
+.runhead b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.sheet .runhead b {
+  color: var(--line);
+}
+
+/* 圖號 */
+.fig-no {
+  white-space: nowrap;
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* 參照編號 */
+.ref {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 78;
+  font-weight: 700;
+  color: var(--mark-paper);
+  font-variant-numeric: tabular-nums;
+}
+.sheet .ref {
+  color: var(--mark);
+}
+
+/* 段落編號：說明書的【0001】掛在左欄 */
+.spec {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 68ch);
+  column-gap: 20px;
+  row-gap: 0;
+}
+.spec .pn {
+  font-family: var(--f-latin);
+  font-size: 13px;
+  line-height: 1.75rem;
+  padding-top: 0.15em;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.spec p {
+  margin: 0 0 1.1em;
+}
+.spec h3 {
+  grid-column: 2;
+  margin: 2.2em 0 0.6em;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.spec h3:first-child {
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  .spec {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .spec .pn {
+    text-align: left;
+    padding-top: 0;
+  }
+  .spec h3 {
+    grid-column: 1;
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid currentColor;
+  font: 600 15px/1 var(--f-cjk);
+  text-decoration: none;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+.sheet .btn:hover {
+  background: var(--line);
+  color: var(--sheet);
+}
+.paper .btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

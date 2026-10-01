@@ -1,0 +1,511 @@
+---
+import Base from "../layouts/Base.astro";
+import Fig1 from "../components/Fig1.tsx";
+import Fig2 from "../components/Fig2.tsx";
+import CopyCommand from "../components/CopyCommand.tsx";
+import { readReleases, readVersion } from "../lib/changelog";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const version = readVersion();
+const releases = readReleases();
+const semver = (v: string) => v.split(".").map(Number);
+const cmpVer = (a: string, b: string) => {
+  const [x, y] = [semver(a), semver(b)];
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+};
+const sortedReleases = [...releases].sort((a, b) => b.date.localeCompare(a.date) || cmpVer(b.version, a.version));
+const firstDate = releases.reduce((m, r) => (r.date < m ? r.date : m), releases[0]?.date ?? "");
+const lastDate = releases.reduce((m, r) => (r.date > m ? r.date : m), releases[0]?.date ?? "");
+const MILESTONES = new Set(["0.1.0", "0.2.0", "0.3.0", "0.5.0", "0.6.0", "1.0.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0"]);
+
+const GITHUB = "https://github.com/SteveLin100132/notecraft";
+const NPM = "https://www.npmjs.com/package/notecraftapp";
+const DEMO = `${base}demo/`;
+
+type Callout = { ref: number; name: string; x: number; y: number; lx?: number };
+const plates: { n: number; file: string; title: string; text: string; callouts: Callout[] }[] = [
+  {
+    n: 5, file: "dashboard", title: "儀表板", text: "筆記總數與閱讀狀態、AI 待生成、寫作頻率、系列進度、標籤分布與更新日誌，一個視窗看完。",
+    callouts: [
+      { ref: 70, name: "筆記總數與閱讀狀態", x: 448, y: 300 },
+      { ref: 72, name: "寫作頻率", x: 1290, y: 330 },
+      { ref: 74, name: "系列進度", x: 960, y: 528, lx: 880 },
+      { ref: 76, name: "標籤分布", x: 1010, y: 890, lx: 1100 },
+    ],
+  },
+  {
+    n: 6, file: "notes-list", title: "筆記列表", text: "依資料夾、系列、標籤或月份分組；篩選全在網址參數，可以分享。",
+    callouts: [
+      { ref: 78, name: "資料夾樹", x: 170, y: 133, lx: 140 },
+      { ref: 80, name: "分組切換", x: 410, y: 176, lx: 440 },
+      { ref: 82, name: "AI 生成狀態", x: 1424, y: 339 },
+    ],
+  },
+  {
+    n: 7, file: "notes-drawer", title: "Drawer 預覽", text: "單擊一列在右側預覽摘要、標記與同系列章節，雙擊才進筆記。",
+    callouts: [
+      { ref: 84, name: "選中的列", x: 560, y: 297 },
+      { ref: 86, name: "預覽抽屜", x: 1300, y: 76, lx: 1220 },
+      { ref: 88, name: "同系列章節", x: 1290, y: 760, lx: 1400 },
+    ],
+  },
+  {
+    n: 8, file: "note-tabs", title: "筆記頁籤", text: "固定、拖曳、右鍵管理；⌥. 與 ⌥, 切換，回來停在上次讀到的位置。",
+    callouts: [
+      { ref: 90, name: "頁籤列", x: 880, y: 20, lx: 900 },
+      { ref: 92, name: "閱讀狀態", x: 690, y: 328, lx: 640 },
+      { ref: 94, name: "目錄", x: 1340, y: 250 },
+    ],
+  },
+  {
+    n: 9, file: "dashboard-calendar", title: "更新月曆", text: "每篇筆記落在它的更新日，顏色就是閱讀狀態。",
+    callouts: [
+      { ref: 96, name: "當日更新的筆記", x: 735, y: 735 },
+      { ref: 98, name: "月／週切換", x: 1540, y: 186 },
+    ],
+  },
+  {
+    n: 10, file: "plugins", title: "Plugin 管理", text: "已安裝的外掛、映射規則與命中的資料檔。",
+    callouts: [
+      { ref: 100, name: "已安裝的外掛", x: 400, y: 325 },
+      { ref: 102, name: "啟用狀態", x: 1533, y: 325 },
+    ],
+  },
+];
+
+const claims = [
+  {
+    n: 1,
+    legal: "一種筆記工作台，讀取使用者既有之 md／mdx 資料夾，不搬移、不轉存，以單一指令啟動。",
+    plain: "你的資料夾原封不動，npx 一行就開。",
+  },
+  {
+    n: 2,
+    legal: "如請求項 1 所述之工作台，其中筆記內以 @ai-visualize 標記描述圖表，經作者本機之 Claude Code 生成 React 元件並寫回該筆記。",
+    plain: "寫一段描述，得到一個能操作的元件，而且是你 repo 裡看得到的原始碼。",
+  },
+  {
+    n: 3,
+    legal: "如請求項 2 所述之工作台，其中元件未通過型別檢查與建置驗證前，不寫回筆記。",
+    plain: "壞掉的元件不會出現在你的筆記裡。",
+  },
+  {
+    n: 4,
+    legal: "如請求項 2 所述之工作台，其中同一元件得於筆記、放大畫布及簡報中原樣使用，互動功能保留。",
+    plain: "一張圖畫一次，讀筆記、放大看、上台報告都是同一個。",
+  },
+  {
+    n: 5,
+    legal: "如請求項 1 所述之工作台，其中結構化 JSON 資料檔由可安裝之 plugin 渲染為頁面。",
+    plain: "ER 圖、OpenAPI 文件交給 plugin，不必手寫成筆記。",
+  },
+  {
+    n: 6,
+    legal: "如請求項 1 所述之工作台，其輸出為純靜態網站，不依賴執行期 API。",
+    plain: "GitHub Pages、Netlify 或任何靜態主機都能放。",
+  },
+  {
+    n: 7,
+    legal: "如請求項 1 所述之工作台，其中筆記、生成元件及資料檔皆以 git 管理。",
+    plain: "文件就是 codebase：可以 diff、review、回溯，AI agent 也直接讀寫。",
+  },
+];
+
+const legend = [
+  [10, "你的 git repo"], [12, "三欄工作台"], [14, "筆記"], [16, "生成元件"], [18, "筆記頁籤"], [20, "⌘K 指令面板"],
+  [30, "標記開頭"], [32, "id"], [34, "type"], [36, "prompt"], [38, "status"], [40, "寫回的 JSX"],
+  [50, "專案根目錄"], [52, "筆記資料夾"], [54, "生成元件"], [56, "plugin 與系列設定"], [58, "skill 與 subagent"],
+  [60, "筆記內嵌"], [62, "放大畫布"], [64, "簡報"],
+  ...plates.flatMap((p) => p.callouts.map((c) => [c.ref, c.name] as const)),
+] as const;
+---
+
+<Base
+  title="NoteCraftApp — 筆記放進 git，圖由 AI 畫成元件"
+  description="給寫技術筆記的人用的工作台：一行 npx 讀你現有的 md／mdx 資料夾；在筆記裡用 @ai-visualize 描述想要的圖，Claude Code 生成 React 互動元件並寫回你的 repo。"
+>
+  <!-- ═══ 圖頁 1：摘要與 FIG. 1 ═══ -->
+  <header class="sheet hero" id="top">
+    <div class="wrap">
+      <nav class="topnav" aria-label="主要導覽">
+        <a href={base} class="brand" aria-label="NoteCraftApp 首頁">
+          <svg viewBox="0 0 48 48" width="28" height="28" aria-hidden="true">
+            <rect x="1" y="1" width="46" height="46" rx="9" fill="none" stroke="currentColor" stroke-width="2"></rect>
+            <path d="M14 30h20M14 36h13" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"></path>
+            <path d="M24 11c1 5.6 2.6 7.2 8.2 8.2-5.6 1-7.2 2.6-8.2 8.2-1-5.6-2.6-7.2-8.2-8.2 5.6-1 7.2-2.6 8.2-8.2z" fill="#ed9b26"></path>
+          </svg>
+          <span>NoteCraftApp</span>
+        </a>
+        <ul class="topnav-links">
+          <li class="hide-sm"><a href="#figures">圖式</a></li>
+          <li class="hide-sm"><a href="#embodiment">實施方式</a></li>
+          <li class="hide-sm"><a href="#claims">請求項</a></li>
+          <li class="hide-sm"><a href="#releases">版本</a></li>
+          <li><a href={DEMO}>Demo</a></li>
+          <li><a href={GITHUB} rel="noopener">GitHub</a></li>
+        </ul>
+      </nav>
+
+      <div class="runhead runhead--hero">
+        <span><b>NoteCraftApp 說明書</b></span>
+        <span>圖頁 1／4</span>
+      </div>
+
+      <div class="hero-grid">
+        <div class="hero-text">
+          <dl class="biblio">
+            <div><dt>名稱</dt><dd>NoteCraftApp</dd></div>
+            <div><dt>版本</dt><dd>{version}</dd></div>
+            <div><dt>授權</dt><dd>MIT</dd></div>
+            <div><dt>套件</dt><dd>notecraftapp</dd></div>
+          </dl>
+          <h1 class="hero-title"><span>筆記放進 git，</span><span>圖由 AI 畫成元件。</span></h1>
+          <p class="hero-abstract">
+            給寫技術筆記的人用的工作台<span class="ref"> 12</span>。一行 npx 就能讀你現有的 md／mdx 資料夾<span class="ref"> 10</span>；在筆記裡用
+            <code>@ai-visualize</code> 描述想要的圖，Claude Code 會生成 React 互動元件<span class="ref"> 16</span>，寫回你的 repo。
+          </p>
+          <div class="hero-actions">
+            <CopyCommand client:load tone="sheet" />
+            <a class="btn" href={DEMO}>
+              進入 Demo 工作台
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 7h10M8 3l4 4-4 4"></path></svg>
+            </a>
+          </div>
+          <p class="hero-req">需要 Node 22 以上。AI 生成另需 Claude Code，在你自己的機器上執行。</p>
+        </div>
+        <div class="hero-fig">
+          <Fig1 client:load />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ 說明頁：技術領域／先前技術／發明內容 ═══ -->
+  <main>
+    <section class="paper" aria-labelledby="sec-spec">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>第 1 頁</span>
+        </div>
+        <div class="paper-grid">
+          <div>
+            <h2 class="paper-title" id="sec-spec"><span>文字講不清楚的，</span><span>就讓讀者自己操作。</span></h2>
+            <div class="spec">
+              <h3>【技術領域】</h3>
+              <span class="pn">【0001】</span>
+              <p>本工作台用於撰寫與閱讀技術筆記：流程、比較、架構、策略，這些只用文字很難講清楚的知識。</p>
+
+              <h3>【先前技術】</h3>
+              <span class="pn">【0002】</span>
+              <p>傳統筆記工具只能顯示文字。想把一段流程講清楚、把兩個方案並排比較，或讓讀者親手拖動看兩種策略的差異，只能貼一張靜態圖，或附一個連結。</p>
+              <span class="pn">【0003】</span>
+              <p>靜態圖會過時、改不動、也不能互動；而存在雲端服務裡的筆記，離開那個服務就讀不到，AI agent 也碰不到。</p>
+
+              <h3>【內容】</h3>
+              <span class="pn">【0004】</span>
+              <p>
+                筆記留在你的 git repo<span class="ref"> 10</span>。在需要圖的地方寫一段 <code>@ai-visualize</code> 標記<span class="ref"> 30</span>，描述你想要的樣子；
+                作者在本機的 Claude Code 對話裡處理它，生成一個 React 元件<span class="ref"> 16</span>，驗證通過後寫回筆記。
+              </p>
+              <span class="pn">【0005】</span>
+              <p>元件是原始碼，跟筆記一起 commit。它可以被 review、被鎖定不再重生，也能原樣搬進放大畫布與簡報<span class="ref"> 62、64</span>。</p>
+            </div>
+          </div>
+          <aside class="legend-aside" aria-label="符號說明">
+            <h2 class="legend-title">符號說明</h2>
+            <ol class="legend-all">
+              {legend.map(([n, name]) => (
+                <li><span class="ref">{n}</span><span>{name}</span></li>
+              ))}
+            </ol>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 圖頁 2：FIG. 2 標記→元件 ═══ -->
+    <section class="sheet" id="figures" aria-labelledby="sec-fig2">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>圖頁 2／4</span>
+        </div>
+        <div class="sheet-head">
+          <h2 class="sheet-title" id="sec-fig2"><span>一段描述，</span><span>一個能操作的元件。</span></h2>
+          <p class="sheet-lead">
+            標記寫在筆記裡要放圖的位置。處理完，標記下方多了一行 import 和一行 JSX，status 改成 generated；
+            之後想重做就改 prompt，不想再動就改成 locked。
+          </p>
+        </div>
+        <Fig2 client:visible releases={releases} />
+      </div>
+    </section>
+
+    <!-- ═══ 說明頁：文件即 codebase ═══ -->
+    <section class="paper" aria-labelledby="sec-code">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>第 2 頁</span>
+        </div>
+        <div class="paper-grid paper-grid--diff">
+          <div>
+            <h2 class="paper-title" id="sec-code"><span>文件，</span><span>像程式碼一樣管理。</span></h2>
+            <div class="spec">
+              <span class="pn">【0006】</span>
+              <p>
+                在 AI 時代，文件最好的位置是 repo<span class="ref"> 50</span>。筆記<span class="ref"> 52</span>、生成元件<span class="ref"> 54</span>、plugin 與系列設定<span class="ref"> 56</span>
+                都是純文字檔，放在同一個 git repo 裡：可以 diff、可以開 PR review、可以回到任何一個版本。
+              </p>
+              <span class="pn">【0007】</span>
+              <p>Claude Code 讀得懂整個資料夾，所以它能找到待處理的標記、生成元件、再寫回原處。<code>npx notecraftapp init-skill</code> 會把需要的 skill 與 subagent 裝進 <code>.claude/</code><span class="ref"> 58</span>。</p>
+              <span class="pn">【0008】</span>
+              <p>這是一次生成在 git 裡留下的樣子：筆記裡改了 status、多了 import 和外框，元件是一個新檔。</p>
+            </div>
+          </div>
+          <figure class="diff" aria-label="一次生成在筆記裡留下的 diff（示意）">
+            <div class="diff-head">
+              <span>notes/guides/oauth/flow.mdx</span>
+              <span class="diff-tag">示意</span>
+            </div>
+<pre class="diff-body"><code><span class="d-ctx">  {"{/* @ai-visualize"}</span>
+<span class="d-ctx">  id: oauth-flow</span>
+<span class="d-ctx">  type: diagram</span>
+<span class="d-del">- status: pending</span>
+<span class="d-add">+ status: generated</span>
+<span class="d-ctx">  {"*/}"}</span>
+<span class="d-add">+ import OauthFlow from '@notes/components/oauth-flow'</span>
+<span class="d-add">+ {'<GeneratedFrame id="oauth-flow" type="diagram">'}</span>
+<span class="d-add">+ {"  <OauthFlow client:visible />"}</span>
+<span class="d-add">+ {"</GeneratedFrame>"}</span></code></pre>
+            <figcaption>
+              <span class="d-new">新檔</span> <span class="d-path">.notecraft/components/oauth-flow.tsx&nbsp;<span class="ref">54</span></span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 圖頁 3：FIG. 3 repo、FIG. 4 同一元件三處 ═══ -->
+    <section class="sheet" aria-labelledby="sec-fig34">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>圖頁 3／4</span>
+        </div>
+        <h2 class="visually-hidden" id="sec-fig34">FIG. 3 與 FIG. 4</h2>
+        <div class="fig34">
+          <figure class="f3">
+            <ul class="tree" aria-label="專案資料夾結構">
+              <li>
+                <span class="tree-name">my-project/</span><span class="ref">50</span>
+                <ul>
+                  <li>
+                    <span class="tree-name">notes/</span><span class="ref">52</span>
+                    <ul>
+                      <li><span class="tree-name">guides/oauth/flow.mdx</span></li>
+                      <li><span class="tree-name">http-caching.mdx</span></li>
+                      <li><span class="tree-name">schema.er.json</span></li>
+                    </ul>
+                  </li>
+                  <li>
+                    <span class="tree-name">.notecraft/</span>
+                    <ul>
+                      <li><span class="tree-name">components/oauth-flow.tsx</span><span class="ref">54</span></li>
+                      <li><span class="tree-name">plugins.json · series.json</span><span class="ref">56</span></li>
+                    </ul>
+                  </li>
+                  <li><span class="tree-name">.claude/ skills · agents</span><span class="ref">58</span></li>
+                </ul>
+              </li>
+            </ul>
+            <figcaption><span class="fig-no">FIG. 3</span><span>一個專案就是一份文件：全部是文字檔，全部在 git 裡。</span></figcaption>
+          </figure>
+
+          <figure class="f4">
+            <svg viewBox="0 0 650 420" class="f4-svg" role="img" aria-label="同一個元件出現在筆記、放大畫布與簡報">
+              <defs>
+                <symbol id="mini" viewBox="0 0 120 60">
+                  <rect x="4" y="18" width="26" height="22" class="f4-ink"></rect>
+                  <rect x="47" y="18" width="26" height="22" class="f4-mark"></rect>
+                  <rect x="90" y="18" width="26" height="22" class="f4-ink"></rect>
+                  <line x1="30" y1="29" x2="47" y2="29" class="f4-ink"></line>
+                  <line x1="73" y1="29" x2="90" y2="29" class="f4-ink"></line>
+                  <path d="M60 40 V52 H17 V40" class="f4-ink f4-dash"></path>
+                </symbol>
+              </defs>
+              <!-- 60 筆記 -->
+              <g>
+                <rect x="10" y="20" width="170" height="250" class="f4-frame"></rect>
+                {[44, 58, 72, 86].map((y, i) => <line x1="26" y1={y} x2={[160, 150, 164, 120][i]} y2={y} class="f4-ink"></line>)}
+                <rect x="26" y="104" width="138" height="76" class="f4-ink"></rect>
+                <use href="#mini" x="32" y="112" width="126" height="60"></use>
+                {[200, 214, 228].map((y, i) => <line x1="26" y1={y} x2={[156, 162, 110][i]} y2={y} class="f4-ink"></line>)}
+                <path d="M180 140 Q 196 140 206 120" class="f4-leader"></path>
+                <text x="210" y="116" class="f4-num">60</text>
+              </g>
+              <!-- 62 放大畫布 -->
+              <g>
+                <rect x="250" y="20" width="340" height="250" class="f4-frame"></rect>
+                {Array.from({ length: 9 }, (_, i) => <line x1={250 + 34 * (i + 1)} y1="20" x2={250 + 34 * (i + 1)} y2="270" class="f4-grid"></line>)}
+                {Array.from({ length: 6 }, (_, i) => <line x1="250" y1={20 + 36 * (i + 1)} x2="590" y2={20 + 36 * (i + 1)} class="f4-grid"></line>)}
+                <use href="#mini" x="300" y="86" width="240" height="120"></use>
+                <g class="f4-ink">
+                  <rect x="552" y="232" width="24" height="24"></rect>
+                  <line x1="558" y1="244" x2="570" y2="244"></line>
+                  <line x1="564" y1="238" x2="564" y2="250"></line>
+                </g>
+                <path d="M590 78 Q 604 78 610 64" class="f4-leader"></path>
+                <text x="604" y="56" class="f4-num">62</text>
+              </g>
+              <!-- 64 簡報 16:9 -->
+              <g>
+                <rect x="190" y="300" width="208" height="117" class="f4-frame"></rect>
+                <line x1="206" y1="320" x2="300" y2="320" class="f4-ink f4-bold"></line>
+                <use href="#mini" x="214" y="334" width="160" height="80"></use>
+                <path d="M398 360 Q 420 360 432 344" class="f4-leader"></path>
+                <text x="436" y="342" class="f4-num">64</text>
+              </g>
+            </svg>
+            <figcaption><span class="fig-no">FIG. 4</span><span>同一個元件：筆記內嵌<span class="ref"> 60</span>、放大畫布<span class="ref"> 62</span>（可平移縮放、匯出 PNG）、簡報<span class="ref"> 64</span>，互動都還在。</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 說明頁：實施方式（產品畫面圖版＋部署） ═══ -->
+    <section class="paper" id="embodiment" aria-labelledby="sec-emb">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>第 3 頁</span>
+        </div>
+        <h2 class="paper-title" id="sec-emb"><span>實施方式：</span><span>工作台的各個畫面。</span></h2>
+        <div class="plates">
+          {plates.map((p) => (
+            <figure class="plate">
+              <div class="plate-img">
+                <img src={`${base}plates/${p.file}.webp`} alt={`${p.title}的畫面`} width="1600" height="1000" loading="lazy" decoding="async" />
+                {/* 參照編號在圖框上緣之外（y < 0），只有引線伸進畫面，不壓在內容上 */}
+                <svg class="plate-marks" viewBox="0 -110 1600 1110" aria-hidden="true">
+                  {p.callouts.map((c) => {
+                    const lx = c.lx ?? c.x;
+                    return (
+                      <g>
+                        <path d={`M${lx} -44 C ${lx} -10, ${c.x} -10, ${c.x} ${Math.max(0, c.y - 18)} L ${c.x} ${c.y}`} class="pm-line" />
+                        <circle cx={c.x} cy={c.y} r="8" class="pm-dot" />
+                        <text x={lx} y="-56" text-anchor="middle" class="pm-num">{c.ref}</text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+              <figcaption>
+                <span class="fig-no">FIG. {p.n}</span>
+                <span><b>{p.title}</b>　{p.text}<span class="plate-refs">{p.callouts.map((c) => <span><span class="ref">{c.ref}</span> {c.name}</span>)}</span></span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <div class="emb-grid">
+          <div class="spec">
+            <h3>【實施例一】在本機閱讀與寫作</h3>
+            <span class="pn">【0009】</span>
+            <p><code>view</code> 開 Astro dev server：新增、編輯、刪除筆記即時反映，標籤可以直接在頁面上改。</p>
+            <span class="pn">【0010】</span>
+            <p><code>serve</code> 服務 build 好的靜態站，背景 rebuild 並自動重新整理；Claude Code 在另一個終端機寫檔，這邊的瀏覽器跟著更新。</p>
+
+            <h3>【實施例二】部署給團隊</h3>
+            <span class="pn">【0011】</span>
+            <p><code>build</code> 輸出純靜態網站，沒有 Function、沒有執行期 API，任何靜態主機都能放。本站的 <a href={DEMO}>Demo 工作台</a> 就是用同一套 build 出來、放在 GitHub Pages 上的。</p>
+
+            <h3>【實施例三】結構化資料</h3>
+            <span class="pn">【0012】</span>
+            <p>同一種形狀的資料反覆出現時，交給 plugin：官方提供 ER 圖與 OpenAPI 文件兩個渲染器，資料檔放在筆記資料夾裡，build 時驗證 schema，不符就直接失敗。</p>
+            <span class="pn">【0013】</span>
+            <p>多篇筆記可以串成系列，有順序、有進度；資料檔頁也能是其中一章。</p>
+          </div>
+          <table class="cli">
+            <caption>指令一覽</caption>
+            <thead><tr><th scope="col">指令</th><th scope="col">做什麼</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><code>view [dir]</code></th><td>本機閱讀與寫作，即時反映</td></tr>
+              <tr><th scope="row"><code>build [dir]</code></th><td>輸出靜態網站</td></tr>
+              <tr><th scope="row"><code>serve [dir]</code></th><td>服務靜態站，背景 rebuild</td></tr>
+              <tr><th scope="row"><code>init-skill</code></th><td>把 skill 與 subagent 裝進 .claude/</td></tr>
+              <tr><th scope="row"><code>install-plugin</code></th><td>安裝 ER、OpenAPI 等 plugin</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 說明頁：請求項 ═══ -->
+    <section class="paper paper--claims" id="claims" aria-labelledby="sec-claims">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>第 4 頁</span>
+        </div>
+        <h2 class="paper-title" id="sec-claims"><span>它做得到的事，</span><span>逐條列出。</span></h2>
+        <ol class="claims">
+          {claims.map((c) => (
+            <li class="claim">
+              <span class="claim-n">{c.n}.</span>
+              <div>
+                <p class="claim-legal">{c.legal}</p>
+                <p class="claim-plain">{c.plain}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <p class="claims-note">本頁借用專利說明書的版面形式來介紹功能；NoteCraftApp 是 MIT 授權的開源專案，並未申請專利。</p>
+      </div>
+    </section>
+
+    <!-- ═══ 圖頁 4：版本歷程與收尾 ═══ -->
+    <section class="sheet" id="releases" aria-labelledby="sec-rel">
+      <div class="wrap">
+        <div class="runhead">
+          <span><b>NoteCraftApp 說明書</b></span>
+          <span>圖頁 4／4</span>
+        </div>
+        <div class="rel-head">
+          <div>
+            <h2 class="sheet-title" id="sec-rel">持續在改。</h2>
+            <p class="sheet-lead">{firstDate} 第一次發佈，到 {lastDate} 共 {releases.length} 個版本。每一版都記在 repo 的 CHANGELOG.md。</p>
+          </div>
+          <p class="rel-big" aria-label={`目前版本 ${version}`}>
+            {version.split("").map((ch) => <span class={ch === "." ? "rel-dot" : "rel-digit"}>{ch}</span>)}
+          </p>
+        </div>
+        <ol class="rel-grid">
+          {sortedReleases.map((r) => (
+            <li class={MILESTONES.has(r.version) ? "is-major" : undefined}>
+              <span class="rel-v">{r.version}</span>
+              <span class="rel-d">{r.date.slice(5).replace("-", "/")}</span>
+            </li>
+          ))}
+        </ol>
+
+        <div class="closing">
+          <h2 class="closing-title"><span>從你現有的</span><span>資料夾開始。</span></h2>
+          <CopyCommand client:visible tone="sheet" />
+          <div class="closing-links">
+            <a class="btn" href={DEMO}>進入 Demo 工作台</a>
+            <a class="btn" href={GITHUB} rel="noopener">GitHub</a>
+            <a class="btn" href={NPM} rel="noopener">npm</a>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <span>NoteCraftApp · MIT License</span>
+          <span><a href={`${GITHUB}#readme`} rel="noopener">README</a> · <a href={`${GITHUB}/blob/main/CHANGELOG.md`} rel="noopener">CHANGELOG</a> · <a href="https://stevelin100132.github.io/" rel="noopener">作者</a></span>
+        </footer>
+      </div>
+    </section>
+  </main>
+</Base>

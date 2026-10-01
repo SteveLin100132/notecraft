@@ -52,6 +52,20 @@
       "autoPort": false
     },
     {
+      "name": "site-dev",
+      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeArgs": ["site/node_modules/astro/astro.js", "dev", "--root", "site", "--port", "4350"],
+      "port": 4350,
+      "autoPort": false
+    },
+    {
+      "name": "pages-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4351", "--directory", "tmp/pages-root"],
+      "port": 4351,
+      "autoPort": false
+    },
+    {
       "name": "notecraftapp-serve",
       "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
       "runtimeArgs": ["bin/notecraftapp.mjs", "serve", "tmp/notecraft-test", "--port", "4333", "--no-open"],
