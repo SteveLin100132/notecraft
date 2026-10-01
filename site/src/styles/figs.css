@@ -1249,7 +1249,7 @@
 }
 .emb-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: clamp(28px, 5vw, 80px);
   margin-top: clamp(56px, 7vw, 96px);
   padding-top: 28px;
@@ -1775,5 +1775,123 @@
 .cmp-handle:focus-visible .cmp-knob {
   outline: 2px solid var(--mark-paper);
   outline-offset: 2px;
+}
+
+/* ════════ 指令示範 ════════ */
+.cd-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+.cd-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  border-top: 2px solid var(--ink);
+}
+.cd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-right: 1px solid var(--rule);
+}
+.cd-cmd {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-2);
+  text-align: left;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out);
+}
+.cd-cmd code {
+  font-size: 15px;
+}
+.cd-cmd:hover {
+  color: var(--ink);
+}
+.cd-cmd.is-on {
+  color: var(--paper);
+  background: var(--sheet);
+  padding-left: 12px;
+}
+.cd-panel {
+  padding: 8px 0 0 16px;
+}
+.cd-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cd-l {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.cd-l--soft {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+.cd-m {
+  fill: none;
+  stroke: var(--mark-strong);
+  stroke-width: 2;
+}
+.cd-t {
+  font: 13px var(--f-mono);
+  fill: var(--ink-2);
+}
+.cd-t--b {
+  fill: var(--ink);
+  font-weight: 700;
+}
+.cd-t--mark {
+  fill: var(--mark-paper);
+  font-weight: 700;
+}
+.cd-what {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 15px;
+  min-height: 6.5em;
+}
+.cd-what code {
+  font-size: 13px;
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cd-svg .cd-l,
+  .cd-svg .cd-m {
+    stroke-dasharray: 1;
+    animation: draw 700ms var(--ease-out) both;
+  }
+  .cd-svg text {
+    animation: fade-in 300ms var(--ease-out) 350ms both;
+  }
+}
+@media (max-width: 560px) {
+  .cd-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cd-list {
+    display: flex;
+    flex-wrap: wrap;
+    border-right: 0;
+  }
+  .cd-list li {
+    flex: 1 1 auto;
+  }
+  .cd-cmd {
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .cd-panel {
+    padding-left: 0;
+  }
 }
 

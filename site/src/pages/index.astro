@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import Fig1 from "../components/Fig1.tsx";
 import Fig2 from "../components/Fig2.tsx";
 import CopyCommand from "../components/CopyCommand.tsx";
+import CommandDemo from "../components/CommandDemo.tsx";
 import { readReleases, readVersion } from "../lib/changelog";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
@@ -428,17 +429,7 @@ const legend = [
             <span class="pn">【0013】</span>
             <p>多篇筆記可以串成系列，有順序、有進度；資料檔頁也能是其中一章。</p>
           </div>
-          <table class="cli">
-            <caption>指令一覽</caption>
-            <thead><tr><th scope="col">指令</th><th scope="col">做什麼</th></tr></thead>
-            <tbody>
-              <tr><th scope="row"><code>view [dir]</code></th><td>本機閱讀與寫作，即時反映</td></tr>
-              <tr><th scope="row"><code>build [dir]</code></th><td>輸出靜態網站</td></tr>
-              <tr><th scope="row"><code>serve [dir]</code></th><td>服務靜態站，背景 rebuild</td></tr>
-              <tr><th scope="row"><code>init-skill</code></th><td>把 skill 與 subagent 裝進 .claude/</td></tr>
-              <tr><th scope="row"><code>install-plugin</code></th><td>安裝 ER、OpenAPI 等 plugin</td></tr>
-            </tbody>
-          </table>
+          <CommandDemo client:visible />
         </div>
       </div>
     </section>
