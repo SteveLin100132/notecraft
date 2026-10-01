@@ -486,6 +486,51 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 >
 > **貫穿規則**：SVG 顏色用 `style` 寫 CSS 變數（不用 `stroke="var(…)"`）；TSX 與 CSS 零色碼、不新增 token；class 沿用 prototype 的 `pt-empty*`；「前往筆記」是 `<a href="/notes">`。
 
+## v1.17.0 追加功能（§8.1 Phase 4.21）— OpenAPI Renderer（plugin `openapi-renderer` v1.0.0／notecraftapp v1.6.0）
+
+> 規格：[notecraft-openapi-renderer.md](../notecraft-openapi-renderer.md) **v0.2.0**（9 項決策已於 2026-10-01 定案，紀錄見該文件 §16）。
+> 設計交付：[design_handoff_openapi_renderer](../prototype/design_handoff_openapi_renderer/)（`README.md` 是像素級規格、`prototype/oa/oa.css` 是視覺定稿、
+> `prototype/OpenAPI Renderer Prototype.html` 需經本機 http server 開啟、`example/` 是三份範例 spec）
+
+新增第二個官方 plugin：把筆記資料夾內的 OpenAPI 文件（JSON，OAS 3.0／3.1）渲染成 NoteCraft 風格的 API 文件——
+導覽（tag → operation、schemas）+ 總覽／Tag／Operation／Schema 四種頁面；embed 為單一 operation 卡或總覽縮影。ER Diagram 的同一家族。
+
+> **規格與設計稿不一致時，一律以規格為準。** 主要偏離：路由保留 `.openapi`（`/view/api/orders.openapi`，Q2）；
+> embed 外框由 `GeneratedFrame` 提供、plugin 不畫 figcaption；`<PluginView>` 的 prop 是 `src`；CSS 變數 `--oar-*`（不是 `--wb-oa-*`）；
+> 斷點改 container query；與 ER 不共用模組（各自一份，Q6）；store 不放極大案例 spec（Q9）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 98](task-98-app-manifest-meta-pluginview-options.md) | App 端：manifest `meta` pointer、`<PluginView>` 的 `options`／`anchor`、app 升 1.6.0 | §11 | `lib/plugins.ts`、`lib/plugin-types.ts`、`plugins/notecraft-plugin.schema.json`、`PluginView.astro`、`GeneratedFrame.astro`、`scripts/checks/app-plugin-meta.mjs` |
+| [Task 99](task-99-oar-scaffold-derive-examples.md) | Plugin 骨架：manifest、dataSchema、推導、範例產生、Markdown、斷言 | §4、§5、§12.1 | `plugins/openapi-renderer/{notecraft-plugin.json,schema.json,types.ts,derive.ts,examples.ts,markdown-text.ts}`、`registry.json`、`scripts/checks/oar-{derive,examples,markdown}.mjs` |
+| [Task 100](task-100-oar-atoms-schema-tree-styles.md) | 原子元件、欄位樹、樣式 | §7、§8.4 | `atoms.tsx`、`markdown.tsx`、`schema-tree.tsx`、`styles.ts`、`scripts/checks/oar-styles.mjs` |
+| [Task 101](task-101-oar-shell-nav-routing.md) | 外殼、bar、導覽、hash 路由、鍵盤、捲動同步 | §6、§8.1–§8.2、§10 | `renderer.tsx`、`nav.tsx` |
+| [Task 102](task-102-oar-pages.md) | 總覽、Tag、Operation、Schema 四種頁面 | §8.3 | `pages.tsx` |
+| [Task 103](task-103-oar-embed.md) | embed：單卡、縮影、錯誤；與 app 外框整合 | §8.5 | `embed.tsx`、測試筆記 |
+| [Task 104](task-104-oar-responsive-docs-release.md) | 響應式、無障礙收尾、手動驗證、文件回填、發版 | §9、§10、§12.2 | CLAUDE.md／規格 §17／PRD／CHANGELOG、v1.6.0 |
+
+**順序**：98 → 99 → 100 是地基，依序做；101 與 103 只依賴 100（103 另依賴 98），可並行；102 接在 101 之後；104 收尾。
+
+```
+98 ─ 99 ─ 100 ─┬─ 101 ─ 102 ─┐
+               └─ 103 ───────┴─ 104
+```
+
+> **交付節奏**：全程在 `feat/openapi-renderer` 單一分支上，依 Task 逐步 commit，**Task 104 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 plugin 的再跑 `npm run check-plugins`（純函式只跑 `npm run check:oar`）。
+>
+> **幾條貫穿整批的規則**：
+> - **plugin 不 import app、也不 import ER**：兩個 plugin 各自安裝；需要的 Markdown parser 複製一份，以 `oar-markdown.mjs` 對照行為
+> - **被 `scripts/checks` 載入的 `derive.ts`／`examples.ts`／`markdown-text.ts` 只能 `import type`、不能有 JSX**
+> - **CSS 字串不可含 `< > & " '`**、所有規則以 `.oar-root` 起頭、DS 沒有的值集中為 `.oar-root` 上的 `--oar-*`（`oar-styles.mjs` 把關）
+> - **SSR 一律總覽、一律 cURL**：hash 與 `localStorage`（`oar:v1:lang`）都在 `useEffect` 後才讀；範例產生器的日期與 uuid 寫死，不取今天
+> - **embed 不讀寫 hash、不掛 keydown、不畫外框**；page 的 Esc 先看 `defaultPrevented`，實際有東西可退才 `preventDefault`
+> - 每新增一個 plugin 檔就同步 `plugins/registry.json` 的 `files`（`check-plugins` 擋漂移）
+> - 驗畫面前確認 Browser pane **可見**（隱藏時 island 不 hydrate）
+
+> **本批最大風險**：hydration 與捲動容器——hash／localStorage 若進了初值就 mismatch；sticky 與捲動同步要以 `#nc-scroll`（最近的捲動祖先）為準而不是 window。
+> 其次是真實世界的 spec 不規矩（斷掉的 `$ref`、重複 operationId）：一律容錯 + dev warn，不白屏、不 build fail。
+
 ## v1.5.0 補充
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。

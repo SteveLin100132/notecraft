@@ -418,7 +418,7 @@ Handoff 希望共用元件抽到共用模組。但兩個 plugin **各自獨立�
 
 ### 11.3 版本
 
-- app：1.5.1 → **1.6.0**（manifest 新欄位、`PluginView` 新 prop，皆為新增）
+- app：1.5.1 → **1.6.0**（manifest 新欄位、`PluginView` 新 prop，皆為新增）。`package.json` 在 **Task 98 就升版**：`check-plugins` 以安裝期的 `engines` 檢查比對 `package.json` 版本，不先升，Task 99 的 plugin 過不了檢查；CHANGELOG 與發佈留到 Task 104
 - plugin：`openapi-renderer` 1.0.0，`engines: ">=1.6.0"`
 - ER 不動
 
@@ -452,17 +452,17 @@ Handoff 希望共用元件抽到共用模組。但兩個 plugin **各自獨立�
 
 ## 13. 實作階段
 
-Task 編號接續 97。確認 §15 後再展開成 `docs/tasks/task-NN-*.md`。
+Task 編號接續 97，已展開於 `docs/tasks/`（索引見 [tasks/README.md](tasks/README.md)「v1.17.0」段）。順序：98 → 99 → 100；101、103 可並行；102 接 101；104 收尾。
 
 | Task | 內容 | 對應章節 | 主要檔案 |
 | :-- | :-- | :-- | :-- |
-| 98 | App 端：manifest `meta` pointer、`PluginView` 的 `options`／`anchor`、型別與 schema、plugin system 文件 | §11 | `src/lib/plugins.ts`、`plugin-types.ts`、`PluginView.astro`、`GeneratedFrame.astro`、`plugins/notecraft-plugin.schema.json` |
-| 99 | Plugin 骨架：manifest、dataSchema、types、`derive.ts`、`examples.ts`、`markdown-text.ts` + 三支 checks、registry、三份 example（極大 spec 由 check 產生） | §4、§5、§12.1 | `plugins/openapi-renderer/*`、`scripts/checks/oar-*.mjs` |
-| 100 | 原子元件、欄位樹、`styles.ts` + `oar-styles.mjs` | §7、§8.4 | `atoms.tsx`、`schema-tree.tsx`、`styles.ts` |
-| 101 | 外殼、bar、導覽、hash 路由、鍵盤、捲動同步 | §6、§8.1–8.2、§10 | `renderer.tsx`、`nav.tsx` |
-| 102 | 四種頁面 | §8.3 | `pages.tsx` |
-| 103 | embed（單卡、縮影、錯誤）與 app 外框整合 | §8.5 | `embed.tsx` |
-| 104 | 響應式、README、手動驗證、發佈（app 1.6.0） | §9、§12.2 | — |
+| [98](tasks/task-98-app-manifest-meta-pluginview-options.md) | App 端：manifest `meta` pointer、`PluginView` 的 `options`／`anchor`、型別與 schema、plugin system 文件 | §11 | `src/lib/plugins.ts`、`plugin-types.ts`、`PluginView.astro`、`GeneratedFrame.astro`、`plugins/notecraft-plugin.schema.json` |
+| [99](tasks/task-99-oar-scaffold-derive-examples.md) | Plugin 骨架：manifest、dataSchema、types、`derive.ts`、`examples.ts`、`markdown-text.ts` + 三支 checks、registry、三份 example（極大 spec 由 check 產生） | §4、§5、§12.1 | `plugins/openapi-renderer/*`、`scripts/checks/oar-*.mjs` |
+| [100](tasks/task-100-oar-atoms-schema-tree-styles.md) | 原子元件、欄位樹、`styles.ts` + `oar-styles.mjs` | §7、§8.4 | `atoms.tsx`、`schema-tree.tsx`、`styles.ts` |
+| [101](tasks/task-101-oar-shell-nav-routing.md) | 外殼、bar、導覽、hash 路由、鍵盤、捲動同步 | §6、§8.1–8.2、§10 | `renderer.tsx`、`nav.tsx` |
+| [102](tasks/task-102-oar-pages.md) | 四種頁面 | §8.3 | `pages.tsx` |
+| [103](tasks/task-103-oar-embed.md) | embed（單卡、縮影、錯誤）與 app 外框整合 | §8.5 | `embed.tsx` |
+| [104](tasks/task-104-oar-responsive-docs-release.md) | 響應式、README、手動驗證、發佈（app 1.6.0） | §9、§12.2 | — |
 
 ---
 
