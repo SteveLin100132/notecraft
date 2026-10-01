@@ -59,6 +59,8 @@ function Layer({ refNo, active, dim, index, children, outline, extra }: LayerPro
   const style = { "--dy": `${(BASE_OY - oy) * 0.86}px`, "--i": index } as CSSProperties;
   return (
     <g className={`f1-layer${active ? " is-active" : ""}${dim ? " is-dim" : ""}`} data-ref={refNo} style={style}>
+      {/* --k：離圖中央的層數；捲動時 --spread 由 0 漸增，各層依 --k 上下拉開 */}
+      <g className="f1-spread" style={{ ["--k" as string]: index - 2.5 }}>
       <g className="f1-lift">
       {extra}
       <polygon points={pts(outline)} className="f1-face" />
@@ -67,6 +69,7 @@ function Layer({ refNo, active, dim, index, children, outline, extra }: LayerPro
         {children}
       </g>
       <polygon points={pts(outline)} className="f1-edge" />
+      </g>
       </g>
     </g>
   );
@@ -221,7 +224,8 @@ export default function Fig1({ initial = 16 }: Props) {
               return (
                 <g
                   key={r}
-                  className={`f1-leader${active === r ? " is-active" : ""}`}
+                  className={`f1-leader f1-spread${active === r ? " is-active" : ""}`}
+                  style={{ ["--k" as string]: layerOrder.indexOf(r) - 2.5 }}
                   role="button"
                   tabIndex={0}
                   aria-pressed={active === r}
@@ -236,7 +240,7 @@ export default function Fig1({ initial = 16 }: Props) {
                     }
                   }}
                 >
-                  <path d={`M${ax} ${ay} Q ${midX} ${ay} ${x2} ${labelY}`} className="f1-leader-line" />
+                  <path d={`M${ax} ${ay} Q ${midX} ${ay} ${x2} ${labelY}`} className="f1-leader-line" pathLength={1} />
                   <circle cx={ax} cy={ay} r={3.2} className="f1-leader-dot" />
                   <rect x={LABEL_X - 8} y={labelY - 22} width={64} height={40} className="f1-hit" />
                   <text x={LABEL_X} y={labelY + 9} className="f1-num">

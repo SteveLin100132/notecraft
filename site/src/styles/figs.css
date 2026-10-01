@@ -250,8 +250,19 @@
     animation: f1-explode 950ms var(--ease-out) both;
     animation-delay: calc(150ms + var(--i, 0) * 70ms);
   }
-  .f1-leaders {
-    animation: f1-fade 500ms var(--ease-out) 700ms both;
+  /* 引線像被畫出來：各層分開後依序描出，編號隨後標上 */
+  .f1-leader-line {
+    stroke-dasharray: 1;
+    animation: draw 700ms var(--ease-out) both;
+    animation-delay: calc(900ms + var(--k, 0) * 60ms + 150ms);
+  }
+  .f1-num,
+  .f1-leader-dot {
+    animation: f1-fade 400ms var(--ease-out) 1500ms both;
+  }
+  /* 捲動連動：hero 往上捲出時，各層以圖中央為準上下拉開 */
+  .f1-spread {
+    transform: translateY(calc(var(--spread, 0) * var(--k, 0) * 22px));
   }
 }
 @keyframes f1-explode {
@@ -1451,3 +1462,200 @@
   font-size: 14px;
   color: var(--on-sheet-2);
 }
+
+/* ════════ 捲動動態（只在 html.motion 下生效；減少動態時 motion class 不會加上） ════════ */
+/* 共用：沿筆畫描出（搭配 pathLength=1 的 dash） */
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.motion [data-draw] .ln {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 900ms var(--ease-out);
+  transition-delay: calc(var(--d, 0) * 1ms);
+}
+.motion [data-draw].is-in .ln {
+  stroke-dashoffset: 0;
+}
+/* 參照編號在線條描完後才標上 */
+.motion [data-draw] svg text {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out) 650ms;
+}
+.motion [data-draw].is-in svg text {
+  opacity: 1;
+}
+.motion [data-draw] .pm-dot {
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out) 500ms;
+}
+.motion [data-draw].is-in .pm-dot {
+  opacity: 1;
+}
+.motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out);
+}
+.motion [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+/* 版本格是一張清單：依序出現，總延遲有上限 */
+.motion .rel-grid[data-reveal] {
+  transform: none;
+  opacity: 1;
+}
+.motion .rel-grid[data-reveal] li {
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+.motion .rel-grid[data-reveal].is-in li {
+  opacity: 1;
+}
+.motion .rel-grid li:nth-child(n) {
+  transition-delay: calc(min(var(--i, 0), 14) * 30ms);
+}
+
+/* 版本里程表 */
+.rel-digit.has-odo {
+  display: inline-block;
+  height: 0.84em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.odo {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--v, 0) * -0.84em));
+}
+.odo span {
+  display: block;
+  height: 0.84em;
+  line-height: 0.84em;
+  text-align: center;
+}
+
+
+/* ════════ 浮動頁碼 ════════ */
+.folio {
+  position: fixed;
+  right: clamp(12px, 2vw, 24px);
+  bottom: clamp(12px, 2vw, 24px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+}
+.folio.is-shown {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.folio-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  background: var(--sheet);
+  color: var(--line);
+  font: 600 13px/1 var(--f-latin);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.folio-btn svg {
+  transition: transform 200ms var(--ease-out);
+}
+.folio-btn[aria-expanded="false"] svg {
+  transform: rotate(180deg);
+}
+.folio-menu {
+  width: min(320px, calc(100vw - 24px));
+  padding: 14px 16px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+.folio-menu-title {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  font-weight: 700;
+}
+.folio-menu ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.folio-menu a {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  font-size: 15px;
+  text-decoration: none;
+  color: var(--ink-2);
+}
+.folio-menu a:hover {
+  color: var(--ink);
+}
+.folio-menu a[aria-current="true"] {
+  color: var(--ink);
+  font-weight: 700;
+}
+.folio-pg {
+  min-width: 3.6em;
+  font: 600 13px var(--f-latin);
+  color: var(--mark-paper);
+}
+@media (prefers-reduced-motion: reduce) {
+  .folio,
+  .folio-btn svg {
+    transition: none;
+  }
+}
+
+
+/* ════════ 按鈕的細節回饋：滑過抬起 1px、按下縮小 ════════ */
+.btn,
+.cmd-copy,
+.pl-btn,
+.folio-btn {
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out), transform 150ms var(--ease-out);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn:hover,
+  .pl-btn:hover:not(:disabled),
+  .folio-btn:hover {
+    transform: translateY(-1px);
+  }
+  .btn:active,
+  .cmd-copy:active,
+  .pl-btn:active:not(:disabled),
+  .folio-btn:active,
+  .cd-cmd:active,
+  .f2-type:active,
+  .f2-ghost:active {
+    transform: scale(0.96);
+    transition-duration: 80ms;
+  }
+}
+
