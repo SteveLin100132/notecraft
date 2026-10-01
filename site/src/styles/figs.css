@@ -250,8 +250,19 @@
     animation: f1-explode 950ms var(--ease-out) both;
     animation-delay: calc(150ms + var(--i, 0) * 70ms);
   }
-  .f1-leaders {
-    animation: f1-fade 500ms var(--ease-out) 700ms both;
+  /* 引線像被畫出來：各層分開後依序描出，編號隨後標上 */
+  .f1-leader-line {
+    stroke-dasharray: 1;
+    animation: draw 700ms var(--ease-out) both;
+    animation-delay: calc(900ms + var(--k, 0) * 60ms + 150ms);
+  }
+  .f1-num,
+  .f1-leader-dot {
+    animation: f1-fade 400ms var(--ease-out) 1500ms both;
+  }
+  /* 捲動連動：hero 往上捲出時，各層以圖中央為準上下拉開 */
+  .f1-spread {
+    transform: translateY(calc(var(--spread, 0) * var(--k, 0) * 22px));
   }
 }
 @keyframes f1-explode {
@@ -1157,88 +1168,10 @@
   }
 }
 
-/* ════════ 實施方式：圖版 ════════ */
-.plates {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(28px, 4vw, 56px) clamp(20px, 3vw, 40px);
-}
-.plate {
-  margin: 0;
-}
-.plate {
-  /* 圖框上方留給參照編號：110/1000 的圖高 = 寬的 6.9% */
-  padding-top: 6.9%;
-}
-.plate-img {
-  border: 1.5px solid var(--ink);
-  background: var(--paper);
-  aspect-ratio: 16 / 10;
-}
-.plate-img {
-  position: relative;
-}
-.plate-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top left;
-}
-.plate-marks {
-  position: absolute;
-  left: 0;
-  top: -11%;
-  width: 100%;
-  height: 111%;
-  overflow: visible;
-}
-.pm-line {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2.5;
-}
-.pm-dot {
-  fill: var(--ink);
-  stroke: var(--paper);
-  stroke-width: 3;
-}
-.pm-num {
-  font-family: var(--f-latin);
-  font-variation-settings: "wdth" 76;
-  font-weight: 700;
-  font-size: 60px;
-  fill: var(--mark-paper);
-}
-.plate-refs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 14px;
-  margin-top: 6px;
-  font-size: 13px;
-}
-.plate-refs .ref {
-  font-size: 15px;
-}
-.plate figcaption {
-  display: flex;
-  gap: 14px;
-  align-items: baseline;
-  margin-top: 12px;
-  font-size: 15px;
-  color: var(--ink-2);
-}
-.plate figcaption b {
-  color: var(--ink);
-}
-.plate .fig-no {
-  font-size: 20px;
-  color: var(--ink);
-  flex: none;
-  min-width: 3.4em;
-}
+/* ════════ 實施方式 ════════ */
 .emb-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: clamp(28px, 5vw, 80px);
   margin-top: clamp(56px, 7vw, 96px);
   padding-top: 28px;
@@ -1278,7 +1211,6 @@
   color: var(--ink-2);
 }
 @media (max-width: 860px) {
-  .plates,
   .emb-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1450,4 +1382,691 @@
   border-top: 1px solid var(--line-soft);
   font-size: 14px;
   color: var(--on-sheet-2);
+}
+
+/* ════════ FIG. 2 Before／After ════════ */
+.cmp {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  --split: 42%;
+}
+.cmp > .f2-frame-body {
+  flex: 1;
+}
+.cmp-before {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  /* 只留分界線左側；被裁掉的區域不吃滑鼠事件 */
+  clip-path: inset(0 calc(100% - var(--split)) 0 0);
+  display: flex;
+  align-items: center;
+  padding: clamp(16px, 2.5vw, 28px);
+}
+.cmp-card {
+  width: min(100%, 520px);
+  padding: 18px 20px;
+  border: 1.5px dashed var(--ink-2);
+  background: var(--paper);
+}
+.cmp-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.cmp-pill {
+  padding: 2px 8px;
+  border: 1px solid var(--mark-paper);
+  color: var(--mark-paper);
+  font-weight: 700;
+  font-size: 13px;
+}
+.cmp-prompt {
+  margin: 14px 0 0;
+  font-size: 17px;
+  line-height: 1.7;
+}
+.cmp-prompt span {
+  display: block;
+}
+.cmp-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.cmp-tag {
+  position: absolute;
+  top: 10px;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.cmp-tag--before {
+  left: 10px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.cmp-tag--after {
+  right: 10px;
+  background: var(--sheet);
+  color: var(--line);
+  z-index: 1;
+}
+.cmp-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 32px;
+  margin-left: -16px;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 2;
+  outline: none;
+}
+.cmp-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 15px;
+  border-left: 2px solid var(--sheet);
+}
+.cmp-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  background: var(--sheet);
+  color: var(--line);
+  border: 2px solid var(--paper);
+  transition: transform 150ms var(--ease-out);
+}
+.cmp-handle:hover .cmp-knob,
+.cmp-handle:active .cmp-knob {
+  transform: scale(1.08);
+}
+.cmp-handle:focus-visible .cmp-knob {
+  outline: 2px solid var(--mark-paper);
+  outline-offset: 2px;
+}
+
+/* ════════ 指令示範 ════════ */
+.cd-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+.cd-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  border-top: 2px solid var(--ink);
+}
+.cd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-right: 1px solid var(--rule);
+}
+.cd-cmd {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-2);
+  text-align: left;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out);
+}
+.cd-cmd code {
+  font-size: 15px;
+}
+.cd-cmd:hover {
+  color: var(--ink);
+}
+.cd-cmd.is-on {
+  color: var(--paper);
+  background: var(--sheet);
+  padding-left: 12px;
+}
+.cd-panel {
+  padding: 8px 0 0 16px;
+}
+.cd-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cd-l {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.cd-l--soft {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+.cd-m {
+  fill: none;
+  stroke: var(--mark-strong);
+  stroke-width: 2;
+}
+.cd-t {
+  font: 13px var(--f-mono);
+  fill: var(--ink-2);
+}
+.cd-t--b {
+  fill: var(--ink);
+  font-weight: 700;
+}
+.cd-t--mark {
+  fill: var(--mark-paper);
+  font-weight: 700;
+}
+.cd-what {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 15px;
+  min-height: 6.5em;
+}
+.cd-what code {
+  font-size: 13px;
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cd-svg .cd-l,
+  .cd-svg .cd-m {
+    stroke-dasharray: 1;
+    animation: draw 700ms var(--ease-out) both;
+  }
+  .cd-svg text {
+    animation: fade-in 300ms var(--ease-out) 350ms both;
+  }
+}
+@media (max-width: 560px) {
+  .cd-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cd-list {
+    display: flex;
+    flex-wrap: wrap;
+    border-right: 0;
+  }
+  .cd-list li {
+    flex: 1 1 auto;
+  }
+  .cd-cmd {
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .cd-panel {
+    padding-left: 0;
+  }
+}
+
+/* ════════ 捲動動態（只在 html.motion 下生效；減少動態時 motion class 不會加上） ════════ */
+/* 共用：沿筆畫描出（搭配 pathLength=1 的 dash） */
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.motion [data-draw] .ln {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 900ms var(--ease-out);
+  transition-delay: calc(var(--d, 0) * 1ms);
+}
+.motion [data-draw].is-in .ln {
+  stroke-dashoffset: 0;
+}
+/* 參照編號在線條描完後才標上 */
+.motion [data-draw] svg text {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out) 650ms;
+}
+.motion [data-draw].is-in svg text {
+  opacity: 1;
+}
+.motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out);
+}
+.motion [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+/* 版本格是一張清單：依序出現，總延遲有上限 */
+.motion .rel-grid[data-reveal] {
+  transform: none;
+  opacity: 1;
+}
+.motion .rel-grid[data-reveal] li {
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+.motion .rel-grid[data-reveal].is-in li {
+  opacity: 1;
+}
+.motion .rel-grid li:nth-child(n) {
+  transition-delay: calc(min(var(--i, 0), 14) * 30ms);
+}
+
+/* 版本里程表 */
+.rel-digit.has-odo {
+  display: inline-block;
+  height: 0.84em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.odo {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--v, 0) * -0.84em));
+}
+.odo span {
+  display: block;
+  height: 0.84em;
+  line-height: 0.84em;
+  text-align: center;
+}
+
+/* ════════ 浮動頁碼 ════════ */
+.folio {
+  position: fixed;
+  right: clamp(12px, 2vw, 24px);
+  bottom: clamp(12px, 2vw, 24px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+}
+.folio.is-shown {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.folio-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  background: var(--sheet);
+  color: var(--line);
+  font: 600 13px/1 var(--f-latin);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.folio-btn svg {
+  transition: transform 200ms var(--ease-out);
+}
+.folio-btn[aria-expanded="false"] svg {
+  transform: rotate(180deg);
+}
+.folio-menu {
+  width: min(320px, calc(100vw - 24px));
+  padding: 14px 16px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+.folio-menu-title {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  font-weight: 700;
+}
+.folio-menu ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.folio-menu a {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  font-size: 15px;
+  text-decoration: none;
+  color: var(--ink-2);
+}
+.folio-menu a:hover {
+  color: var(--ink);
+}
+.folio-menu a[aria-current="true"] {
+  color: var(--ink);
+  font-weight: 700;
+}
+.folio-pg {
+  min-width: 3.6em;
+  font: 600 13px var(--f-latin);
+  color: var(--mark-paper);
+}
+@media (prefers-reduced-motion: reduce) {
+  .folio,
+  .folio-btn svg {
+    transition: none;
+  }
+}
+
+/* ════════ 按鈕的細節回饋：滑過抬起 1px、按下縮小 ════════ */
+.btn,
+.cmd-copy,
+.pl-btn,
+.folio-btn {
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out), transform 150ms var(--ease-out);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn:hover,
+  .pl-btn:hover:not(:disabled),
+  .folio-btn:hover {
+    transform: translateY(-1px);
+  }
+  .btn:active,
+  .cmd-copy:active,
+  .pl-btn:active:not(:disabled),
+  .folio-btn:active,
+  .cd-cmd:active,
+  .f2-type:active,
+  .f2-ghost:active {
+    transform: scale(0.96);
+    transition-duration: 80ms;
+  }
+}
+
+/* ════════ 實施方式：工作台導覽 ════════ */
+.tour-intents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 2px solid var(--ink);
+  border-left: 1px solid var(--rule);
+}
+.tour-intent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 84px;
+  padding: 14px 16px;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+.tour-intent:hover {
+  background: var(--tint);
+}
+.tour-intent-fig {
+  font: 700 13px/1 var(--f-latin);
+  font-variation-settings: "wdth" 76;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.tour-intent-text {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.tour-intent.is-on {
+  background: var(--sheet);
+  color: var(--line);
+}
+.tour-intent.is-on .tour-intent-fig {
+  color: var(--mark);
+}
+.tour-body {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: clamp(20px, 3vw, 40px);
+  margin-top: 28px;
+  align-items: start;
+}
+.tour-view {
+  margin: 0;
+}
+.tour-chrome {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+.tour-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.tour-dots i {
+  width: 8px;
+  height: 8px;
+  border: 1.2px solid var(--ink-2);
+}
+.tour-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 13px var(--f-mono);
+  color: var(--ink-2);
+}
+.tour-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--sheet);
+}
+.tour-open:hover {
+  text-decoration: underline;
+}
+.tour-frame {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1.5px solid var(--ink);
+  border-top: 0;
+  background: var(--paper);
+}
+.tour-cam {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  transition: transform 900ms var(--ease-out);
+}
+.tour-cam img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out);
+}
+.tour-cam img.is-on {
+  opacity: 1;
+}
+/* 聚光：目前區域保持原樣，其餘壓暗；鏡頭移到位後才亮起 */
+.tour-spot {
+  position: absolute;
+  outline: calc(3px / var(--s, 1)) solid var(--sheet);
+  box-shadow: 0 0 0 9999px rgb(17 20 24 / 0.42);
+  animation: tour-spot 420ms var(--ease-out) 380ms both;
+  pointer-events: none;
+}
+.tour-spot-num {
+  position: absolute;
+  left: calc(-3px / var(--s, 1));
+  bottom: 100%;
+  margin-bottom: calc(3px / var(--s, 1));
+  padding: calc(2px / var(--s, 1)) calc(8px / var(--s, 1));
+  background: var(--paper);
+  color: var(--mark-paper);
+  font: 700 calc(22px / var(--s, 1)) / 1 var(--f-latin);
+  font-variation-settings: "wdth" 76;
+}
+/* 區域貼在截圖上緣時，編號改放在區域下方，免得被裁掉 */
+.tour-spot.is-top .tour-spot-num {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: calc(3px / var(--s, 1));
+}
+@keyframes tour-spot {
+  from {
+    opacity: 0;
+  }
+}
+.tour-cap {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  margin-top: 12px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.tour-cap b {
+  color: var(--ink);
+}
+.tour-cap .fig-no {
+  font-size: 22px;
+  color: var(--ink);
+}
+.tour-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--ink);
+}
+.tour-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding: 16px 12px 16px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-2);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+.tour-step:hover {
+  background: var(--tint);
+}
+.tour-step .ref {
+  font-size: 22px;
+  line-height: 1.2;
+  text-align: right;
+}
+.tour-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tour-step-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.tour-step-text {
+  font-size: 15px;
+  line-height: 1.65;
+}
+.tour-step.is-on {
+  background: var(--tint);
+  color: var(--ink);
+}
+.tour-step.is-on .tour-step-name {
+  color: var(--ink);
+}
+.tour-step.is-done .ref {
+  color: var(--ink-2);
+}
+.tour-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--sheet);
+  transform-origin: 0 50%;
+  animation: tour-progress linear both;
+}
+@keyframes tour-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+.tour-hint {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.tour.is-reduced .tour-cam,
+.tour.is-reduced .tour-cam img {
+  transition: none;
+}
+.tour.is-reduced .tour-spot {
+  animation: none;
+}
+@media (max-width: 960px) {
+  .tour-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .tour-intents {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tour-intent {
+    min-height: 72px;
+    padding: 12px;
+  }
+  .tour-intent-text {
+    font-size: 15px;
+  }
 }

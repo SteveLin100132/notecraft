@@ -3,6 +3,8 @@ import Base from "../layouts/Base.astro";
 import Fig1 from "../components/Fig1.tsx";
 import Fig2 from "../components/Fig2.tsx";
 import CopyCommand from "../components/CopyCommand.tsx";
+import CommandDemo from "../components/CommandDemo.tsx";
+import Tour, { SCENES } from "../components/Tour.tsx";
 import { readReleases, readVersion } from "../lib/changelog";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
@@ -23,56 +25,6 @@ const GITHUB = "https://github.com/SteveLin100132/notecraft";
 const NPM = "https://www.npmjs.com/package/notecraftapp";
 const DEMO = `${base}demo/`;
 
-type Callout = { ref: number; name: string; x: number; y: number; lx?: number };
-const plates: { n: number; file: string; title: string; text: string; callouts: Callout[] }[] = [
-  {
-    n: 5, file: "dashboard", title: "儀表板", text: "筆記總數與閱讀狀態、AI 待生成、寫作頻率、系列進度、標籤分布與更新日誌，一個視窗看完。",
-    callouts: [
-      { ref: 70, name: "筆記總數與閱讀狀態", x: 448, y: 300 },
-      { ref: 72, name: "寫作頻率", x: 1290, y: 330 },
-      { ref: 74, name: "系列進度", x: 960, y: 528, lx: 880 },
-      { ref: 76, name: "標籤分布", x: 1010, y: 890, lx: 1100 },
-    ],
-  },
-  {
-    n: 6, file: "notes-list", title: "筆記列表", text: "依資料夾、系列、標籤或月份分組；篩選全在網址參數，可以分享。",
-    callouts: [
-      { ref: 78, name: "資料夾樹", x: 170, y: 133, lx: 140 },
-      { ref: 80, name: "分組切換", x: 410, y: 176, lx: 440 },
-      { ref: 82, name: "AI 生成狀態", x: 1424, y: 339 },
-    ],
-  },
-  {
-    n: 7, file: "notes-drawer", title: "Drawer 預覽", text: "單擊一列在右側預覽摘要、標記與同系列章節，雙擊才進筆記。",
-    callouts: [
-      { ref: 84, name: "選中的列", x: 560, y: 297 },
-      { ref: 86, name: "預覽抽屜", x: 1300, y: 76, lx: 1220 },
-      { ref: 88, name: "同系列章節", x: 1290, y: 760, lx: 1400 },
-    ],
-  },
-  {
-    n: 8, file: "note-tabs", title: "筆記頁籤", text: "固定、拖曳、右鍵管理；⌥. 與 ⌥, 切換，回來停在上次讀到的位置。",
-    callouts: [
-      { ref: 90, name: "頁籤列", x: 880, y: 20, lx: 900 },
-      { ref: 92, name: "閱讀狀態", x: 690, y: 328, lx: 640 },
-      { ref: 94, name: "目錄", x: 1340, y: 250 },
-    ],
-  },
-  {
-    n: 9, file: "dashboard-calendar", title: "更新月曆", text: "每篇筆記落在它的更新日，顏色就是閱讀狀態。",
-    callouts: [
-      { ref: 96, name: "當日更新的筆記", x: 735, y: 735 },
-      { ref: 98, name: "月／週切換", x: 1540, y: 186 },
-    ],
-  },
-  {
-    n: 10, file: "plugins", title: "Plugin 管理", text: "已安裝的外掛、映射規則與命中的資料檔。",
-    callouts: [
-      { ref: 100, name: "已安裝的外掛", x: 400, y: 325 },
-      { ref: 102, name: "啟用狀態", x: 1533, y: 325 },
-    ],
-  },
-];
 
 const claims = [
   {
@@ -117,7 +69,7 @@ const legend = [
   [30, "標記開頭"], [32, "id"], [34, "type"], [36, "prompt"], [38, "status"], [40, "寫回的 JSX"],
   [50, "專案根目錄"], [52, "筆記資料夾"], [54, "生成元件"], [56, "plugin 與系列設定"], [58, "skill 與 subagent"],
   [60, "筆記內嵌"], [62, "放大畫布"], [64, "簡報"],
-  ...plates.flatMap((p) => p.callouts.map((c) => [c.ref, c.name] as const)),
+  ...SCENES.flatMap((sc) => sc.steps.map((p) => [p.ref, p.name] as const)),
 ] as const;
 ---
 
@@ -126,7 +78,7 @@ const legend = [
   description="給寫技術筆記的人用的工作台：一行 npx 讀你現有的 md／mdx 資料夾；在筆記裡用 @ai-visualize 描述想要的圖，Claude Code 生成 React 互動元件並寫回你的 repo。"
 >
   <!-- ═══ 圖頁 1：摘要與 FIG. 1 ═══ -->
-  <header class="sheet hero" id="top">
+  <header class="sheet hero" id="top" data-folio="圖頁 1／4 · 摘要">
     <div class="wrap">
       <nav class="topnav" aria-label="主要導覽">
         <a href={base} class="brand" aria-label="NoteCraftApp 首頁">
@@ -183,7 +135,7 @@ const legend = [
 
   <!-- ═══ 說明頁：技術領域／先前技術／發明內容 ═══ -->
   <main>
-    <section class="paper" aria-labelledby="sec-spec">
+    <section class="paper" id="spec" aria-labelledby="sec-spec" data-folio="第 1 頁 · 內容">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
@@ -191,7 +143,7 @@ const legend = [
         </div>
         <div class="paper-grid">
           <div>
-            <h2 class="paper-title" id="sec-spec"><span>文字講不清楚的，</span><span>就讓讀者自己操作。</span></h2>
+            <h2 data-reveal class="paper-title" id="sec-spec"><span>文字講不清楚的，</span><span>就讓讀者自己操作。</span></h2>
             <div class="spec">
               <h3>【技術領域】</h3>
               <span class="pn">【0001】</span>
@@ -226,14 +178,14 @@ const legend = [
     </section>
 
     <!-- ═══ 圖頁 2：FIG. 2 標記→元件 ═══ -->
-    <section class="sheet" id="figures" aria-labelledby="sec-fig2">
+    <section class="sheet" id="figures" aria-labelledby="sec-fig2" data-folio="圖頁 2／4 · 標記與元件">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
           <span>圖頁 2／4</span>
         </div>
         <div class="sheet-head">
-          <h2 class="sheet-title" id="sec-fig2"><span>一段描述，</span><span>一個能操作的元件。</span></h2>
+          <h2 data-reveal class="sheet-title" id="sec-fig2"><span>一段描述，</span><span>一個能操作的元件。</span></h2>
           <p class="sheet-lead">
             標記寫在筆記裡要放圖的位置。處理完，標記下方多了一行 import 和一行 JSX，status 改成 generated；
             之後想重做就改 prompt，不想再動就改成 locked。
@@ -244,7 +196,7 @@ const legend = [
     </section>
 
     <!-- ═══ 說明頁：文件即 codebase ═══ -->
-    <section class="paper" aria-labelledby="sec-code">
+    <section class="paper" id="codebase" aria-labelledby="sec-code" data-folio="第 2 頁 · 文件即 codebase">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
@@ -252,7 +204,7 @@ const legend = [
         </div>
         <div class="paper-grid paper-grid--diff">
           <div>
-            <h2 class="paper-title" id="sec-code"><span>文件，</span><span>像程式碼一樣管理。</span></h2>
+            <h2 data-reveal class="paper-title" id="sec-code"><span>文件，</span><span>像程式碼一樣管理。</span></h2>
             <div class="spec">
               <span class="pn">【0006】</span>
               <p>
@@ -265,7 +217,7 @@ const legend = [
               <p>這是一次生成在 git 裡留下的樣子：筆記裡改了 status、多了 import 和外框，元件是一個新檔。</p>
             </div>
           </div>
-          <figure class="diff" aria-label="一次生成在筆記裡留下的 diff（示意）">
+          <figure class="diff" data-reveal aria-label="一次生成在筆記裡留下的 diff（示意）">
             <div class="diff-head">
               <span>notes/guides/oauth/flow.mdx</span>
               <span class="diff-tag">示意</span>
@@ -289,7 +241,7 @@ const legend = [
     </section>
 
     <!-- ═══ 圖頁 3：FIG. 3 repo、FIG. 4 同一元件三處 ═══ -->
-    <section class="sheet" aria-labelledby="sec-fig34">
+    <section class="sheet" id="fig34" aria-labelledby="sec-fig34" data-folio="圖頁 3／4 · repo 與元件">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
@@ -297,7 +249,7 @@ const legend = [
         </div>
         <h2 class="visually-hidden" id="sec-fig34">FIG. 3 與 FIG. 4</h2>
         <div class="fig34">
-          <figure class="f3">
+          <figure class="f3" data-reveal>
             <ul class="tree" aria-label="專案資料夾結構">
               <li>
                 <span class="tree-name">my-project/</span><span class="ref">50</span>
@@ -324,7 +276,7 @@ const legend = [
             <figcaption><span class="fig-no">FIG. 3</span><span>一個專案就是一份文件：全部是文字檔，全部在 git 裡。</span></figcaption>
           </figure>
 
-          <figure class="f4">
+          <figure class="f4" data-draw>
             <svg viewBox="0 0 650 420" class="f4-svg" role="img" aria-label="同一個元件出現在筆記、放大畫布與簡報">
               <defs>
                 <symbol id="mini" viewBox="0 0 120 60">
@@ -376,39 +328,14 @@ const legend = [
     </section>
 
     <!-- ═══ 說明頁：實施方式（產品畫面圖版＋部署） ═══ -->
-    <section class="paper" id="embodiment" aria-labelledby="sec-emb">
+    <section class="paper" id="embodiment" aria-labelledby="sec-emb" data-folio="第 3 頁 · 實施方式">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
           <span>第 3 頁</span>
         </div>
-        <h2 class="paper-title" id="sec-emb"><span>實施方式：</span><span>工作台的各個畫面。</span></h2>
-        <div class="plates">
-          {plates.map((p) => (
-            <figure class="plate">
-              <div class="plate-img">
-                <img src={`${base}plates/${p.file}.webp`} alt={`${p.title}的畫面`} width="1600" height="1000" loading="lazy" decoding="async" />
-                {/* 參照編號在圖框上緣之外（y < 0），只有引線伸進畫面，不壓在內容上 */}
-                <svg class="plate-marks" viewBox="0 -110 1600 1110" aria-hidden="true">
-                  {p.callouts.map((c) => {
-                    const lx = c.lx ?? c.x;
-                    return (
-                      <g>
-                        <path d={`M${lx} -44 C ${lx} -10, ${c.x} -10, ${c.x} ${Math.max(0, c.y - 18)} L ${c.x} ${c.y}`} class="pm-line" />
-                        <circle cx={c.x} cy={c.y} r="8" class="pm-dot" />
-                        <text x={lx} y="-56" text-anchor="middle" class="pm-num">{c.ref}</text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-              <figcaption>
-                <span class="fig-no">FIG. {p.n}</span>
-                <span><b>{p.title}</b>　{p.text}<span class="plate-refs">{p.callouts.map((c) => <span><span class="ref">{c.ref}</span> {c.name}</span>)}</span></span>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        <h2 data-reveal class="paper-title" id="sec-emb"><span>實施方式：</span><span>從你想做的事開始。</span></h2>
+        <Tour client:visible base={base} />
 
         <div class="emb-grid">
           <div class="spec">
@@ -428,29 +355,19 @@ const legend = [
             <span class="pn">【0013】</span>
             <p>多篇筆記可以串成系列，有順序、有進度；資料檔頁也能是其中一章。</p>
           </div>
-          <table class="cli">
-            <caption>指令一覽</caption>
-            <thead><tr><th scope="col">指令</th><th scope="col">做什麼</th></tr></thead>
-            <tbody>
-              <tr><th scope="row"><code>view [dir]</code></th><td>本機閱讀與寫作，即時反映</td></tr>
-              <tr><th scope="row"><code>build [dir]</code></th><td>輸出靜態網站</td></tr>
-              <tr><th scope="row"><code>serve [dir]</code></th><td>服務靜態站，背景 rebuild</td></tr>
-              <tr><th scope="row"><code>init-skill</code></th><td>把 skill 與 subagent 裝進 .claude/</td></tr>
-              <tr><th scope="row"><code>install-plugin</code></th><td>安裝 ER、OpenAPI 等 plugin</td></tr>
-            </tbody>
-          </table>
+          <CommandDemo client:visible />
         </div>
       </div>
     </section>
 
     <!-- ═══ 說明頁：請求項 ═══ -->
-    <section class="paper paper--claims" id="claims" aria-labelledby="sec-claims">
+    <section class="paper paper--claims" id="claims" aria-labelledby="sec-claims" data-folio="第 4 頁 · 請求項">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
           <span>第 4 頁</span>
         </div>
-        <h2 class="paper-title" id="sec-claims"><span>它做得到的事，</span><span>逐條列出。</span></h2>
+        <h2 data-reveal class="paper-title" id="sec-claims"><span>它做得到的事，</span><span>逐條列出。</span></h2>
         <ol class="claims">
           {claims.map((c) => (
             <li class="claim">
@@ -467,7 +384,7 @@ const legend = [
     </section>
 
     <!-- ═══ 圖頁 4：版本歷程與收尾 ═══ -->
-    <section class="sheet" id="releases" aria-labelledby="sec-rel">
+    <section class="sheet" id="releases" aria-labelledby="sec-rel" data-folio="圖頁 4／4 · 版本歷程">
       <div class="wrap">
         <div class="runhead">
           <span><b>NoteCraftApp 說明書</b></span>
@@ -475,16 +392,16 @@ const legend = [
         </div>
         <div class="rel-head">
           <div>
-            <h2 class="sheet-title" id="sec-rel">持續在改。</h2>
+            <h2 data-reveal class="sheet-title" id="sec-rel">持續在改。</h2>
             <p class="sheet-lead">{firstDate} 第一次發佈，到 {lastDate} 共 {releases.length} 個版本。每一版都記在 repo 的 CHANGELOG.md。</p>
           </div>
           <p class="rel-big" aria-label={`目前版本 ${version}`}>
             {version.split("").map((ch) => <span class={ch === "." ? "rel-dot" : "rel-digit"}>{ch}</span>)}
           </p>
         </div>
-        <ol class="rel-grid">
-          {sortedReleases.map((r) => (
-            <li class={MILESTONES.has(r.version) ? "is-major" : undefined}>
+        <ol class="rel-grid" data-reveal>
+          {sortedReleases.map((r, i) => (
+            <li class={MILESTONES.has(r.version) ? "is-major" : undefined} style={`--i:${i}`}>
               <span class="rel-v">{r.version}</span>
               <span class="rel-d">{r.date.slice(5).replace("-", "/")}</span>
             </li>
@@ -492,7 +409,7 @@ const legend = [
         </ol>
 
         <div class="closing">
-          <h2 class="closing-title"><span>從你現有的</span><span>資料夾開始。</span></h2>
+          <h2 data-reveal class="closing-title"><span>從你現有的</span><span>資料夾開始。</span></h2>
           <CopyCommand client:visible tone="sheet" />
           <div class="closing-links">
             <a class="btn" href={DEMO}>進入 Demo 工作台</a>
@@ -508,4 +425,28 @@ const legend = [
       </div>
     </section>
   </main>
+
+  <nav class="folio" data-folio-root aria-label="說明書目錄" hidden>
+    <div class="folio-menu" id="folio-menu" hidden>
+      <p class="folio-menu-title">NoteCraftApp 說明書</p>
+      <ol>
+        <li><a href="#top"><span class="folio-pg">圖頁 1</span>摘要與 FIG. 1</a></li>
+        <li><a href="#spec"><span class="folio-pg">第 1 頁</span>技術領域・先前技術・內容</a></li>
+        <li><a href="#figures"><span class="folio-pg">圖頁 2</span>FIG. 2 標記與元件</a></li>
+        <li><a href="#codebase"><span class="folio-pg">第 2 頁</span>文件即 codebase</a></li>
+        <li><a href="#fig34"><span class="folio-pg">圖頁 3</span>FIG. 3–4 repo 與元件</a></li>
+        <li><a href="#embodiment"><span class="folio-pg">第 3 頁</span>實施方式</a></li>
+        <li><a href="#claims"><span class="folio-pg">第 4 頁</span>請求項</a></li>
+        <li><a href="#releases"><span class="folio-pg">圖頁 4</span>版本歷程</a></li>
+      </ol>
+    </div>
+    <button type="button" class="folio-btn" aria-expanded="false" aria-controls="folio-menu">
+      <span class="folio-label">圖頁 1／4 · 摘要</span>
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l4-4 4 4"></path></svg>
+    </button>
+  </nav>
+
+  <script>
+    import "../scripts/motion.ts";
+  </script>
 </Base>

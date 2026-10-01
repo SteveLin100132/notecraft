@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 /*
  * FIG. 2 — 標記→元件。左邊是一段 @ai-visualize 標記，右邊是它對應的元件。
@@ -99,11 +99,13 @@ export default function Fig2({ releases = [] }: Props) {
             <span className="f2-frame-title">{prompt.id}.tsx</span>
             <span className="f2-frame-note">官網示範元件，非現場生成</span>
           </div>
-          <div className="f2-frame-body" key={kind}>
-            {kind === "diagram" && <Pipeline />}
-            {kind === "timeline" && <Timeline releases={releases} />}
-            {kind === "table" && <Decision />}
-          </div>
+          <Compare kind={kind} id={prompt.id} lines={prompt.lines}>
+            <div className="f2-frame-body" key={kind}>
+              {kind === "diagram" && <Pipeline />}
+              {kind === "timeline" && <Timeline releases={releases} />}
+              {kind === "table" && <Decision />}
+            </div>
+          </Compare>
           <div className="f2-ghosts" aria-label="同一段標記的其他畫法">
             {KINDS.filter((k) => k !== kind).map((k) => (
               <button key={k} type="button" className="f2-ghost" onClick={() => setKind(k)} aria-label={`換成 ${k}`}>
@@ -119,6 +121,133 @@ export default function Fig2({ releases = [] }: Props) {
         <span>標記（30–40）與它生成的元件（16）。元件以原始碼寫回 repo，筆記裡只多了幾行。</span>
       </figcaption>
     </figure>
+  );
+}
+
+/*
+ * Before／After：同一個位置，左邊是筆記裡「待生成」的標記卡片，右邊是生成後的元件。
+ * 分界線可拖曳（也可用方向鍵）；第一次捲進畫面時從「全是標記」掃到中間一次，示範「生成」這件事。
+ * 卡片層用 clip-path 裁切，被裁掉的部分不吃滑鼠事件，底下的元件照常可以操作。
+ */
+const SPLIT_REST = 42;
+
+function Compare({ kind, id, lines, children }: { kind: Kind; id: string; lines: string[]; children: ReactNode }) {
+  const [split, setSplit] = useState(SPLIT_REST);
+  const wrap = useRef<HTMLDivElement>(null);
+  const touched = useRef(false);
+  const dragging = useRef(false);
+
+  // 第一次進入畫面：100 → SPLIT_REST 掃一次（減少動態時直接停在終點）
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setSplit(100);
+    let raf = 0;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        const t0 = performance.now();
+        const D = 1100;
+        const tick = (t: number) => {
+          if (touched.current) return;
+          const k = Math.min(1, (t - t0 - 250) / D);
+          if (k < 0) {
+            raf = requestAnimationFrame(tick);
+            return;
+          }
+          const e = 1 - Math.pow(1 - k, 4);
+          setSplit(100 - (100 - SPLIT_REST) * e);
+          if (k < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+      },
+      { threshold: 0.55 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const fromPointer = useCallback((clientX: number) => {
+    const r = wrap.current?.getBoundingClientRect();
+    if (!r) return;
+    setSplit(Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100)));
+  }, []);
+
+  const onDown = (e: PointerEvent<HTMLDivElement>) => {
+    touched.current = true;
+    dragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    fromPointer(e.clientX);
+  };
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (dragging.current) fromPointer(e.clientX);
+  };
+  const onUp = () => {
+    dragging.current = false;
+  };
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 20 : 5;
+    let next: number | null = null;
+    if (e.key === "ArrowLeft") next = split - step;
+    else if (e.key === "ArrowRight") next = split + step;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = 100;
+    if (next === null) return;
+    e.preventDefault();
+    touched.current = true;
+    setSplit(Math.min(100, Math.max(0, next)));
+  };
+
+  return (
+    <div className="cmp" ref={wrap} style={{ ["--split" as string]: `${split}%` }}>
+      {children}
+      <span className="cmp-tag cmp-tag--after" aria-hidden="true">
+        生成後
+      </span>
+      <div className="cmp-before" aria-hidden={split < 4}>
+        <div className="cmp-card">
+          <div className="cmp-card-head">
+            <span className="cmp-pill">待生成</span>
+            <code>
+              @ai-visualize · {id} · type: {kind}
+            </code>
+          </div>
+          <p className="cmp-prompt">
+            {lines.map((l) => (
+              <span key={l}>{l}</span>
+            ))}
+          </p>
+          <p className="cmp-hint">在 Claude Code 對話中處理後，這裡會換成元件。</p>
+        </div>
+        <span className="cmp-tag cmp-tag--before">標記</span>
+      </div>
+      <div
+        className="cmp-handle"
+        role="slider"
+        tabIndex={0}
+        aria-label="拖曳比較：標記與生成後的元件"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(split)}
+        aria-valuetext={`標記占 ${Math.round(split)}%`}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        onKeyDown={onKey}
+      >
+        <span className="cmp-knob" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M5 3L1.5 7 5 11M9 3l3.5 4L9 11" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </div>
+    </div>
   );
 }
 

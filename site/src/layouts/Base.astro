@@ -22,6 +22,17 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <meta name="theme-color" content="#1b4f9c" />
+    <script is:inline>
+      // 捲動動態的開關：非減少動態時才讓元素先藏起來等進場；motion 腳本 3 秒內沒跑起來就整個取消，內容照常顯示
+      (function () {
+        var d = document.documentElement;
+        if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        d.classList.add("motion");
+        setTimeout(function () {
+          if (!window.__ncMotion) d.classList.remove("motion");
+        }, 3000);
+      })();
+    </script>
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
