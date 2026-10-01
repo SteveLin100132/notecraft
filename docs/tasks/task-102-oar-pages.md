@@ -56,3 +56,12 @@ crumbs → h1 + `title` + 複製 schema JSON／連結 → meta（type、欄位�
 - [ ] cURL／fetch 切換後 reload 保留；隱私視窗（localStorage 拋錯）不白屏
 - [ ] 所有複製按鈕回饋正常；dev console 零 hydration warning
 - [ ] `npm run check:oar`、`npm run check-plugins` 通過；`npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-10-01）
+
+- 列表、tag 表、參照列、型別 chip 都是 `<a>`（`LinkCtx` 攔下點擊走元件內路由），中鍵與複製連結有真的 href
+- `OpPage` 以 `key={op.key}` 掛載，換 op 時 content-type／status／範例選擇自然重設
+- 深連結 `#op/x/responses/409`：選中該 status 並捲到 Responses **標題**（section 本身沒有 scroll-margin，會躲在 sticky bar 下）
+- 「被哪些 operation 使用」直接與間接同一清單、中間分隔列（照 prototype）
+- `text/csv` 等非 JSON 回應：框底註明「`<ct>` 依 schema 序列化，這裡以 JSON 呈現結構」
+- 實測：orders 的 createOrder（深入 `items[].options.gift`、allOf 來源、anyOf 切換）、409 深連結、`{orgId}` 點了捲到參數列並閃橘底、Category 自我參照、Petstore 3.2 警示、health 極小、Swagger 2.0 轉檔卡

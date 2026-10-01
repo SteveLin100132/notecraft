@@ -65,3 +65,11 @@ page 模式的殼要和工作台的捲動容器（`#nc-scroll`）、Esc 堆疊�
 - [ ] 長頁捲動時 bar 與導覽 sticky、導覽自己捲、區段高亮跟著走
 - [ ] health（極小）不顯示導覽、bar 有「← 總覽」
 - [ ] `npm run check:oar`、`npm run check-plugins` 通過；`npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-10-01）
+
+- Esc 改為 `setTimeout(0)` 後看 `defaultPrevented` 再處理（規格 §17）：工作台 `wb-escape` 也掛在 window，晚一拍才能確定 Palette／Drawer 是否已處理；在 plugin 外的輸入框打字時的 Esc 不處理
+- `/` 只在非 tiny 文件、焦點不在輸入元件時處理
+- hash 寫回以 `ready` 旗標擋住首次 render（先讀完 hash 才寫，免得把網址上的 hash 清掉）
+- 導覽 path 截斷改為有前綴 19／無前綴 21 字元（handoff 24／26 在實際字型下仍會被 ellipsis 切）
+- 實測：hash 冷載入一幀後切頁、零 hydration 警告；⌘K 開著按 Esc 只關 Palette；四層 Esc 依序生效；極大 spec 只 render 目前 tag 的 11 列

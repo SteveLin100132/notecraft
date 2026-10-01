@@ -51,3 +51,9 @@ embed 的外框不是 plugin 畫的：`<PluginView>` 一律包 `GeneratedFrame`�
 - [ ] 同頁多張卡：按 Esc、點 hash 錨點（筆記 TOC）互不干擾；網址 hash 不被 plugin 改寫
 - [ ] 筆記的 pagefind 索引不含卡片文字（`PluginView` 外層 `data-pagefind-ignore` 照舊）
 - [ ] dev console 零 hydration warning；`npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-10-01）
+
+- 測試筆記另開一篇 `src/content/notes/testing/openapi-內嵌測試.mdx`（不混進 ER 那篇）；`.notecraft/plugins.json` 已在 Task 99 加 `**/*.openapi.json` 規則
+- `GeneratedFrame` 的資料檔膠囊加 `white-space: nowrap; flex: none`：「資料檔 · API 文件」在版心內原本斷成三行
+- 實測：四種內嵌（兩張卡、縮影、找不到）外框各只有一層；開啟連結分別帶 `#op/createOrder`、`#op/listOrders`；放大檢視中卡片寬 1296、Esc 關閉後回原位；零 hydration 警告

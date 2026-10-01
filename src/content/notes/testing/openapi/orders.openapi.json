@@ -5,6 +5,7 @@
     "version": "2.4.0",
     "description": "訂單服務對外的 REST 介面，供 **一鍵發薪** 與內部後台呼叫。\n\n## 慣例\n- 所有金額以 `Money` 表示，`amount` 為最小貨幣單位（新台幣即「元」）\n- 時間一律 ISO 8601、UTC\n- 列表分頁使用 `page` / `pageSize`，上限 100\n\n錯誤格式見 `Problem`。"
   },
+  "x-notecraft-back-to": "/notes/testing/openapi-內嵌測試",
   "servers": [
     {
       "url": "https://api.trendmile.tw/orders",

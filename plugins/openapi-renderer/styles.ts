@@ -293,6 +293,7 @@ export const CSS = `
 .oar-root .oar-oplist-r.oar-dep .oar-path { color: var(--neutral-400); text-decoration: line-through; }
 .oar-root .oar-oplist-r.oar-via .oar-path { color: var(--neutral-600); }
 .oar-root .oar-oplist-sub { padding: 6px 14px; border-top: 1px solid var(--border-subtle); background: var(--surface-page); font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.oar-root .oar-oplist-sub.oar-first { border-top: 0; }
 .oar-root .oar-schemachips { display: flex; flex-wrap: wrap; gap: 8px; }
 .oar-root .oar-schemachip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-card); font: inherit; color: var(--text-muted); cursor: pointer; }
 .oar-root .oar-schemachip code { font-size: 12.5px; font-weight: 600; color: var(--blue-700); }
