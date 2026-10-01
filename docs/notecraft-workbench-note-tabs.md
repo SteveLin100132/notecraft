@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft Workbench — 筆記頁籤（多筆記同時開啟）
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；icon 用既有 lucide-react）
-文件狀態: 設計定案、待實作 —— §15 的 5 題已於 2026-10-01 逐題確認（紀錄見 §16）
+文件狀態: 已實作（notecraftapp v1.7.0，Task 105–108，2026-10-01）—— §15 的 5 題已於 2026-10-01 逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-10-01
 更新日期: 2026-10-01
@@ -450,4 +450,46 @@ Q1、Q2 影響 Task 105–106 的資料結構與 DOM，要先定；Q3–Q5 在 T
 
 ## 17. 實作後回填
 
-（待實作）
+### 實測（2026-10-01，`astro dev`，主專案 31 篇筆記）
+
+| 項目 | 結果 |
+| :-- | :-- |
+| 零位移 | 1280 寬筆記頁：`.nt-bar` 34px、`#nc-scroll` top 103px，hydrate 前後相同；`layout-shift` 累計 0。SSR HTML 的 `.nt-bar` 是空元素 |
+| 非筆記頁 | `/notes`（bare 頁）：Header 從 34px 開始；20 個頁籤皆非 active、`aria-selected` 全為 false、只有一個 `tabindex=0` |
+| 溢出 | 21 個頁籤縮到 120px 後橫捲；active 捲進可視區、左側漸層出現 |
+| 上限 | 預先塞 20 個未固定再開第 21 篇：淘汰 `at` 最小者並推入 `closed`；toast 在 ToastHost 掛載前發出，由 `lib/toast.ts` 佇列在掛載後送出 |
+| 失效清除 | 塞兩個不存在的 key：idle 後移除並 toast「2 篇筆記已不存在…」；快照被索引覆寫（測試用的舊標題全數更新） |
+| 關閉 active | ✕ → 右鄰；「關閉右側」在非 active 頁籤上執行且關到 active → 導覽到被點的頁籤 |
+| 重開與捲動 | 筆記捲到 1500 → `⌥⇧T` 重開另一篇 → `⌥,` 回來：`scrollTop` 1500（無誤差） |
+| hash | 帶 `#標題` 重新載入：已記錄的 1500 未套用，位置由 hash 決定 |
+| 輸入框 | 焦點在 input 內按 `⌥W`：不關頁籤 |
+| Palette | 最上方「已開啟的頁籤」4 筆；目前那篇「目前」pill、固定的「已固定」pill |
+| 刪除筆記 | 以 dev API 建一篇測試筆記 → 開成頁籤 → ⋯ 刪除：回 `/notes`、頁籤已移除、沒有「已不存在」提示 |
+| 平板 900 | 漢堡鈕在 `top:43px`，落在 Header 區 |
+| 手機 375 | 頁籤列隱藏；計數鈕與漢堡鈕左右對稱；SSR 時是空框、hydrate 後填數字；抽屜蓋過底部 Tab bar、焦點落在關閉鈕、`Esc` 關閉後焦點回計數鈕；無整頁橫捲 |
+| viewer 雙工作區 | 同一埠 4330 先後跑 `tmp/notecraft-test` 與臨時工作區：localStorage 兩個 key（`nc-tabs-v1:tmp/notecraft-test`、`nc-tabs-v1:tmp/tabs-ws-b`），切換後各自的頁籤都在、沒有失效提示 |
+| build | `npx tsc --noEmit` 錯誤數未增加；`astro build` 63 頁；`check:wb` 三支全綠；`.nt-*` 規則零色碼 |
+
+### 實作中新增的決定
+
+- **浮層用 `position:fixed`、overlay 層（1000）**：prototype 是 `.wb-app` 內的 absolute（z 70／80）。改 fixed 才不受 `.wb-app{overflow:hidden}` 與各頁 stacking context 影響；開 Palette 時先關頁籤浮層
+- **下拉與手機抽屜的列也照 Q2**：容器內並排 `<a>` 與關閉鈕（prototype 是 `div role=menuitem` 內含按鈕）
+- **「關閉其他／關閉右側」在非 active 頁籤上執行、且關到目前頁面時，導覽到被點的那個頁籤**（`closeAndNavigate` 的 `prefer` 參數），而不是鄰居 —— 鄰居可能是固定頁籤，與使用者意圖不符
+- **取消固定時留在一般區最前面**（原位置），不跳回固定前的索引；斷言已鎖
+- **還原期間不記錄捲動**：內容未撐開時 `scrollTop` 會被夾住，若照常 debounce 記錄，會把真正的位置蓋成較小值
+- **store 加 `refresh()`**：bfcache 還原時重讀 localStorage（期間其他頁的寫入收不到 `storage` 事件）
+- **Palette 頁籤分區的 key 前綴用 `o:`**：`t:` 已被標籤分區使用
+- **手機計數鈕的 SSR 空框是 layout 的 `.nt-count-slot` 本身**（外框、底色在它上面），按鈕以 portal 填入、透明無框，避免雙框線
+- **`DeleteNoteButton` 的 `workspace` 由筆記頁經 `MoreMenu` 傳入**；未傳時不動頁籤（相容其他呼叫端）
+
+### 與設計稿的最終偏離
+
+§1.3 全部照做，另加上一節的前三點（fixed 浮層、下拉／抽屜列的 DOM、「關閉其他／右側」的導覽目標）。
+
+### 仍未做的
+
+- **bfcache 實測**：`astro dev` 的 HMR WebSocket 讓頁面不進 bfcache，dev 下無法驗；正式 build 尚未手動驗證
+- **axe 與 VoiceOver**：沒跑；只以 DOM 檢查 role／aria／tabindex
+- **README 截圖**：未補多頁籤截圖
+- 寬度只量了 1280／900／375；1400、1100、861 未逐一量
+- 建置時發現既有問題（與本功能無關）：`PluginView.astro` 在正式 build 把 renderer 的本機絕對路徑 inline 進內嵌資料檔的筆記頁（`/view` 頁有 `isDev` 判斷、內嵌沒有）。已另開工作處理，不在本分支修

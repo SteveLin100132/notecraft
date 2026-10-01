@@ -104,3 +104,12 @@ Task 106 讓頁籤能開能關；這一步補齊「管理很多頁籤」與「�
 ## 依賴
 
 Task 106。
+
+## 實作記錄（2026-10-01）
+
+- 選單與下拉共用 `TabPop`：改為 `position:fixed`、overlay 層（prototype 是 `.wb-app` 內 absolute），開 Palette 時先關
+- 下拉的列改成容器內並排 `<a role="menuitem">` 與關閉鈕（prototype 是按鈕包在列裡）
+- `closeAndNavigate` 加 `prefer`：「關閉其他／右側」在非 active 頁籤執行且關到目前頁面時，導覽到被點的頁籤
+- 捲動還原多一個「還原期間不記錄」的保護；store 加 `refresh()` 給 bfcache 用
+- Palette 頁籤分區 key 前綴用 `o:`（`t:` 是標籤分區）
+- 實測：右鍵選單 7 項、Esc 關閉、固定、關閉右側導覽、`⌥⇧T`＋`⌥,` 後捲動回到 1500、hash 讓位、輸入框內 `⌥W` 不觸發、Palette 分區、刪除測試筆記後無失效提示。bfcache 在 dev 無法驗（HMR WebSocket）

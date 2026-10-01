@@ -122,3 +122,10 @@
 ## 依賴
 
 Task 105。
+
+## 實作記錄（2026-10-01）
+
+- 頁籤 DOM 照 Q2；溢出、遮罩、滾輪橫捲、roving tabindex、`pointer:fine` 拖曳都照範圍
+- `.nt-bar` 由 island 自己輸出，SSR 是空元素；1280 寬實測 hydrate 前後 `#nc-scroll` top 都是 103px、CLS 0
+- 一開始把每個頁籤包在多一層 div 裡，會讓頁籤的 flex 縮放失效，改成 keyed Fragment
+- 建置時發現與本功能無關的既有問題：`PluginView.astro` 把 renderer 的本機絕對路徑 inline 進內嵌資料檔的筆記頁。另開工作處理

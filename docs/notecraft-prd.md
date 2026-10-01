@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.17.0
+文件版本: v1.18.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -97,7 +97,7 @@ Project Name: NoteCraft
 ## 5. Site Map（網站地圖）
 
 ```
-NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19；v1.16.0 空狀態插圖，見 Phase 4.20）
+NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19；v1.16.0 空狀態插圖，見 Phase 4.20；v1.18.0 筆記頁籤，見 Phase 4.22）
 ├── /                       Dashboard（widget grid + 總覽／本週／AI 佇列三個 Tab）
 ├── /notes                  筆記列表（List／Board／Table／Timeline 四種 view + Drawer；篩選在 query string）
 ├── /notes/[slug]           筆記檢視頁面（頁首接手標題與動作；dev 動作收進「⋯」選單）
@@ -2660,6 +2660,19 @@ model: haiku
 - **不做**：其他頁面的空狀態（篩選無結果等）、深色模式
 - 對應實作 Task 96–97；完整設計見 [notecraft-workbench-empty-states.md](./notecraft-workbench-empty-states.md)（4 題定案紀錄在其 §14，實作後回填在 §15）
 
+#### Phase 4.22 — 筆記頁籤（v1.18.0 追加）
+
+**目標：同時開著好幾篇筆記，不用回列表或側欄切來切去**
+
+- 主區最上方、Header 之上一條 34px 頁籤列（VS Code 式）：筆記頁與 `/view` 資料檔頁開啟後留下頁籤；系列、標籤、Dashboard、列表、Plugin、設定不開頁籤，但頁籤列一律顯示
+- 頁籤可固定（排最前、不可關）、拖曳排序（只在滑鼠裝置）、中鍵關閉；右鍵選單：關閉／關閉其他／關閉右側／全部關閉／固定／複製連結／在新視窗開啟；「全部頁籤」下拉可篩選、重開剛關閉的
+- 切回頁籤還原上次捲動位置；網址帶 hash（標題錨點、OpenAPI `#op/…`）時以 hash 為準
+- 快捷鍵 `⌥.`／`⌥,` 切換、`⌥W` 關閉、`⌥⇧T` 重開（避開瀏覽器保留的 ⌘W／⌘T）；⌘K 指令面板最上方「已開啟的頁籤」
+- 未固定頁籤上限 20，超過自動關閉最久未用的；手機改為 Header 右上計數鈕＋底部抽屜
+- MPA 下頁籤是 localStorage 的已開啟清單（`nc-tabs-v1:<workspaceLabel>`，依工作區分開、含標題快照），SSR 只輸出空列、hydrate 前後零位移
+- **不做**：預覽頁籤（斜體暫時頁籤，單擊列已是 Drawer 預覽）、頁籤上的狀態小點、深色模式
+- 對應實作 Task 105–108；完整設計見 [notecraft-workbench-note-tabs.md](./notecraft-workbench-note-tabs.md)（5 題定案紀錄在其 §16，實作後回填在 §17）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2819,6 +2832,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.18.0] - 2026-10-01
+- **Added**: 新增 Phase 4.22 筆記頁籤規格（notecraftapp v1.7.0）
 
 ### [1.17.0] - 2026-10-01
 - **Added**: 新增官方 OpenAPI Renderer plugin、manifest meta pointer 與 PluginView options／anchor

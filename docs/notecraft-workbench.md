@@ -165,6 +165,7 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
   <Rail />                      靜態 .astro
   <Sidebar />                   靜態 .astro + 一個小 island
   <div class="wb-main">
+    <TabBar client:load />      頁籤列 34px（v1.7.0 起，見 notecraft-workbench-note-tabs.md）
     <Header />                  靜態 .astro（互動型 Tab 例外，見 §4.3）
     <slot name="toolbar" />
     <div id="nc-scroll" class="wb-body"> <slot /> </div>
@@ -187,6 +188,7 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
 | Header（麵包屑／標題／pill／連結型 Tab） | `.astro` | |
 | `/notes`、Dashboard、`/plugins` 的 Header Tab + Toolbar + Body + Drawer | **同一個 island** | Tab 切換、篩選、選取是同一份 state；拆開就要跨 island 同步 |
 | Palette | island，`client:idle` | 每頁都要有；資料延遲載入（§5.3） |
+| 頁籤列（v1.7.0） | island，`client:load` | 清單在 localStorage；SSR 只輸出 34px 空列。見 [notecraft-workbench-note-tabs.md](notecraft-workbench-note-tabs.md) |
 
 因此 `/notes` 這類頁面的 Header 會由 island 自己渲染（island 內含一份 React 版 `WbHeader`），`.astro` 版與 React 版共用同一份 CSS class，視覺一致由 `workbench.css` 保證。
 
@@ -201,6 +203,7 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
 | 目前 view Tab | URL query `?view=`（Q3 已定案） | 切換時 `history.replaceState`，不堆疊上一頁紀錄 |
 | Drawer 選取 | island state，不進 URL | 換頁即關 |
 | 閱讀進度、收藏 | 既有 key 不動 | `nc-reading-progress-v1`、`nc:favorites` |
+| 已開啟的頁籤（v1.7.0） | `localStorage["nc-tabs-v1:<workspaceLabel>"]` | 依工作區分開；含標題快照與每個頁籤的捲動位置（note-tabs §4） |
 
 ### 4.5 z-index 階梯
 
@@ -213,8 +216,9 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
 | 手機底部 Tab bar | 650 |
 | `VizZoom` 放大檢視（既有） | 900 |
 | Palette、`NewNoteModal`、`ConfirmDialog`、Toast（既有 1000 級） | 1000 |
+| 頁籤右鍵選單、全部頁籤下拉、手機頁籤抽屜（v1.7.0） | 1000 |
 
-`Escape` 的關閉順序由上而下：Palette → Modal → Drawer → Sidebar 抽屜。
+`Escape` 的關閉順序由上而下：Palette → Modal → Drawer → Sidebar 抽屜。頁籤的選單、下拉與手機抽屜（v1.7.0）也走同一個堆疊，後開的先關。
 
 ---
 

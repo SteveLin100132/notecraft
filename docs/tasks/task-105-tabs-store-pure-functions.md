@@ -104,3 +104,10 @@ export const tabStorageKey = (workspace: string) => `nc-tabs-v1:${workspace}`;  
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-01）
+
+- `wb-tabs.ts` 照範圍實作，另加 `closable`、`mostRecent`、`tabTooltip`；`popClosed` 多一個 `now` 參數（重開的頁籤要更新 `at`）
+- 斷言 21 組全綠。原本假設「取消固定後回到原索引」是錯的：`normalize` 是穩定排序，取消固定的頁籤留在一般區最前面（也就是原位置），斷言改成這個行為
+- `wb-tabs-store.ts`：`update` 每次重讀 localStorage；相同原字串沿用同一個物件（`useSyncExternalStore` 需要穩定參照）
+- `lib/toast.ts` 佇列在 Task 106 實測：上限淘汰的提示在 ToastHost 掛載前發出，掛載後正常顯示

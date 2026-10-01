@@ -539,9 +539,13 @@ Wiki（總覽／Schema／Table）、Diagram（v1.1 無限畫布功能不減，�
 
 > **Task 09 為 10～13 的基礎**；先做。三個待釐清項已於 2026-06-16 收斂：① **registry `slugs` 為章節順序唯一權威**（舊 `series`/`order` 停用）；② **不做「可追蹤 / 未發佈」判定**（全部筆記皆可追蹤、`tracked` = `total`、僅三態）；③ **升級版 `SeriesNav` 取代既有 prev/next**（prev/next 內嵌不消失）。
 
-## v1.18.0 追加功能（§8.1 Phase 4.22）— 筆記頁籤（notecraftapp v1.7.0）
+## v1.18.0 追加功能（§8.1 Phase 4.22）— 筆記頁籤（notecraftapp v1.7.0）✅ 已完成（2026-10-01）
 
-> 規格：[notecraft-workbench-note-tabs.md](../notecraft-workbench-note-tabs.md) **v0.2.0**（5 項決策已於 2026-10-01 定案，紀錄見該文件 §16）。
+> **已完成（2026-10-01）**：Task 105–108 全部實作於 `feat/note-tabs`。實測結論回填於規格 §17；各 Task 檔末有「實作記錄」。
+> 偏離原計畫的幾處：浮層改 `position:fixed`、overlay 層；下拉與手機抽屜的列同樣是「連結＋並排關閉鈕」；
+> 「關閉其他／右側」關到目前頁面時導覽到被點的頁籤。bfcache、axe、README 截圖未做（見規格 §17「仍未做的」）。
+
+> 規格：[notecraft-workbench-note-tabs.md](../notecraft-workbench-note-tabs.md) **v1.0.0**（5 項決策已於 2026-10-01 定案，紀錄見該文件 §16；實作後回填見 §17）。
 > 設計交付：[design_handoff_note_tabs](../prototype/design_handoff_note_tabs/)（`README.md` 是像素級規格、`prototype/wb/pt-tabs.css` 是視覺定稿、
 > `prototype/NoteCraft-Workbench-Tabs.html` 需經本機 http server 開啟、`Note-Tabs-Spec.html` 是各狀態畫面）
 
