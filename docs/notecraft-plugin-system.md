@@ -218,6 +218,13 @@ manifest 刻意**瘦身**（Q2a），只留「`plugins.json` 給不了的資訊�
 - **沒有 `accepts` / 副檔名宣告** — 吃哪些檔完全由 `plugins.json` 的 `files` 決定。首版只支援 JSON（Q21），「我讀不讀得懂這個副檔名」這件事沒有第二種答案
 - `id` 必須與資料夾名一致，否則安裝時報錯
 - `engines` 在安裝時檢查，不合就擋下並提示升級 `notecraftapp`（Q12 決定一律從 GitHub 抓最新，這道檢查是必要的配套）
+- **`meta`（選填，notecraftapp ≥ 1.6.0，[Task 98](tasks/task-98-app-manifest-meta-pluginview-options.md)）**— 資料檔的標題／描述／backTo 從哪裡取，以 JSON Pointer 宣告；省略的鍵退回資料檔的 `meta.<鍵>`。給「資料格式不是自己定的」plugin 用：OpenAPI 的標題在 `info.title`、頂層只允許 `x-` 擴充，不能叫作者加 `meta`
+
+  ```jsonc
+  "meta": { "title": "/info/title", "description": "/info/description", "backTo": "/x-notecraft-back-to" }
+  ```
+
+  取值在 `src/lib/plugin-meta.ts`（`scripts/checks/app-plugin-meta.mjs` 斷言）；之後的清理（description 去 Markdown、backTo 只收站內路徑）與 `meta.*` 完全相同
 
 ### 6.2 renderer 契約
 
@@ -307,6 +314,15 @@ manifest 用 `import.meta.glob("@notes/plugins/*/notecraft-plugin.json", { eager
 ```
 
 由 app 提供的 `.astro` 元件解析 `src` → 找 plugin → **包進 `GeneratedFrame`**，與現有 AI 生成元件行為一致。`data-nc-viz-body` 那層必須保留，放大檢視靠它搬移。
+
+兩個選填 prop（notecraftapp ≥ 1.6.0，[Task 98](tasks/task-98-app-manifest-meta-pluginview-options.md)）：
+
+```mdx
+<PluginView src="api/orders.openapi.json" options={{ operation: "createOrder" }} anchor="op/createOrder" />
+```
+
+- `options`：淺合併在 `plugins.json` 規則的 `options` 之上，只影響這一處內嵌（同一份資料檔在不同筆記可各自指定要看哪一塊）
+- `anchor`：附加在外框「開啟完整檢視頁」連結後的 hash（不含 `#`）。app 不解讀內容，格式由各 plugin 的 README 說明
 
 ### 7.4 資料怎麼進到瀏覽器
 

@@ -55,6 +55,12 @@ export interface PluginManifest {
   /** 相對 manifest 的路徑，指向可直接 build 的範例資料；CI 拿它驗證這個 plugin 跑得起來。 */
   example?: string;
   engines?: { notecraftapp?: string };
+  /**
+   * 資料檔的標題／描述／backTo 從哪裡取（JSON Pointer，RFC 6901）。省略的鍵退回 `meta.<鍵>`。
+   * 給「資料格式不是自己定的」plugin 用：OpenAPI 的標題在 `/info/title`，頂層只允許 `x-` 擴充，
+   * 不能叫作者加 `meta`（Task 98，app ≥ 1.6.0）。
+   */
+  meta?: { title?: string; description?: string; backTo?: string };
 }
 
 /** 傳給 renderer 的資料檔中繼資訊。 */

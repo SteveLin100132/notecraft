@@ -86,3 +86,14 @@ export interface Props {
 - [ ] `plugins/notecraft-plugin.schema.json` 接受帶 `meta` 的 manifest、拒絕 `meta.foo`
 - [ ] 新斷言通過；`npm run check-plugins` 通過
 - [ ] `npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-10-01）
+
+- 取值抽成 `src/lib/plugin-meta.ts`（`resolvePointer`、`pickMeta`，只 `import type`），`plugins.ts` 的 `readMeta` 改呼叫它；原本 `plugins.ts` 內的 `isPlainObject` 因此不再使用，已移除
+- `pickMeta` 另回傳 `raw` 與 `source`：backTo 的 warn 文案顯示實際來源（`x-notecraft-back-to` 或 `meta.backTo`）
+- `scripts/checks/app-plugin-meta.mjs` 串進 `check:er`（不另開 script）
+- **DOM id**：`GeneratedFrame` 的 `id` 只傳給 `VizZoom` 當 PNG 檔名（`VizZoom.tsx:178`），不產生 DOM id——同一份檔內嵌兩次不會撞，不需要把 operation 併進 id
+- `package.json`／`package-lock.json` 升 1.6.0（比照 1.5.1 的發版 commit 一起改 lockfile 的兩處版號）
+- ER 回歸：`dist/view/testing/er-v12.er/index.html` 的 `<title>` 與改動前相同；tsc 錯誤數 52 → 51（未新增）
+- 本機 shell 預設 Node 16，`scripts/checks` 需要 22.6+：一律以 `~/.nvm/versions/node/v22.16.0/bin` 執行（專案 `.nvmrc` 為 22）
+- 帶 `meta` 的 manifest、`<PluginView options anchor>` 的實際效果在 Task 99／103 以 `openapi-renderer` 驗證
