@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenAPI Renderer — 設計提案</title>
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<link rel="stylesheet" href="wb/pt.css">
+<link rel="stylesheet" href="er/er.css">
+<link rel="stylesheet" href="oa/oa.css">
+<style>
+html,body{height:auto;background:var(--wb-bg)}
+body{font-family:var(--font-sans);color:var(--text-body)}
+a{color:var(--blue-600)}a:hover{color:var(--blue-800)}
+.doc{max-width:900px;margin:0 auto;padding:40px 28px 96px;font-size:14px;line-height:1.8}
+.doc h1{margin:4px 0 6px;font-size:26px;line-height:1.3;color:var(--text-strong)}
+.doc h2{margin:40px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--border-subtle);font-size:18px;color:var(--blue-700)}
+.doc h3{margin:22px 0 6px;font-size:14.5px;color:var(--text-strong)}
+.doc p{margin:0 0 12px;text-wrap:pretty}
+.doc ul{margin:0 0 12px;padding-left:20px}.doc li{margin:3px 0}
+.doc code{font-family:var(--font-mono);font-size:12.5px;padding:1px 5px;border-radius:3px;background:var(--neutral-100);color:var(--neutral-800)}
+.lede{font-size:15px;color:var(--text-body)}
+.meta{font-size:12px;color:var(--text-muted);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:8px;padding:16px 18px;margin:12px 0}
+.dec{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;padding:12px 0;border-top:1px solid var(--border-subtle)}
+.dec:first-child{border-top:0;padding-top:0}
+.dec b.n{font-family:var(--font-mono);font-size:12px;color:var(--orange-600);padding-top:2px}
+.dec .q{font-weight:700;color:var(--text-strong)}
+.dec .a{grid-column:2}
+table.t{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:8px;overflow:hidden;margin:10px 0 14px}
+.t th{text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);background:var(--surface-page);padding:8px 12px;border-bottom:1px solid var(--border-subtle)}
+.t td{padding:9px 12px;border-top:1px solid var(--border-subtle);vertical-align:top;line-height:1.65}
+.t td:first-child{white-space:nowrap}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid rgba(0,0,0,.06)}
+.layout{display:grid;grid-template-columns:52px 120px 70px minmax(0,1fr);height:120px;border:1px solid var(--border-subtle);border-radius:8px;overflow:hidden;margin:12px 0;font-size:11px;color:var(--text-muted)}
+.layout>div{display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;border-right:1px solid var(--border-subtle)}
+.layout .r{background:var(--neutral-900);color:#9aa6b8}.layout .s{background:var(--wb-bg)}.layout .n{background:var(--surface-page)}
+.layout .m{flex-direction:column;align-items:stretch;gap:6px;padding:10px;background:#fff}
+.layout .m i{display:block;height:10px;border-radius:3px;background:var(--neutral-100)}
+.layout .m .sp{display:grid;grid-template-columns:1.15fr 1fr;gap:6px}.layout .m .sp i{height:34px}.layout .m .sp i+i{background:var(--surface-page);border:1px solid var(--border-subtle)}
+.cap{font-size:12px;color:var(--text-muted);margin:-4px 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.go{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:999px;background:var(--blue-700);color:#fff;text-decoration:none;font-size:13px;font-weight:700}
+.go:hover{background:var(--blue-800);color:#fff}
+</style>
+</head>
+<body>
+<article class="doc">
+<div class="erx-eyebrow">NOTECRAFT PLUGIN · 提案</div>
+<h1>OpenAPI Renderer</h1>
+<div class="meta"><span>id <code>openapi-renderer</code></span><span>對應 <code>**/*.openapi.json</code></span><span>OAS 3.0 / 3.1</span><span>2026-10-01</span></div>
+<p class="lede">長在工作台主區 Body 的 API 文件頁。骨架直接沿用 ER Diagram 的 <code>erx-*</code>：左側導覽樹、Wiki 頁首、欄位表格、Markdown，只新增 OpenAPI 專屬的 method 標記、status、欄位樹與程式碼區。</p>
+<div class="row"><a class="go" href="OpenAPI Renderer Prototype.html">開啟 Prototype</a><span class="cap" style="margin:0">右下 Tweaks 可切換：文件頁 / MDX 內嵌，以及 Petstore、邊界案例、極小、極大四份資料。</span></div>
+
+<h2>四個提案問題</h2>
+<div class="card">
+<div class="dec"><b class="n">01</b><div class="q">範例區放右側欄還是內文流？</div>
+<div class="a">放內文流，但在 Request Body 與每個 Response 內把「欄位樹｜範例 JSON」並排，範例欄 sticky。Body 1148px 扣掉導覽 248px 只剩約 900px，Redoc 式第三欄會把說明欄壓到 500px 以下，欄位樹的縮排與 enum 會一直折行。並排只發生在 schema 與它自己的範例之間，對照關係比整頁右欄更直接。視窗低於 1180px 時改為上下排列。cURL / fetch 放在最後一節「範例請求」，頁首另有「複製 path」「複製連結」。</div></div>
+<div class="dec"><b class="n">02</b><div class="q">長 path 怎麼不爆版？</div>
+<div class="a">導覽列：先抽出 tag 內所有 path 的共同前綴，顯示一次在 tag 下方（例如 <code>/v1/organizations/{orgId}</code>），列上只放剩餘部分；仍超過寬度時保留第一段與尾段，中間以 <code>/…/</code> 取代。完整 path 與 summary 在 hover 卡片上。頁首：path 允許在每個 <code>/</code> 後換行（<code>&lt;wbr&gt;</code>），不截斷；<code>{param}</code> 以橘色底標出，點了會捲到參數表的那一列。</div></div>
+<div class="dec"><b class="n">03</b><div class="q">巢狀 schema 超過 3 層？</div>
+<div class="a">樹最多內縮 3 層。第 3 層的欄位如果還有子欄位，不再出現展開箭頭，改成「深入 N 個欄位」按鈕：把這個節點設為樹的根，上方出現麵包屑（<code>body › items[].options.gift</code>）可逐層返回。<code>$ref</code> 預設收合並可點到 Schema 頁；同一條鏈上第二次出現的 <code>$ref</code> 標成「循環參照」並停止。這樣寬度固定，不會出現第 6 層只剩 200px 的情況。</div></div>
+<div class="dec"><b class="n">04</b><div class="q">和 ER Diagram 共用什麼？</div>
+<div class="a">見下方「共用語彙」。原則是殼與表格一模一樣（同一組 class），只有資料語意不同的元件各自長。</div></div>
+</div>
+
+<h2>版面</h2>
+<div class="layout"><div class="r">Rail<br>52</div><div class="s">Sidebar<br>240</div><div class="n">Plugin 導覽<br>248</div><div class="m"><i style="width:60%"></i><i style="width:90%"></i><div class="sp"><i></i><i></i></div><i style="width:40%"></i></div></div>
+<p class="cap">1440 寬：Rail 52 + Sidebar 240 → Body 1148。Body 內：plugin bar 44px 高；導覽 248；內容欄約 900，頁面左右 padding 36。</p>
+<ul>
+<li>頁首（標題、檔案路徑、<code>openapi-renderer</code> 標記、回到來源筆記）由 app 提供，沿用工作台壓縮頁首。</li>
+<li>plugin bar 與 ER 同高同結構：導覽開關、目前位置、右側 OAS 版本。超出 3.0/3.1 時版本變成警示色並在總覽頂端說明（附件的 Petstore 宣告 3.2.0，就是這個情況）。</li>
+<li>Operation 頁固定順序：頁首 → 說明 → 參數 → Request Body → Responses → 範例請求。導覽中選中的 operation 下方展開這四個區段，捲動時同步標示。</li>
+</ul>
+
+<h2>共用語彙</h2>
+<table class="t"><thead><tr><th>元件</th><th>做法</th><th>說明</th></tr></thead><tbody>
+<tr><td>導覽樹</td><td>一模一樣</td><td><code>erx-nav</code>：篩選框、命中數 <code>12/214</code>、區段標題、caret、選中態（淡藍底 + 左側金線）。OpenAPI 只多一排 method 篩選 chip。</td></tr>
+<tr><td>Wiki 頁首</td><td>一模一樣</td><td>eyebrow（橘、全大寫）→ h1 → meta 列（粗體數字 + 單位）→ Markdown。ER 的 DATABASE / SCHEMA 對應 OPENAPI 3.x / TAG / SCHEMA。</td></tr>
+<tr><td>區段標題</td><td>一模一樣</td><td><code>erx-h2</code> + 數量膠囊。</td></tr>
+<tr><td>欄位表格</td><td>一模一樣</td><td><code>erx-colt</code> 用於參數表；欄位順序 名稱 / 型別 / 必填 / 說明，OpenAPI 多「範例」。</td></tr>
+<tr><td>型別 chip</td><td>一模一樣（提案 ER 跟進）</td><td>等寬 11px、灰底 3px 圓角。可點的 <code>$ref</code> 改藍底 + ↗。ER 目前是純灰字，建議改用同一個 chip。</td></tr>
+<tr><td>必填標示</td><td>同形</td><td>藍色實心點 + 「必填」。選填不標，減少雜訊。</td></tr>
+<tr><td>參照關係</td><td>一模一樣</td><td><code>erx-rel</code>：「參照 / 被參照」兩欄，用在 Schema 頁。</td></tr>
+<tr><td>空狀態文案</td><td>同格式</td><td>說明缺什麼 + spec 裡的欄位路徑。</td></tr>
+<tr><td>method / status / 欄位樹 / 程式碼區</td><td>OpenAPI 專屬</td><td>ER 沒有對應概念。</td></tr>
+</tbody></table>
+
+<h2>Method 與 status 標記</h2>
+<div class="row"><span class="oa-m oa-m--get is-read">GET</span><span class="oa-m oa-m--post is-write">POST</span><span class="oa-m oa-m--put is-write">PUT</span><span class="oa-m oa-m--patch is-write">PATCH</span><span class="oa-m oa-m--delete is-write">DEL</span><span class="oa-m oa-m--other is-read">QUERY</span>
+<span style="width:24px"></span><span class="oa-st oa-st--ok"><i></i>200</span><span class="oa-st oa-st--info"><i></i>304</span><span class="oa-st oa-st--warn"><i></i>404</span><span class="oa-st oa-st--danger"><i></i>500</span><span class="oa-st oa-st--neutral"><i></i>default</span></div>
+<ul>
+<li>44×18px、10px 等寬粗體，低彩度底配有色字。不靠顏色也分得出：<b>文字</b>本身就是 method 名；<b>形狀</b>再分兩類，唯讀方法（GET / HEAD / OPTIONS / QUERY）是白底外框，會改資料的方法是填色底。</li>
+<li>status 的圓點在 4xx 變成菱形、5xx 變成方形、<code>default</code> 為空心圓，灰階列印也分得出。</li>
+<li>deprecated operation：導覽列 path 變淡加刪除線、method 降透明度，右側小字「棄用」；頁面上是灰色外框標籤 + 一行灰底說明，不用警示色。</li>
+</ul>
+
+<h3>新增 token（<code>oa/oa.css</code> 頂端，集中一處）</h3>
+<table class="t"><thead><tr><th>token</th><th>值</th><th>理由</th></tr></thead><tbody>
+<tr><td><code>--wb-oa-get-fg / bg</code></td><td><span class="sw" style="background:#1f5aa6"></span><code>--blue-600</code> / <code>--blue-50</code></td><td>沿用品牌藍。GET 是最常見的，用主色最不突兀。</td></tr>
+<tr><td><code>--wb-oa-post-fg / bg</code></td><td><span class="sw" style="background:#1f7350"></span><code>#1f7350</code> / <code>--success-50</code></td><td>字色沿用工作台 <code>.wb-pill.ok</code> 的深綠；<code>--success-500</code> 在淡底上對比不足 4.5:1。</td></tr>
+<tr><td><code>--wb-oa-put-fg / bg</code></td><td><span class="sw" style="background:#8a6412"></span><code>#8a6412</code> / <code>--warning-50</code></td><td>沿用 <code>.wb-pill.warn</code> 字色，理由同上。</td></tr>
+<tr><td><code>--wb-oa-patch-fg / bg</code></td><td><span class="sw" style="background:oklch(.47 .08 195)"></span><code>oklch(.47 .08 195)</code> / <code>oklch(.96 .022 195)</code></td><td>唯一的新色相。DS 只有藍、橘、綠、黃、紅五組，PATCH 若用橘會和 PUT 的琥珀太近。選低彩度青綠，亮度與其他字色對齊。</td></tr>
+<tr><td><code>--wb-oa-delete-fg / bg</code></td><td><span class="sw" style="background:#c0392f"></span><code>#c0392f</code> / <code>--danger-50</code></td><td>沿用 <code>.wb-pill.danger</code>。</td></tr>
+<tr><td><code>--wb-oa-other-fg / bg</code></td><td><span class="sw" style="background:#4f5b6e"></span><code>--neutral-600</code> / <code>--neutral-100</code></td><td>HEAD、OPTIONS、TRACE，以及 3.2 的 QUERY。</td></tr>
+<tr><td><code>--wb-oa-param-fg / bg</code></td><td><span class="sw" style="background:#a04f15"></span><code>--orange-700</code> / <code>--orange-50</code></td><td>path 中的 <code>{param}</code> 與範例裡的 <code>&lt;佔位&gt;</code>。</td></tr>
+<tr><td><code>--wb-oa-json-*</code></td><td>key <code>--blue-800</code>、字串 <code>#1f7350</code>、數字 <code>--orange-700</code>、常值 <code>--neutral-500</code></td><td>範例 JSON 的語法色，全部取自既有色票。</td></tr>
+</tbody></table>
+<p>status 不另開 token，直接用上表的 ok / warn / danger 字色與 <code>--blue-600</code>。</p>
+
+<h2>深連結</h2>
+<table class="t"><thead><tr><th>目標</th><th>hash</th></tr></thead><tbody>
+<tr><td>總覽</td><td><code>/view/api/orders</code>（無 hash）</td></tr>
+<tr><td>Tag</td><td><code>#tag/orders</code></td></tr>
+<tr><td>Operation</td><td><code>#op/createOrder</code>（<code>operationId</code>）</td></tr>
+<tr><td>沒有 operationId</td><td><code>#op/get/pet/{petId}</code>（method + 原始 path）</td></tr>
+<tr><td>某個回應</td><td><code>#op/createOrder/responses/409</code>：開頁時直接選中該 status</td></tr>
+<tr><td>Schema</td><td><code>#schema/Order</code>；欄位層級預留 <code>#schema/Order/items[].unitPrice</code></td></tr>
+</tbody></table>
+<p>用 <code>operationId</code> 而非 path，改 path 時連結不會斷；作者沒寫 operationId 才退回 method + path，頁首會提示「未設定」。篩選條件不進 hash，分享出去的連結永遠是乾淨的。</p>
+
+<h2>互動</h2>
+<ul>
+<li><kbd class="oa-kbd">/</kbd> 聚焦篩選（輸入框內不攔截）。篩選同時比對 path、summary、operationId；method chip 可複選；tag 列與區段標題都顯示 <code>命中/總數</code>，沒有命中的 tag 整個隱藏。</li>
+<li><kbd class="oa-kbd">Esc</kbd> 逐層退：清除文字 → 清除 method → 收起所有展開的欄位樹與「深入」→ 離開輸入框。每一步在 bar 上閃一個小提示，讓人知道剛剛退了哪一層。</li>
+<li>複製（path、連結、範例、schema JSON、cURL）：按鈕本身變成綠色「已複製」1.6 秒，不另跳 toast。</li>
+<li>選中的 operation 在導覽中保持在可視範圍；捲動內容時，導覽中的區段（參數 / Request Body / Responses / 範例請求）跟著標示。</li>
+</ul>
+
+<h2>規模與資料狀態</h2>
+<table class="t"><thead><tr><th>情況</th><th>處理</th></tr></thead><tbody>
+<tr><td>極小（≤ 4 支、沒有 tag）</td><td>省略 plugin 導覽，內容置中 880px。總覽直接列出全部 operation 與 schema chip，點進去後 bar 上有「← 總覽」。不放大字或插圖撐場面。</td></tr>
+<tr><td>極大（200+、20 tag）</td><td>超過 6 個 tag 時預設只展開目前所在的 tag；篩選時自動展開所有命中的 tag。總覽有一條依 operation 數等比分段的 tag 長條，一眼看出規模與分塊。</td></tr>
+<tr><td>description 全缺</td><td>虛線框空狀態，寫出該補的欄位：<code>info.description</code>、<code>paths["/pet"].post.description</code>、<code>tags[name="pet"].description</code>、<code>components.schemas.Pet.description</code>。欄位層級缺說明則不顯示說明列。</td></tr>
+<tr><td>deprecated</td><td>operation：見上方標記規則。參數與欄位：名稱刪除線 + 灰色「已棄用」，範例產生時略過。</td></tr>
+<tr><td>循環 <code>$ref</code></td><td>每個節點帶著祖先鏈；同名 schema 第二次出現時停在該列，標「循環參照 · 同上層 X」，沒有展開箭頭。Schema 頁的參照關係也標「自我參照 / 互相參照」。</td></tr>
+<tr><td><code>oneOf</code> / <code>anyOf</code></td><td>一個淡藍框，標頭寫「擇一 / 一個或多個」與 discriminator，右側切換選項，框內是該選項的欄位。</td></tr>
+<tr><td><code>allOf</code></td><td>攤平成一組欄位，頂端註明合併自哪些 schema，每個欄位小字標來源。</td></tr>
+<tr><td>同一 status 多個 content-type</td><td>回應標頭右側出現 content-type 切換與「N 種格式」；XML、form 仍以 JSON 呈現結構並在範例下方註明。</td></tr>
+<tr><td>OAS 3.2 / 2.0</td><td>3.2 以 3.1 規則盡力渲染並警示；2.0（<code>swagger: "2.0"</code>）不渲染，顯示錯誤卡請作者轉檔。</td></tr>
+</tbody></table>
+
+<h2>embed 模式</h2>
+<ul>
+<li>外框沿用工作台既有的資料檔內嵌框：圓角 8px、細框、淺灰 figcaption（橘色「資料檔 · API 文件」膠囊、檔名、「在文件頁開啟」）。上下 22–26px 間距，和前後段落明確分開；筆記內文是 15px 段落，卡片內是 12–13px 介面字，字級落差也幫助區隔。</li>
+<li>指定 <code>operation</code>：method + path + summary + 驗證、參數（合併成一張表，加 <code>in</code> 欄）、Request Body 頂層欄位、主要 2xx 回應頂層欄位、其他 status 列成 chip。只展開一層，其餘用「深入」。</li>
+<li>不指定：標題、版本、規模數字、method 分布，tag 清單附 operation 數長條。超過 8 個 tag 只列最多的 6 個，其餘一句話帶過。</li>
+<li><code>operationId</code> 寫錯：卡片內顯示找不到哪個 id，並指出 <code>options.operation</code>。</li>
+</ul>
+
+<h2>試打 API：首版不做</h2>
+<p>範例區只保留複製 cURL / fetch。理由：</p>
+<ul>
+<li>站台是 Netlify 純靜態，請求從讀者瀏覽器直接發出。大多數 API 不會對 <code>*.netlify.app</code> 開 CORS，實際體驗會是「十次有八次失敗」。</li>
+<li>要能打就得在頁面上輸入 token。這個網站是公開的筆記站，鼓勵把正式環境的 token 貼進陌生頁面不是好習慣。</li>
+<li>主要讀者是一年後回來查參數的作者，他要的是「參數叫什麼、回什麼」，送請求在終端機用 cURL 更可靠，也不受 CORS 限制。</li>
+<li>如果之後要做，前提是 spec 的 server 明確允許跨域，並在 plugin options 加 <code>tryIt: true</code> 讓作者自己打開。</li>
+</ul>
+</article>
+</body>
+</html>
