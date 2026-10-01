@@ -83,6 +83,7 @@ const toc = headings
   pills={[aiPill]}
   clampTwo
   pagefindTitle
+  tab={{ kind: "note", id: note.id, title: note.data.title, path: relPath, pending: pendingMarkers.length }}
 >
   <Fragment slot="actions">
     <DeckAction client:idle slug={note.id} hasDeck={noteHasDeck} promptPath={promptPath} isDev={isDev} />

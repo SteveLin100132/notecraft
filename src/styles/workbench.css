@@ -46,6 +46,7 @@
   --wb-cal-thiswk-line: #d3e0f2;  /* 當週框線 */
 
   /* ── 半透明色（pt.css 實際出現的值，逐一 grep 後命名）── */
+  --wb-a-blue-04: rgba(27,79,156,.04);   /* 頁籤 hover 底（規格 docs/notecraft-workbench-note-tabs.md §10） */
   --wb-a-blue-06: rgba(27,79,156,.06);   --wb-a-blue-07: rgba(27,79,156,.07);
   --wb-a-blue-08: rgba(27,79,156,.08);   --wb-a-blue-10: rgba(27,79,156,.1);
   --wb-a-blue-12: rgba(27,79,156,.12);   /* 月曆色塊 inset 描邊、週卡片 hover 陰影 */
@@ -547,6 +548,40 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .wb-callout{display:flex;gap:10px;align-items:flex-start;margin:16px 18px 28px;padding:12px 14px;border-radius:8px;background:color-mix(in srgb,var(--wb-blue-l) 7%,var(--wb-panel));border:1px solid color-mix(in srgb,var(--wb-blue-l) 24%,var(--wb-panel))}
 .wb-callout-t{font-size:12.5px;font-weight:700;color:var(--wb-ink);margin-bottom:3px}
 .wb-callout-b{font-size:12px;line-height:1.85;color:var(--wb-ink-2);display:flex;flex-wrap:wrap;align-items:center;gap:4px;text-wrap:pretty}
+/* ── 筆記頁籤（規格 docs/notecraft-workbench-note-tabs.md；由 design_handoff_note_tabs 的 pt-tabs.css 移植，數值不調整）──
+   差異：頁籤是容器 .nt-tab 內並排 <a class="nt-tab-main" role="tab"> 與 .nt-x（Q2），focus 樣式改掛在 :has() 上；
+   狀態小點 .nt-dot 不移植（Q3）。必須放在 860px 媒體規則之前（手機隱藏列的規則要贏） */
+.nt-bar{height:34px;flex:0 0 34px;display:flex;align-items:stretch;background:var(--wb-bg);border-bottom:1px solid var(--wb-line);position:relative;z-index:4;min-width:0;box-sizing:border-box}
+.nt-scrollwrap{flex:1;min-width:0;position:relative;display:flex}
+.nt-scrollwrap::before,.nt-scrollwrap::after{content:"";position:absolute;top:0;bottom:0;width:28px;pointer-events:none;z-index:2;opacity:0;transition:opacity .14s}
+.nt-scrollwrap::before{left:0;background:linear-gradient(90deg,var(--wb-bg),transparent)}
+.nt-scrollwrap::after{right:0;background:linear-gradient(270deg,var(--wb-bg),transparent)}
+.nt-scrollwrap.fl::before,.nt-scrollwrap.fr::after{opacity:1}
+.nt-scroll{flex:1;min-width:0;display:flex;align-items:stretch;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;outline:none}
+.wb-app .nt-scroll::-webkit-scrollbar{height:0;display:none}
+.nt-tab{position:relative;flex:0 1 auto;min-width:120px;max-width:200px;height:34px;margin-bottom:-1px;display:flex;align-items:center;gap:6px;padding:0 6px 0 10px;border-right:1px solid var(--wb-line);color:var(--wb-ink-3);font-size:12.5px;cursor:pointer;user-select:none;box-sizing:border-box}
+.nt-tab:hover{background:var(--wb-a-blue-04);color:var(--wb-ink-2)}
+.nt-tab.on{background:var(--wb-panel);color:var(--wb-ink);font-weight:500;box-shadow:inset 0 2px 0 var(--wb-blue)}
+.nt-tab:has(.nt-tab-main:focus-visible){box-shadow:inset 0 0 0 2px var(--wb-blue-l)}
+.nt-tab.on:has(.nt-tab-main:focus-visible){box-shadow:inset 0 2px 0 var(--wb-blue),inset 0 0 0 2px var(--wb-blue-l)}
+.nt-tab.pinned{max-width:150px}
+.nt-tab.dragging{opacity:.45}
+.nt-tab.over{box-shadow:inset 2px 0 0 var(--wb-blue-l)}
+.nt-tab-main{display:flex;align-items:center;gap:6px;flex:1;min-width:0;height:100%;color:inherit;text-decoration:none;outline:none;-webkit-user-drag:none}
+.nt-ic{display:flex;flex:none}
+.nt-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt-x{width:18px;height:18px;flex:0 0 18px;border:none;background:none;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--wb-ink-3);cursor:pointer;padding:0;opacity:0}
+.nt-tab:hover .nt-x,.nt-tab.on .nt-x,.nt-x.show,.nt-tab:has(.nt-tab-main:focus-visible) .nt-x,.nt-x:focus-visible{opacity:1}
+.nt-x:hover{background:var(--wb-a-ink-08);color:var(--wb-ink)}
+@media(pointer:coarse){.nt-x{opacity:1}}
+.nt-pin{width:18px;height:18px;flex:0 0 18px;display:flex;align-items:center;justify-content:center;color:var(--wb-ink-3)}
+.nt-tab.on .nt-pin{color:var(--wb-blue-l)}
+.nt-sep{width:2px;flex:0 0 2px;background:var(--wb-line)}
+.nt-all{flex:none;height:24px;align-self:center;margin:0 8px 0 6px;display:inline-flex;align-items:center;gap:3px;padding:0 6px 0 8px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-panel);font:inherit;font-size:11.5px;font-weight:700;color:var(--wb-ink-2);cursor:pointer}
+.nt-all:hover,.nt-all.on{border-color:var(--wb-blue-l);color:var(--wb-blue-l)}
+.nt-empty{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:0 14px;font-size:12px;color:var(--wb-ink-3);white-space:nowrap;overflow:hidden}
+.nt-empty svg{flex:none}
+.nt-empty-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 /* ── 行動版（≤860px）：單欄、側欄抽屜、底部 tab bar、只提供 List ── */
 .wb-mburger{display:none;width:32px;height:32px;border:1px solid var(--wb-line);border-radius:6px;background:var(--wb-panel);color:var(--wb-ink-2);align-items:center;justify-content:center;cursor:pointer;position:absolute;top:9px;left:12px;z-index:6}
 .wb-sb-scrim{display:none}

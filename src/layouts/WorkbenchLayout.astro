@@ -19,7 +19,9 @@ import SidebarLive from "@/components/wb/SidebarLive.tsx";
 import Palette from "@/components/wb/Palette.tsx";
 import ToastHost from "@/components/islands/ToastHost.tsx";
 import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
+import TabBar from "@/components/wb/tabs/TabBar.tsx";
 import { getWorkbenchIndex } from "@/lib/workbench";
+import type { TabSelf } from "@/lib/wb-tabs";
 
 export interface Props {
   title: string;
@@ -40,6 +42,8 @@ export interface Props {
   clampTwo?: boolean;
   pagefindTitle?: boolean;
   indexHeader?: boolean;
+  /** 這一頁是頁籤（筆記頁、資料檔頁）：頁籤列會加入／聚焦它。規格 docs/notecraft-workbench-note-tabs.md §3 */
+  tab?: TabSelf;
 }
 const {
   title,
@@ -56,6 +60,7 @@ const {
   clampTwo = false,
   pagefindTitle = false,
   indexHeader = false,
+  tab,
 } = Astro.props;
 
 const isDev = import.meta.env.DEV;
@@ -105,6 +110,8 @@ const index = await getWorkbenchIndex();
       <Rail active={rail} pending={index.pending.markers} />
       <Sidebar index={index} folderPath={folderPath} />
       <main class="wb-main" id="nc-main">
+        {/* 頁籤列：bare 與否都在。SSR 只輸出 34px 空列，hydrate 後才畫頁籤（零位移） */}
+        <TabBar client:load self={tab ?? null} workspace={index.workspaceLabel} />
         <button type="button" class="wb-mburger" id="wb-mburger" aria-label="開啟側欄" aria-expanded="false" aria-controls="wb-sb">
           <Icon name="layers" size={16} stroke={1.7} />
         </button>
