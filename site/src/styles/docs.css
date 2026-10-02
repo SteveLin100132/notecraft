@@ -486,6 +486,138 @@ a.sec[aria-current="page"]::before {
 .plate--detail img {
   aspect-ratio: auto;
 }
+
+/* 帶標註的圖版：上下各留一條帶狀區放標籤，引線用 SVG 畫在同一個座標系 */
+.plate--noted {
+  container-type: inline-size;
+}
+.plate-stage {
+  position: relative;
+  width: 100%;
+}
+.plate-shot {
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
+.plate-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  box-sizing: border-box;
+}
+.plate-leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.plate-lead,
+.plate-halo {
+  fill: none;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+.plate-lead {
+  stroke: var(--ink);
+  stroke-width: 1.5px;
+}
+.plate-halo {
+  stroke: var(--paper);
+  stroke-width: 5px;
+}
+.plate-dot {
+  fill: var(--ink);
+  stroke: var(--paper);
+  stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke;
+}
+.plate-note {
+  position: absolute;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  padding: 0 2px 5px;
+  border-bottom: 2px solid var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.plate-note--center {
+  translate: -50% 0;
+}
+.plate-note--end {
+  translate: -100% 0;
+}
+.plate-note .ref,
+.plate-legend .ref {
+  font-size: 1.05em;
+}
+.plate-pin {
+  display: none;
+  position: absolute;
+  translate: -50% -50%;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+/* 寬版的標籤已經畫在圖上；清單只給螢幕閱讀器 */
+.plate-legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@container (max-width: 559px) {
+  .plate-note,
+  .plate-leaders {
+    display: none;
+  }
+  .plate-pin {
+    display: block;
+  }
+  .plate-stage {
+    aspect-ratio: 16 / 10 !important;
+  }
+  .plate-shot {
+    top: 0 !important;
+    height: 100% !important;
+  }
+  .plate-legend {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .plate-legend li {
+    display: flex;
+    gap: 0.5em;
+  }
+}
+
 .plate figcaption::before {
   content: "FIG. " counter(fig);
   margin-right: 0.7em;

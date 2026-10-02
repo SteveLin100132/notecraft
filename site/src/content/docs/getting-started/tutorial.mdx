@@ -2,7 +2,7 @@
 description: 從一個空資料夾開始：寫第一篇筆記、在瀏覽器打開、加一個 @ai-visualize 標記，再交給 Claude Code 生成互動元件。
 ---
 
-每一步只列指令與預期結果，細節連到對應的頁面。需要 Node.js 22 以上；第 4 步起的 AI 生成需要 [Claude Code](https://claude.com/claude-code)，見[系統需求](/docs/getting-started/requirements/)。
+每一步列出指令與預期結果，關鍵步驟附上實際畫面，細節連到對應的頁面。需要 Node.js 22 以上；第 4 步起的 AI 生成需要 [Claude Code](https://claude.com/claude-code)，見[系統需求](/docs/getting-started/requirements/)。
 
 ## 1. 建立第一篇筆記
 
@@ -30,6 +30,10 @@ npx notecraftapp view ./docs
 ```
 
 **預期**：終端機印出 `notes dir`、`user cwd`、`port`。手動在瀏覽器開 `http://127.0.0.1:4321/`，儀表板顯示 1 篇筆記；從 Sidebar 的「全部筆記」點進去，網址是 `/notes/hello`，標題是「你好，NoteCraft」。
+
+<Plate name="tutorial-dashboard" notes={[{ label: "全部筆記：1 篇", at: [112, 171], x: 74, align: "start" }, { label: "筆記總數", at: [522, 350], x: 640, align: "start" }, { label: "最近更新列出 hello.md", at: [672, 943], side: "bottom", align: "start" }]} alt="工作台首頁：Sidebar 只有「全部筆記 1」，儀表板的筆記總數是 1，最近更新列出「你好，NoteCraft」" caption="打開後的儀表板：筆記總數 1，最近更新列出 hello.md。" />
+
+<Plate name="tutorial-note" notes={[{ label: "從「全部筆記」點進來", at: [112, 171], x: 74, align: "start" }, { label: "標題取自 H1", at: [902, 555], x: 1180, align: "start" }, { label: "原始檔名", at: [1486, 958], side: "bottom" }]} alt="筆記頁：標題「你好，NoteCraft」，內文一行「這是第一篇筆記。」，頁尾顯示 hello.md" caption="點進筆記：標題取自 H1，頁尾是原始檔名。" />
 
 第一次執行會先安裝相依，終端機的訊息見[第一次啟動](/docs/getting-started/first-run/)。讓 `view` 繼續開著。
 
@@ -61,6 +65,8 @@ status: pending
 ```
 
 **預期**：筆記頁上方出現「待生成」卡片，Rail 的 AI 圖示多一個圓點，Sidebar 底部顯示「1 個 @ai-visualize 標記待生成」。畫面沒更新的話，重新整理一次。
+
+<Plate name="tutorial-pending" notes={[{ label: "Rail 的 AI 圓點", at: [62, 207], x: 74, align: "start" }, { label: "待生成 1", at: [812, 117] }, { label: "待生成卡片", at: [1470, 588], side: "bottom", align: "end" }, { label: "Sidebar 底部提示", at: [87, 910], side: "bottom", x: 74, align: "start" }]} alt="筆記頁上方一張虛線框的待生成卡片，列出 id、type 與 prompt；Rail 的 AI 圖示帶橘點，Sidebar 底部顯示待生成標記" caption="標記還沒生成時：筆記上方是待生成卡片，標題旁標示「待生成 1」，Sidebar 底部提示 1 個標記待生成。" />
 
 欄位的意思見[標記語法](/docs/guides/ai-markers/)。
 
@@ -105,6 +111,8 @@ claude
 - 多了 `my-notes/.notecraft/components/request-flow.tsx`
 - `docs/hello.mdx` 的標記改成 `status: generated`，正下方多了 `import` 與元件
 - `serve` 的終端機印出 `rebuild ok (…ms) → broadcast reload`，瀏覽器自動重新載入，元件出現在「請求怎麼走」底下
+
+<Plate name="tutorial-generated" notes={[{ label: "已生成 1", at: [812, 117] }, { label: "來源檔名", at: [1065, 250] }, { label: "放大檢視", at: [1446, 249] }, { label: "點任一步看說明", at: [1150, 378], side: "bottom", x: 1560, align: "end" }]} alt="「請求怎麼走」底下出現互動流程圖，分成瀏覽器、網路、伺服器三條泳道，第 4 步「送出請求」被選取並顯示說明" caption="生成後：元件包在外框裡，右上是來源檔名、複製提示詞與放大檢視；標題旁改成「已生成 1」。" />
 
 元件的樣子由 AI 依 prompt 決定，每次生成都可能不同。想換一版，改 `prompt` 後明確要求重新生成；生成失敗時標記會變成 `status: failed`，錯誤節錄在對話裡。見[狀態與重新生成](/docs/guides/ai-status/)。
 
