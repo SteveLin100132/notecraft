@@ -471,54 +471,120 @@ function markerIds(content) {
   return out;
 }
 
-async function handleDeleteNote(cwd, notesRoot, slug, res) {
-  const file = await findNoteFile(notesRoot, slug);
-  if (!file) return json(res, 404, { error: "note not found" });
-  try {
-    await assertSafePath(file, notesRoot);
-  } catch (e) {
-    return json(res, 400, { error: e.message });
-  }
-
+/**
+ * AI 生成元件所在的資料夾：主專案是 src/components/generated/；viewer 模式是使用者專案的
+ * .notecraft/components/（與 astro.config.mjs 的 @notes alias 同一套優先序，見 resolveNotecraftDir）。
+ * label 是顯示用的相對路徑，回給對話框用，不含本機絕對路徑。
+ */
+export function resolveComponentsDir(cwd) {
   if (isViewerMode()) {
-    await fs.unlink(file);
-    return json(res, 200, {
-      deletedNote: path.relative(cwd, file),
-      deletedComponents: [],
-      keptShared: [],
-      failed: [],
-    });
+    return { dir: path.join(resolveNotecraftDir(cwd), "components"), label: ".notecraft/components" };
   }
+  return { dir: path.join(cwd, "src/components/generated"), label: "src/components/generated" };
+}
 
-  const { content } = await readNote(file);
-  const ids = markerIds(content);
+async function isFile(abs) {
+  try {
+    return (await fs.stat(abs)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 刪除這篇筆記會連帶刪掉哪些生成元件。對話框（GET …/delete-plan）與實際刪除（DELETE）共用這一份判斷，
+ * 確認對話框列出的就是會刪的檔（CLAUDE.md：孤兒元件的刪除要作者明確同意，對話框就是那個同意點）。
+ * - 只列元件檔真的存在的 id（pending／failed 的標記沒有檔，不列）
+ * - 其他筆記也有同一個 id 的標記 → keptShared，保留
+ * - 元件路徑一律經 assertSafePath 限制在元件資料夾底下
+ */
+async function planNoteDeletion(cwd, notesRoot, file) {
+  const { dir, label } = resolveComponentsDir(cwd);
+  const ids = Array.from(new Set(markerIds((await readNote(file)).content)));
   const others = (await listMdx(notesRoot)).filter((f) => f !== file);
   const referencedElsewhere = new Set();
   for (const f of others) {
+    if (referencedElsewhere.size === ids.length) break;
     const otherIds = new Set(markerIds((await readNote(f)).content));
     for (const id of ids) if (otherIds.has(id)) referencedElsewhere.add(id);
   }
-  const deletedComponents = [];
+  const toDelete = [];
   const keptShared = [];
-  const failed = [];
   for (const id of ids) {
-    if (referencedElsewhere.has(id)) {
-      keptShared.push(`${id}.tsx`);
+    let abs;
+    try {
+      abs = await assertSafePath(path.join(dir, `${id}.tsx`), dir);
+    } catch {
       continue;
     }
-    const comp = path.join(cwd, "src/components/generated", `${id}.tsx`);
+    if (!(await isFile(abs))) continue;
+    (referencedElsewhere.has(id) ? keptShared : toDelete).push(`${id}.tsx`);
+  }
+  return { dir, componentsDir: label, toDelete, keptShared };
+}
+
+async function resolveNoteForDelete(notesRoot, slug, res) {
+  const file = await findNoteFile(notesRoot, slug);
+  if (!file) {
+    json(res, 404, { error: "note not found" });
+    return null;
+  }
+  try {
+    await assertSafePath(file, notesRoot);
+  } catch (e) {
+    json(res, 400, { error: e.message });
+    return null;
+  }
+  return file;
+}
+
+async function handleDeletePlan(cwd, notesRoot, slug, res) {
+  const file = await resolveNoteForDelete(notesRoot, slug, res);
+  if (!file) return;
+  const { componentsDir, toDelete, keptShared } = await planNoteDeletion(cwd, notesRoot, file);
+  return json(res, 200, { componentsDir, toDelete, keptShared });
+}
+
+async function handleDeleteNote(cwd, notesRoot, slug, req, res) {
+  const file = await resolveNoteForDelete(notesRoot, slug, res);
+  if (!file) return;
+
+  // body `{ components: string[] }` 是對話框上作者看過、同意的清單：只刪「計畫內 ∩ 同意過」的檔，
+  // 對話框開著的期間別篇筆記改了也不會多刪。沒帶 body（舊呼叫端）就照計畫刪。
+  let consented = null;
+  try {
+    const raw = await readBody(req);
+    if (raw) {
+      const body = JSON.parse(raw);
+      if (Array.isArray(body?.components)) consented = new Set(body.components.map(String));
+    }
+  } catch {
+    return json(res, 400, { error: "invalid JSON body" });
+  }
+
+  const plan = await planNoteDeletion(cwd, notesRoot, file);
+  const deletedComponents = [];
+  const skipped = [];
+  const failed = [];
+  for (const name of plan.toDelete) {
+    if (consented && !consented.has(name)) {
+      skipped.push(name);
+      continue;
+    }
     try {
-      await fs.unlink(comp);
-      deletedComponents.push(`${id}.tsx`);
+      await fs.unlink(await assertSafePath(path.join(plan.dir, name), plan.dir));
+      deletedComponents.push(name);
     } catch (e) {
-      if (e && e.code !== "ENOENT") failed.push(`${id}.tsx`);
+      if (e && e.code !== "ENOENT") failed.push(name);
     }
   }
   await fs.unlink(file);
   return json(res, 200, {
     deletedNote: path.relative(cwd, file),
+    componentsDir: plan.componentsDir,
     deletedComponents,
-    keptShared,
+    keptShared: plan.keptShared,
+    skipped,
     failed,
   });
 }
@@ -685,9 +751,14 @@ export async function tryHandleApiRequest(cwd, notesRoot, req, res) {
       await handleSetNoteTags(notesRoot, slug, req, res);
       return true;
     }
+    if (parts.length >= 4 && parts[1] === "notes" && parts[parts.length - 1] === "delete-plan" && req.method === "GET") {
+      const slug = parts.slice(2, -1).map(decodeURIComponent).join("/");
+      await handleDeletePlan(cwd, notesRoot, slug, res);
+      return true;
+    }
     if (parts.length >= 3 && parts[1] === "notes" && req.method === "DELETE") {
       const slug = parts.slice(2).map(decodeURIComponent).join("/");
-      await handleDeleteNote(cwd, notesRoot, slug, res);
+      await handleDeleteNote(cwd, notesRoot, slug, req, res);
       return true;
     }
     json(res, 404, { error: "not found" });
