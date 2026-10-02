@@ -1,0 +1,9 @@
+# 元件庫 build 輸出（npm run build:ds）
+ds-dist/
+
+# design-sync：暫存腳本、產出的 bundle、機器狀態
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

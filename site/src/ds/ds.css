@@ -1,0 +1,34 @@
+/* 元件庫專用的補充：站上這些樣式綁在特定圖（.f3 figcaption）上，元件需要不綁圖的版本。 */
+.ds-fig {
+  margin: 0;
+}
+.ds-fig figcaption {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.ds-fig .fig-no {
+  font-size: 22px;
+  color: var(--ink);
+  flex: none;
+}
+.sheet .ds-fig figcaption {
+  border-top-color: var(--line-soft);
+  color: var(--on-sheet-2);
+}
+.sheet .ds-fig .fig-no {
+  color: var(--line);
+}
+
+/* Button 渲染成 <button> 時清掉瀏覽器預設；hover 的反白仍由 .sheet/.paper .btn:hover 負責 */
+button.btn {
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  cursor: pointer;
+}
