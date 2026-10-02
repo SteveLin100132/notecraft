@@ -4,6 +4,14 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.8.1] - 2026-10-02
+
+### 修正
+
+- 升級 `notecraftapp` 後，`build`／`serve` 不再沿用舊版建立的快取：版本不同就自動重 build，並印出「版本從 X 變成 Y」。不用再手動加 `--rebuild`
+- 改了 `NOTECRAFT_BASE`（或拿掉）後會自動重 build，不再拿到連結前綴不對的舊快取
+- 從不同資料夾對同一個筆記資料夾執行 `build`／`serve` 時會重 build（`.notecraft/` 的外掛、系列、元件從執行資料夾讀，產物可能不同）
+
 ## [1.8.0] - 2026-10-02
 
 ### 新增
