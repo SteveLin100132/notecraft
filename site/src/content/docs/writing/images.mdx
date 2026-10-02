@@ -36,6 +36,8 @@ description: 在筆記裡用相對路徑引用圖片，NoteCraftApp 會自動改
 只有 Markdown 的圖片語法 `![](…)` 會被改寫。在 MDX 裡手寫的 `<img src="./cover.png" />` 不會被處理。
 </Callout>
 
+`/notes-assets/*` 由 `view` 與 `serve` 從筆記資料夾即時送出。`build` 的產物**不包含**這些圖片，部署前要自己複製一份，做法見[部署](/docs/guides/deploy/#筆記裡的圖片)。
+
 ## 支援的格式
 
 | 類型 | 副檔名 |
