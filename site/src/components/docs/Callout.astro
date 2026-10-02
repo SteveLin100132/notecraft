@@ -1,0 +1,11 @@
+---
+// 提示框：方括號節名起頭、上下各一條細線。不用色塊、不用粗左線。
+type Props = { type?: "note" | "warn" };
+const { type = "note" } = Astro.props;
+const label = type === "warn" ? "注意" : "提示";
+---
+
+<aside class:list={["callout", `callout--${type}`]} aria-label={label}>
+  <p class="callout-label">【{label}】</p>
+  <div class="callout-body"><slot /></div>
+</aside>

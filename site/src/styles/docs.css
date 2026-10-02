@@ -1,0 +1,924 @@
+/* ════════ 使用文件：深藍書脊＋白紙 ════════
+   token 全在 site.css；這裡不新增顏色。書脊是 sheet，白紙側是 paper。 */
+
+.docs-body {
+  background: var(--paper);
+}
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 60;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip:focus {
+  top: 12px;
+}
+
+.docs {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ── 書脊 ── */
+.spine {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sheet);
+  color: var(--line);
+}
+.spine :focus-visible {
+  outline-color: var(--mark);
+  outline-offset: -2px;
+}
+.spine-head {
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.spine .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--line);
+  text-decoration: none;
+  font: 700 16px/1 var(--f-latin);
+  letter-spacing: 0.01em;
+}
+.spine-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--line);
+  text-decoration: none;
+  font: 800 24px/1.1 var(--f-latin);
+  letter-spacing: -0.01em;
+}
+.spine-title:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.spine-ver {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 78;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--on-sheet-2);
+}
+
+.spine-nav {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 0 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-soft) transparent;
+}
+.spine-chapters,
+.spine-secs,
+.spine-subs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.spine-chapters > li {
+  border-bottom: 1px solid var(--line-faint);
+}
+.spine-chapters summary {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr) 12px;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 20px 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.spine-chapters summary::-webkit-details-marker {
+  display: none;
+}
+.ch-no {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--on-sheet-2);
+}
+.ch-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.ch-caret {
+  align-self: center;
+  color: var(--on-sheet-2);
+  transition: transform 180ms var(--ease-out);
+}
+details[open] > summary .ch-caret {
+  transform: rotate(90deg);
+}
+details[open] > summary .ch-no {
+  color: var(--line);
+}
+.spine-secs {
+  padding-bottom: 10px;
+}
+
+.sec {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.1em minmax(0, 1fr);
+  gap: 6px;
+  padding: 5px 20px 5px 28px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--line);
+  text-decoration: none;
+}
+.spine-subs .sec {
+  padding-left: 40px;
+}
+.sec-no {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 78;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+}
+a.sec {
+  transition: color 160ms var(--ease-out);
+}
+a.sec:hover .sec-no {
+  color: var(--line);
+}
+a.sec:hover .sec-t {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+/* 所在的節：白色粗體，前面一個橙色端點（圖版引線的端點） */
+a.sec[aria-current="page"] {
+  color: var(--line);
+  font-weight: 700;
+}
+a.sec[aria-current="page"] .sec-no {
+  color: var(--mark);
+}
+a.sec[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: calc(5px + 0.75em - 3.5px);
+  width: 7px;
+  height: 7px;
+  background: var(--mark);
+}
+.spine-subs a.sec[aria-current="page"]::before {
+  left: 24px;
+}
+.sec--group {
+  color: var(--line);
+  font-weight: 600;
+}
+.sec .sec-no {
+  color: var(--on-sheet-2);
+}
+.sec.is-draft {
+  color: var(--on-sheet-2);
+  cursor: default;
+}
+.sec.is-draft small {
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--line-soft);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.spine-foot {
+  display: flex;
+  gap: 18px;
+  padding: 12px 20px 14px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+.spine-foot a {
+  color: var(--on-sheet-2);
+  text-decoration: none;
+}
+.spine-foot a:hover {
+  color: var(--line);
+  text-decoration: underline;
+}
+
+/* ── 窄螢幕頂列與抽屜 ── */
+.dtop {
+  display: none;
+}
+.spine-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(17 20 24 / 0.45);
+}
+.spine-scrim[hidden] {
+  display: none;
+}
+
+/* ── 白紙 ── */
+.doc-paper {
+  min-width: 0;
+  padding: 0 var(--gutter) clamp(56px, 7vw, 96px);
+}
+.doc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* 內文＋本頁目錄這一組在白紙上置中，寬螢幕的留白左右平分，不全堆在右邊 */
+  max-width: 1120px;
+  margin-inline: auto;
+}
+.doc {
+  min-width: 0;
+}
+
+.doc-head {
+  max-width: 68ch;
+  padding: clamp(36px, 5vw, 64px) 0 26px;
+  border-bottom: 1px solid var(--rule);
+}
+.doc-title {
+  margin: 0;
+  font-family: var(--f-latin);
+  font-size: clamp(30px, 3vw, 44px);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.doc-no {
+  margin-right: 0.35em;
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  color: var(--mark-paper);
+  font-variant-numeric: tabular-nums;
+}
+.doc-lead {
+  max-width: 40em;
+  margin: 14px 0 0;
+  font-size: 18px;
+  line-height: 1.8;
+  color: var(--ink-2);
+}
+
+/* ── 內文欄 ── */
+.doc-body {
+  max-width: 68ch;
+  padding-top: 8px;
+}
+.doc-body > :first-child {
+  margin-top: 1.4em;
+}
+.doc-body h2,
+.doc-body h3 {
+  scroll-margin-top: 24px;
+  text-wrap: balance;
+}
+.doc-body h2 {
+  margin: 2.6em 0 0.7em;
+  padding-top: 14px;
+  border-top: 2px solid var(--rule-strong);
+  font-size: 24px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+.doc-body h3 {
+  margin: 2em 0 0.5em;
+  font-size: 18px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+.doc-body p {
+  margin: 0 0 1.1em;
+}
+.doc-body ul,
+.doc-body ol {
+  margin: 0 0 1.1em;
+  padding-left: 1.4em;
+}
+.doc-body li {
+  margin: 0.3em 0;
+}
+.doc-body li::marker {
+  color: var(--ink-2);
+}
+.doc-body a {
+  color: var(--sheet);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.doc-body a:hover {
+  text-decoration-thickness: 2px;
+}
+.doc-body strong {
+  font-weight: 700;
+}
+.doc-body hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 2em 0;
+}
+.doc-body :not(pre) > code {
+  padding: 0.08em 0.35em;
+  background: var(--tint);
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+}
+.doc-body blockquote {
+  margin: 1.2em 0;
+  padding-left: 1em;
+  border-left: 1px solid var(--rule-strong);
+  color: var(--ink-2);
+}
+
+/* 程式碼框：沿用 Diff 圖的墨框與檔名頭 */
+.doc-body figure.code {
+  margin: 1.4em 0 1.6em;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.code-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  min-height: 38px;
+  border-bottom: 1px solid var(--rule);
+}
+.code-name {
+  align-self: center;
+  padding: 0 14px;
+  font: 600 13px/1 var(--f-latin);
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.code-name.is-file {
+  font: 500 13px/1 var(--f-mono);
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.code-copy {
+  min-width: 76px;
+  padding: 0 14px;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font: 600 13px/1 var(--f-cjk);
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+.code-copy:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.code-copy.is-done {
+  background: var(--sheet);
+  color: var(--line);
+}
+.doc-body pre.astro-code {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: var(--paper) !important;
+  font-size: 14.5px;
+  line-height: 1.75;
+  tab-size: 2;
+}
+.doc-body pre.astro-code code {
+  font-size: inherit;
+}
+
+/* 表格：沿用 DataTable 的 2px 表頭線 */
+.tbl {
+  margin: 1.4em 0 1.6em;
+  overflow-x: auto;
+}
+.tbl table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.tbl th {
+  padding: 8px 16px 8px 0;
+  border-bottom: 2px solid var(--ink);
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 9px 16px 9px 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.tbl td:first-child code {
+  white-space: nowrap;
+}
+
+/* 提示框：方括號節名、上下細線 */
+.callout {
+  margin: 1.6em 0;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule);
+}
+.callout-label {
+  margin: 0 0 4px !important;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sheet);
+}
+.callout--warn .callout-label {
+  color: var(--mark-paper);
+}
+.callout-body > :last-child {
+  margin-bottom: 0.9em;
+}
+
+/* 圖版 */
+.plate {
+  margin: 1.6em 0 2em;
+}
+.plate img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top left;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.doc-body {
+  counter-reset: fig;
+}
+.plate {
+  counter-increment: fig;
+}
+.plate--detail {
+  max-width: var(--plate-w);
+}
+.plate--detail img {
+  aspect-ratio: auto;
+}
+.plate figcaption::before {
+  content: "FIG. " counter(fig);
+  margin-right: 0.7em;
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  color: var(--ink);
+}
+.plate figcaption {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* ── 本頁目錄 ── */
+.toc {
+  display: none;
+}
+.toc-title,
+.toc-inline summary {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.toc ol,
+.toc-inline ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc a,
+.toc-inline a {
+  position: relative;
+  display: block;
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.toc .sub a,
+.toc-inline .sub a {
+  padding-left: 14px;
+  font-size: 13.5px;
+}
+.toc a:hover,
+.toc-inline a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.toc a[aria-current="location"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.toc a[aria-current="location"]::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: calc(4px + 0.75em - 3px);
+  width: 6px;
+  height: 6px;
+  background: var(--sheet);
+}
+.toc .sub a[aria-current="location"]::before {
+  left: 0;
+}
+.toc-inline {
+  max-width: 68ch;
+  margin-top: 22px;
+  border: 1px solid var(--rule);
+}
+.toc-inline summary {
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.toc-inline ol {
+  padding: 2px 14px 12px;
+}
+
+/* ── 上一節／下一節 ── */
+.pager {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 68ch;
+  margin-top: clamp(48px, 6vw, 72px);
+}
+.pager-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+.pager-next {
+  grid-column: 2;
+  text-align: right;
+}
+.pager-dir {
+  font: 400 13px/1.4 var(--f-latin);
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.pager-t {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.pager-no {
+  margin-right: 0.45em;
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  color: var(--mark-paper);
+}
+.pager-link:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.pager-link:hover .pager-dir {
+  color: var(--rule);
+}
+.pager-link:hover .pager-no {
+  color: var(--mark);
+}
+.doc-edit {
+  max-width: 68ch;
+  margin: 20px 0 0;
+  font-size: 14px;
+}
+.doc-edit a {
+  color: var(--ink-2);
+}
+.doc-edit a:hover {
+  color: var(--ink);
+}
+
+/* ── 文件首頁：章節總覽 ── */
+.doc-body .chapters {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  columns: 2;
+  column-gap: clamp(24px, 4vw, 64px);
+}
+.doc-body .chapter {
+  break-inside: avoid;
+  margin: 0;
+  padding: 16px 0 28px;
+  border-top: 2px solid var(--rule-strong);
+}
+.chapter-head {
+  align-items: baseline;
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr);
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.chapter-no {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--mark-paper);
+}
+.doc-body .chapter-title {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--f-latin);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.chapter-lead {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+.doc-body :is(.chapter-secs, .chapter-subs) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.doc-body :is(.chapter-secs, .chapter-subs) li {
+  margin: 0;
+}
+.doc-body .chapter-secs {
+  margin-left: 54px;
+}
+.doc-body .chapter-subs {
+  margin-left: 18px;
+}
+.cs {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr);
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  text-decoration: none;
+}
+.cs-no {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 78;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+a.cs:hover .cs-t {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.doc-body a.cs {
+  text-decoration: none;
+}
+a.cs .cs-t {
+  color: var(--sheet);
+}
+.cs--group {
+  font-weight: 700;
+}
+.cs.is-draft {
+  color: var(--ink-2);
+}
+.cs.is-draft small {
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--rule);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.docs-stats {
+  max-width: 68ch;
+  margin: 1.4em 0 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+/* ── 斷點 ── */
+@media (min-width: 1200px) {
+  .doc-grid.has-toc {
+    grid-template-columns: minmax(0, 68ch) 220px;
+    justify-content: center;
+    column-gap: clamp(40px, 5vw, 88px);
+  }
+  .toc {
+    display: block;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: clamp(36px, 5vw, 64px) 0 24px 14px;
+  }
+  .toc-title {
+    padding-top: 10px;
+    margin-bottom: 8px;
+    border-top: 2px solid var(--rule-strong);
+  }
+  .toc-inline {
+    display: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .docs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dtop {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 0 var(--gutter);
+    background: var(--sheet);
+    color: var(--line);
+  }
+  .dtop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1.5px solid var(--line);
+    background: transparent;
+    color: var(--line);
+    font: 600 14px/1 var(--f-cjk);
+    cursor: pointer;
+  }
+  .dtop-btn:focus-visible {
+    outline-color: var(--mark);
+  }
+  .dtop-where {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    color: var(--on-sheet-2);
+  }
+  .dtop-where b {
+    font-family: var(--f-latin);
+    font-variation-settings: "wdth" 78;
+    color: var(--mark);
+    margin-right: 4px;
+  }
+  .spine {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 40;
+    width: min(320px, 86vw);
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: transform 280ms var(--ease-out), visibility 0s linear 280ms;
+  }
+  .spine[data-open] {
+    visibility: visible;
+    transform: none;
+    transition: transform 280ms var(--ease-out), visibility 0s;
+  }
+  body.drawer-open {
+    overflow: hidden;
+  }
+  .doc-body h2,
+  .doc-body h3 {
+    scroll-margin-top: 72px;
+  }
+  .doc-body .chapters {
+    columns: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .pager {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pager-next {
+    grid-column: 1;
+  }
+  .doc-lead {
+    font-size: 17px;
+  }
+  .doc-body .chapter-secs {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spine,
+  .spine[data-open],
+  .ch-caret {
+    transition: none;
+  }
+}
+
+/* 文件首頁的章節總覽不受內文欄寬限制 */
+.doc-body:has(> .chapters) {
+  max-width: none;
+}
+
+/* 窄螢幕的本頁目錄：換掉瀏覽器預設的三角形，與書脊同一種折角 */
+.toc-inline summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+}
+.toc-inline summary::-webkit-details-marker {
+  display: none;
+}
+.toc-inline summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 180ms var(--ease-out);
+}
+.toc-inline[open] summary::after {
+  transform: rotate(225deg) translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toc-inline summary::after {
+    transition: none;
+  }
+}
+
+/* 抽屜自己的關閉鈕：只在窄螢幕出現，沿用說明書的外框按鈕 */
+.spine-close {
+  display: none;
+}
+@media (max-width: 959px) {
+  .spine-head {
+    position: relative;
+  }
+  .spine-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1.5px solid var(--line);
+    background: transparent;
+    color: var(--line);
+    font: 600 14px/1 var(--f-cjk);
+    cursor: pointer;
+    transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+  }
+  .spine-close:hover {
+    background: var(--line);
+    color: var(--sheet);
+  }
+}

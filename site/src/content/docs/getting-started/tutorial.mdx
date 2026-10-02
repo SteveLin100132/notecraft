@@ -1,0 +1,125 @@
+---
+description: 從一個空資料夾開始：寫第一篇筆記、在瀏覽器打開、加一個 @ai-visualize 標記，再交給 Claude Code 生成互動元件。
+---
+
+每一步只列指令與預期結果，細節連到對應的頁面。需要 Node.js 22 以上；第 4 步起的 AI 生成需要 [Claude Code](https://claude.com/claude-code)，見[系統需求](/docs/getting-started/requirements/)。
+
+## 1. 建立第一篇筆記
+
+```bash
+mkdir -p my-notes/docs
+cd my-notes
+```
+
+用編輯器在 `docs/` 裡建立一個檔案：
+
+```md title="docs/hello.md"
+# 你好，NoteCraft
+
+這是第一篇筆記。
+```
+
+不用寫 frontmatter，標題會取自 H1。
+
+## 2. 用 view 打開
+
+在 `my-notes/` 執行：
+
+```bash
+npx notecraftapp view ./docs
+```
+
+**預期**：終端機印出 `notes dir`、`user cwd`、`port`。手動在瀏覽器開 `http://127.0.0.1:4321/`，儀表板顯示 1 篇筆記；從 Sidebar 的「全部筆記」點進去，網址是 `/notes/hello`，標題是「你好，NoteCraft」。
+
+第一次執行會先安裝相依，終端機的訊息見[第一次啟動](/docs/getting-started/first-run/)。讓 `view` 繼續開著。
+
+## 3. 改成 MDX，加一個標記
+
+`@ai-visualize` 標記只在 `.mdx` 裡有作用。把檔案改名：
+
+```bash
+mv docs/hello.md docs/hello.mdx
+```
+
+再把內容換成：
+
+```mdx title="docs/hello.mdx"
+# 你好，NoteCraft
+
+這是第一篇筆記。
+
+## 請求怎麼走
+
+{/* @ai-visualize
+id: request-flow
+type: diagram
+prompt: |
+  畫一張瀏覽器送出 HTTP 請求到收到回應的流程圖，
+  依序經過 DNS 查詢、TCP 連線、TLS 握手、送出請求、伺服器處理、回傳回應
+status: pending
+*/}
+```
+
+**預期**：筆記頁上方出現「待生成」卡片，Rail 的 AI 圖示多一個圓點，Sidebar 底部顯示「1 個 @ai-visualize 標記待生成」。畫面沒更新的話，重新整理一次。
+
+欄位的意思見[標記語法](/docs/guides/ai-markers/)。
+
+## 4. 安裝 Skill
+
+另開一個終端機，同樣在 `my-notes/`：
+
+```bash
+npx notecraftapp init-skill
+```
+
+**預期**：終端機列出寫入的檔案，最後一行以 `✓ 安裝完成` 開頭。`my-notes/.claude/` 底下多了 `skills/` 與 `agents/`。裝了哪些檔見[安裝內建 Skill](/docs/getting-started/skills/)。
+
+## 5. 開 serve，請 Claude Code 生成
+
+生成時的驗證看的是 `serve` 的背景 build，而且 `view` 與 `serve` 預設都用 port 4321。所以先在第一個終端機按 `Ctrl+C` 停掉 `view`，改跑：
+
+```bash
+npx notecraftapp serve ./docs
+```
+
+**預期**：先 build 一次，接著印出 `➜  Local:   http://127.0.0.1:4321/`，並自動開啟瀏覽器。
+
+在第二個終端機，於 `my-notes/` 開 Claude Code：
+
+```bash
+claude
+```
+
+對它說：
+
+```text
+處理 docs/hello.mdx 的標記
+```
+
+**預期**：Claude Code 依序執行掃描、規劃、寫元件、寫回筆記四個步驟。過程中它可能停下來問你問題，例如要不要用白名單外的套件。流程見[生成流程](/docs/guides/ai-pipeline/)。
+
+## 6. 看到元件
+
+成功時會發生三件事：
+
+- 多了 `my-notes/.notecraft/components/request-flow.tsx`
+- `docs/hello.mdx` 的標記改成 `status: generated`，正下方多了 `import` 與元件
+- `serve` 的終端機印出 `rebuild ok (…ms) → broadcast reload`，瀏覽器自動重新載入，元件出現在「請求怎麼走」底下
+
+元件的樣子由 AI 依 prompt 決定，每次生成都可能不同。想換一版，改 `prompt` 後明確要求重新生成；生成失敗時標記會變成 `status: failed`，錯誤節錄在對話裡。見[狀態與重新生成](/docs/guides/ai-status/)。
+
+想回去用寫入 UI，停掉 `serve` 再開 `view` 即可，生成的元件在 `view` 裡一樣會顯示。
+
+## 7. 選讀：轉成簡報
+
+同一個 Claude Code 對話裡說：
+
+```text
+把 docs/hello.mdx 轉成簡報
+```
+
+**預期**：多了 `.notecraft/components/hello.deck.tsx`，`serve` rebuild 後到 `/present/hello` 檢視或全螢幕播放。剛才生成的元件會原樣放進投影片。見[生成一份簡報](/docs/guides/deck/)。
+
+<Callout>
+AI 生成與簡報都只在你本機的 Claude Code 對話裡執行，產物是一般的 `.tsx` 檔。`serve` 與 `build` 不會呼叫 AI。
+</Callout>

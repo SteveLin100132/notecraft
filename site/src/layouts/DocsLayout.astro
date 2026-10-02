@@ -1,0 +1,244 @@
+---
+// 使用文件的殼：左側深藍書脊（全部章節）、右側白紙（頁眉、頁標題、內文、本頁目錄、上一節／下一節）。
+import "../styles/site.css";
+import "../styles/docs.css";
+import { getCollection } from "astro:content";
+import type { MarkdownHeading } from "astro";
+import { buildNav, flatPages, type NavNode } from "../lib/docs";
+import { readVersion } from "../lib/changelog";
+
+type Props = {
+  title: string;
+  description: string;
+  /** 目前頁的 slug；文件首頁不帶。 */
+  slug?: string;
+  headings?: MarkdownHeading[];
+};
+
+const { title, description, slug, headings = [] } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const docsHome = `${base}docs/`;
+const href = (s: string) => `${base}docs/${s}/`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const version = readVersion();
+const GITHUB = "https://github.com/SteveLin100132/notecraft";
+
+const entries = await getCollection("docs");
+const nav = buildNav(new Set(entries.map((e) => e.id)));
+const pages = flatPages(nav);
+const idx = slug ? pages.findIndex((p) => p.slug === slug) : -1;
+const page = idx >= 0 ? pages[idx] : undefined;
+const prev = idx > 0 ? pages[idx - 1] : undefined;
+const next = idx >= 0 ? pages[idx + 1] : pages[0];
+const folio = page ? `第 ${page.chapter.no} 章・${page.chapter.title}` : "目錄";
+
+const contains = (n: NavNode): boolean => n.slug === slug || !!n.children?.some(contains);
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{page ? `${title} — NoteCraftApp 使用文件` : "使用文件 — NoteCraftApp"}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <meta name="theme-color" content="#1b4f9c" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={page ? `${title} — NoteCraftApp 使用文件` : "NoteCraftApp 使用文件"} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+  </head>
+  <body class="docs-body">
+    <a class="skip" href="#doc-main">跳到內文</a>
+    <div class="docs">
+      <!-- 窄螢幕：書脊縮成深藍頂列，目錄改成抽屜 -->
+      <div class="dtop">
+        <button type="button" class="dtop-btn" aria-controls="spine" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4.5h14M2 9h14M2 13.5h14"></path></svg>
+          <span>章節</span>
+        </button>
+        <span class="dtop-where">{page ? <><b>{page.no}</b> {title}</> : "使用文件"}</span>
+      </div>
+
+      <aside class="spine" id="spine" aria-label="文件章節">
+        <div class="spine-head">
+          <button type="button" class="spine-close">關閉</button>
+          <a href={base} class="brand" aria-label="NoteCraftApp 官網首頁">
+            <svg viewBox="0 0 48 48" width="26" height="26" aria-hidden="true">
+              <rect x="1" y="1" width="46" height="46" rx="9" fill="none" stroke="currentColor" stroke-width="2"></rect>
+              <path d="M14 30h20M14 36h13" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"></path>
+              <path d="M24 11c1 5.6 2.6 7.2 8.2 8.2-5.6 1-7.2 2.6-8.2 8.2-1-5.6-2.6-7.2-8.2-8.2 5.6-1 7.2-2.6 8.2-8.2z" fill="#ed9b26"></path>
+            </svg>
+            <span>NoteCraftApp</span>
+          </a>
+          <a class="spine-title" href={docsHome} aria-current={page ? undefined : "page"}>
+            使用文件<span class="spine-ver">v{version}</span>
+          </a>
+        </div>
+
+        <nav class="spine-nav" aria-label="章節目錄">
+          <ol class="spine-chapters">
+            {
+              nav.map((ch) => (
+                <li>
+                  <details open={page ? page.chapter.no === ch.no : ch.no === "1" || ch.no === "2"}>
+                    <summary>
+                      <span class="ch-no">{ch.no}</span>
+                      <span class="ch-title">{ch.title}</span>
+                      <svg class="ch-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l4 3-4 3"></path></svg>
+                    </summary>
+                    <ol class="spine-secs">
+                      {ch.nodes.map((n) => (
+                        <li class:list={{ "is-group": !!n.children }}>
+                          {n.children ? (
+                            <>
+                              <span class:list={["sec", "sec--group", { "has-current": contains(n) }]}>
+                                <span class="sec-no">{n.no}</span>
+                                <span class="sec-t">{n.title}</span>
+                              </span>
+                              <ol class="spine-subs">
+                                {n.children.map((c) => (
+                                  <li>
+                                    {c.ready && c.slug ? (
+                                      <a class="sec" href={href(c.slug)} aria-current={c.slug === slug ? "page" : undefined}>
+                                        <span class="sec-no">{c.no}</span>
+                                        <span class="sec-t">{c.title}</span>
+                                      </a>
+                                    ) : (
+                                      <span class="sec is-draft">
+                                        <span class="sec-no">{c.no}</span>
+                                        <span class="sec-t">{c.title}<small>撰寫中</small></span>
+                                      </span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ol>
+                            </>
+                          ) : n.ready && n.slug ? (
+                            <a class="sec" href={href(n.slug)} aria-current={n.slug === slug ? "page" : undefined}>
+                              <span class="sec-no">{n.no}</span>
+                              <span class="sec-t">{n.title}</span>
+                            </a>
+                          ) : (
+                            <span class="sec is-draft">
+                              <span class="sec-no">{n.no}</span>
+                              <span class="sec-t">{n.title}<small>撰寫中</small></span>
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </details>
+                </li>
+              ))
+            }
+          </ol>
+        </nav>
+
+        <div class="spine-foot">
+          <a href={base}>官網</a>
+          <a href={`${base}demo/`}>Demo</a>
+          <a href={GITHUB} rel="noopener">GitHub</a>
+        </div>
+      </aside>
+      <div class="spine-scrim" hidden></div>
+
+      <main class="paper doc-paper" id="doc-main">
+        <div class="runhead">
+          <span><b>NoteCraftApp 使用文件</b></span>
+          <span>{folio}</span>
+        </div>
+
+        <div class:list={["doc-grid", { "has-toc": toc.length > 0 }]}>
+          <article class="doc">
+            <header class="doc-head">
+              <h1 class="doc-title">
+                {page && <span class="doc-no">{page.no}</span>}
+                <span>{title}</span>
+              </h1>
+              <p class="doc-lead">{description}</p>
+            </header>
+
+            {
+              toc.length > 0 && (
+                <details class="toc-inline">
+                  <summary>本頁目錄</summary>
+                  <ol>
+                    {toc.map((h) => (
+                      <li class:list={{ sub: h.depth === 3 }}>
+                        <a href={`#${h.slug}`}>{h.text}</a>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )
+            }
+
+            <div class="doc-body">
+              <slot />
+            </div>
+
+            {
+              (prev || next) && (
+                <nav class="pager" aria-label="上一節與下一節">
+                  {prev ? (
+                    <a class="pager-link pager-prev" href={href(prev.slug)} rel="prev">
+                      <span class="pager-dir">上一節</span>
+                      <span class="pager-t">
+                        <span class="pager-no">{prev.no}</span>
+                        {prev.title}
+                      </span>
+                    </a>
+                  ) : (
+                    <span />
+                  )}
+                  {next && (
+                    <a class="pager-link pager-next" href={href(next.slug)} rel="next">
+                      <span class="pager-dir">{page ? "下一節" : "從第一節開始"}</span>
+                      <span class="pager-t">
+                        <span class="pager-no">{next.no}</span>
+                        {next.title}
+                      </span>
+                    </a>
+                  )}
+                </nav>
+              )
+            }
+
+            {
+              page && (
+                <p class="doc-edit">
+                  <a href={`${GITHUB}/edit/main/site/src/content/docs/${page.slug}.mdx`} rel="noopener">
+                    在 GitHub 上修改這一頁
+                  </a>
+                </p>
+              )
+            }
+          </article>
+
+          {
+            toc.length > 0 && (
+              <aside class="toc" aria-label="本頁目錄">
+                <p class="toc-title">本頁目錄</p>
+                <ol>
+                  {toc.map((h) => (
+                    <li class:list={{ sub: h.depth === 3 }}>
+                      <a href={`#${h.slug}`}>{h.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              </aside>
+            )
+          }
+        </div>
+      </main>
+    </div>
+
+    <script>
+      import "../scripts/docs.ts";
+    </script>
+  </body>
+</html>

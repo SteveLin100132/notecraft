@@ -1,0 +1,77 @@
+---
+import { getCollection } from "astro:content";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import { buildNav, flatPages } from "../../lib/docs";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const href = (s: string) => `${base}docs/${s}/`;
+const entries = await getCollection("docs");
+const nav = buildNav(new Set(entries.map((e) => e.id)));
+const ready = flatPages(nav).length;
+const count = (nodes: (typeof nav)[number]["nodes"]): number =>
+  nodes.reduce((n, x) => n + (x.children ? count(x.children) : 1), 0);
+const total = nav.reduce((n, ch) => n + count(ch.nodes), 0);
+---
+
+<DocsLayout
+  title="使用文件"
+  description="NoteCraftApp 的安裝、設定與各項功能的用法。第一次用就從「快速開始」讀起；要查某個設定，左側書脊或下面的目錄都能直接跳過去。"
+>
+  <p class="docs-stats">共 {nav.length} 章、{total} 節，目前 {ready} 節可讀；標「撰寫中」的節陸續補上。</p>
+  <ol class="chapters">
+    {
+      nav.map((ch) => (
+        <li class="chapter">
+          <div class="chapter-head">
+            <span class="chapter-no">{ch.no}</span>
+            <div>
+              <h2 class="chapter-title">{ch.title}</h2>
+              <p class="chapter-lead">{ch.lead}</p>
+            </div>
+          </div>
+          <ol class="chapter-secs">
+            {ch.nodes.map((n) => (
+              <li>
+                {n.children ? (
+                  <>
+                    <span class="cs cs--group">
+                      <span class="cs-no">{n.no}</span>
+                      <span class="cs-t">{n.title}</span>
+                    </span>
+                    <ol class="chapter-subs">
+                      {n.children.map((c) => (
+                        <li>
+                          {c.ready && c.slug ? (
+                            <a class="cs" href={href(c.slug)}>
+                              <span class="cs-no">{c.no}</span>
+                              <span class="cs-t">{c.title}</span>
+                            </a>
+                          ) : (
+                            <span class="cs is-draft">
+                              <span class="cs-no">{c.no}</span>
+                              <span class="cs-t">{c.title}<small>撰寫中</small></span>
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                ) : n.ready && n.slug ? (
+                  <a class="cs" href={href(n.slug)}>
+                    <span class="cs-no">{n.no}</span>
+                    <span class="cs-t">{n.title}</span>
+                  </a>
+                ) : (
+                  <span class="cs is-draft">
+                    <span class="cs-no">{n.no}</span>
+                    <span class="cs-t">{n.title}<small>撰寫中</small></span>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </li>
+      ))
+    }
+  </ol>
+</DocsLayout>

@@ -1,0 +1,105 @@
+---
+description: 在 .notecraft/plugins.json 寫映射規則，決定哪些資料檔交給哪個 plugin；命中的檔案會變成 /view/ 底下的頁面，也能排進系列或嵌進筆記。
+---
+
+裝好 plugin 之後，它不會自己去找檔案。哪些檔案交給哪個 plugin，全部寫在專案根的 `.notecraft/plugins.json`，看這一份就知道專案裡有哪些資料檔會被渲染。
+
+## plugins.json
+
+```jsonc title=".notecraft/plugins.json"
+{
+  "plugins": [
+    {
+      "plugin": "er-diagram-renderer",
+      "files": ["planning/schema.json", "specs/**/*.er.json"],
+      "exclude": ["**/draft-*.json"],
+      "options": { "defaultRows": 8 }
+    },
+    {
+      "plugin": "openapi-renderer",
+      "files": ["api/**/*.openapi.json"]
+    }
+  ]
+}
+```
+
+| 欄位 | 說明 |
+| :-- | :-- |
+| `plugin` | plugin 的 id，對應 `.notecraft/plugins/<id>/` |
+| `files` | 要交給它的檔案，可以寫路徑或 glob，不能是空陣列 |
+| `exclude` | 選用。從 `files` 命中的檔案裡排除 |
+| `options` | 選用。原封不動傳給 plugin，能用哪些鍵看各 plugin 的說明 |
+
+`install-plugin <id> --apply "<glob>"` 可以在安裝時直接寫入一條規則。頂層還可以有 `disabled` 陣列，用來暫時停用 plugin，見[啟用與停用](/docs/guides/plugin-toggle/)。
+
+## files 怎麼寫
+
+- **基準是筆記資料夾。** 執行 `npx notecraftapp view ./docs` 時，`planning/schema.json` 指的是 `docs/planning/schema.json`
+- 支援 `*`、`**`、`?`、`{a,b}`，大小寫有別
+- 點開頭的資料夾（`.notecraft/`、`.git/`）不比對
+- 想讓之後新增的檔案自動被接手，用副檔名慣例搭配 glob，例如 `**/*.er.json`
+
+<Callout type="warn">
+資料檔必須放在筆記資料夾裡面，放在外面的掃不到。另外 `files` 不能比對 `.md` 或 `.mdx`，那是筆記的範圍，寫了 build 會直接失敗。
+</Callout>
+
+## 多條命中時
+
+規則由上往下比對，**第一條命中的規則勝**。build 時會印警告，指出這個檔案被哪幾條命中、最後交給了誰。常見寫法是把特例寫在前面、大範圍的 glob 寫在後面，或用 `exclude` 排除。
+
+其他情況：
+
+| 情況 | 結果 |
+| :-- | :-- |
+| 某個檔案沒被任何規則命中 | 忽略，不產生頁面 |
+| 某條規則的 glob 一個檔案都沒命中 | 警告 |
+| 規則指向沒安裝的 plugin | build 失敗，提示安裝指令 |
+| 資料檔不是合法 JSON，或不符合 plugin 的 schema | build 失敗，指出檔案與欄位 |
+
+## 對應的頁面
+
+每個命中的資料檔產生一頁，網址是 `/view/<路徑去掉 .json>`：
+
+| 資料檔 | 頁面 |
+| :-- | :-- |
+| `planning/schema.json` | `/view/planning/schema` |
+| `api/orders.openapi.json` | `/view/api/orders.openapi` |
+
+這些頁面出現在 Sidebar 的「Plugin 資料檔」區段、`/plugins` 與 `⌘K` 指令面板，打開時也會留下[頁籤](/docs/guides/tabs/)。它們不會出現在 `/notes` 筆記列表，也不算進儀表板的篇數。
+
+## 排進系列
+
+在 `series.json` 的 `slugs` 寫 `view:<路徑去副檔名>`，資料檔頁就成為系列的一章，和筆記一樣有序號、計入進度：
+
+```jsonc title=".notecraft/series.json"
+{
+  "series": [
+    {
+      "id": "order-system",
+      "title": "訂單系統設計",
+      "eyebrow": "ORDER SYSTEM",
+      "description": "從需求到資料表與 API",
+      "accent": "orange",
+      "icon": "layers",
+      "slugs": ["orders/overview", "view:planning/schema", "view:api/orders.openapi"]
+    }
+  ]
+}
+```
+
+細節見[系列設定](/docs/getting-started/series/)與[系列與閱讀進度](/docs/guides/series/)。
+
+## 嵌進筆記
+
+在 MDX 筆記裡 import `PluginView`，用 `src` 指定資料檔：
+
+```mdx
+import PluginView from "@/components/PluginView.astro";
+
+<PluginView src="planning/schema.json" caption="訂單模組的資料表關聯" />
+```
+
+- `src` 的基準和 `files` 一樣是筆記資料夾，含副檔名
+- 這個檔案必須已經被 `plugins.json` 的某條規則命中，否則 build 失敗
+- 內嵌會包在和 AI 生成元件相同的外框裡，可以[放大檢視](/docs/guides/zoom/)，外框也有連到完整 `/view/` 頁面的連結
+- `options` 會蓋過規則裡的同名設定，只影響這一處；`anchor` 是完整頁連結後面附加的 hash。兩者能填什麼看各 plugin 的說明

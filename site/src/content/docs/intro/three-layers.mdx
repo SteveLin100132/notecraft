@@ -1,0 +1,58 @@
+---
+description: NoteCraftApp 的功能分成靜態層、AI 生成層與簡報層。這頁說明每一層要裝什麼、裝完能得到什麼。
+---
+
+三層是疊加的：靜態層只需要 Node，AI 生成層與簡報層再加上 Claude Code 與內建 Skill。你可以停在任何一層。
+
+| 層 | 需要 | 得到 |
+| :-- | :-- | :-- |
+| 靜態層 | Node.js ≥ 22 | 工作台、儀表板、系列、標籤、搜尋、頁籤、寫入 UI |
+| AI 生成層 | 靜態層＋Claude Code＋`init-skill` | `@ai-visualize` 標記生成互動元件 |
+| 簡報層 | 同 AI 生成層 | 筆記轉成可全螢幕播放的簡報 |
+
+## 靜態層
+
+一行指令就能用：
+
+```bash
+npx notecraftapp view ./docs
+```
+
+你會得到儀表板、系列、標籤、巢狀網址、圖片與寫入 UI，也就是完整的閱讀與輕量編輯。
+
+MDX 裡的 `@ai-visualize` 標記在這一層會顯示成「待生成」卡片，等你之後處理。
+
+## AI 生成層
+
+把「這裡放一張圖」的自然語言描述變成 React 互動元件。
+
+1. 在專案根目錄跑一次 `npx notecraftapp init-skill`，把 Skill 與 Subagent 裝進 `.claude/`
+2. 在 MDX 裡寫 `@ai-visualize` 標記，描述你要的圖
+3. 在 Claude Code 對這篇筆記說「處理這個標記」
+
+元件會寫到 `.notecraft/components/<id>.tsx`，並自動插回筆記裡標記的下方。
+
+```mdx
+{/* @ai-visualize
+id: oauth-flow
+type: diagram
+status: pending
+prompt: |
+  畫一張 OAuth 2.0 + PKCE 的完整時序圖，
+  含前端、後端、AS、Resource Server 四方通訊
+*/}
+```
+
+安裝步驟見[安裝內建 Skill](/docs/getting-started/skills/)，生成流程見[生成流程](/docs/guides/ai-pipeline/)。
+
+## 簡報層
+
+把整篇筆記轉成 16:9 多頁簡報。和 AI 生成層用同一次 `init-skill` 安裝，不用另外裝。
+
+在 Claude Code 說「把 `<筆記>` 轉成簡報」，產出 `<slug>.deck.tsx`，然後在 `/present/<slug>` 檢視或全螢幕播放。內容頁從 29 個預先設計好的版型原子中挑選填入；筆記裡既有的 `@ai-visualize` 元件會原樣嵌進投影片，播放時照樣能操作。
+
+詳見[生成一份簡報](/docs/guides/deck/)。
+
+<Callout>
+AI 生成與簡報都在你本機的 Claude Code 對話裡執行，產物是一般的 `.tsx` 檔案，和筆記一起放進版本控制。build 與部署時不會呼叫 AI。
+</Callout>

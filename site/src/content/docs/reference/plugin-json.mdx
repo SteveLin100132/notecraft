@@ -1,0 +1,173 @@
+---
+description: plugins.json（專案的映射表）與 notecraft-plugin.json（plugin 的 manifest）每個欄位的型別、是否必填與用途，附最小範例。
+---
+
+Plugin 相關的設定檔有兩份，由不同的人寫：
+
+| 檔案 | 位置 | 誰寫 |
+| :-- | :-- | :-- |
+| `plugins.json` | `<專案根>/.notecraft/plugins.json` | 你：決定哪些資料檔交給哪個 plugin |
+| `notecraft-plugin.json` | `.notecraft/plugins/<id>/notecraft-plugin.json` | plugin 作者：plugin 的身分與相容性 |
+
+兩份都有對應的 JSON Schema。在檔案開頭加上 `$schema`，編輯器就會提示欄位與格式：
+
+| 檔案 | `$schema` |
+| :-- | :-- |
+| `plugins.json` | `https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/plugins.schema.json` |
+| `notecraft-plugin.json` | `https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/notecraft-plugin.schema.json` |
+
+## plugins.json
+
+`<專案根>` 是你執行 `notecraftapp` 指令時所在的目錄。沒有這個檔案時，plugin 功能整個不啟用，不報錯。
+
+```json title=".notecraft/plugins.json"
+{
+  "plugins": [
+    { "plugin": "er-diagram-renderer", "files": ["**/*.er.json"] }
+  ]
+}
+```
+
+### 頂層欄位
+
+| 欄位 | 型別 | 必填 | 說明 |
+| :-- | :-- | :-- | :-- |
+| `$schema` | string | 否 | 給編輯器用的 schema 網址 |
+| `plugins` | array | 是 | 映射規則，見下表。由上往下比對，第一條命中的規則勝 |
+| `disabled` | string[] | 否 | 停用的 plugin id。這些 plugin 的規則在比對前就略過，等同不存在。省略或空陣列表示全部啟用 |
+
+### 每一條規則
+
+| 欄位 | 型別 | 必填 | 說明 |
+| :-- | :-- | :-- | :-- |
+| `plugin` | string | 是 | plugin id，對應 `.notecraft/plugins/<id>/` 的資料夾名 |
+| `files` | string[] | 是 | 路徑或 glob，至少一項。基準是筆記資料夾，不能比對 `.md`／`.mdx` |
+| `exclude` | string[] | 否 | 從 `files` 命中的檔案裡排除的 glob |
+| `options` | object | 否 | 原封不動傳給 plugin，能用哪些鍵由各 plugin 決定 |
+
+glob 支援 `*`、`**`、`?`、`{a,b}`，大小寫有別，`.` 開頭的資料夾不比對。plugin id 的寫法是小寫英數，以 `-` 連接，例如 `openapi-renderer`。
+
+### build 時的檢查
+
+| 情況 | 結果 |
+| :-- | :-- |
+| 不是合法 JSON | build 失敗 |
+| 缺少 `plugins` 陣列 | build 失敗 |
+| `disabled` 不是字串陣列 | build 失敗 |
+| 某條規則缺 `plugin`，或 `files` 不是非空陣列 | build 失敗 |
+| `files` 裡有比對 `.md`／`.mdx` 的寫法 | build 失敗 |
+| 規則指向沒安裝的 plugin | build 失敗（被停用的除外） |
+| 某條規則一個檔案都沒命中 | 警告 |
+| `disabled` 列了沒安裝、也沒被任何規則引用的 id | 警告 |
+
+id 的寫法、不認得的欄位這類格式限制，build 不會擋，只會在編輯器透過 `$schema` 提示。
+
+規則的寫法與多條命中時的行為見[映射規則 plugins.json](/docs/guides/plugin-mapping/)，`disabled` 見[啟用與停用](/docs/guides/plugin-toggle/)。
+
+## notecraft-plugin.json
+
+每個 plugin 資料夾的根目錄都有一份，檔名固定。只是使用 plugin 的話不需要改它；這一節給想讀懂或自己寫 plugin 的人。
+
+```json title=".notecraft/plugins/my-renderer/notecraft-plugin.json"
+{
+  "id": "my-renderer",
+  "title": "我的渲染器",
+  "description": "把某種 JSON 資料畫成頁面",
+  "version": "0.1.0"
+}
+```
+
+### 欄位
+
+| 欄位 | 型別 | 必填 | 說明 |
+| :-- | :-- | :-- | :-- |
+| `$schema` | string | 否 | 給編輯器用的 schema 網址 |
+| `id` | string | 是 | 必須和所在資料夾名完全相同。小寫英數，以 `-` 連接 |
+| `title` | string | 是 | 顯示名稱，用在 CLI 的 store 清單與筆記內嵌外框上 |
+| `description` | string | 是 | 一句話說明這個 plugin 畫什麼 |
+| `version` | string | 是 | semver，例如 `1.2.0` |
+| `author` | string | 否 | 作者 |
+| `homepage` | string | 否 | 網址 |
+| `dataSchema` | string | 否 | 相對這份 manifest 的路徑，指向驗證資料檔用的 JSON Schema。省略時資料檔只檢查是不是合法 JSON |
+| `example` | string | 否 | 相對這份 manifest 的路徑，指向一份範例資料。沒帶 `--apply` 安裝時，CLI 會在「下一步」提示裡印出它的位置 |
+| `engines` | object | 否 | 相容性宣告，目前只有 `notecraftapp` 一個鍵，見下方 |
+| `meta` | object | 否 | 資料檔的標題、描述與返回連結從哪裡取，見下方 |
+
+manifest **沒有** `entry` 與 `accepts`：
+
+- 入口檔名固定是同一個資料夾裡的 `renderer.tsx`，它的 default export 就是渲染器
+- 這個 plugin 吃哪些檔案，完全由專案的 `plugins.json` 決定，plugin 自己不宣告
+
+### 什麼時候檢查
+
+| 檢查 | 安裝時 | build 時 |
+| :-- | :-- | :-- |
+| `notecraft-plugin.json` 存在且是合法 JSON | 擋下 | 失敗 |
+| `id` 與資料夾名相同 | 擋下 | 失敗 |
+| `renderer.tsx` 存在 | 擋下 | 有 `renderer.tsx` 卻沒有 manifest 時失敗；`renderer.tsx` 沒有 default export 時失敗 |
+| `engines.notecraftapp` 符合目前版本 | 擋下並提示升級 | — |
+| `dataSchema` 指的檔案存在、能編譯 | — | 失敗 |
+| 資料檔通過 `dataSchema` | — | 失敗，指出檔案與欄位 |
+
+安裝時的其他檢查（檔案類型、import 白名單）見[安全模型](/docs/advanced/security/)。
+
+### engines
+
+```json
+"engines": { "notecraftapp": ">=1.6.0" }
+```
+
+`install-plugin` 只認得三種寫法：
+
+| 寫法 | 意思 |
+| :-- | :-- |
+| `>=1.6.0` | 1.6.0 或更新 |
+| `^1.6.0` | 1.6.0 以上、主版號同為 1 |
+| `1.6.0` | 剛好這個版本 |
+
+不合時拒絕安裝，並顯示需要的版本與你目前的版本。
+
+### meta
+
+資料檔頁的標題、描述與「回到來源筆記」連結，預設讀資料檔頂層的 `meta.title`、`meta.description`、`meta.backTo`。資料格式不是你自己定的（例如 OpenAPI 文件的標題在 `info.title`），就在 manifest 的 `meta` 以 JSON Pointer 指定來源：
+
+```json
+"meta": {
+  "title": "/info/title",
+  "description": "/info/description",
+  "backTo": "/x-notecraft-back-to"
+}
+```
+
+| 鍵 | 取到的值 |
+| :-- | :-- |
+| `title` | 頁面標題。沒取到或是空字串時用檔名 |
+| `description` | 描述，允許 Markdown，顯示時會去掉標記 |
+| `backTo` | 站內路徑，必須以單一 `/` 開頭，例如 `/notes/orders/overview`；不符合時忽略並在 build 印警告 |
+
+- 每個值都要以 `/` 開頭，或是空字串（指整份資料）
+- 沒寫的鍵仍退回 `meta.<鍵>`
+- 取到的值不是字串時，當作沒有
+- 需要 notecraftapp 1.6.0 以上，建議同時把 `engines.notecraftapp` 寫成 `>=1.6.0`
+
+## plugin 資料夾
+
+```text
+.notecraft/plugins/
+├── _types.d.ts                 安裝時產生，給 renderer 取得型別
+└── <id>/
+    ├── notecraft-plugin.json   manifest
+    ├── renderer.tsx            入口，檔名固定
+    └── schema.json             資料的 JSON Schema（檔名由 dataSchema 決定）
+```
+
+`renderer.tsx` 收到的 props：
+
+| prop | 說明 |
+| :-- | :-- |
+| `data` | 資料檔內容，build 時已解析並通過 schema |
+| `file` | `path`（相對筆記資料夾，含副檔名）、`name`（檔名）、`updatedAt`（檔案修改時間） |
+| `options` | 規則的 `options`，筆記內嵌時再疊上 `<PluginView options>` |
+| `mode` | `"page"`（`/view/` 獨立頁）或 `"embed"`（嵌在筆記裡） |
+
+renderer 能 import 的套件與 AI 生成元件共用同一份白名單，見[安全模型](/docs/advanced/security/)。

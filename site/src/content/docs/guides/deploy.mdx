@@ -1,0 +1,110 @@
+---
+description: 把 notecraftapp build 的產物複製出來，放到 GitHub Pages、Netlify 或任何靜態主機；也說明筆記圖片要另外複製、子路徑怎麼設，以及部署出去的站少了哪些功能。
+---
+
+`notecraftapp build` 產生的是純靜態網站：HTML、CSS、JS 與一份 `/wb-index.json`，沒有任何執行期 API。能放靜態檔案的主機都能用。
+
+## 產生產物
+
+```bash
+npx notecraftapp build ./notes
+```
+
+產物在 `~/.notecraft/cache/<hash>/dist/`。`<hash>` 是筆記資料夾絕對路徑的 SHA-1 前 12 碼，build 結束時最後一行會印出完整路徑：
+
+```text
+[notecraftapp] dist:      : /Users/you/.notecraft/cache/2bb4fbdcdaa2/dist
+```
+
+部署前先把它複製出來，不要直接拿快取目錄去部署。下一次 `build` 或 `serve` 的背景 rebuild 會整個換掉這個資料夾。
+
+```bash
+mkdir -p site-out
+cp -R ~/.notecraft/cache/<hash>/dist/. site-out/
+```
+
+<Callout type="warn">
+快取是否失效不看 notecraftapp 的版本，也不看下面提到的 `NOTECRAFT_BASE`。升級後、或改了子路徑設定之後，要加 `--rebuild`，否則會拿到舊的產物。快取規則見[運作原理](/docs/advanced/internals/)。
+</Callout>
+
+## 筆記裡的圖片
+
+筆記用相對路徑引用的圖片，會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`（見[圖片與附件](/docs/writing/images/)）。這些網址在 `view` 與 `serve` 是由 NoteCraftApp 從筆記資料夾即時送出的，**`build` 不會把圖片複製進產物**。直接部署的話，圖片全部是 404。
+
+以一篇引用 `./cover.png` 與 `sub/inner.png` 的 `hello.md` 實測：
+
+| 檢查 | 結果 |
+| :-- | :-- |
+| `dist/notes/hello/index.html` 的 `<img>` | `src="/notes-assets/cover.png"`、`src="/notes-assets/sub/inner.png"` |
+| `dist/` 底下的 `notes-assets/` | 不存在 |
+| `dist/` 底下任何 `.png` | 沒有 |
+
+部署前自己把圖片照原本的相對路徑複製到產物的 `notes-assets/` 底下：
+
+```bash
+cd notes
+rsync -a --prune-empty-dirs --exclude='.*/' \
+  --include='*/' \
+  --include='*.png' --include='*.jpg' --include='*.jpeg' --include='*.gif' \
+  --include='*.webp' --include='*.avif' --include='*.svg' --include='*.ico' --include='*.pdf' \
+  --exclude='*' \
+  ./ ../site-out/notes-assets/
+```
+
+複製之後，`/notes-assets/cover.png` 會對到 `site-out/notes-assets/cover.png`，靜態主機就能送出。這個指令會複製筆記資料夾裡**所有**符合副檔名的檔案，不只被引用的那些；有不想公開的圖片，先移出筆記資料夾或自己改 `--exclude`。
+
+## 部署到子路徑
+
+站不在網域根目錄時（例如 GitHub Pages 的專案站 `https://<帳號>.github.io/<repo>/`），build 時設環境變數 `NOTECRAFT_BASE`：
+
+```bash
+NOTECRAFT_BASE=/my-notes npx notecraftapp build ./notes --rebuild
+```
+
+- 站內連結、CSS／JS 路徑、改寫後的圖片網址都會加上前綴，例如 `/my-notes/notes-assets/cover.png`
+- 產物的目錄結構不變，`index.html` 仍在 `dist/` 最上層。把整份內容放到主機上 `/my-notes/` 對應的位置
+- 圖片一樣要照上一節複製到 `notes-assets/`
+
+<Callout type="warn">
+`NOTECRAFT_BASE` 不是 CLI 旗標，`--help` 與 README 都沒有列出。它是 NoteCraftApp 本身部署官網 Demo 用的設定，CLI 會把它原樣傳給 build，所以目前可以用，但不算正式公開的功能，之後可能變動。另外 `serve` 不處理前綴：用 `NOTECRAFT_BASE` build 過之後，本機 `serve` 會找不到 CSS 與連結，要不帶這個變數再 `--rebuild` 一次。
+</Callout>
+
+## 放上靜態主機
+
+產物的每一頁都是 `<路徑>/index.html`，連結寫成 `/notes` 這種不帶結尾斜線的形式，主機要能把它對到 `notes/index.html`。GitHub Pages 與 Netlify 預設都會這樣處理。
+
+| 主機 | 做法 |
+| :-- | :-- |
+| GitHub Pages | 用 GitHub Actions 部署：build、複製產物，交給 `actions/upload-pages-artifact`。若改用「從分支部署」，產物裡有 `_astro/` 資料夾，要在根目錄放一個空的 `.nojekyll` |
+| Netlify | 把 `site-out/` 整個資料夾拖到 Netlify 的手動部署頁；在 Netlify 上 build 時，build 指令要包含複製產物，publish 目錄指向複製出來的資料夾 |
+| 其他靜態主機 | 上傳 `site-out/` 的內容 |
+
+在 CI 裡不知道 `<hash>`，從 build 最後印的那一行取路徑：
+
+```bash
+DIST=$(npx notecraftapp build ./notes --rebuild | sed -n 's/^\[notecraftapp\] dist: *: //p')
+mkdir -p site-out
+cp -R "$DIST"/. site-out/
+```
+
+CI 需要 Node 22（見[系統需求](/docs/getting-started/requirements/)）。第一次執行 `npx notecraftapp` 會先安裝一次，約 30 秒。
+
+## 部署後少了什麼
+
+部署出去的站就是 `build` 的產物，和 `serve` 看到的一樣是唯讀的：
+
+| 項目 | 在部署的站上 |
+| :-- | :-- |
+| 「+ 新增筆記」、標籤編輯、`/tags` 的重新命名與刪除 | 不輸出 |
+| 筆記頁首「⋯」選單（以 VS Code 編輯、重新生成提示、刪除筆記） | 不輸出，產物裡也不含本機絕對路徑 |
+| Drawer 的「複製生成提示」、沒有簡報時的「生成簡報」 | 不輸出 |
+| `/plugins` 的啟用／停用開關 | 只顯示狀態 |
+| 閱讀進度、頁籤、收藏 | 存在每位訪客自己的瀏覽器（localStorage），不會互通 |
+
+寫入功能都要在本機用 `view`，見[在介面新增與編輯](/docs/guides/editing/)。
+
+### 全文搜尋
+
+`build` 完會在產物裡建好 pagefind 索引（`pagefind/` 資料夾），整個資料夾一起上傳，部署的站上 `⌘K` 就能搜內文，不用另外跑 pagefind。若終端機印了建索引失敗的警告，站仍可部署，只是沒有「內文」分區。
+
+搜尋範圍與限制見[指令面板與全文搜尋](/docs/guides/palette/)。

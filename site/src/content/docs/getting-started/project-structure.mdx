@@ -1,0 +1,82 @@
+---
+description: 用了 NoteCraftApp 之後，你的專案裡會有哪些資料夾與檔案、各自做什麼，以及哪些要提交到 git。
+---
+
+NoteCraftApp 本身不裝在你的專案裡。專案裡只有你的筆記，加上視需要才出現的 `.notecraft/` 與 `.claude/`。
+
+## 目錄樹
+
+以專案根 `my-project/`、筆記資料夾 `docs/` 為例，指令都在 `my-project/` 執行：
+
+```text
+my-project/
+├── docs/                          筆記資料夾，view／serve／build 的參數
+│   ├── hello.md                   筆記，.md 與 .mdx 都可以
+│   ├── guides/
+│   │   └── oauth-flow.mdx         子資料夾對到網址 /notes/guides/oauth-flow
+│   └── api/
+│       └── orders.openapi.json    資料檔，交給 Plugin 渲染成 /view/api/orders.openapi
+├── .notecraft/
+│   ├── components/
+│   │   ├── request-flow.tsx       @ai-visualize 生成的元件，一個標記一個檔
+│   │   └── oauth-flow.deck.tsx    筆記轉成的簡報
+│   ├── plugins/
+│   │   ├── _types.d.ts            install-plugin 產生的型別宣告，給渲染器用
+│   │   └── openapi-renderer/      一個 Plugin 一個資料夾
+│   │       ├── notecraft-plugin.json   Plugin 的身分：id、名稱、版本
+│   │       ├── renderer.tsx       渲染器入口
+│   │       ├── schema.json        資料檔要符合的 JSON Schema
+│   │       └── …                  Plugin 自帶的其他模組與範例
+│   ├── plugins.json               哪些資料檔交給哪個 Plugin
+│   └── series.json                系列：多篇筆記的閱讀順序
+└── .claude/
+    ├── skills/
+    │   ├── content-visualize/     處理 @ai-visualize 標記
+    │   ├── content-present/       筆記轉簡報
+    │   └── trendlink-design/      前兩者共用的設計系統
+    └── agents/                    6 個 Subagent 設定（.md）
+```
+
+每一項都是選用的：沒用 AI 生成就沒有 `.notecraft/components/`，沒跑 `init-skill` 就沒有 `.claude/`，沒裝 Plugin 就沒有 `plugins/` 與 `plugins.json`。
+
+## 誰建立這些檔案
+
+| 路徑 | 由誰建立 |
+| :-- | :-- |
+| 筆記資料夾 | 你；`view` 的「+ 新增筆記」也會在這裡建檔 |
+| `.notecraft/components/` | Claude Code 處理標記或生成簡報時 |
+| `.notecraft/plugins/`、`plugins.json` | `install-plugin`；帶 `--apply` 時會寫入 `plugins.json` 的規則，之後也可以自己改 |
+| `.notecraft/series.json` | 你 |
+| `.claude/skills/`、`.claude/agents/` | `init-skill` |
+
+## .notecraft/ 在哪裡
+
+`.notecraft/` 以你**執行指令時所在的目錄**為準，不是筆記資料夾。上例在 `my-project/` 執行 `npx notecraftapp view ./docs`，讀的就是 `my-project/.notecraft/`。
+
+唯一的例外是 `series.json`：放在 `docs/.notecraft/series.json` 也會被讀取，兩份都在時筆記資料夾裡的優先。
+
+<Callout type="warn">
+換一個目錄執行指令，讀到的 `.notecraft/` 就不同，生成元件與 Plugin 可能找不到。固定在專案根執行，把筆記資料夾當參數傳入。
+</Callout>
+
+資料檔則相反，必須放在筆記資料夾**裡面**，`plugins.json` 的 `files` 也以筆記資料夾為基準，見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。
+
+## 哪些要提交
+
+| 路徑 | 提交 | 原因 |
+| :-- | :-- | :-- |
+| 筆記資料夾 | 要 | 你的內容 |
+| `.notecraft/components/` | 要 | 筆記 `import` 這些元件，少了就 build 不起來 |
+| `.notecraft/plugins/` | 要 | `plugins.json` 指到沒安裝的 Plugin 時 build 會失敗 |
+| `.notecraft/plugins.json`、`series.json` | 要 | 設定檔 |
+| `.claude/` | 建議 | 其他人 clone 後就能直接在 Claude Code 生成；不提交的話，各自跑一次 `init-skill` |
+| `~/.notecraft/` | 不在專案裡 | 套件的執行位置與 build 快取 |
+
+`~/.notecraft/` 在你的家目錄，不在專案裡：
+
+| 位置 | 內容 |
+| :-- | :-- |
+| `~/.notecraft/app-<version>/` | 套件本身，首次執行時複製過來並安裝相依 |
+| `~/.notecraft/cache/<hash>/` | 每個筆記資料夾一份 build 快取，`build` 的產物在其中的 `dist/` |
+
+build 產物不會寫進你的專案，所以專案裡沒有需要加進 `.gitignore` 的東西。閱讀進度、收藏、頁籤這類個人狀態存在瀏覽器的 localStorage，也不在專案裡。

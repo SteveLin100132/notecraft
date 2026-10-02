@@ -16,3 +16,4 @@ src/content/notes/private/
 
 # impeccable 審查用的整頁截圖（每次重截會覆寫，不進版控）
 .impeccable/review/
+site/.impeccable/review/
