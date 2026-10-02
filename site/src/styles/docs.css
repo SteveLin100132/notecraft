@@ -2,7 +2,13 @@
    token 全在 site.css；這裡不新增顏色。書脊是 sheet，白紙側是 paper。 */
 
 .docs-body {
+  --measure: 860px; /* 段落的最大行寬：約 50 個中文字；程式碼、表格可以撐滿整欄 */
   background: var(--paper);
+}
+/* 文件頁的主捲軸：細、淡，和頁面的細線同色（官網首頁仍是深藍） */
+html:has(> body.docs-body) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
 }
 .skip {
   position: absolute;
@@ -244,19 +250,16 @@ a.sec[aria-current="page"]::before {
   min-width: 0;
   padding: 0 var(--gutter) clamp(56px, 7vw, 96px);
 }
+/* 內文欄吃滿白紙，本頁目錄貼齊頁眉右緣（像 Docusaurus）；段落另以 --measure 限寬 */
 .doc-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  /* 內文＋本頁目錄這一組在白紙上置中，寬螢幕的留白左右平分，不全堆在右邊 */
-  max-width: 1120px;
-  margin-inline: auto;
 }
 .doc {
   min-width: 0;
 }
 
 .doc-head {
-  max-width: 68ch;
   padding: clamp(36px, 5vw, 64px) 0 26px;
   border-bottom: 1px solid var(--rule);
 }
@@ -286,8 +289,10 @@ a.sec[aria-current="page"]::before {
 
 /* ── 內文欄 ── */
 .doc-body {
-  max-width: 68ch;
   padding-top: 8px;
+}
+.doc-body > :is(p, ul, ol, blockquote, hr, .callout, .plate, .toc-inline) {
+  max-width: var(--measure);
 }
 .doc-body > :first-child {
   margin-top: 1.4em;
@@ -417,7 +422,9 @@ a.sec[aria-current="page"]::before {
   overflow-x: auto;
 }
 .tbl table {
-  width: 100%;
+  /* 欄位少的表格撐到段落寬；欄位多的可以長到整欄，再寬才在框內橫向捲動 */
+  width: auto;
+  min-width: min(100%, var(--measure));
   border-collapse: collapse;
   font-size: 15px;
   line-height: 1.6;
@@ -530,6 +537,18 @@ a.sec[aria-current="page"]::before {
   color: var(--ink-2);
   text-decoration: none;
 }
+.toc .toc-subs {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 4px;
+}
+.toc .toc-group.is-open > .toc-subs {
+  display: block;
+}
+.toc .toc-group.has-current > a {
+  color: var(--ink);
+}
 .toc .sub a,
 .toc-inline .sub a {
   padding-left: 14px;
@@ -558,7 +577,7 @@ a.sec[aria-current="page"]::before {
   left: 0;
 }
 .toc-inline {
-  max-width: 68ch;
+  max-width: var(--measure);
   margin-top: 22px;
   border: 1px solid var(--rule);
 }
@@ -575,7 +594,6 @@ a.sec[aria-current="page"]::before {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  max-width: 68ch;
   margin-top: clamp(48px, 6vw, 72px);
 }
 .pager-link {
@@ -620,7 +638,6 @@ a.sec[aria-current="page"]::before {
   color: var(--mark);
 }
 .doc-edit {
-  max-width: 68ch;
   margin: 20px 0 0;
   font-size: 14px;
 }
@@ -634,9 +651,8 @@ a.sec[aria-current="page"]::before {
 /* ── 斷點 ── */
 @media (min-width: 1200px) {
   .doc-grid.has-toc {
-    grid-template-columns: minmax(0, 68ch) 220px;
-    justify-content: center;
-    column-gap: clamp(40px, 5vw, 88px);
+    grid-template-columns: minmax(0, 1fr) 240px;
+    column-gap: clamp(40px, 4vw, 72px);
   }
   .toc {
     display: block;
@@ -645,7 +661,24 @@ a.sec[aria-current="page"]::before {
     align-self: start;
     max-height: 100vh;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: clamp(36px, 5vw, 64px) 0 24px 14px;
+    /* 平常看不到捲軸，指標移到目錄上才出現；多數頁面收合後根本不需要捲 */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .toc:hover,
+  .toc:focus-within {
+    scrollbar-color: var(--rule) transparent;
+  }
+  .toc::-webkit-scrollbar {
+    width: 6px;
+  }
+  .toc::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  .toc:hover::-webkit-scrollbar-thumb {
+    background: var(--rule);
   }
   .toc-title {
     padding-top: 10px;

@@ -32,6 +32,14 @@ const folio = page ? `第 ${page.chapter.no} 章・${page.chapter.title}` : "";
 
 const contains = (n: NavNode): boolean => n.slug === slug || !!n.children?.some(contains);
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+// 右側本頁目錄：每個 `##` 一組，底下的 `###` 收起來，只有讀到的那一組展開（docs.ts 切換）。
+// SSR 先展開第一組，跟剛進頁面時讀到的位置一致。
+type TocGroup = { h: MarkdownHeading; subs: MarkdownHeading[] };
+const tocGroups: TocGroup[] = [];
+for (const h of toc) {
+  if (h.depth === 2 || tocGroups.length === 0) tocGroups.push({ h, subs: [] });
+  else tocGroups[tocGroups.length - 1].subs.push(h);
+}
 ---
 
 <!doctype html>
@@ -222,9 +230,18 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
               <aside class="toc" aria-label="本頁目錄">
                 <p class="toc-title">本頁目錄</p>
                 <ol>
-                  {toc.map((h) => (
-                    <li class:list={{ sub: h.depth === 3 }}>
-                      <a href={`#${h.slug}`}>{h.text}</a>
+                  {tocGroups.map((g, i) => (
+                    <li class:list={["toc-group", { "is-open": i === 0 }]}>
+                      <a href={`#${g.h.slug}`}>{g.h.text}</a>
+                      {g.subs.length > 0 && (
+                        <ol class="toc-subs">
+                          {g.subs.map((h) => (
+                            <li class="sub">
+                              <a href={`#${h.slug}`}>{h.text}</a>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
                     </li>
                   ))}
                 </ol>
