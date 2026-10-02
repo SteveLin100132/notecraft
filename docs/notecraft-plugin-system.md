@@ -602,6 +602,8 @@ $ npx notecraftapp install-plugin
 **退路：`git clone --depth 1`。** 非 GitHub 來源，或 GitHub API 限流（未認證 60 次/小時）時改走這條。
 
 抓完寫一份 `.installed.json` 記錄來源網址與實際 commit，供日後追溯與升級比對。
+本地來源的 `origin` 只記 `local:<資料夾名>`（v1.8.5）：這個欄位會輸出到 `/wb-index.json` 與 `/plugins` 頁，絕對路徑不得出現在產物裡；
+更早安裝、記著絕對路徑的舊檔由 `src/lib/local-path.ts` 的 `publicPluginOrigin` 在輸出時轉成同樣形式。
 
 ### 9.5 安裝後
 
