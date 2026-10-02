@@ -302,6 +302,7 @@ Task 111 第一步：`astro build` 後對每篇筆記比對「SSR HTML 中每個
 - 由 `reference/VizIsland.tsx` 改寫：佔位外框對齊 `GeneratedFrame`（margin 22px 0、caption 列高、radius `--radius-lg`），**不是**包在 `GeneratedFrame` 外面再畫一個框 —— 佔位放在 `[data-nc-viz-body]` 裡面，`VizZoom` 的搬移目標不動
 - 預留高度 `h`：MDX 上的 prop。由 component-generator 驗證時量測、mdx-writer 寫回（Q3）
 - `client:visible={{ rootMargin: "200px" }}`：Astro 5 支援 `client:visible` 的 `rootMargin` 選項，提前 200px hydrate
+- **handoff 的寫法有問題**：`<VizIsland client:visible><X /></VizIsland>` 中，Astro 把 `<X />` 當成 slot 的靜態 HTML 傳進 island，**`X` 本身不會被 hydrate**，互動會全部失效。可行的形式是「生成元件內部使用 `VizIsland`」或「生成元件自己接 `h` 並渲染佔位」，由 Task 111 先寫最小範例確認後擇一，再回填本節
 - 「互動圖表載入中」800ms 後出現；最短顯示 300ms（`hold = elapsed < 150 ? 0 : max(0, 450 - elapsed)`）照 handoff
 
 ---
