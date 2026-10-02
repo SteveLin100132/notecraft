@@ -1,0 +1,74 @@
+---
+description: 執行 view 之後終端機會印出什麼、瀏覽器要開哪個網址、畫面上各區是什麼，以及沒有筆記時的樣子與怎麼停止。
+---
+
+以下以專案根目錄 `my-project/`、筆記資料夾 `docs/` 為例。在專案根執行：
+
+```bash
+npx notecraftapp view ./docs
+```
+
+## 終端機會看到什麼
+
+這個版本第一次執行時，會先複製套件並安裝相依：
+
+```text
+[notecraftapp] 首次執行：複製套件到 /Users/you/.notecraft/app-<version>
+[notecraftapp] 安裝相依（npm install）…
+```
+
+接著是 `npm install` 本身的輸出。之後再啟動就不會出現這兩行。`npm install` 失敗時會印出 `npm install 失敗` 並結束，下次執行會重新安裝。
+
+每次啟動都會印出：
+
+```text
+[notecraftapp] spawn astro dev
+[notecraftapp] notes dir  : /Users/you/my-project/docs
+[notecraftapp] user cwd   : /Users/you/my-project
+[notecraftapp] port       : 4321
+```
+
+| 欄位 | 意思 |
+| :-- | :-- |
+| `notes dir` | 筆記資料夾的絕對路徑 |
+| `user cwd` | 執行指令的目錄。`.notecraft/`（生成元件、Plugin、設定）從這裡讀 |
+| `port` | 伺服器的 port，用 `--port` 可以改 |
+
+再往下是 Astro dev server 自己的啟動訊息。筆記資料夾不存在時，只會印出 `notes 資料夾不存在：<路徑>` 並結束。
+
+## 打開瀏覽器
+
+`view` 不會自動開瀏覽器。手動前往：
+
+```text
+http://127.0.0.1:4321/
+```
+
+實際網址以 Astro 啟動訊息裡 `Local` 那一行為準。首頁 `/` 是儀表板。
+
+`view` 是開發伺服器：你改了筆記檔，瀏覽器會跟著更新；頁首的「+ 新增筆記」、標籤編輯等寫入 UI 也只在 `view` 出現。
+
+## 畫面上的各區
+
+<Plate name="dashboard" alt="工作台首頁：最左是深色圖示列，接著是資料夾樹，右側主區是儀表板" caption="最左是 Rail，接著是 Sidebar 資料夾樹，右側主區顯示儀表板的總覽。" />
+
+| 區 | 位置 | 內容 |
+| :-- | :-- | :-- |
+| Rail | 最左的深色窄欄 | 儀表板、搜尋（`⌘K`）、AI 標記佇列、Plugin、設定與關於。有待生成標記時，AI 圖示上有圓點 |
+| Sidebar | Rail 右邊 | 最上方是工作區名稱（專案資料夾名／筆記資料夾）。下面依序是資料夾樹、系列、Plugin 資料檔、標籤；系列與 Plugin 資料檔只在有設定時出現 |
+| 頁籤列 | 主區最上方 | 開過的筆記與資料檔，見[筆記頁籤](/docs/guides/tabs/) |
+| 主區 | 其餘空間 | 頁首（標題、分頁、`view` 模式的「+ 新增筆記」）與內容。儀表板有總覽、更新月曆、AI 佇列三個分頁 |
+
+各區的操作見[介面總覽](/docs/guides/workbench/)，儀表板各卡見[儀表板與更新月曆](/docs/guides/dashboard/)。
+
+## 沒有筆記、沒有 frontmatter
+
+**筆記資料夾是空的**：工作台照樣開得起來。儀表板的數字是 0、環形圖只畫底環、寫作頻率是空的、最近更新顯示「尚無筆記」。在 `view` 按頁首的「+ 新增筆記」就能建立第一篇，見[在介面新增與編輯](/docs/guides/editing/)。
+
+**筆記沒有 frontmatter**：照常顯示。標題取內文第一個 H1，沒有就用檔名；日期取檔案時間。補上的值不會寫回檔案。筆記列表有「無 frontmatter」篩選 chip，可以找出這些筆記。規則見 [Frontmatter](/docs/getting-started/frontmatter/)。
+
+## 停止
+
+在跑 `view` 的終端機按 `Ctrl+C`。dev server 關閉後頁面就連不上了，筆記檔案不受影響。
+
+下次再執行同一行指令即可重新開啟。

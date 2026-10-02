@@ -1,0 +1,73 @@
+---
+description: 標記的 status 有四個值。這頁說明每個值的意思、由誰改它、在工作台上怎麼看出來，以及要怎麼請 AI 重新生成。
+---
+
+每個 `@ai-visualize` 標記都有一個 `status`。生成流程靠它決定要不要處理這個標記，工作台靠它算出「待生成」的數字。
+
+## 四種狀態
+
+| 值 | 意思 | 誰寫入 | 生成流程怎麼處理 |
+| :-- | :-- | :-- | :-- |
+| `pending` | 還沒生成 | 你，寫新標記時 | 處理 |
+| `generated` | 元件已通過驗證，`import` 與元件已寫回筆記 | mdx-writer | 你明確要求才重做 |
+| `locked` | 鎖定 | 只有你手動改 | 一律跳過，怎麼要求都不會覆寫 |
+| `failed` | 修正 3 次仍沒通過驗證 | mdx-writer | 預設不重跑 |
+
+- 省略 `status` 時，工作台把它當成 `pending`
+- `failed` 的標記下方不會有 `import` 與元件，筆記不會引用到壞掉的元件。`prompt` 原樣保留，錯誤節錄附在對話裡
+- 標記包在 ```` ```mdx ```` 圍欄裡時，`generated` 會一併拆掉圍欄，`failed` 則保留圍欄
+
+## 在工作台上看
+
+| 位置 | 顯示 |
+| :-- | :-- |
+| 筆記頁標題下方 | 每個還沒生成的標記一張卡片：`id`、`type`、狀態（待生成、生成失敗、已鎖定）與 prompt |
+| 筆記頁首 | 「待生成 N」、「已生成 N」或「無標記」 |
+| 筆記列表與 Drawer | 列上的「待生成 N」；Drawer 逐一列出標記，標「已生成」或「待生成」 |
+| Rail 的「AI 標記佇列」、Sidebar 底部「查看佇列」 | 開 `/notes?pending=1`，只列有待生成標記的筆記 |
+| 儀表板「AI 待生成」卡 | 待生成標記總數，以及分布在幾篇筆記 |
+| 儀表板「AI 佇列」分頁 | 依筆記分組列出每個待生成標記，見[儀表板](/docs/guides/dashboard/) |
+
+`view` 與 `build`／`serve` 的產物都會顯示這些。
+
+<Callout>
+工作台把 `generated` 以外的狀態都算成「待生成」。`locked` 與 `failed` 也會計入佇列和各處的數字，只有筆記頁上的卡片分得出是哪一種。把已生成的標記改成 `locked` 後，它同樣會出現在佇列裡。
+</Callout>
+
+## 重新生成
+
+在 Claude Code 對話裡指名要重做的標記。依標記目前的狀態，做法不同：
+
+### generated
+
+直接說：
+
+- 「重新生成 `oauth-flow`」
+
+AI 會覆寫 `.notecraft/components/oauth-flow.tsx`，筆記裡的 `import` 與元件原地更新，不會多出第二份。舊版要從 git 找回。
+
+### failed
+
+先改 `prompt`，再明確要求重試。例如：
+
+- 「`guides/oauth/flow.mdx` 的 `oauth-flow` 我改過 prompt 了，請重新生成」
+
+或者把 `status` 改回 `pending`，之後說「處理視覺化」時它就會跟其他待生成標記一起處理。
+
+### locked
+
+不管怎麼要求都不會覆寫。要重做，先自己把 `status` 改成 `generated` 或 `pending`，再照上面的方式要求。
+
+`view` 模式下，筆記頁首「⋯」選單的「重新生成提示」會把這篇所有還沒生成的標記（含 `failed` 與 `locked`）寫進複製的提示詞裡。其中 `locked` 仍會被跳過；`generated` 的標記不在清單裡，要重做就自己在對話裡指名。
+
+## 什麼時候用 locked
+
+你手動改過 `.notecraft/components/<id>.tsx`，或滿意目前這一版、不想被之後的「處理視覺化」或「重新生成」動到時，把 `status` 改成 `locked`。
+
+鎖定只影響生成流程。元件照常顯示在筆記裡。
+
+## id 重複
+
+同一篇筆記裡兩個標記用了相同的 `id`，掃描時會把重複的那個標為錯誤並跳過，同一篇的其他標記照常處理。改成不同的 `id` 後再要求處理一次。
+
+不同筆記之間用了相同的 `id`，兩邊會對到同一個 `.notecraft/components/<id>.tsx`：重新生成其中一個，另一篇顯示的元件也跟著變。命名規則見 [@ai-visualize 標記欄位](/docs/reference/markers/)。
