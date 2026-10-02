@@ -13,7 +13,6 @@ export default function MoreMenu({
   promptPath = "",
   vscodeHref = "",
   pendingIds = [],
-  componentIds = [],
   workspace,
 }: {
   slug?: string;
@@ -22,7 +21,6 @@ export default function MoreMenu({
   promptPath?: string;
   vscodeHref?: string;
   pendingIds?: string[];
-  componentIds?: string[];
   /** 刪除筆記時一併關掉頁籤 */
   workspace?: string;
 }) {
@@ -30,7 +28,7 @@ export default function MoreMenu({
   const [copied, setCopied] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const del = useDeleteNote({ slug, title, componentIds, path, workspace });
+  const del = useDeleteNote({ slug, title, path, workspace });
 
   const close = (refocus = true) => {
     setOpen(false);

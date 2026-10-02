@@ -111,7 +111,8 @@ status: pending | generated | locked | failed
   格狀的小目標（標籤分布 treemap 方塊、月曆的 14px 色塊）例外：純 `<button>` 走 `rowHandlers`、無常駐開啟連結（Dashboard §6.4、Calendar Q2）；
   單擊即導覽的列（系列、標籤、資料檔）整列是 `<a>`
 - **資料夾與顯示用路徑一律來自真實檔案路徑**（`WbNoteRow.path`），不是會被 slug 化的 `entry.id`；`?folder=` 的值也是真實路徑。slug 只用於 `/notes/<slug>` 與 localStorage key
-- **本機絕對路徑不得出現在任何輸出的 HTML／JSON**（`/wb-index.json` 序列化後若含 cwd 會直接 throw）。唯一例外是 dev-only 的 `vscode://` 連結
+- **本機絕對路徑不得出現在任何輸出的 HTML／JSON**（`/wb-index.json` 序列化後若含 cwd 會直接 throw）。唯一例外是 dev-only 的 `vscode://` 連結。
+  build 完由 `src/lib/no-local-path-integration.mjs` 掃整個產物的 `.html`／`.json` 兜底（含 island props）；要給 dev 用的路徑（如 `rendererPath`）一律 `isDev &&` 守衛
 - **相對於「今天」的量在瀏覽器算**（`lib/wb-time.ts`，當地時區），SSR 以「—」佔位；靠 localStorage 的東西（閱讀進度、收藏、偏好）SSR 一律當作沒有
 - 篩選全在 query string（`?folder=`、`?series=`、`?tag=`、`?pending=1`、`?fav=1`、`?view=`），island 內切換用 `history.replaceState`；分組與搜尋字串不進網址
 - `Escape` 走 `lib/wb-escape.ts` 的共用堆疊（Palette → Modal → Drawer → Sidebar 抽屜），浮層不要各自掛 keydown

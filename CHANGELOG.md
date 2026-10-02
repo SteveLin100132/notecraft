@@ -4,6 +4,37 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.8.5] - 2026-10-02
+
+### 修正
+
+- 從本機資料夾安裝的 plugin（`install-plugin ./my-plugin`）不再把資料夾的絕對路徑寫進正式產物：`.installed.json` 的 `origin` 改記 `local:<資料夾名>`，`/wb-index.json` 與 `/plugins` 頁的 Drawer 也顯示這個形式。plugin 原始碼放在專案資料夾內時，build 不會再因「/wb-index.json 的輸出含本機絕對路徑」失敗；之前安裝、仍記著絕對路徑的 plugin 不必重裝，輸出時會自動改成同樣的形式
+- 筆記內嵌的資料檔（`<PluginView>`）不再把 renderer 的絕對路徑寫進正式頁面；這個路徑只給 dev 的「以 VS Code 編輯 renderer」用，與 `/view/…` 頁一致
+- build 完會掃描產物的 `.html`／`.json`，含專案、筆記資料夾或 app 的本機絕對路徑就讓 build 失敗並列出檔案，避免日後再漏（dev 專用的 `vscode://` 連結不受影響）
+
+## [1.8.4] - 2026-10-02
+
+### 安全
+
+- `install-plugin` 不再放行 plugin 夾帶的 `package.json`：原本只看副檔名，`.json` 一律通過，與設計文件「拒絕 `package.json`」不符。現在任何層的 `package.json`、lockfile（`package-lock.json`、`npm-shrinkwrap.json`、`yarn.lock`、`pnpm-lock.yaml`、`bun.lockb`、`bun.lock`）都會拒裝並說明原因；安裝本來就不執行任何腳本，這次是把「看起來會裝依賴」的檔案擋在門外
+- `install-plugin` 同時拒收 `tsconfig.json`／`jsconfig.json`：放進 `.notecraft/plugins/<id>/` 會被當成離 renderer 最近的編譯設定，改掉 JSX 等編譯行為
+
+## [1.8.2] - 2026-10-02
+
+### 修正
+
+- 沒寫 frontmatter `title` 的筆記，標題不會再變成程式碼區塊裡的 `# 註解`（bash、Python 等）或 `@ai-visualize` 標記裡的文字，只取內文真正的 `# 標題`；摘要同樣略過 `~~~` 程式碼區塊
+- 用 `http://` 加區網 IP 開啟（例如 `--host 0.0.0.0` 從手機或另一台電腦連進來）時，程式碼區塊的「複製」、複製生成提示、頁籤的「複製連結」改用相容方式真的寫進剪貼簿；仍無法複製時顯示「無法複製，請手動選取」（程式碼區塊會順手選取內容），不再假裝「已複製」
+- `.md` 筆記裡的 `@ai-visualize` 標記不再算成「待生成」：不出現在筆記頁的待生成卡片、AI 標記佇列與儀表板計數（AI 流程只處理 `.mdx`）。build／dev 時會提示把該檔改成 `.mdx`
+
+## [1.8.1] - 2026-10-02
+
+### 修正
+
+- 升級 `notecraftapp` 後，`build`／`serve` 不再沿用舊版建立的快取：版本不同就自動重 build，並印出「版本從 X 變成 Y」。不用再手動加 `--rebuild`
+- 改了 `NOTECRAFT_BASE`（或拿掉）後會自動重 build，不再拿到連結前綴不對的舊快取
+- 從不同資料夾對同一個筆記資料夾執行 `build`／`serve` 時會重 build（`.notecraft/` 的外掛、系列、元件從執行資料夾讀，產物可能不同）
+
 ## [1.8.0] - 2026-10-02
 
 ### 新增

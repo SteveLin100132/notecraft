@@ -8,7 +8,7 @@ plugin 由三個檔案組成：manifest、資料的 JSON Schema、渲染器 `ren
 
 ## 資料夾結構
 
-plugin 原始資料夾放在專案資料夾**外面**，用 `install-plugin` 複製進專案：
+plugin 原始資料夾是你開發的地方，用 `install-plugin` 複製進專案。下面的例子放在專案資料夾旁邊：
 
 ```text
 list-table/                   plugin 原始資料夾（你在這裡開發）
@@ -28,11 +28,13 @@ my-notes/                     專案根，在這裡執行指令
         └── books.list.json
 ```
 
+原始資料夾放在專案外或專案根底下都可以。本地安裝只記下來源的資料夾名稱（`.installed.json` 的來源是 `local:list-table`），不記絕對路徑，`/plugins` 的 Drawer 與 build 產物也只顯示這個名稱。
+
 <Callout type="warn">
-原始資料夾不要放在專案根或筆記資料夾裡面。本地安裝會把來源的絕對路徑記進 `.notecraft/plugins/<id>/.installed.json`，這個路徑落在專案裡時，build 會以「`/wb-index.json` 的輸出含本機絕對路徑」失敗。放在外面就能 build，但來源路徑仍會顯示在 `/plugins` 的 Drawer 上，build 產物也一樣。
+1.8.5 以前的版本會把來源的絕對路徑記進 `.installed.json`：原始資料夾在專案裡時 build 會以「`/wb-index.json` 的輸出含本機絕對路徑」失敗，在專案外則路徑會出現在 Drawer 與產物上。升到 1.8.5 以後不必重裝，輸出時會自動改成資料夾名稱。
 </Callout>
 
-資料檔要放在筆記資料夾裡，`plugins.json` 才比對得到。
+原始資料夾不要放在筆記資料夾裡：裡面的 `notecraft-plugin.json`、`schema.json` 會被當成資料檔，`plugins.json` 的規則若寫得寬（例如 `**/*.json`）就會比對到它們。資料檔則相反，要放在筆記資料夾裡，`plugins.json` 才比對得到。
 
 ## manifest 與 schema
 
@@ -190,7 +192,7 @@ default export 一個 React 元件，收到四個 props：
 | `options` | `plugins.json` 規則的 `options`，筆記內嵌時再疊上 `<PluginView options>`。型別是 `Record<string, unknown>`，自己檢查型別、自己給預設值 |
 | `mode` | `"page"`：`/view/` 獨立頁，標題與描述由頁首顯示，renderer 不用再畫；`"embed"`：嵌在筆記內文的外框裡，寬度較窄 |
 
-型別 `PluginRendererProps` 來自安裝時產生的 `.notecraft/plugins/_types.d.ts`，`@notes` 指向專案根的 `.notecraft/`。plugin 原始資料夾在專案外，編輯器在那裡解析不到這個路徑；介意的話可以把介面直接寫在 `renderer.tsx` 裡，官方 plugin 就是這樣做的，形狀相同即可。
+型別 `PluginRendererProps` 來自安裝時產生的 `.notecraft/plugins/_types.d.ts`，`@notes` 指向專案根的 `.notecraft/`。這個別名由 app 在 build 與 view 時提供，編輯器在原始資料夾裡解析不到它；介意的話可以把介面直接寫在 `renderer.tsx` 裡，官方 plugin 就是這樣做的，形狀相同即可。
 
 ### 能 import 什麼
 

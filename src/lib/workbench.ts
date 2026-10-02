@@ -10,10 +10,11 @@
 // 2. **本機絕對路徑不得出現在輸出裡**
 import fs from "node:fs";
 import path from "node:path";
-import { getAllNotes, parseMarkers, tagStats, type Note } from "@/lib/notes";
+import { getAllNotes, noteMarkers, tagStats, type Note } from "@/lib/notes";
 import { loadSeries, getSeriesChapters } from "@/lib/series";
 import { getDataFiles, getInactiveMatches, getPlugins, getPluginsConfig } from "@/lib/plugins";
 import { hasDeck } from "@/lib/decks";
+import { publicPluginOrigin } from "@/lib/local-path";
 import type {
   WbChapter,
   WbDataFile,
@@ -174,7 +175,8 @@ function buildPlugins(): WbPlugin[] {
         const info = JSON.parse(fs.readFileSync(path.join(rec.dir, ".installed.json"), "utf-8")) as Record<string, unknown>;
         source = {
           kind: "installed",
-          ...(typeof info.origin === "string" ? { origin: info.origin } : {}),
+          // 本地安裝在 v1.8.2 以前記的是絕對路徑；輸出一律轉成 `local:<資料夾名>`
+          ...(typeof info.origin === "string" ? { origin: publicPluginOrigin(info.origin) } : {}),
           ...(typeof info.commit === "string" ? { commit: info.commit.slice(0, 7) } : {}),
         };
       } catch {
@@ -255,7 +257,7 @@ async function build(): Promise<WbIndex> {
       folder: segs.slice(0, -1),
       tags: n.data.tags,
       // prompt 只用在 Drawer 標記列的 tooltip；截短以免索引被長提示詞撐大
-      markers: parseMarkers(n.body).map((m) => ({
+      markers: noteMarkers(n).map((m) => ({
         id: m.id,
         type: m.type,
         status: m.status,

@@ -12,7 +12,8 @@
  * 直覺跟 GitHub / VS Code 一致（點 .md/.mdx 檔就跳到那頁），不用作者記得手寫 `/notes/<slug>`。
  * 只認 .md / .mdx 副檔名；query / hash 會保留。落在 notesDir 外的連結不動。
  *
- * URL 提供端見 `src/dev-api/integration.ts` 的 `handleNotesAsset`。
+ * URL 提供端：view／serve 期間由 `src/dev-api/handlers.mjs` 的 `handleNotesAsset` 即時送出；
+ * build 時由 `src/lib/notes-assets-integration.ts` 把產物引用到的檔案複製進 `<outDir>/notes-assets/`。
  */
 
 import path from "node:path";

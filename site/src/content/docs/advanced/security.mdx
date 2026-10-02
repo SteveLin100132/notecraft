@@ -39,7 +39,8 @@ plugin 是在你的 build 與瀏覽器裡執行的前端程式碼。`install-plu
 | 檢查 | 擋下什麼 |
 | :-- | :-- |
 | 路徑 | 含 `..` 或絕對路徑的檔名 |
-| 檔案類型 | `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png` 以外的檔案，例如 `*.sh`、`*.mjs`（`package.json` 屬於 `.json`，目前不會被擋） |
+| 檔案類型 | `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png` 以外的檔案，例如 `*.sh`、`*.mjs` |
+| 檔名 | 任何一層的 `package.json`、lockfile（`package-lock.json`、`npm-shrinkwrap.json`、`yarn.lock`、`pnpm-lock.yaml`、`bun.lockb`、`bun.lock`）、`tsconfig.json`、`jsconfig.json`。副檔名是 `.json` 也一樣擋（1.8.4 起；更早的版本會放行 `package.json`） |
 | 必要檔案 | 缺 `notecraft-plugin.json` 或 `renderer.tsx` |
 | import | 白名單以外的套件 |
 | `dangerouslySetInnerHTML` | 任何地方出現都擋 |

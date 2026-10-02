@@ -790,16 +790,17 @@ flowchart TD
 - 互動流程：
   - 點擊後彈出二次確認 Modal，顯示：
     - 將刪除的筆記標題與 MDX 路徑
-    - **連帶刪除的 Generated 元件清單**（解析該筆記所有 `@ai-visualize` 標記 id，比對 `src/components/generated/<id>.tsx`）
+    - **連帶刪除的 Generated 元件清單**（解析該筆記所有 `@ai-visualize` 標記 id，比對元件資料夾內實際存在的 `<id>.tsx`）
     - 標示「將被保留」的共用元件（若某元件同時被其他筆記引用）
-  - 確認後呼叫 `DELETE /api/notes/:slug`
+    - 清單由 `GET /api/notes/:slug/delete-plan` 取得，與 DELETE 共用同一份判斷；取得前不能確認
+  - 確認後呼叫 `DELETE /api/notes/:slug`，body `{ components: string[] }` 帶上對話框列出的清單，API 只刪「計畫內 ∩ 清單內」的檔
   - 成功後：關閉 Modal、toast 提示、導回 [筆記列表頁面](#筆記列表頁面)（若刪的是當前檢視中的筆記）
 - API 行為（`DELETE /api/notes/:slug`，dev-only）：
   1. 定位該 slug 的 MDX 檔；不存在回 404
   2. 解析該 MDX 內所有 `@ai-visualize` 標記的 `id`
-  3. 對每個 id，掃描**其他所有 MDX** 是否仍引用該 id；**僅刪除沒有被其他筆記引用**的 `src/components/generated/<id>.tsx`（共用元件保留）
+  3. 對每個 id，掃描**其他所有 MDX** 是否仍引用該 id；**僅刪除沒有被其他筆記引用**的 `<元件資料夾>/<id>.tsx`（共用元件保留）。元件資料夾：主專案 `src/components/generated/`、viewer 模式（`notecraftapp view`）使用者專案的 `.notecraft/components/`；路徑經 `assertSafePath` 限制在該資料夾底下
   4. 刪除該 MDX 檔
-  5. 回傳 `{ deletedNote: string, deletedComponents: string[], keptShared: string[] }`
+  5. 回傳 `{ deletedNote: string, componentsDir: string, deletedComponents: string[], keptShared: string[], skipped: string[], failed: string[] }`
 - 與既有 [孤兒元件政策](#ai-標記區塊規格) 的關係：孤兒政策禁止的是「自動 / 未經同意」刪除；本功能是作者在 UI 上的**明確、具範圍且二次確認**的刪除動作，屬「明確指示」，與該政策不衝突
 
 ## 卡控機制

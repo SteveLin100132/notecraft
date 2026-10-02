@@ -8,20 +8,44 @@ import { withBase } from "@/lib/base";
 type Props = {
   slug: string;
   title: string;
-  componentIds: string[];
   /** 顯示用路徑（相對 notesDir） */
   path?: string;
   /** 工作區名稱：刪除時一併關掉這篇的頁籤（規格 docs/notecraft-workbench-note-tabs.md §8.2） */
   workspace?: string;
 };
 
+/** GET /api/notes/<slug>/delete-plan 的回應：與 DELETE 共用同一份判斷（src/dev-api/handlers.mjs planNoteDeletion） */
+type DeletePlan = {
+  /** 元件資料夾的顯示用相對路徑：主專案 src/components/generated、viewer 模式 .notecraft/components */
+  componentsDir: string;
+  toDelete: string[];
+  keptShared: string[];
+};
+
 /**
  * 刪除筆記的對話框與邏輯，拆成 hook 讓「⋯」選單（MoreMenu）與獨立按鈕都能用。
  * 回傳 open() 與要掛在畫面上的 dialog 節點。
  */
-export function useDeleteNote({ slug, title, componentIds, path, workspace }: Props): { open: () => void; dialog: ReactNode } {
+export function useDeleteNote({ slug, title, path, workspace }: Props): { open: () => void; dialog: ReactNode } {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 對話框就是刪除元件的同意點：清單向 API 要，不在頁面端自己猜，拿到之前不能確認
+  const [plan, setPlan] = useState<DeletePlan | null>(null);
+  const [planError, setPlanError] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    setPlan(null);
+    setPlanError(false);
+    fetch(`/api/notes/${slug.split("/").map(encodeURIComponent).join("/")}/delete-plan`)
+      .then((r) => (r.ok ? (r.json() as Promise<DeletePlan>) : Promise.reject(new Error(String(r.status)))))
+      .then((p) => alive && setPlan(p))
+      .catch(() => alive && setPlanError(true));
+    return () => {
+      alive = false;
+    };
+  }, [open, slug]);
 
   // Escape 走共用堆疊（與 Drawer、Palette 同一套關閉順序）
   useEffect(() => {
@@ -32,6 +56,7 @@ export function useDeleteNote({ slug, title, componentIds, path, workspace }: Pr
   }, [open, submitting]);
 
   const confirm = async () => {
+    if (!plan) return;
     setSubmitting(true);
     // 關鍵：先導頁、不要 await。
     // 刪掉這篇筆記的 MDX 後，停在原 URL 必然 404；而 Astro dev 偵測到內容檔被刪會對
@@ -45,7 +70,13 @@ export function useDeleteNote({ slug, title, componentIds, path, workspace }: Pr
       /* sessionStorage 不可用時略過提示 */
     }
     try {
-      void fetch(`/api/notes/${encodeURIComponent(slug)}`, { method: "DELETE", keepalive: true });
+      // 帶上作者在對話框看到的清單：API 只刪這些（對話框開著時別篇筆記改了也不會多刪）
+      void fetch(`/api/notes/${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        keepalive: true,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ components: plan.toDelete }),
+      });
     } catch {
       /* 送出失敗也照常導頁；筆記仍會留在列表中，可重試 */
     }
@@ -90,28 +121,29 @@ export function useDeleteNote({ slug, title, componentIds, path, workspace }: Pr
                   </code>
                 </div>
               </div>
-              {componentIds.length > 0 && (
-                <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--neutral-50)", border: "1px solid var(--neutral-100)" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6 }}>
-                    將一併刪除以下 AI 生成元件（共用於其他筆記者會自動保留）：
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {componentIds.map((id) => (
-                      <code
-                        key={id}
-                        style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--blue-700)", background: "var(--blue-50)", padding: "3px 8px", borderRadius: 5 }}
-                      >
-                        generated/{id}.tsx
-                      </code>
-                    ))}
-                  </div>
+              {planError ? (
+                <div style={{ ...planBox, color: "var(--danger-500)" }}>
+                  無法確認會一併刪除哪些 AI 生成元件，請關閉後重試。
                 </div>
+              ) : !plan ? (
+                <div style={{ ...planBox, color: "var(--text-muted)" }}>正在確認會一併刪除的 AI 生成元件…</div>
+              ) : (
+                (plan.toDelete.length > 0 || plan.keptShared.length > 0) && (
+                  <div style={{ ...planBox, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {plan.toDelete.length > 0 && (
+                      <FileList label="將一併刪除以下 AI 生成元件：" dir={plan.componentsDir} files={plan.toDelete} />
+                    )}
+                    {plan.keptShared.length > 0 && (
+                      <FileList label="其他筆記也引用、會保留：" dir={plan.componentsDir} files={plan.keptShared} muted />
+                    )}
+                  </div>
+                )
               )}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
                 <button onClick={() => setOpen(false)} disabled={submitting} style={ghostBtn}>
                   取消
                 </button>
-                <button onClick={confirm} disabled={submitting} style={dangerBtn(submitting)}>
+                <button onClick={confirm} disabled={submitting || !plan} style={dangerBtn(submitting || !plan)}>
                   {submitting ? "刪除中…" : (
                     <>
                       <Trash2 size={16} /> 確認刪除
@@ -127,6 +159,32 @@ export function useDeleteNote({ slug, title, componentIds, path, workspace }: Pr
   return { open: () => setOpen(true), dialog };
 }
 
+function FileList({ label, dir, files, muted = false }: { label?: string; dir?: string; files?: string[]; muted?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6 }}>{label}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {(files ?? []).map((f) => (
+          <code
+            key={f}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              color: muted ? "var(--text-muted)" : "var(--blue-700)",
+              background: muted ? "var(--neutral-100)" : "var(--blue-50)",
+              padding: "3px 8px",
+              borderRadius: 5,
+              wordBreak: "break-all",
+            }}
+          >
+            {dir}/{f}
+          </code>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DeleteNoteButton(props: Props) {
   const { open, dialog } = useDeleteNote(props);
   return (
@@ -139,6 +197,13 @@ export default function DeleteNoteButton(props: Props) {
   );
 }
 
+const planBox: React.CSSProperties = {
+  padding: "12px 14px",
+  borderRadius: 8,
+  background: "var(--neutral-50)",
+  border: "1px solid var(--neutral-100)",
+  fontSize: 12.5,
+};
 const triggerBtn: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",

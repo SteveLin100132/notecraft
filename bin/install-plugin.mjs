@@ -19,8 +19,27 @@ import readline from "node:readline";
 const DEFAULT_REPO = "SteveLin100132/notecraft";
 const DEFAULT_STORE_DIR = "plugins";
 
-/** 只收這些副檔名。其餘（package.json、*.sh、*.mjs…）一律拒絕。 */
+/** 只收這些副檔名。其餘（*.sh、*.mjs…）一律拒絕。 */
 const ALLOWED_EXT = new Set([".tsx", ".ts", ".json", ".md", ".css", ".svg", ".png"]);
+
+/**
+ * 副檔名合格也不收的檔名（任何層、不分大小寫）。plugin 不安裝依賴、不跑 scripts，
+ * 帶著這些檔只會讓人以為「裝了會一併 npm install」，也留下日後被誤用的入口。
+ * tsconfig.json／jsconfig.json：Vite（esbuild）與 tsc 會採用離檔案最近的那份，
+ * 放進 .notecraft/plugins/<id>/ 就能改掉 renderer 的 JSX 等編譯設定，不只是誤解。
+ * 非 .json 的 lockfile 本來就會被副檔名擋，列在這裡是為了給對的理由。
+ */
+const REJECTED_NAMES = new Map([
+  ["package.json", "plugin 不能帶 package.json；依賴請只用白名單套件"],
+  ["package-lock.json", "plugin 不安裝依賴，不收 lockfile"],
+  ["npm-shrinkwrap.json", "plugin 不安裝依賴，不收 lockfile"],
+  ["yarn.lock", "plugin 不安裝依賴，不收 lockfile"],
+  ["pnpm-lock.yaml", "plugin 不安裝依賴，不收 lockfile"],
+  ["bun.lockb", "plugin 不安裝依賴，不收 lockfile"],
+  ["bun.lock", "plugin 不安裝依賴，不收 lockfile"],
+  ["tsconfig.json", "會改變 renderer 的編譯設定"],
+  ["jsconfig.json", "會改變 renderer 的編譯設定"],
+]);
 
 const log = (...a) => console.log("[notecraftapp]", ...a);
 
@@ -233,6 +252,11 @@ export function inspectFiles(files, whitelist, appVersion) {
       problems.push(`路徑不安全：${rel}`);
       continue;
     }
+    const rejected = REJECTED_NAMES.get(path.posix.basename(rel).toLowerCase());
+    if (rejected) {
+      problems.push(`不收這種檔案：${rel}（${rejected}）`);
+      continue;
+    }
     const ext = path.extname(rel).toLowerCase();
     if (!ALLOWED_EXT.has(ext)) {
       problems.push(`不收這種檔案：${rel}（只收 ${[...ALLOWED_EXT].join(" ")}）`);
@@ -384,13 +408,14 @@ export async function installPlugin(source, opts) {
     problems.push(`manifest 的 id 是 "${manifest.id}"，與安裝目錄名 "${id}" 不一致`);
   }
 
+  // 本地來源只記資料夾名：origin 會進 /wb-index.json 與 /plugins 頁，絕對路徑不得出現在產物裡
   const origin =
     src.kind === "local"
-      ? src.dir
+      ? `local:${path.basename(src.dir)}`
       : `https://github.com/${src.owner}/${src.repo}${src.dir ? "/tree/" + (src.ref ?? "HEAD") + "/" + src.dir : ""}`;
 
   console.log("");
-  log(`來源    : ${origin}`);
+  log(`來源    : ${src.kind === "local" ? src.dir : origin}`);
   log(`plugin  : ${id}${manifest?.version ? ` v${manifest.version}` : ""}${manifest?.title ? ` — ${manifest.title}` : ""}`);
   log(`檔案    : ${fetched.files.size} 個`);
   for (const rel of fetched.files.keys()) console.log(`          ${rel}`);

@@ -602,6 +602,8 @@ $ npx notecraftapp install-plugin
 **退路：`git clone --depth 1`。** 非 GitHub 來源，或 GitHub API 限流（未認證 60 次/小時）時改走這條。
 
 抓完寫一份 `.installed.json` 記錄來源網址與實際 commit，供日後追溯與升級比對。
+本地來源的 `origin` 只記 `local:<資料夾名>`（v1.8.5）：這個欄位會輸出到 `/wb-index.json` 與 `/plugins` 頁，絕對路徑不得出現在產物裡；
+更早安裝、記著絕對路徑的舊檔由 `src/lib/local-path.ts` 的 `publicPluginOrigin` 在輸出時轉成同樣形式。
 
 ### 9.5 安裝後
 
@@ -631,6 +633,7 @@ $ npx notecraftapp install-plugin
 - 掃所有 `.tsx` / `.ts` 的 import，白名單外的套件 → 列出違規行並拒裝（§6.4）
 - 禁止 `dangerouslySetInnerHTML`
 - 只收 `.tsx` / `.ts` / `.json` / `.md` / `.css` / `.svg` / `.png`；拒絕 `package.json`、`node_modules/`、`*.sh`、`*.mjs` 等可執行內容
+  - 副檔名之外另有檔名拒絕清單（任何層、不分大小寫）：`package.json`、各家 lockfile、`tsconfig.json`／`jsconfig.json`。`.json` 副檔名不是通行證 —— 1.8.4 以前只看副檔名，`package.json` 實際會被放行
 - 路徑安全：拒絕 `../` 逃脫與 symlink（沿用 viewer v1 §7.3）
 - `engines.notecraftapp` 不合 → 擋下並提示升級
 - **不執行任何安裝腳本**

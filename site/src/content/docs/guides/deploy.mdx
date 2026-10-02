@@ -93,6 +93,8 @@ CI 需要 Node 22（見[系統需求](/docs/getting-started/requirements/)）。
 | `/plugins` 的啟用／停用開關 | 只顯示狀態 |
 | 閱讀進度、頁籤、收藏 | 存在每位訪客自己的瀏覽器（localStorage），不會互通 |
 
+產物裡不會有你電腦上的路徑。`build` 結束前會檢查所有 `.html`、`.json`，若含專案、筆記資料夾或 app 的絕對路徑，build 直接失敗並列出是哪些檔案（1.8.5 起）。遇到這個錯誤請回報 issue，附上終端機列出的片段。
+
 寫入功能都要在本機用 `view`，見[在介面新增與編輯](/docs/guides/editing/)。
 
 ### 全文搜尋

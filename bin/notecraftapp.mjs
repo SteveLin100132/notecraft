@@ -2,7 +2,7 @@
 // NoteCraftApp CLI（P6 / 三命令版）
 // - view <dir>：spawn astro dev，HMR、新增/編輯/刪除筆記即時反映
 // - build <dir>：astro build → ~/.notecraft/cache/<hash>/dist/（給 CI 或 serve 用）
-// - serve <dir>：Node HTTP 服務快取的 dist；純靜態、唯讀；仍掛 /notes-assets/* 讓外部圖片可見
+// - serve <dir>：Node HTTP 服務快取的 dist；純靜態、唯讀；本機連線的 /notes-assets/* 仍從筆記資料夾即時送出
 //
 // 「能寫」與否天然對齊 astro 的 dev/build 兩態，不再需要額外旗標。
 
@@ -16,7 +16,7 @@ import crypto from "node:crypto";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
-import { tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
+import { localhostOnly, tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
 import { installPlugin, listStore, removePlugin } from "./install-plugin.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -107,6 +107,8 @@ const STATIC_MIME = {
   ".gif": "image/gif",
   ".webp": "image/webp",
   ".ico": "image/x-icon",
+  ".avif": "image/avif",
+  ".pdf": "application/pdf",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".txt": "text/plain; charset=utf-8",
@@ -131,8 +133,32 @@ function resolveNotesDirArg(dirArg) {
   return notesDir;
 }
 
+// ── build 指紋：筆記以外、也會改變 build 產物的輸入 ────────────────────
+// - tool：notecraftapp 版本。升級後沿用舊快取會看不到新版的修正與功能。
+//   dev 源碼（isDevSource）再附 git HEAD：改程式碼不會動版號，commit 後就失效；
+//   未 commit 的改動不納入（每次算整個 repo 的雜湊太貴），要看效果仍用 --rebuild。
+// - base：NOTECRAFT_BASE 會改寫站內所有連結與資產路徑。
+// - userCwd：.notecraft/（plugins.json、系列、元件）從這裡讀；快取 key 只看 notesDir，
+//   從不同資料夾執行同一個 notesDir 會拿到另一份設定。
+let devHeadMemo;
+function devGitHead() {
+  if (devHeadMemo !== undefined) return devHeadMemo;
+  const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: packageRoot, encoding: "utf-8" });
+  devHeadMemo = r.status === 0 ? r.stdout.trim() : "";
+  return devHeadMemo;
+}
+
+function buildFingerprint(userCwd) {
+  const head = isDevSource() ? devGitHead() : "";
+  return {
+    tool: `notecraftapp@${pkgJson.version}${head ? `+${head}` : ""}`,
+    base: process.env.NOTECRAFT_BASE || "",
+    userCwd: userCwd ? path.resolve(userCwd) : "",
+  };
+}
+
 // ── 快取失效偵測（§8.1、P7）────────────────────────────────────────
-// 三條路徑：
+// 0) build 指紋（版本、NOTECRAFT_BASE、userCwd）與上次不同
 // 1) md/mdx 內容變動：遞迴掃 notesDir、跳過 . 開頭子資料夾、取最大 mtime + 檔案數
 // 2) .notecraft/*.json 設定變動：series.json 之類的東西，series 用來 build 系列頁
 // 3) 檔案數量變動：新增/刪除筆記（mtime 不見得會變）
@@ -149,6 +175,21 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
     meta = JSON.parse(readFileSync(metaPath, "utf-8"));
   } catch {
     return { should: true, why: "meta.json 壞掉" };
+  }
+  // Pass 0：build 指紋。缺欄位的是更舊版本寫的 meta，一律重建
+  const fp = buildFingerprint(userCwd);
+  if (meta.tool !== fp.tool) {
+    return {
+      should: true,
+      why: meta.tool ? `notecraftapp 版本從 ${meta.tool} 變成 ${fp.tool}` : `快取由舊版 notecraftapp 建立（現在是 ${fp.tool}）`,
+    };
+  }
+  if (meta.base === undefined || meta.base !== fp.base) {
+    const show = (b) => (b ? ` ${b} ` : "（未設定）");
+    return { should: true, why: `NOTECRAFT_BASE 從${show(meta.base)}變成${show(fp.base)}`.trimEnd() };
+  }
+  if (meta.userCwd === undefined || meta.userCwd !== fp.userCwd) {
+    return { should: true, why: `執行資料夾從 ${meta.userCwd || "（未記錄）"} 變成 ${fp.userCwd}（.notecraft/ 設定從這裡讀）` };
   }
   const lastBuildMs = new Date(meta.lastBuildAt).getTime();
 
@@ -269,17 +310,47 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   if (meta.pluginFileCount !== undefined && pluginFileCount !== meta.pluginFileCount) {
     return { should: true, why: `plugin 檔案數量從 ${meta.pluginFileCount} 變成 ${pluginFileCount}` };
   }
+  // Pass 4：上次複製進 dist/notes-assets/ 的附件，來源改過或刪了就重 build（只改圖片時 md/mdx 的 mtime 不會動）。
+  // 新引用的附件一定伴隨 md/mdx 變動，上面已經會重 build。
+  const assetsDir = path.join(distDir, "notes-assets");
+  let staleAsset = null;
+  async function walkAssets(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      if (staleAsset) return;
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        await walkAssets(p);
+        continue;
+      }
+      const rel = path.relative(assetsDir, p);
+      try {
+        if (statSync(path.join(notesDir, rel)).mtimeMs > lastBuildMs) staleAsset = rel;
+      } catch {
+        staleAsset = rel;
+      }
+    }
+  }
+  await walkAssets(assetsDir);
+  if (staleAsset) {
+    return { should: true, why: `筆記附件有變動（${staleAsset.split(path.sep).join("/")}）` };
+  }
   return { should: false, meta: { fileCount: mdxCount, jsonCount, pluginFileCount } };
 }
 
-async function writeMeta(cacheDir, notesDir, fileCount, extra = {}) {
+async function writeMeta(cacheDir, notesDir, userCwd, fileCount, extra = {}) {
   const metaPath = path.join(cacheDir, "meta.json");
   const meta = {
     notesDir,
     lastBuildAt: new Date().toISOString(),
     fileCount,
     ...extra,
-    tool: `notecraftapp@${pkgJson.version}`,
+    ...buildFingerprint(userCwd),
   };
   await fs.mkdir(cacheDir, { recursive: true });
   await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
@@ -546,7 +617,7 @@ async function atomicRebuild(cwd, notesDir, cacheDir, userCwd) {
 
   // meta + 背景清理 prev（不 await，失敗也不影響 UX）
   const count = await countMdx(notesDir);
-  await writeMeta(cacheDir, notesDir, count, await countPluginInputs(notesDir, userCwd));
+  await writeMeta(cacheDir, notesDir, userCwd, count, await countPluginInputs(notesDir, userCwd));
   fs.rm(prevDir, { recursive: true, force: true }).catch(() => {});
 }
 
@@ -567,9 +638,14 @@ async function startStaticServer(cwd, notesDir, distDir, port, host, openBrowser
         req.on("close", () => subscribers.delete(res));
         return;
       }
-      // 只掛 assets，不掛寫入 API（serve = 唯讀靜態）
-      const handled = await tryHandleAssetsRequest(cwd, notesDir, req, res);
-      if (handled) return;
+      // 只掛 assets，不掛寫入 API（serve = 唯讀靜態）。
+      // 本機連線走即時送出：改圖或剛加的圖不必等 rebuild（改圖片本身也不會觸發 rebuild）。
+      // 其他連線（--host 0.0.0.0 的區網）落到下面的 serveStatic，拿 build 時複製進 dist/notes-assets/ 的那份：
+      // 只有被筆記引用的檔、內容停在上次 build，和部署到靜態主機看到的一樣；即時路徑仍維持 localhost-only。
+      if (localhostOnly(req)) {
+        const handled = await tryHandleAssetsRequest(cwd, notesDir, req, res);
+        if (handled) return;
+      }
 
       // v2: dist 無 index.html（首次 build 失敗、或 notesDir 剛建、沒任何 mdx）→ fallback 頁
       if (!hasServableDist(distDir)) {
