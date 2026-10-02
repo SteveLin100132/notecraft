@@ -5,6 +5,7 @@ import { promises as fs } from "node:fs";
 import fsSync from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { slug as githubSlug } from "github-slugger";
 
 // ── 路徑決策 & 安全檢查 ────────────────────────────────────────────────
 
@@ -32,15 +33,71 @@ export async function assertSafePath(candidate, notesRoot) {
   if (!abs.startsWith(rootWithSep) && abs !== notesRoot) {
     throw new Error(`path outside notesRoot: ${abs}`);
   }
+  // 目標還不存在（新增筆記、要 mkdir 的資料夾）時，realpath 往上找最近一層存在的祖先：
+  // 否則 notesRoot 內指向外面的 symlink 資料夾，會讓尚未建立的檔案繞過檢查。
+  // notesRoot 本身可能在 symlink 底下（macOS 的 /tmp），所以兩邊都比對 realpath。
+  let realRoot = notesRoot;
   try {
-    const real = await fs.realpath(abs);
-    if (!real.startsWith(rootWithSep) && real !== notesRoot) {
-      throw new Error(`symlink target outside notesRoot: ${real}`);
+    realRoot = await fs.realpath(notesRoot);
+  } catch {}
+  const realRootWithSep = realRoot.endsWith(path.sep) ? realRoot : realRoot + path.sep;
+  let probe = abs;
+  for (;;) {
+    try {
+      const real = await fs.realpath(probe);
+      const inside =
+        real === notesRoot || real.startsWith(rootWithSep) || real === realRoot || real.startsWith(realRootWithSep);
+      if (!inside) throw new Error(`symlink target outside notesRoot: ${real}`);
+      break;
+    } catch (e) {
+      if (!e || e.code !== "ENOENT") throw e;
+      const parent = path.dirname(probe);
+      if (probe === notesRoot || parent === probe) break;
+      probe = parent;
     }
-  } catch (e) {
-    if (e && e.code !== "ENOENT") throw e;
   }
   return abs;
+}
+
+/**
+ * GET /api/folders 回傳的每一項都以這個字串開頭：notesRoot 在 cwd 底下時是相對路徑
+ * （主專案 "src/content/notes/"），否則是 notesRoot 絕對路徑加分隔符（viewer 的筆記資料夾通常不在 package root 底下）。
+ */
+function folderDisplayRoot(cwd, notesRoot) {
+  const rel = path.relative(cwd, notesRoot);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    return notesRoot.endsWith(path.sep) ? notesRoot : notesRoot + path.sep;
+  }
+  return rel.split(path.sep).join("/") + "/";
+}
+
+/**
+ * 新增筆記表單的 folder 值 → notesRoot 底下的絕對資料夾路徑。
+ * 接受 /api/folders 的原樣（含上面的顯示前綴）或相對 notesRoot 的路徑；空值＝notesRoot。
+ * 其餘絕對路徑、含 ".." 的路徑一律拒絕；symlink 逃脫由 assertSafePath 擋。
+ */
+async function resolveNoteFolder(cwd, notesRoot, raw) {
+  let folder = typeof raw === "string" ? raw.trim().replace(/\\/g, "/") : "";
+  const displayRoot = folderDisplayRoot(cwd, notesRoot).replace(/\\/g, "/");
+  const displayBare = displayRoot.replace(/\/+$/, "");
+  if (folder === displayBare || folder.startsWith(displayRoot)) {
+    folder = folder.slice(displayRoot.length);
+  } else if (folder.startsWith("/") || /^[A-Za-z]:/.test(folder)) {
+    throw new Error("folder must be inside notesRoot");
+  }
+  const segments = folder.split("/").filter((s) => s && s !== ".");
+  if (segments.includes("..")) throw new Error("folder must not contain ..");
+  return assertSafePath(path.join(notesRoot, ...segments), notesRoot);
+}
+
+/** 檔案路徑 → Content Layer glob loader 的 entry id（逐段 github-slugger、去掉結尾 /index）。 */
+function noteIdFromFile(notesRoot, abs) {
+  const rel = path.relative(notesRoot, abs).replace(/\.(mdx|md)$/i, "");
+  return rel
+    .split(path.sep)
+    .map((s) => githubSlug(s))
+    .join("/")
+    .replace(/\/index$/, "");
 }
 
 // ── 小工具 ────────────────────────────────────────────────
@@ -247,26 +304,25 @@ async function handleCreateNote(cwd, notesRoot, req, res) {
   const title = (payload.title || "").trim();
   if (!title) return json(res, 400, { error: "title required" });
   const tags = normalizeTagList(payload.tags);
-  const slug = slugify(title);
-  const existing = await findNoteFile(notesRoot, slug);
-  if (existing) return json(res, 409, { error: "slug already exists", slug });
-
-  let targetDir = notesRoot;
-  if (!isViewerMode()) {
-    const folder = (payload.folder || "src/content/notes").replace(/^\/+/, "");
-    if (folder.startsWith("src/content/notes")) {
-      targetDir = path.resolve(cwd, folder);
-    }
-  }
+  const base = slugify(title);
 
   try {
-    const abs = await assertSafePath(path.join(targetDir, `${slug}.mdx`), notesRoot);
+    // 主專案與 viewer 同一套：folder 是 /api/folders 給的真實資料夾路徑
+    const targetDir = await resolveNoteFolder(cwd, notesRoot, payload.folder);
+    const abs = await assertSafePath(path.join(targetDir, `${base}.mdx`), notesRoot);
+    const slug = noteIdFromFile(notesRoot, abs);
+    // 同資料夾已有同名檔（.mdx 或 .md）、或別的檔案已經對應到同一個 entry id（例如資料夾大小寫不同）都算重複
+    const sibling = await findNoteFile(targetDir, base);
+    if (sibling || (await findNoteFile(notesRoot, slug))) {
+      return json(res, 409, { error: "slug already exists", slug });
+    }
     await fs.mkdir(path.dirname(abs), { recursive: true });
     const tagsYaml = `[${tags.map((t) => JSON.stringify(t)).join(", ")}]`;
     await writeFileAtomic(abs, TEMPLATE(title, tagsYaml, !isViewerMode()));
     return json(res, 200, {
       slug,
-      path: path.relative(cwd, abs),
+      // 與 /api/folders 同一套前綴：主專案仍是 src/content/notes/…，viewer 不會冒出 ../../ 的 package root 相對路徑
+      path: folderDisplayRoot(cwd, notesRoot) + path.relative(notesRoot, abs).split(path.sep).join("/"),
       vscode: `vscode://file/${abs.replace(/\\/g, "/").replace(/^\/+/, "")}`,
     });
   } catch (e) {
@@ -326,10 +382,7 @@ async function handleTagList(notesRoot, res) {
 }
 
 async function handleFolderList(cwd, notesRoot, res) {
-  const rel = path.relative(cwd, notesRoot);
-  const displayRoot = !rel || rel.startsWith("..")
-    ? notesRoot.endsWith(path.sep) ? notesRoot : notesRoot + path.sep
-    : rel + "/";
+  const displayRoot = folderDisplayRoot(cwd, notesRoot);
   // 遞迴列出所有層（Workbench 的資料夾樹不限層數，新增筆記要能選到子資料夾）。
   // 回傳格式不變：字串陣列、以 / 結尾；父層恆排在子層之前。
   const SKIP = new Set(["node_modules", "dist"]);

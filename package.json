@@ -81,6 +81,7 @@
     "citty": "^0.2.2",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
+    "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.469.0",
