@@ -22,7 +22,7 @@ npx notecraftapp serve ./notes
 ## 一次 rebuild 怎麼跑
 
 1. 偵測到變動後等 300ms，這段時間內的連續存檔合併成一次
-2. 執行 `astro build`，輸出到快取裡的 `dist.next/`
+2. 執行 `astro build`，輸出到快取裡的 `dist.next/`，再對它建 pagefind 全文索引（索引失敗只印警告，不算 build 失敗）
 3. 成功後把 `dist.next/` 換成 `dist/`，舊的那份在背景刪掉
 4. 透過 SSE（`/__notecraft/events`）通知所有開著的頁面，頁面自動重新載入
 

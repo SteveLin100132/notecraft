@@ -41,7 +41,7 @@ npx notecraftapp build ./notes
 | :-- | :-- | :-- |
 | `--rebuild` | false | 忽略快取，強制重新 build |
 
-產物在 `~/.notecraft/cache/<hash>/dist/`，結束時會印出完整路徑。build 失敗時以 exit code 1 結束。快取怎麼判斷見[運作原理](/docs/advanced/internals/)。
+產物在 `~/.notecraft/cache/<hash>/dist/`，結束時會印出完整路徑。產物裡已含 pagefind 全文索引（`pagefind/`），⌘K 能搜內文，見[指令面板](/docs/guides/palette/)。build 失敗時以 exit code 1 結束。快取怎麼判斷見[運作原理](/docs/advanced/internals/)。
 
 ## serve
 

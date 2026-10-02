@@ -2,7 +2,7 @@
 description: notecraftapp 把自己裝在哪、build 快取放在哪、什麼情況下會重新 build，以及怎麼清掉重來。
 ---
 
-NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資料夾交給它：`view` 跑 Astro dev server，`build` 與 `serve` 跑 `astro build`。你的筆記資料夾不會被複製，也不會多出 `node_modules`。
+NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資料夾交給它：`view` 跑 Astro dev server，`build` 與 `serve` 跑 `astro build`，再用 pagefind 建全文索引。你的筆記資料夾不會被複製，也不會多出 `node_modules`。
 
 ## 家目錄裡的兩個位置
 
@@ -23,7 +23,7 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 
 | 檔案 | 內容 |
 | :-- | :-- |
-| `dist/` | `build` 的產物，`serve` 服務的就是它 |
+| `dist/` | `build` 的產物，`serve` 服務的就是它；`dist/pagefind/` 是全文索引 |
 | `meta.json` | 上次 build 的時間與檔案計數 |
 | `dist.next/` | rebuild 進行中的暫存輸出，成功後換成 `dist/` |
 
@@ -47,6 +47,8 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 比對時間用的是檔案的 mtime。筆記資料夾底下 `.` 開頭的資料夾不掃。
 
 終端機會印出這次重新 build 的原因，例如 `md/mdx 有變動（最新：guides/setup.mdx）`。
+
+沿用快取時若 `dist/` 裡沒有 `pagefind/`（舊版 CLI 留下的快取，或上次建索引失敗），只會補建索引，不重新 build 整站。
 
 <Callout type="warn">
 快取失效判斷不看 notecraftapp 的版本。升級之後第一次 `build` 或 `serve`，筆記沒變的話會沿用舊版產物，請加 `--rebuild`。

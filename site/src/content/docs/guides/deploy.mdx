@@ -105,10 +105,6 @@ CI 需要 Node 22（見[系統需求](/docs/getting-started/requirements/)）。
 
 ### 全文搜尋
 
-`build` 不會建立 pagefind 索引，所以 `⌘K` 指令面板沒有「內文」分區，其他分區照常。要讓部署的站能搜內文，在複製出來的資料夾上跑 pagefind，再上傳：
-
-```bash
-npx pagefind --site site-out
-```
+`build` 完會在產物裡建好 pagefind 索引（`pagefind/` 資料夾），整個資料夾一起上傳，部署的站上 `⌘K` 就能搜內文，不用另外跑 pagefind。若終端機印了建索引失敗的警告，站仍可部署，只是沒有「內文」分區。
 
 搜尋範圍與限制見[指令面板與全文搜尋](/docs/guides/palette/)。
