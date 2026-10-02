@@ -12,7 +12,7 @@ import SeriesNav from "@/components/islands/SeriesNav.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
 import NoteSkeleton from "@/components/wb/NoteSkeleton.astro";
 import Icon from "@/components/Icon.astro";
-import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
+import { getAllNotes, noteMarkers, tagStats } from "@/lib/notes";
 import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
@@ -28,7 +28,7 @@ export async function getStaticPaths() {
 
 const { note } = Astro.props;
 const { Content, headings } = await render(note);
-const markers = parseMarkers(note.body);
+const markers = noteMarkers(note);
 const genCount = markers.filter((m) => m.status === "generated").length;
 const pendingMarkers = markers.filter((m) => m.status !== "generated");
 const pendingIds = pendingMarkers.map((m) => m.id);
@@ -414,6 +414,8 @@ const toc = headings
 </style>
 
 <script>
+  import { COPY_FAILED_MSG, writeClipboard } from "@/lib/clipboard";
+
   // Content tabs（PRD §7.1 / task-15）漸進增強：框架無關 vanilla JS，不引入 React island。
   // 無此 script 時 CSS 會展開所有面板（不遺失內容）；載入後才接管切換。
   function initTabs(root: HTMLElement) {
@@ -582,28 +584,32 @@ const toc = headings
 
   document.querySelectorAll<HTMLElement>("[data-nc-annotate]").forEach(initAnnotate);
 
-  // 程式碼塊複製鈕（design_handoff_mdx_codeblock）：複製原始碼，1.6s 內顯示「已複製」綠勾。
+  // 程式碼塊複製鈕（design_handoff_mdx_codeblock）：複製原始碼，真的寫進剪貼簿才顯示「已複製」綠勾（1.6s）。
+  // 失敗（非安全連線且 execCommand 也不行）→ 選取程式碼、標籤改「無法複製」並提示手動複製，讓使用者自己按複製。
   document.querySelectorAll<HTMLButtonElement>(".nc-cb__copy").forEach((btn) => {
     const label = btn.querySelector<HTMLElement>(".nc-cb__copy-label");
     const textCopy = label?.dataset.copy ?? "複製";
     const textCopied = label?.dataset.copied ?? "已複製";
     let timer: number | undefined;
-    btn.addEventListener("click", () => {
-      const code = btn.getAttribute("data-code") ?? "";
-      // 觸發複製（成敗不影響視覺回饋；某些情境 clipboard 會 pending）。
-      try {
-        navigator.clipboard?.writeText(code).catch(() => {});
-      } catch {
-        /* noop */
-      }
-      // 樂觀回饋：立即顯示「已複製」綠勾，1.6s 後還原。
-      btn.classList.add("is-copied");
-      if (label) label.textContent = textCopied;
+    const show = (text: string, copied: boolean, ms: number) => {
+      btn.classList.toggle("is-copied", copied);
+      if (label) label.textContent = text;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         btn.classList.remove("is-copied");
         if (label) label.textContent = textCopy;
-      }, 1600);
+      }, ms);
+    };
+    btn.addEventListener("click", async () => {
+      const code = btn.getAttribute("data-code") ?? "";
+      if (await writeClipboard(code)) {
+        show(textCopied, true, 1600);
+        return;
+      }
+      const codeEl = btn.closest(".nc-cb")?.querySelector(".nc-cb__code");
+      if (codeEl) window.getSelection()?.selectAllChildren(codeEl);
+      show("無法複製", false, 2400);
+      window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg: COPY_FAILED_MSG, icon: "x" } }));
     });
   });
 </script>

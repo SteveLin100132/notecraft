@@ -2,6 +2,8 @@
 // 路徑一律用 `promptPath`（相對專案根的真實路徑，見 src/lib/workbench.ts）——
 // 舊版寫死 `src/content/notes/${slug}.mdx`，對子資料夾、`.md` 副檔名、viewer 使用者的資料夾都是錯的。
 
+import { COPY_FAILED_MSG, writeClipboard } from "@/lib/clipboard";
+
 export function buildRegeneratePrompt({ promptPath, pendingIds }: { promptPath: string; pendingIds: string[] }): string {
   return (
     `請使用 content-visualize-skill 重新處理 ${promptPath} 內的 @ai-visualize 標記區塊（${pendingIds.join(", ")}），` +
@@ -19,13 +21,9 @@ export function buildDeckPrompt({ promptPath }: { promptPath: string }): string 
 
 /** 複製到剪貼簿；成功回 true。失敗時發 Toast，不 throw。 */
 export async function copyToClipboard(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    window.dispatchEvent(new CustomEvent("nc-toast", { detail: { msg: "無法複製，請檢查瀏覽器權限", icon: "x" } }));
-    return false;
-  }
+  if (await writeClipboard(text)) return true;
+  toast(COPY_FAILED_MSG, "x");
+  return false;
 }
 
 export function toast(msg: string, icon = "check"): void {
