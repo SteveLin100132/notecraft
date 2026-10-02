@@ -2,7 +2,6 @@
    token 全在 site.css；這裡不新增顏色。書脊是 sheet，白紙側是 paper。 */
 
 .docs-body {
-  --measure: 860px; /* 段落的最大行寬：約 50 個中文字；程式碼、表格可以撐滿整欄 */
   background: var(--paper);
 }
 /* 文件頁的主捲軸：細、淡，和頁面的細線同色（官網首頁仍是深藍） */
@@ -250,7 +249,7 @@ a.sec[aria-current="page"]::before {
   min-width: 0;
   padding: 0 var(--gutter) clamp(56px, 7vw, 96px);
 }
-/* 內文欄吃滿白紙，本頁目錄貼齊頁眉右緣（像 Docusaurus）；段落另以 --measure 限寬 */
+/* 內文欄吃滿白紙，本頁目錄貼齊頁眉右緣（像 Docusaurus）；段落、標題線、程式碼、表格、圖版一律同寬 */
 .doc-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -280,7 +279,6 @@ a.sec[aria-current="page"]::before {
   font-variant-numeric: tabular-nums;
 }
 .doc-lead {
-  max-width: 40em;
   margin: 14px 0 0;
   font-size: 18px;
   line-height: 1.8;
@@ -290,9 +288,6 @@ a.sec[aria-current="page"]::before {
 /* ── 內文欄 ── */
 .doc-body {
   padding-top: 8px;
-}
-.doc-body > :is(p, ul, ol, blockquote, hr, .callout, .plate, .toc-inline) {
-  max-width: var(--measure);
 }
 .doc-body > :first-child {
   margin-top: 1.4em;
@@ -422,9 +417,7 @@ a.sec[aria-current="page"]::before {
   overflow-x: auto;
 }
 .tbl table {
-  /* 欄位少的表格撐到段落寬；欄位多的可以長到整欄，再寬才在框內橫向捲動 */
-  width: auto;
-  min-width: min(100%, var(--measure));
+  width: 100%;
   border-collapse: collapse;
   font-size: 15px;
   line-height: 1.6;
@@ -577,7 +570,6 @@ a.sec[aria-current="page"]::before {
   left: 0;
 }
 .toc-inline {
-  max-width: var(--measure);
   margin-top: 22px;
   border: 1px solid var(--rule);
 }
