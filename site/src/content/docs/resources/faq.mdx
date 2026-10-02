@@ -28,7 +28,7 @@ description: 從各頁文件整理出最常踩到的問題，依安裝啟動、�
 
 ### 升級後沒看到新功能？
 
-`build` 與 `serve` 的快取判斷不看 NoteCraftApp 的版本。筆記沒變的話，升級後第一次執行會沿用舊版產物。目前要加 `--rebuild` 強制重新 build；用到 AI 生成的話，也再跑一次 `init-skill` 更新 Skill。見[運作原理](/docs/advanced/internals/#強制重新-build)與[安裝內建 Skill](/docs/getting-started/skills/#檢查版本)。
+先用 `npx notecraftapp --version` 確認跑的是新版。不寫版本時 npx 可能沿用之前下載過的版本，寫成 `npx notecraftapp@latest …` 才確定是最新版。1.8.1 起，升級後第一次 `build`／`serve` 會自動重新 build；更早的版本在筆記沒變時會沿用舊產物，要加 `--rebuild`。`view` 不用快取，不受影響。用到 AI 生成的話，再跑一次 `init-skill` 更新 Skill。見[升級](/docs/resources/upgrade/)與[安裝內建 Skill](/docs/getting-started/skills/#檢查版本)。
 
 ### Windows 上筆記和使用者目錄在不同磁碟，能用嗎？
 
@@ -112,7 +112,7 @@ description: 從各頁文件整理出最常踩到的問題，依安裝啟動、�
 
 ### 用 `NOTECRAFT_BASE` build 過，本機 `serve` 就壞了？
 
-`serve` 不處理子路徑前綴，會找不到 CSS 與連結。不帶 `NOTECRAFT_BASE` 再 `--rebuild` 一次。改了這個變數之後也一定要加 `--rebuild`，快取不看它。見[部署到子路徑](/docs/guides/deploy/#部署到子路徑)。
+`serve` 不處理子路徑前綴，會找不到 CSS 與連結。不帶 `NOTECRAFT_BASE` 再執行一次 `serve`：1.8.1 起 CLI 發現前綴跟上次 build 不同，會自動重新 build。更早的版本快取不看這個變數，要加 `--rebuild`，之後每次改了它也一樣。見[部署到子路徑](/docs/guides/deploy/#部署到子路徑)。
 
 ### `⌘K` 搜不到筆記內文？
 
