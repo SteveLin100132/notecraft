@@ -23,9 +23,7 @@ mkdir -p site-out
 cp -R ~/.notecraft/cache/<hash>/dist/. site-out/
 ```
 
-<Callout type="warn">
-快取是否失效不看 notecraftapp 的版本，也不看下面提到的 `NOTECRAFT_BASE`。升級後、或改了子路徑設定之後，要加 `--rebuild`，否則會拿到舊的產物。快取規則見[運作原理](/docs/advanced/internals/)。
-</Callout>
+升級 notecraftapp 或改了下面提到的 `NOTECRAFT_BASE` 之後，下一次 `build` 會自動重建，不必加 `--rebuild`（1.8.1 起；更早的版本要加）。快取規則見[運作原理](/docs/advanced/internals/)。
 
 ## 筆記裡的圖片
 
@@ -52,7 +50,7 @@ cp -R ~/.notecraft/cache/<hash>/dist/. site-out/
 站不在網域根目錄時（例如 GitHub Pages 的專案站 `https://<帳號>.github.io/<repo>/`），build 時設環境變數 `NOTECRAFT_BASE`：
 
 ```bash
-NOTECRAFT_BASE=/my-notes npx notecraftapp build ./notes --rebuild
+NOTECRAFT_BASE=/my-notes npx notecraftapp build ./notes
 ```
 
 - 站內連結、CSS／JS 路徑、改寫後的圖片網址都會加上前綴，例如 `/my-notes/notes-assets/cover.png`
@@ -60,7 +58,7 @@ NOTECRAFT_BASE=/my-notes npx notecraftapp build ./notes --rebuild
 - 圖片仍放在 `dist/notes-assets/`，跟著整份產物一起放上去就對得到 `/my-notes/notes-assets/…`
 
 <Callout type="warn">
-`NOTECRAFT_BASE` 不是 CLI 旗標，`--help` 與 README 都沒有列出。它是 NoteCraftApp 本身部署官網 Demo 用的設定，CLI 會把它原樣傳給 build，所以目前可以用，但不算正式公開的功能，之後可能變動。另外 `serve` 不處理前綴：用 `NOTECRAFT_BASE` build 過之後，本機 `serve` 會找不到 CSS 與連結，要不帶這個變數再 `--rebuild` 一次。
+`NOTECRAFT_BASE` 不是 CLI 旗標，`--help` 與 README 都沒有列出。它是 NoteCraftApp 本身部署官網 Demo 用的設定，CLI 會把它原樣傳給 build，所以目前可以用，但不算正式公開的功能，之後可能變動。另外 `serve` 不處理前綴：用 `NOTECRAFT_BASE` build 出來的產物，本機 `serve` 會找不到 CSS 與連結。不帶這個變數執行 `serve` 時，CLI 會發現前綴不同而自動重建（1.8.1 起；更早的版本要加 `--rebuild`）。
 </Callout>
 
 ## 放上靜態主機
