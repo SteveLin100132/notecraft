@@ -6,6 +6,8 @@ import Callout from "../../components/docs/Callout.astro";
 import Plate from "../../components/docs/Plate.astro";
 import Table from "../../components/docs/Table.astro";
 import A from "../../components/docs/A.astro";
+import MdDemo from "../../components/docs/MdDemo.astro";
+import FeatureMap from "../../components/docs/FeatureMap.astro";
 
 export async function getStaticPaths() {
   const entries = await getCollection("docs");
@@ -29,5 +31,5 @@ const title = CHAPTERS.map((c) => find(c.items)).find(Boolean) ?? entry.id;
 ---
 
 <DocsLayout title={title} description={entry.data.description} slug={entry.id} headings={headings}>
-  <Content components={{ Callout, Plate, table: Table, a: A }} />
+  <Content components={{ Callout, Plate, MdDemo, FeatureMap, table: Table, a: A }} />
 </DocsLayout>

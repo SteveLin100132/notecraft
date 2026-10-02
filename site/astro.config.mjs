@@ -1,6 +1,10 @@
 import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import mdx from "@astrojs/mdx";
+import { syncNcProse } from "./scripts/sync-nc-prose.mjs";
+
+// 文件頁「實際渲染」示範用的筆記樣式，從 app 的 src/styles 抽出（見腳本開頭說明）
+syncNcProse();
 
 // 程式碼高亮只用說明書的兩種墨：墨黑與深藍，註解與標點退到次要墨。不引入第三種色相。
 const paperTheme = {
@@ -59,6 +63,14 @@ export default defineConfig({
   trailingSlash: "ignore",
   output: "static",
   integrations: [react(), mdx()],
+  // 示範元件直接 import app 的 remark 外掛（../src/lib），dev server 要能讀到 repo 根
+  // 渲染器是讀者第一次改原文才動態載入，相依先列進 optimizeDeps，dev 時才不會半途重新最佳化、整頁重載
+  vite: {
+    server: { fs: { allow: [".."] } },
+    optimizeDeps: {
+      include: ["unified", "remark-parse", "remark-gfm", "remark-smartypants", "remark-directive", "remark-rehype", "rehype-stringify", "github-slugger", "@mdx-js/mdx", "react-dom/server"],
+    },
+  },
   markdown: {
     shikiConfig: { theme: paperTheme, transformers: [codeFrame] },
   },

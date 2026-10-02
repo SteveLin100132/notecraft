@@ -143,6 +143,20 @@
       ],
       "port": 4352,
       "autoPort": false
+    },
+    {
+      "name": "site-dev-fx",
+      "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
+      "runtimeArgs": [
+        "site/node_modules/astro/astro.js",
+        "dev",
+        "--root",
+        "site",
+        "--port",
+        "4360"
+      ],
+      "port": 4360,
+      "autoPort": true
     }
   ]
 }

@@ -1,0 +1,412 @@
+/* ── 「原文 → 筆記頁」示範（components/MdDemo.tsx）──
+   外框沿用說明書的墨框與圖說；右半的 .ncp 裡是 app 的筆記樣式（nc-prose.gen.css），只有那裡出現 app 的色彩。 */
+.mdd {
+  margin: 1.6em 0 2em;
+  counter-increment: fig;
+  container: mdd / inline-size;
+}
+
+/* 預設組切換：與首頁 FIG. 2 的 type 切換同一種「選中＝反白」 */
+.mdd-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.mdd-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-2);
+  font: 500 14px/1 var(--f-cjk);
+  cursor: pointer;
+  transition: border-color 160ms var(--ease-out), color 160ms var(--ease-out), background-color 160ms var(--ease-out);
+}
+.mdd-chip:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.mdd-chip.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+}
+/* 改過原文：仍標出是從哪一組改來的，但不再是實心 */
+.mdd-chip.is-edited {
+  border-color: var(--ink);
+  border-style: dashed;
+  color: var(--ink);
+}
+.mdd-chip:focus-visible,
+.mdd-reset:focus-visible,
+.mdd-text:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 2px;
+}
+
+.mdd-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+@container mdd (min-width: 860px) {
+  .mdd-grid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+  .mdd-out {
+    border-top: 0 !important;
+    border-left: 1.5px solid var(--ink);
+  }
+}
+
+.mdd-src,
+.mdd-out {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mdd-out {
+  border-top: 1.5px solid var(--ink);
+}
+
+.mdd-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 10px 0 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.mdd-tag {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.mdd-tag--out {
+  background: var(--sheet);
+  color: var(--line);
+}
+.mdd-file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 13px/1 var(--f-mono);
+  color: var(--ink);
+}
+.mdd-hint {
+  margin-left: auto;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.mdd-reset {
+  margin-left: auto;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 13px/1 var(--f-cjk);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+.mdd-reset:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.mdd-text {
+  flex: 1;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 0;
+  resize: vertical;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 14px/1.75 var(--f-mono);
+  /* JetBrains Mono 會把 ::: 排成連字，看起來像中間有空白 */
+  font-variant-ligatures: none;
+  font-feature-settings: "calt" 0, "liga" 0;
+  tab-size: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mdd-text:focus-visible {
+  outline-offset: -3px;
+}
+
+/* 右半：app 的筆記頁底色是 neutral-50 的工作台、內文直接畫在上面 */
+.mdd-canvas {
+  flex: 1;
+  min-width: 0;
+  padding: 22px 24px 20px;
+  background: var(--surface-card);
+  container: mddc / inline-size;
+}
+.mdd-canvas .nc-prose {
+  max-width: none;
+  min-width: 0;
+}
+.mdd-canvas .nc-prose > :first-child {
+  margin-top: 0;
+}
+.mdd-canvas .nc-prose > :last-child {
+  margin-bottom: 0;
+}
+.mdd-canvas .nc-prose:empty::before {
+  content: "（沒有內容）";
+  color: var(--text-muted);
+}
+.mdd-canvas.has-toc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+/* 目錄欄要 190px、內文至少要留 300 多：上下疊時看整張圖寬，左右並排時右半只有 7/12 */
+@container mdd (min-width: 600px) and (max-width: 859.98px) {
+  .mdd-canvas.has-toc {
+    grid-template-columns: minmax(0, 1fr) 190px;
+    gap: 28px;
+  }
+}
+@container mdd (min-width: 960px) {
+  .mdd-canvas.has-toc {
+    grid-template-columns: minmax(0, 1fr) 190px;
+    gap: 28px;
+  }
+}
+/* compare 模式：.md 與 .mdx 上下並列，各自左上角標副檔名 */
+.mdd-outs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.mdd-canvas--cmp {
+  position: relative;
+  padding-top: 40px;
+}
+.mdd-canvas--cmp + .mdd-canvas--cmp {
+  border-top: 1px solid var(--rule);
+}
+.mdd-ext {
+  position: absolute;
+  top: 12px;
+  left: 24px;
+  font: 700 13px/1 var(--f-mono);
+  color: var(--ink);
+}
+
+/* 編譯失敗：app 的 view 會停在錯誤畫面、build 整個失敗；這裡只畫出錯誤本身 */
+.mdd-error {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--danger-500);
+  background: var(--danger-50);
+}
+.mdd-error p {
+  margin: 0;
+}
+.mdd-error-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--danger-500);
+}
+.mdd-error-msg {
+  margin-top: 4px !important;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--neutral-800);
+  overflow-wrap: anywhere;
+}
+
+/* 目錄：照抄 app 筆記頁的 .nc-toc（src/pages/notes/[...slug].astro），一律展開 */
+.ncp-toc {
+  align-self: start;
+}
+.ncp-toc-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.ncp-toc-count {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ncp-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-left: 2px solid var(--neutral-200);
+}
+.ncp-toc-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: -2px;
+  border-left: 2px solid transparent;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: color 140ms, border-color 140ms;
+}
+.ncp-toc-item.d0 {
+  padding: 5px 10px 5px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.ncp-toc-item.d1 {
+  padding: 3px 10px 3px 26px;
+  font-size: 12.5px;
+  color: var(--text-body);
+}
+.ncp-toc-item.d2 {
+  padding: 3px 10px 3px 38px;
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+.ncp-toc-mark {
+  flex: none;
+  background: var(--neutral-300);
+}
+.ncp-toc-item.d1 .ncp-toc-mark {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+}
+.ncp-toc-item.d2 .ncp-toc-mark {
+  width: 8px;
+  height: 1.5px;
+}
+.ncp-toc-item:hover {
+  color: var(--blue-700);
+  border-left-color: var(--orange-500);
+}
+.ncp-toc-none {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* 錨點 id 清單：回到說明書的樣式 */
+.mdd-ids {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--rule);
+}
+.mdd-ids-title {
+  margin: 0 0 6px !important;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.mdd-ids ul {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none;
+}
+.mdd-ids li {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, 1fr) minmax(0, auto);
+  gap: 10px;
+  margin: 0 !important;
+  padding: 3px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.mdd-ids li + li {
+  border-top: 1px dotted var(--rule);
+}
+.mdd-ids-lv {
+  font: 700 12.5px/1.9 var(--f-latin);
+  font-variation-settings: "wdth" 78;
+  color: var(--mark-paper);
+}
+.mdd-ids-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mdd-ids li code {
+  justify-self: end;
+  text-align: right;
+}
+.mdd-ids li.is-out {
+  color: var(--ink-2);
+}
+.mdd-ids li.is-out .mdd-ids-text::after {
+  content: "（不進目錄）";
+  font-size: 12.5px;
+}
+
+/* app 外掛寫進 build log 的警告 */
+.mdd-log {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-top: 0;
+  background: var(--del-bg);
+  color: var(--del-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.mdd-log-tag {
+  flex: none;
+  font: 700 12.5px/1.6 var(--f-mono);
+  letter-spacing: 0.02em;
+}
+.mdd-log ul {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none;
+}
+.mdd-log li {
+  margin: 0 !important;
+}
+
+.mdd figcaption {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.mdd figcaption::before {
+  content: "FIG. " counter(fig);
+  margin-right: 0.7em;
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdd-chip,
+  .mdd-reset,
+  .ncp-toc-item {
+    transition: none;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "site/src/styles/nc-prose.gen.css"
+        ],
+        "createdAt": "2026-10-02T07:08:07.468Z",
+        "reason": "Claude: generated verbatim copy of the NoteCraftApp note styles (src/styles/global.css) so docs demos match the real app; edit the app, not this file"
+      }
+    ]
+  }
+}
