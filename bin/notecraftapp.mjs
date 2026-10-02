@@ -2,7 +2,7 @@
 // NoteCraftApp CLI（P6 / 三命令版）
 // - view <dir>：spawn astro dev，HMR、新增/編輯/刪除筆記即時反映
 // - build <dir>：astro build → ~/.notecraft/cache/<hash>/dist/（給 CI 或 serve 用）
-// - serve <dir>：Node HTTP 服務快取的 dist；純靜態、唯讀；仍掛 /notes-assets/* 讓外部圖片可見
+// - serve <dir>：Node HTTP 服務快取的 dist；純靜態、唯讀；本機連線的 /notes-assets/* 仍從筆記資料夾即時送出
 //
 // 「能寫」與否天然對齊 astro 的 dev/build 兩態，不再需要額外旗標。
 
@@ -16,7 +16,7 @@ import crypto from "node:crypto";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
-import { tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
+import { localhostOnly, tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
 import { installPlugin, listStore, removePlugin } from "./install-plugin.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -107,6 +107,8 @@ const STATIC_MIME = {
   ".gif": "image/gif",
   ".webp": "image/webp",
   ".ico": "image/x-icon",
+  ".avif": "image/avif",
+  ".pdf": "application/pdf",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".txt": "text/plain; charset=utf-8",
@@ -268,6 +270,36 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   }
   if (meta.pluginFileCount !== undefined && pluginFileCount !== meta.pluginFileCount) {
     return { should: true, why: `plugin 檔案數量從 ${meta.pluginFileCount} 變成 ${pluginFileCount}` };
+  }
+  // Pass 4：上次複製進 dist/notes-assets/ 的附件，來源改過或刪了就重 build（只改圖片時 md/mdx 的 mtime 不會動）。
+  // 新引用的附件一定伴隨 md/mdx 變動，上面已經會重 build。
+  const assetsDir = path.join(distDir, "notes-assets");
+  let staleAsset = null;
+  async function walkAssets(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      if (staleAsset) return;
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        await walkAssets(p);
+        continue;
+      }
+      const rel = path.relative(assetsDir, p);
+      try {
+        if (statSync(path.join(notesDir, rel)).mtimeMs > lastBuildMs) staleAsset = rel;
+      } catch {
+        staleAsset = rel;
+      }
+    }
+  }
+  await walkAssets(assetsDir);
+  if (staleAsset) {
+    return { should: true, why: `筆記附件有變動（${staleAsset.split(path.sep).join("/")}）` };
   }
   return { should: false, meta: { fileCount: mdxCount, jsonCount, pluginFileCount } };
 }
@@ -567,9 +599,14 @@ async function startStaticServer(cwd, notesDir, distDir, port, host, openBrowser
         req.on("close", () => subscribers.delete(res));
         return;
       }
-      // 只掛 assets，不掛寫入 API（serve = 唯讀靜態）
-      const handled = await tryHandleAssetsRequest(cwd, notesDir, req, res);
-      if (handled) return;
+      // 只掛 assets，不掛寫入 API（serve = 唯讀靜態）。
+      // 本機連線走即時送出：改圖或剛加的圖不必等 rebuild（改圖片本身也不會觸發 rebuild）。
+      // 其他連線（--host 0.0.0.0 的區網）落到下面的 serveStatic，拿 build 時複製進 dist/notes-assets/ 的那份：
+      // 只有被筆記引用的檔、內容停在上次 build，和部署到靜態主機看到的一樣；即時路徑仍維持 localhost-only。
+      if (localhostOnly(req)) {
+        const handled = await tryHandleAssetsRequest(cwd, notesDir, req, res);
+        if (handled) return;
+      }
 
       // v2: dist 無 index.html（首次 build 失敗、或 notesDir 剛建、沒任何 mdx）→ fallback 頁
       if (!hasServableDist(distDir)) {

@@ -324,7 +324,7 @@ Slug 保留階層：
 
 ### 圖片：直接寫相對路徑
 
-MDX 或 md 內 `![](./cover.png)` / `![](../shared/logo.svg)` 都會被自動 rewrite 成 `/notes-assets/*` URL，由內建靜態伺服器從你的 notes 資料夾直接送。
+MDX 或 md 內 `![](./cover.png)` / `![](../shared/logo.svg)` 都會被自動 rewrite 成 `/notes-assets/*` URL。`view` / `serve` 期間由內建伺服器從你的 notes 資料夾直接送；`build` 會把產物實際引用到的檔案複製進 `dist/notes-assets/`，部署到靜態主機也看得到。
 
 支援 png / jpg / svg / webp / gif / avif / ico / pdf。
 
