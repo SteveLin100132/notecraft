@@ -133,8 +133,32 @@ function resolveNotesDirArg(dirArg) {
   return notesDir;
 }
 
+// ── build 指紋：筆記以外、也會改變 build 產物的輸入 ────────────────────
+// - tool：notecraftapp 版本。升級後沿用舊快取會看不到新版的修正與功能。
+//   dev 源碼（isDevSource）再附 git HEAD：改程式碼不會動版號，commit 後就失效；
+//   未 commit 的改動不納入（每次算整個 repo 的雜湊太貴），要看效果仍用 --rebuild。
+// - base：NOTECRAFT_BASE 會改寫站內所有連結與資產路徑。
+// - userCwd：.notecraft/（plugins.json、系列、元件）從這裡讀；快取 key 只看 notesDir，
+//   從不同資料夾執行同一個 notesDir 會拿到另一份設定。
+let devHeadMemo;
+function devGitHead() {
+  if (devHeadMemo !== undefined) return devHeadMemo;
+  const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: packageRoot, encoding: "utf-8" });
+  devHeadMemo = r.status === 0 ? r.stdout.trim() : "";
+  return devHeadMemo;
+}
+
+function buildFingerprint(userCwd) {
+  const head = isDevSource() ? devGitHead() : "";
+  return {
+    tool: `notecraftapp@${pkgJson.version}${head ? `+${head}` : ""}`,
+    base: process.env.NOTECRAFT_BASE || "",
+    userCwd: userCwd ? path.resolve(userCwd) : "",
+  };
+}
+
 // ── 快取失效偵測（§8.1、P7）────────────────────────────────────────
-// 三條路徑：
+// 0) build 指紋（版本、NOTECRAFT_BASE、userCwd）與上次不同
 // 1) md/mdx 內容變動：遞迴掃 notesDir、跳過 . 開頭子資料夾、取最大 mtime + 檔案數
 // 2) .notecraft/*.json 設定變動：series.json 之類的東西，series 用來 build 系列頁
 // 3) 檔案數量變動：新增/刪除筆記（mtime 不見得會變）
@@ -151,6 +175,21 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
     meta = JSON.parse(readFileSync(metaPath, "utf-8"));
   } catch {
     return { should: true, why: "meta.json 壞掉" };
+  }
+  // Pass 0：build 指紋。缺欄位的是更舊版本寫的 meta，一律重建
+  const fp = buildFingerprint(userCwd);
+  if (meta.tool !== fp.tool) {
+    return {
+      should: true,
+      why: meta.tool ? `notecraftapp 版本從 ${meta.tool} 變成 ${fp.tool}` : `快取由舊版 notecraftapp 建立（現在是 ${fp.tool}）`,
+    };
+  }
+  if (meta.base === undefined || meta.base !== fp.base) {
+    const show = (b) => (b ? ` ${b} ` : "（未設定）");
+    return { should: true, why: `NOTECRAFT_BASE 從${show(meta.base)}變成${show(fp.base)}`.trimEnd() };
+  }
+  if (meta.userCwd === undefined || meta.userCwd !== fp.userCwd) {
+    return { should: true, why: `執行資料夾從 ${meta.userCwd || "（未記錄）"} 變成 ${fp.userCwd}（.notecraft/ 設定從這裡讀）` };
   }
   const lastBuildMs = new Date(meta.lastBuildAt).getTime();
 
@@ -304,14 +343,14 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   return { should: false, meta: { fileCount: mdxCount, jsonCount, pluginFileCount } };
 }
 
-async function writeMeta(cacheDir, notesDir, fileCount, extra = {}) {
+async function writeMeta(cacheDir, notesDir, userCwd, fileCount, extra = {}) {
   const metaPath = path.join(cacheDir, "meta.json");
   const meta = {
     notesDir,
     lastBuildAt: new Date().toISOString(),
     fileCount,
     ...extra,
-    tool: `notecraftapp@${pkgJson.version}`,
+    ...buildFingerprint(userCwd),
   };
   await fs.mkdir(cacheDir, { recursive: true });
   await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
@@ -578,7 +617,7 @@ async function atomicRebuild(cwd, notesDir, cacheDir, userCwd) {
 
   // meta + 背景清理 prev（不 await，失敗也不影響 UX）
   const count = await countMdx(notesDir);
-  await writeMeta(cacheDir, notesDir, count, await countPluginInputs(notesDir, userCwd));
+  await writeMeta(cacheDir, notesDir, userCwd, count, await countPluginInputs(notesDir, userCwd));
   fs.rm(prevDir, { recursive: true, force: true }).catch(() => {});
 }
 

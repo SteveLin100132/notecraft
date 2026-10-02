@@ -358,6 +358,7 @@ updatedAt: <ISO 8601 now>
 3. `notesDir` 內任一 md/mdx 的 mtime > `meta.json.lastBuildAt`
 4. `notesDir` 內檔案數量 ≠ `meta.json.fileCount`（處理刪檔）
 5. 使用者手動加 `--rebuild` flag
+6. build 指紋與 `meta.json` 不同（v1.8.1）：`tool`（`notecraftapp@<version>`，dev 源碼再加 `+<git HEAD>`）、`base`（`NOTECRAFT_BASE`）、`userCwd`（`.notecraft/` 的來源）；缺欄位的舊 meta 一律重建
 
 ### 8.2 使用者透過 UI 編輯後的體驗
 
