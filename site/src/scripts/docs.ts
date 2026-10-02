@@ -32,9 +32,10 @@ matchMedia("(min-width: 960px)").addEventListener("change", (e) => {
 // 目前那一節捲進書脊可見範圍（書脊自己捲動，不動整頁）
 const current = spine?.querySelector<HTMLElement>(".spine-nav [aria-current='page']");
 const nav = spine?.querySelector<HTMLElement>(".spine-nav");
+// 只有所在的節不在可見範圍內才捲；已經看得到就不動，避免把上方的章名捲走
 if (current && nav) {
-  const top = current.offsetTop - nav.clientHeight / 3;
-  if (top > 0) nav.scrollTop = top;
+  const top = current.getBoundingClientRect().top - nav.getBoundingClientRect().top;
+  if (top + current.offsetHeight > nav.clientHeight) nav.scrollTop = top - nav.clientHeight / 3;
 }
 
 // ── 程式碼複製 ──

@@ -30,7 +30,7 @@ npx notecraftapp install-plugin ./my-plugin              # 本地資料夾
 
 - `.tsx`／`.ts` 裡 import 了白名單外的套件。白名單與 AI 生成元件共用：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`
 - 使用 `dangerouslySetInnerHTML`
-- 不在允許清單內的檔案類型。只收 `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png`，所以 `package.json`、`*.sh`、`*.mjs` 這類檔案都會被擋
+- 不在允許清單內的檔案類型。只收 `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png`，所以 `*.sh`、`*.mjs` 這類檔案都會被擋。`package.json` 屬於 `.json`，目前不會被擋，但安裝過程不會執行任何腳本
 - 路徑逃脫（含 `..` 的路徑）
 - 缺少 `notecraft-plugin.json` 或 `renderer.tsx`
 - plugin 要求的 NoteCraftApp 版本（manifest 的 `engines`）與你目前的版本不合，會提示你先升級

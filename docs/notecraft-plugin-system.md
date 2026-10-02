@@ -633,6 +633,7 @@ $ npx notecraftapp install-plugin
 - 掃所有 `.tsx` / `.ts` 的 import，白名單外的套件 → 列出違規行並拒裝（§6.4）
 - 禁止 `dangerouslySetInnerHTML`
 - 只收 `.tsx` / `.ts` / `.json` / `.md` / `.css` / `.svg` / `.png`；拒絕 `package.json`、`node_modules/`、`*.sh`、`*.mjs` 等可執行內容
+  - 副檔名之外另有檔名拒絕清單（任何層、不分大小寫）：`package.json`、各家 lockfile、`tsconfig.json`／`jsconfig.json`。`.json` 副檔名不是通行證 —— 1.8.4 以前只看副檔名，`package.json` 實際會被放行
 - 路徑安全：拒絕 `../` 逃脫與 symlink（沿用 viewer v1 §7.3）
 - `engines.notecraftapp` 不合 → 擋下並提示升級
 - **不執行任何安裝腳本**

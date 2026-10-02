@@ -19,12 +19,12 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 
 ### build 快取
 
-`<hash>` 是筆記資料夾絕對路徑的 SHA-1（取前 12 碼），所以同一個資料夾不論從哪裡執行，都共用同一份快取。裡面有：
+`<hash>` 是筆記資料夾絕對路徑的 SHA-1（取前 12 碼），所以同一個資料夾不論從哪裡執行，都共用同一份快取。不過 `.notecraft/` 是從執行的資料夾讀的，換一個資料夾執行，下次會重新 build（見下一節）。裡面有：
 
 | 檔案 | 內容 |
 | :-- | :-- |
 | `dist/` | `build` 的產物，`serve` 服務的就是它；`dist/pagefind/` 是全文索引 |
-| `meta.json` | 上次 build 的時間與檔案計數 |
+| `meta.json` | 上次 build 的時間、檔案計數，以及當時的 notecraftapp 版本、`NOTECRAFT_BASE` 與執行資料夾 |
 | `dist.next/` | rebuild 進行中的暫存輸出，成功後換成 `dist/` |
 
 `build` 結束時終端機會印出 `dist` 的完整路徑，要部署到別處就從那裡複製。
@@ -38,6 +38,9 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 | 帶了 `--rebuild` | 忽略快取 |
 | `dist/` 或 `meta.json` 不存在、`meta.json` 壞掉 | 第一次執行或快取不完整 |
 | 快取目錄裡有 `.stale` 檔 | 強制下次 rebuild 的標記 |
+| notecraftapp 版本跟上次 build 不同，或快取是 1.8.1 以前的版本建的 | 升級或換版本之後 |
+| `NOTECRAFT_BASE` 跟上次 build 不同 | 設定、改掉或拿掉[子路徑](/docs/guides/deploy/#部署到子路徑) |
+| 執行的資料夾跟上次 build 不同 | `.notecraft/` 從執行的資料夾讀，換資料夾可能拿到另一份設定 |
 | 任一 `.md`／`.mdx` 比上次 build 新 | 改了筆記 |
 | `.notecraft/` 第一層任一 `.json` 比上次 build 新 | 改了 `series.json`、`plugins.json` |
 | `.md`／`.mdx` 的數量變了 | 新增或刪除筆記 |
@@ -51,7 +54,9 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 沿用快取時若 `dist/` 裡沒有 `pagefind/`（舊版 CLI 留下的快取，或上次建索引失敗），只會補建索引，不重新 build 整站。
 
 <Callout type="warn">
-快取失效判斷不看 notecraftapp 的版本。升級之後第一次 `build` 或 `serve`，筆記沒變的話會沿用舊版產物，請加 `--rebuild`。
+上表的版本、`NOTECRAFT_BASE`、執行資料夾三條從 1.8.1 起才有。用更早的版本時，升級或改了子路徑之後要加 `--rebuild`，見[升級](/docs/resources/upgrade/)。
+
+從 repo 直接執行（見[參與開發](/docs/resources/contributing/)）時，版本還會加上 git 的 commit：commit 之後快取才會失效，還沒 commit 的改動要加 `--rebuild` 才看得到。
 </Callout>
 
 ## 強制重新 build
@@ -71,4 +76,4 @@ npx notecraftapp serve ./notes --rebuild
 rm -rf ~/.notecraft/
 ```
 
-只想清某個筆記資料夾的 build，刪 `~/.notecraft/cache/` 底下對應的目錄；不確定是哪一個，`build` 啟動時印的 `cache dir` 就是它。舊版本的 `app-<version>/` 不會自動清除，升級後可以手動刪掉。
+只想清某個筆記資料夾的 build，刪 `~/.notecraft/cache/` 底下對應的目錄；不確定是哪一個，`build` 啟動時印的 `cache dir` 就是它。舊版本的 `app-<version>/` 不會自動清除，升級後可以手動刪掉（見[升級](/docs/resources/upgrade/#清掉舊版本)）。

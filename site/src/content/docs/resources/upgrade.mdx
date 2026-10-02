@@ -1,0 +1,119 @@
+---
+description: 怎麼把 notecraftapp 升到新版、升級後哪些事會自動處理、哪些要自己做，以及怎麼指定或退回某個版本。
+---
+
+升級 NoteCraftApp 不會動到你的筆記資料夾。新版本會裝在自己的 `~/.notecraft/app-<version>/`，build 快取與瀏覽器裡的閱讀進度、收藏、頁籤都會沿用。要自己處理的只有裝進專案的 Skill 與 plugin。
+
+## 看目前的版本
+
+```bash
+npx notecraftapp --version
+```
+
+全域安裝的話是 `notecraftapp --version`。工作台的「設定 › 關於」也會顯示版本。每一版改了什麼見[版本歷程](/docs/resources/changelog/)。
+
+## 升級
+
+### 用 npx
+
+在版本號寫 `@latest`：
+
+```bash
+npx notecraftapp@latest view ./notes
+```
+
+不寫版本時，npx 可能直接用它之前下載過的版本，不一定會去查有沒有新版。加上 `@latest` 才保證拿到最新版。之後的 `build`、`serve` 也照樣這樣寫，或者升級完改用全域安裝。
+
+### 全域安裝
+
+```bash
+npm install -g notecraftapp@latest
+```
+
+### 第一次執行新版
+
+新版第一次執行時，會像[第一次安裝](/docs/getting-started/install/)那樣複製到 `~/.notecraft/app-<新版本>/`，並跑一次 `npm install`，大約 30 秒。
+
+## 升級後自動處理的事
+
+**build 快取會自動重建。** 從 1.8.1 起，`build` 與 `serve` 會比對快取是哪個版本建的，版本不同就重新 build，終端機會印出原因：
+
+```text
+[notecraftapp] 重 build：notecraftapp 版本從 notecraftapp@1.8.1 變成 notecraftapp@1.9.0
+```
+
+更舊版本留下的快取沒有版本紀錄，也一律會重建。所以不論從哪一版升上來，只要新版是 1.8.1 以後，都不必加 `--rebuild`。完整的重建條件見[運作原理](/docs/advanced/internals/#什麼時候會重新-build)。
+
+<Callout type="warn">
+升到 1.8.1 **以前**的版本時，快取不會比對版本。筆記沒有改動的話，`build`／`serve` 會沿用舊版的產物，第一次要加 `--rebuild`。
+</Callout>
+
+`view` 不用快取，升級後馬上就是新版。
+
+**瀏覽器裡的資料會保留。** 閱讀進度、收藏、頁籤、設定頁的偏好都存在瀏覽器的 localStorage，升級不會清掉。
+
+## 升級後要自己做的事
+
+### 更新 Skill
+
+用過 [`init-skill`](/docs/getting-started/skills/) 的專案，`.claude/` 裡的 Skill 與 Subagent 是當時複製進去的版本，不會跟著 NoteCraftApp 一起升級。先在專案根目錄檢查：
+
+```bash
+npx notecraftapp@latest init-skill --check
+```
+
+出現「版本落差」時，重跑一次 `init-skill`：
+
+```bash
+npx notecraftapp@latest init-skill
+```
+
+你改過的檔案會列為衝突，每個都會問你要覆寫還是略過。想全部以新版為準就加 `--force`。
+
+### 更新 plugin
+
+`.notecraft/plugins/` 裡的 plugin 是安裝當時的複本，升級 NoteCraftApp 不會更新它們。plugin 有新版時，用 `--force` 重裝一次（見[安裝 plugin](/docs/guides/plugin-install/)）：
+
+```bash
+npx notecraftapp@latest install-plugin <id> --force
+```
+
+plugin 要求的 NoteCraftApp 版本（manifest 的 `engines`）只在安裝時檢查。新版 plugin 如果要求更新的 NoteCraftApp，要先升級 NoteCraftApp 才裝得上去。
+
+### 清掉舊版本
+
+舊的 `~/.notecraft/app-<version>/` 不會自動刪除。確定不再用某個版本時，可以手動刪掉：
+
+```bash
+rm -rf ~/.notecraft/app-1.7.0
+```
+
+刪掉之後如果又執行那個版本，會重新複製、重新安裝一次。
+
+## 指定版本或退回舊版
+
+在套件名稱後面加版本號，就可以用指定的版本執行：
+
+```bash
+npx notecraftapp@1.7.0 serve ./notes
+```
+
+全域安裝則是 `npm install -g notecraftapp@1.7.0`。舊版的 `app-<version>/` 還在的話會直接沿用，不必重新安裝。
+
+退回舊版前，注意這幾點：
+
+- **快取**：退回 1.8.1 以後的版本，快取會自動重建；退回 1.8.1 以前的版本不會比對版本，要加 `--rebuild`，否則會沿用新版建出的產物
+- **plugin**：專案裡已經裝了要求新版 NoteCraftApp 的 plugin，舊版不會擋下，但 build 可能失敗
+- **相容性**：專案只保證往新版的方向升級。新版加入的筆記寫法或設定，舊版不一定看得懂
+
+## 各版的注意事項
+
+下表列出升級後你可能會注意到的行為改變，以及被移除的功能。完整變更見 [CHANGELOG.md](https://github.com/SteveLin100132/notecraft/blob/main/CHANGELOG.md)。
+
+| 版本 | 注意事項 |
+| :-- | :-- |
+| 1.8.1 | `build`／`serve` 的快取改為自動失效：版本、`NOTECRAFT_BASE`、執行的資料夾任一跟上次不同就重建，不再需要 `--rebuild` |
+| 1.5.0 | 儀表板「本週」Tab 改為「更新月曆」，原本的近 7 日筆記列表移除（資訊仍在總覽的「更新日誌」）。舊的 `?tab=week` 網址會開到月曆 |
+| 1.4.0 | 儀表板總覽改版：「AI 視覺化生成率」百分比卡、「待生成 @ai-visualize 標記」widget、「近 30 日更新」數字移除，改由「AI 待生成」卡與「AI 佇列」Tab 提供 |
+| 1.1.1 | 資料檔頁（`/view/<路徑>`）底部不再有閱讀狀態與系列的上一章／下一章；資料檔章節不會自動標為「閱讀中」，也不能在這一頁標記完成 |
+| 1.0.0 | 外殼換成 Workbench 工作台。`/about` 與 `/view` 列表頁轉址到 `/settings?tab=about` 與 `/plugins`（`/view/<路徑>` 不變）；`/notes` 不再混排資料檔；筆記列表不能同時篩多個標籤；舊側邊欄的「細條」模式移除 |
