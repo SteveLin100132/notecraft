@@ -41,7 +41,8 @@ export function StatKpi({
     <DvCard cls="dv-kpi" label={label}>
       <div className="dv-kpi-l">{label}</div>
       <div className="dv-kpi-body">
-        <span className="dv-kpi-n tnum">{value === null ? "—" : value}</span>
+        {/* 「—」換成真值時淡入（loading-transitions §10） */}
+        <span className={"dv-kpi-n tnum" + (value === null ? "" : " nc-swap-in")}>{value === null ? "—" : value}</span>
         <Ring parts={parts} />
       </div>
       <div className="dv-kpi-rs">
@@ -49,7 +50,7 @@ export function StatKpi({
           <span key={p.k} title={p.l}>
             <i className={p.cls} aria-hidden="true" />
             {p.l}
-            <b className="tnum">{live ? p.v : "—"}</b>
+            <b className={"tnum" + (live ? " nc-swap-in" : "")}>{live ? p.v : "—"}</b>
           </span>
         ))}
       </div>

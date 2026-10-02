@@ -91,3 +91,14 @@ Task 109、110 處理了「換頁時」的空白；剩下的是慢速網路下�
 ## 依賴
 
 [Task 109](task-109-loading-measure-vt-foundation.md)；建議在 [Task 110](task-110-loading-tabs-prepaint-scroll.md) 之後。
+
+## 實作記錄（2026-10-02）
+
+- **筆記骨架** `src/components/wb/NoteSkeleton.astro`：依實際筆記頁調整——標題在 Header，所以內文骨架從標籤列開始（拿掉 handoff 的返回連結與標題條），meta 列是「更新於」＋閱讀狀態 pill。外層用 `.nc-sk-host` 而非 `.wb-host`（`Toc.tsx` 以 `querySelector(".wb-host")` 量寬度，被骨架搶先會讓目錄誤判成窄版收合——截圖回歸抓到的）。`.nc-body-wrap` 為 `display:contents`
+- **critical CSS** 只放 `@view-transition`；`scripts/checks/wb-critical-css.mjs` 斷言與 `workbench.css` 一致
+- **不做內容淡入**：每次載入都會播、還會與主區轉場疊加
+- **`/notes` 首屏**：`data-wb-filtering` 時 Body 的 `::before` 以漸層畫列表骨架（150ms 延遲淡入），Toolbar 照舊隱藏
+- **高度盤點** `scripts/fixtures/viz-height-audit.mjs`（Playwright 以 `PLAYWRIGHT_MODULE` 指向臨時安裝，不進 dependencies；`REDUCE=1` 以減少動態量）：一般設定只有 `proposal-summary` 超標，改元件本身後為 0；減少動態時另有 3 支刻意全部展開，記為已知限制
+- **不建 `VizIsland`**：沒有需要它的元件；改在 `content-visualize/SKILL.md` 與 `component-generator.md` 加「SSR 輸出最終高度」規則，`npm run sync-skill` 同步到 `skill-template/`
+- **「—」淡入**：`KpiCard`、`FreqChart`、`Calendar` 第一次換成真值時加 `.nc-swap-in`
+- 驗證：截斷 HTML 時骨架出現且版面與內容對齊（1400／375）；正常載入時骨架從未顯示；`main` 對照截圖除排序換位外一致；各頁 console 無錯誤；tsc 錯誤數 49；`check:wb` 全綠

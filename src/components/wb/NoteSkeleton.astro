@@ -1,0 +1,52 @@
+---
+// 筆記 Body 骨架（規格 docs/notecraft-workbench-loading-transitions.md §8.3；尺寸照 handoff 的 reference/NoteSkeleton.astro）。
+// 純 HTML/CSS：放在 .nc-body-wrap 內、.nc-content 之前，內容開頭一解析到就由 :has() 藏起來；
+// 等待不到 150ms 時根本不會被看到（.nc-sk-root 的延遲淡入）。
+// 兩欄切換與筆記頁同一個 container query（.wb-host ≥ 900px），不是 viewport 860px。
+// 外層刻意不用 .wb-host class：Toc.tsx 以 querySelector(".wb-host") 量主區寬度，骨架排在前面會被它先找到（寬 0 → 誤判窄版）。
+export interface Props {
+  /** 右側目錄骨架；資料檔頁傳 false */
+  toc?: boolean;
+}
+const { toc = true } = Astro.props;
+const para = [100, 97, 99, 58];
+const para2 = [98, 100, 74];
+const code: [number, number][] = [[46, 0], [62, 18], [38, 18], [70, 36], [52, 18], [28, 0]];
+const tocRows: [number, number][] = [[0, 120], [1, 96], [1, 132], [0, 104], [1, 88], [2, 72], [0, 112]];
+---
+<div class="nc-body-sk-flow" aria-busy="true" aria-label="筆記載入中" data-pagefind-ignore>
+  <div class="nc-sk-host nc-sk-root" aria-hidden="true">
+    <div class:list={["nc-sk-note", { "has-toc": toc }]}>
+      <div class="nc-sk-art">
+        <div style="display:flex;gap:6px;margin-bottom:18px">
+          <span class="nc-sk r" style="width:56px;height:22px"></span>
+          <span class="nc-sk r" style="width:68px;height:22px"></span>
+          <span class="nc-sk r" style="width:46px;height:22px"></span>
+        </div>
+        <span class="nc-sk" style="width:88%;height:14px;margin-bottom:11px"></span>
+        <span class="nc-sk" style="width:64%;height:14px;margin-bottom:20px"></span>
+        <div class="nc-sk-meta">
+          <span class="nc-sk" style="width:124px;height:11px"></span>
+          <span class="nc-sk r" style="width:168px;height:26px"></span>
+        </div>
+        <span class="nc-sk" style="width:38%;height:20px;margin:34px 0 16px"></span>
+        <div class="nc-sk-lines" style="margin-bottom:18px">{para.map((w) => <span class="nc-sk" style={`width:${w}%`}></span>)}</div>
+        <div class="nc-sk-code">
+          <div class="nc-sk-code-h"><span class="nc-sk" style="width:52px;height:9px"></span><span style="flex:1"></span><span class="nc-sk" style="width:40px;height:9px"></span></div>
+          <div class="nc-sk-code-b">{code.map(([w, m]) => <span class="nc-sk" style={`width:${w}%;height:9px;margin-left:${m}px`}></span>)}</div>
+        </div>
+        <div class="nc-sk-lines" style="margin-bottom:18px">{para2.map((w) => <span class="nc-sk" style={`width:${w}%`}></span>)}</div>
+        <div class="nc-sk-fig" style="height:300px">
+          <div class="nc-sk-fig-h"><span class="nc-sk r" style="width:96px;height:22px"></span><span style="flex:1"></span><span class="nc-sk" style="width:140px;height:9px"></span></div>
+          <div class="nc-sk-fig-b"><span class="nc-sk"></span></div>
+        </div>
+      </div>
+      {toc && (
+        <div class="nc-sk-toc">
+          <span class="nc-sk" style="width:64px;height:10px"></span>
+          <div class="nc-sk-toc-l">{tocRows.map(([d, w]) => <span class="nc-sk" style={`width:${w}px;height:${d ? 9 : 11}px;margin-left:${14 + d * 12}px`}></span>)}</div>
+        </div>
+      )}
+    </div>
+  </div>
+</div>

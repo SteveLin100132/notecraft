@@ -74,7 +74,7 @@ export default function Calendar({ rows, now, live, readingVersion, sel, onSelec
             本週
           </button>
         </div>
-        <h2 className="cal-title tnum">
+        <h2 className={"cal-title tnum" + (anchor ? " nc-swap-in" : "")}>
           {anchor ? calTitle(view, anchor) : "—"}
           <span>共更新 {anchor ? inRange.length : "—"} 篇</span>
         </h2>
@@ -84,7 +84,7 @@ export default function Calendar({ rows, now, live, readingVersion, sel, onSelec
               <span key={s.k}>
                 <i className={s.cls} aria-hidden="true" />
                 {s.l}
-                <b className="tnum">{counts ? counts[s.k] : "—"}</b>
+                <b className={"tnum" + (counts ? " nc-swap-in" : "")}>{counts ? counts[s.k] : "—"}</b>
               </span>
             ))}
           </div>

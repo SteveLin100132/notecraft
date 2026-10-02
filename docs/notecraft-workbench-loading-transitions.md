@@ -503,5 +503,14 @@ Task 111 第一步：`astro build` 後對每篇筆記比對「SSR HTML 中每個
 - **`rel=expect` 移到 Task 110 再評估**：先放 `#nc-pane-end` 量到切換筆記的 FCP 在 Fast 4G 晚約 135ms（405 → 540），超過 §20 的 50ms 門檻
 - **`rel=expect` 只在需要還原捲動時才加**（Task 110）：頁籤預繪不需要它（實測預繪 script 一定早於第一次繪製）；只有目前頁有捲動位置要還原、且無 hash 時，head 的 inline script 以 `document.write` 加上 `#nc-pane-end`，其餘頁面不付約 130ms 的成本
 - **預繪層的保險**（Task 110）：不是固定 4 秒移除，而是 island 已 hydrate 卻還在時 1 秒後移除；JS 失敗時保留（連結仍可用）
+- **生成元件高度盤點**（Task 111，`scripts/fixtures/viz-height-audit.mjs`，1400／375 兩種寬度、共 142 個）：一般設定下只有 `proposal-summary` 超過 8px（1400 寬 +42），原因是流程卡片寫成 `pipelineInView && <StageCard/>`，SSR 時那一列是空的。**改元件本身**（卡片一律 render，只把進場動畫綁在 `useInView`）後為 0 個
+- **不做 `VizIsland`**（Task 111）：修完上面那支之後沒有任何元件需要預留高度；而且同一支元件在不同寬度的差距不同（+42／+157），單一個 `h` 本來就處理不了；handoff 的包法還會讓子元件不被 hydrate（§9.2）。改成在 content-visualize skill 與 component-generator 加一條規則：SSR 要輸出最終高度、不要用 `inView &&`／`mounted &&` 讓內容晚出現、`useReducedMotion()` 只切動畫參數不切內容
+- 已知限制：`pm-change-request`、`pm-learning-map`、`proposal-summary`（375 寬）在**減少動態**時會刻意改成全部展開，高度與 SSR 不同。伺服器端無法得知偏好，屬於元件的設計取捨，不改
+- **critical CSS 只放 `@view-transition`**（Task 111）：骨架規則都在 render-blocking 的 `workbench.css`，在它載入前什麼都不會畫，inline 一份沒有效果。`scripts/checks/wb-critical-css.mjs` 斷言 inline 規則與 `workbench.css` 一字不差
+- **內容不做 200ms 淡入**（Task 111）：handoff 的 `.nc-content` 淡入在每次載入都會播（骨架多半根本沒出現），還會和主區轉場疊加成兩次淡入
+- **骨架外層不用 `.wb-host` class**（Task 111）：`Toc.tsx` 以 `querySelector(".wb-host")` 量主區寬度，骨架排在前面會先被找到（`display:none`，寬 0），目錄被誤判成窄版而收合。改用 `.nc-sk-host`（同內距、同 container 名稱）
+- **`.nc-body-wrap` 是 `display:contents`**（Task 111）：資料檔頁的舞台靠 `min-height:100%`，多一層盒子會壞；`:has()` 看的是 DOM，不受影響
+- **`/notes` 首屏骨架用 Body 的 `::before`**（Task 111）：Body 由 island 輸出，layout 插不進 DOM。每 38px 一列的底線與三段條以漸層畫出（條的兩端是直角）；Toolbar 照舊隱藏、不畫骨架
+- 「—」淡入的位置（Task 111）：Dashboard KPI 數字與閱讀狀態圖例、頻率圖 Y 軸、月曆標題與底部計數。列表的 `.wb-row-d` 是絕對日期，SSR 就是真值，不需要
 - 預先存在、與本批無關的問題：`/tags` 每次載入有 React hydration 錯誤（#418／#425／#423），`main` 上同樣存在，另開工作處理
 
