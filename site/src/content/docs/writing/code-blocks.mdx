@@ -6,13 +6,9 @@ description: 圍欄程式碼會渲染成帶語言標籤、行號與複製鈕的�
 
 ## 基本寫法
 
-用三個反引號圍起來，後面接語言名稱：
+用三個反引號圍起來，後面接語言名稱。下圖的「原文」框可以直接改，「筆記頁」框是 NoteCraftApp 筆記頁實際渲染出來的樣子，會跟著重算；上方的按鈕切換幾組現成的例子。這頁之後的圖都是同一種操作方式。
 
-````md
-```ts
-export const ttl = 60;
-```
-````
+<MdDemo id="codeblock" />
 
 每個程式碼塊都有：
 
@@ -39,13 +35,7 @@ export const ttl = 60;
 | `title="src/lib/auth.ts"` | 在標題列語言標籤旁顯示檔名。單引號、雙引號，或不含空白的值不加引號都可以 |
 | `{2}`、`{1,3-5}` | 整行高亮。行號從 1 起算，逗號分隔，`3-5` 表示第 3 到 5 行 |
 
-````md
-```ts title="src/lib/auth.ts" {2}
-import { createSession } from "./session";
-const token = readToken();
-export const session = createSession(token);
-```
-````
+<MdDemo id="codeblockMeta" />
 
 ## 上色規則
 
@@ -67,6 +57,8 @@ NoteCraftApp 不使用 Shiki 這類依語言切換的高亮器，而是用一套
 - `#` 開頭的註解（Python、Bash、YAML）與 `--` 開頭的註解（SQL）不會顯示成註解色
 - 跨行的 `/* … */` 與跨行字串，只有逐行能配對的部分會上色
 
+<MdDemo id="codeblockColor" />
+
 ```` ```mermaid ```` 這類圍欄只會顯示成一般程式碼，不會畫成圖。要畫圖請用 [@ai-visualize 標記](/docs/guides/ai-markers/)。
 
 ## 行內 code
@@ -79,19 +71,7 @@ NoteCraftApp 不使用 Shiki 這類依語言切換的高亮器，而是用一套
 
 用 `:::annotate` 包住「一個程式碼塊＋一個編號清單」，在程式碼裡寫 `(1)!`、`(2)!` 當標記。讀者點標記，就會浮出清單裡對應的那一項：
 
-````md
-:::annotate
-```ts
-function handler(req: Request) { // (1)!
-  validate(req);
-  return ok(req); // (2)!
-}
-```
-
-1. 進入點，先檢查請求格式。
-2. 回傳統一格式的成功回應。
-:::
-````
+<MdDemo id="annotate" />
 
 - `(n)!` 對應清單的第 n 項
 - 再點一次標記、點別處或按 `Esc` 關閉說明
@@ -104,11 +84,7 @@ function handler(req: Request) { // (1)!
 
 ### 提示框
 
-```md
-:::warning
-升級前先備份 `.notecraft/`。
-:::
-```
+<MdDemo id="admonition" />
 
 | 類型 | 預設標題 |
 | :-- | :-- |
@@ -126,16 +102,7 @@ function handler(req: Request) { // (1)!
 
 外層 `tabs` 要比內層 `tab` **多一個冒號**：
 
-```md
-::::tabs
-:::tab{label="npm"}
-程式碼塊或任何內容
-:::
-:::tab{label="pnpm"}
-程式碼塊或任何內容
-:::
-::::
-```
+<MdDemo id="tabs" />
 
 `label` 沒寫時，分頁會被命名為「分頁 1」「分頁 2」……，並在 build log 警告。分頁按鈕取得焦點時，可以用 ← →、Home、End 鍵切換。
 
@@ -146,5 +113,7 @@ function handler(req: Request) { // (1)!
 | `:tip[OAuth]{content="一種授權框架"}` | 行內提示，滑鼠移上或聚焦時顯示說明 | `content` 必填 |
 | `:badge[Beta]{variant="warning"}` | 行內標籤 | `variant`：`note`、`info`、`tip`、`success`、`warning`、`danger`、`neutral`（預設）；`outline`；`size="sm"`；`icon`；`href` |
 | `::::steps` 包多個 `:::step{title="…" status="done"}` | 步驟清單 | `steps`：`layout="horizontal"`、`start=3`；`step`：`status` 為 `done`、`current` 或 `todo`（預設） |
+
+<MdDemo id="inline" />
 
 `:badge` 的 `icon` 可用 `sparkle`、`check`、`star`、`bolt`、`flag`、`info`、`warning`、`danger`、`note`、`success`。和分頁一樣，`steps` 的冒號要比 `step` 多一個。

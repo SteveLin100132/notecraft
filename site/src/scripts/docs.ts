@@ -57,14 +57,16 @@ document.querySelectorAll<HTMLButtonElement>(".code-copy").forEach((b) => {
   });
 });
 
-// ── 本頁目錄：標出目前讀到的小節 ──
+// ── 本頁目錄：標出目前讀到的小節，只展開它所在的那一組 ──
+const toc = document.querySelector<HTMLElement>(".toc");
 const tocLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".toc a"));
 const heads = tocLinks
   .map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))))
   .filter((h): h is HTMLElement => !!h);
 
-if (heads.length) {
+if (toc && heads.length) {
   let ticking = false;
+  let lastId = "";
   const mark = () => {
     ticking = false;
     const line = window.innerHeight * 0.25;
@@ -75,10 +77,30 @@ if (heads.length) {
     }
     // 捲到底時最後一節一定要亮
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = heads[heads.length - 1];
+    if (active.id === lastId) return;
+    lastId = active.id;
+
+    let current: HTMLAnchorElement | undefined;
     for (const a of tocLinks) {
       const on = decodeURIComponent(a.hash.slice(1)) === active.id;
-      if (on) a.setAttribute("aria-current", "location");
-      else a.removeAttribute("aria-current");
+      if (on) {
+        a.setAttribute("aria-current", "location");
+        current = a;
+      } else a.removeAttribute("aria-current");
+    }
+    const group = current?.closest(".toc-group");
+    for (const g of toc.querySelectorAll(".toc-group")) {
+      g.classList.toggle("is-open", g === group);
+      // 讀到 `###` 時，所屬的 `##` 也標成目前位置的上層
+      g.classList.toggle("has-current", g === group && current?.parentElement !== g);
+    }
+    // 目錄比視窗高時，讓目前的項目留在看得到的地方（只捲目錄本身，不動整頁）
+    if (current && toc.scrollHeight > toc.clientHeight) {
+      const a = current.getBoundingClientRect();
+      const box = toc.getBoundingClientRect();
+      if (a.top < box.top + 48 || a.bottom > box.bottom - 24) {
+        toc.scrollTop += a.top - box.top - toc.clientHeight / 3;
+      }
     }
   };
   addEventListener(

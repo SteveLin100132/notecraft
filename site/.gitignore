@@ -7,3 +7,6 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+# 由 scripts/sync-nc-prose.mjs 從 app 的樣式產生
+src/styles/nc-prose.gen.css

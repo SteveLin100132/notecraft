@@ -1,0 +1,11 @@
+---
+// 「它做什麼」的互動爆炸圖。內容與幾何都在 components/FeatureExplode.tsx；這裡只補上 base 讓說明裡的連結指對地方。
+import "../../styles/feature-explode.css";
+import FeatureExplode from "../FeatureExplode.tsx";
+
+type Props = { initial?: number };
+const { initial } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<FeatureExplode client:visible base={base} initial={initial} />

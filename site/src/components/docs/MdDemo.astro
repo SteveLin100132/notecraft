@@ -1,0 +1,26 @@
+---
+// 「原文 → 筆記頁實際渲染」示範。原文與預設組在 src/lib/md-demos.ts，渲染用 app 自己的 remark 外掛（src/lib/nc-render.ts）。
+// build 時把每組預設先渲染好交給 island：沒有 JS 也看得到第一組的結果；讀者改原文時才在瀏覽器載入渲染器。
+import "../../styles/nc-prose.gen.css";
+import "../../styles/md-demo.css";
+import MdDemoView from "../MdDemo.tsx";
+import { MD_DEMOS } from "../../lib/md-demos";
+
+type Props = { id: string };
+const { id } = Astro.props;
+const spec = MD_DEMOS[id];
+if (!spec) throw new Error(`MdDemo：src/lib/md-demos.ts 沒有 id「${id}」`);
+
+// 動態 import：island 也是動態載入這兩支，靜態 import 會讓 Vite 警告分不出 chunk
+const { renderNote } = await import("../../lib/nc-render");
+const { renderMdx } = await import("../../lib/nc-render-mdx");
+const prefix = `ncd-${id}-`;
+const presets = spec.presets.map((p) => {
+  if (spec.compare) return { ...p, md: renderNote(p.source, `${prefix}md-`), mdx: renderMdx(p.source, `${prefix}mdx-`) };
+  const md = renderNote(p.source, prefix);
+  if (md.error) throw new Error(`MdDemo「${id}／${p.label}」渲染失敗：${md.error}`);
+  return { ...p, md };
+});
+---
+
+<MdDemoView client:visible id={id} file={spec.file} caption={spec.caption} toc={spec.toc} compare={spec.compare} presets={presets} />

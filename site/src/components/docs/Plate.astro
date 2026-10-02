@@ -1,13 +1,97 @@
 ---
 // 產品截圖圖版：1.5px 墨框、圖說在下（上緣細線；「FIG. n」由 docs.css 的計數器依頁內順序補上）。圖檔在 public/plates/，各附出處 .json。
 // 整張畫面是 1600×1000（16:10、可縮放）；局部截圖（如單一張卡）帶自己的 width／height，以原尺寸顯示、不放大。
-type Props = { name: string; alt: string; caption?: string; width?: number; height?: number };
-const { name, alt, caption, width = 1600, height = 1000 } = Astro.props;
+//
+// notes：框外的標註（參照編號＋粗體標籤＋底線），以直角引線指到畫面上的一點。座標一律用 1600×1000 的截圖座標。
+//   at    引線終點（畫面上的點）
+//   side  標籤放在框的上方或下方，預設 top
+//   x     標籤在帶狀區的水平位置，預設等於 at[0]；align 決定標籤從 x 往哪邊長（start＝往右、end＝往左）
+//   bend  引線在畫面內轉折的 y；省略時先直下到 at 的高度再橫向接過去
+// 窄於 560px 時標籤與引線收起，畫面上只留編號，標籤改列在圖下。
+type Note = { label: string; at: [number, number]; side?: "top" | "bottom"; x?: number; align?: "start" | "center" | "end"; bend?: number };
+type Props = { name: string; alt: string; caption?: string; width?: number; height?: number; notes?: Note[] };
+const { name, alt, caption, width = 1600, height = 1000, notes = [] } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 const detail = width < 1600;
+
+const BAND = 132; // 上下帶狀區高度（截圖座標）
+const GAP = 34; // 標籤底線離截圖邊緣的距離
+const hasTop = notes.some((n) => (n.side ?? "top") === "top");
+const hasBottom = notes.some((n) => n.side === "bottom");
+const top = hasTop ? BAND : 0;
+const H = height + top + (hasBottom ? BAND : 0);
+const pct = (v: number, of: number) => `${(v / of) * 100}%`;
+
+const marks = notes.map((n, i) => {
+  const side = n.side ?? "top";
+  const x = n.x ?? n.at[0];
+  const ly = side === "top" ? top - GAP : top + height + GAP;
+  const tx = n.at[0];
+  const ty = n.at[1] + top;
+  const pts: [number, number][] = [[x, ly]];
+  if (n.bend != null) pts.push([x, n.bend + top], [tx, n.bend + top]);
+  else if (x !== tx) pts.push([x, ty]);
+  pts.push([tx, ty]);
+  return {
+    i: i + 1,
+    side,
+    label: n.label,
+    align: n.align ?? (x === tx ? "center" : x < tx ? "end" : "start"),
+    left: pct(x, width),
+    labelY: side === "top" ? pct(H - ly, H) : pct(ly, H),
+    d: pts.map(([px, py], k) => `${k ? "L" : "M"}${px} ${py}`).join(" "),
+    tx,
+    ty,
+  };
+});
 ---
 
-<figure class:list={["plate", { "plate--detail": detail }]} style={detail ? `--plate-w: ${width}px` : undefined}>
-  <img src={`${base}plates/${name}.webp`} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
-  {caption && <figcaption>{caption}</figcaption>}
-</figure>
+{
+  notes.length === 0 ? (
+    <figure class:list={["plate", { "plate--detail": detail }]} style={detail ? `--plate-w: ${width}px` : undefined}>
+      <img src={`${base}plates/${name}.webp`} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+      {caption && <figcaption>{caption}</figcaption>}
+    </figure>
+  ) : (
+    <figure class="plate plate--noted">
+      <div class="plate-stage" style={`aspect-ratio: ${width} / ${H}`}>
+        <div class="plate-shot" style={`top: ${pct(top, H)}; height: ${pct(height, H)}`}>
+          <img src={`${base}plates/${name}.webp`} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+          {marks.map((m) => (
+            <span class="plate-pin ref" style={`left: ${pct(m.tx, width)}; top: ${pct(m.ty - top, height)}`} aria-hidden="true">
+              {m.i}
+            </span>
+          ))}
+        </div>
+        <svg class="plate-leaders" viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
+          {marks.map((m) => (
+            <g>
+              <path class="plate-halo" d={m.d} />
+              <path class="plate-lead" d={m.d} />
+              <circle class="plate-dot" cx={m.tx} cy={m.ty} r="9" />
+            </g>
+          ))}
+        </svg>
+        {marks.map((m) => (
+          <span
+            class={`plate-note plate-note--${m.side} plate-note--${m.align}`}
+            style={`left: ${m.left}; ${m.side === "top" ? "bottom" : "top"}: ${m.labelY}`}
+            aria-hidden="true"
+          >
+            <span class="ref">{m.i}</span>
+            {m.label}
+          </span>
+        ))}
+      </div>
+      <ol class="plate-legend">
+        {marks.map((m) => (
+          <li>
+            <span class="ref">{m.i}</span>
+            {m.label}
+          </li>
+        ))}
+      </ol>
+      {caption && <figcaption>{caption}</figcaption>}
+    </figure>
+  )
+}
