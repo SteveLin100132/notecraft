@@ -28,7 +28,9 @@ export default function TagsManager({ initial, devMode, noteCount = 0 }: Props) 
   const [pendingDelete, setPendingDelete] = useState<{ name: string; affected: number } | null>(null);
 
   let stats = [...tags];
-  if (sort === "count") stats.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  // 同數量時以字元碼比較，不用 localeCompare：SSR（Node，en-US）與瀏覽器的預設語系、ICU 版本不同，
+  // 中英文混排的順序會不一樣，造成 hydration mismatch（React #418）。初始排序就是 count，所以這裡必須與語系無關
+  if (sort === "count") stats.sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   else if (sort === "recent") stats.sort((a, b) => b.lastUsed.localeCompare(a.lastUsed));
   else stats.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
   const max = Math.max(...stats.map((s) => s.count), 1);
