@@ -35,17 +35,21 @@ jobs:
             package-lock.json
             site/package-lock.json
 
-      - name: Build landing (site/)
-        working-directory: site
+      # 根目錄的相依要先裝：site 的 Markdown 示範直接 import app 的 src/lib/*.ts，
+      # vite 轉譯它們時會讀根目錄 tsconfig.json，其 extends 的 astro/tsconfigs/strict 要從根目錄 node_modules 解析
+      - name: Install dependencies
         run: |
           npm ci
-          npx astro build
+          npm ci --prefix site
+
+      - name: Build landing (site/)
+        working-directory: site
+        run: npx astro build
 
       - name: Build demo workbench
         env:
           NOTECRAFT_BASE: /notecraft/demo
         run: |
-          npm ci
           node scripts/site/prune-demo-decks.mjs
           # 不要直接輸出到 site/dist/demo：SSR chunk 會從 site/node_modules 解析到第二份 react-dom，
           # 兩份 React 混用，build 在 hooks 處失敗。先輸出到根目錄的 dist-demo，再組合。
