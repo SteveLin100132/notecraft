@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getCollection, type CollectionEntry } from "astro:content";
+import { acceptsMarkers, excerpt, firstH1, parseMarkers, type AiMarker } from "@/lib/note-text";
+
+export { excerpt, parseMarkers, type AiMarker };
 
 // RawNote：直接從 astro:content 讀出來的 entry，data 的 title/createdAt/updatedAt 可能 undefined。
 export type RawNote = CollectionEntry<"notes">;
@@ -34,10 +37,8 @@ function fmtDate(d: Date): string {
 }
 
 function fallbackTitle(id: string, body: string | undefined | null): string {
-  if (body) {
-    const m = body.match(/^#\s+(.+?)\s*$/m);
-    if (m) return m[1].trim();
-  }
+  const h1 = firstH1(body);
+  if (h1) return h1;
   return id.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -74,59 +75,22 @@ export function enrichNote(entry: RawNote): EnrichedNote {
   };
 }
 
-export type AiMarker = {
-  id: string;
-  type: string;
-  status: "pending" | "generated" | "locked" | "failed";
-  prompt: string;
-  caption?: string;
-};
+// 標記解析本體在 note-text.ts（純函式、有斷言）；這裡只加上「哪些檔案的標記算數」。
+const warnedMdMarkers = new Set<string>();
 
-const MARKER_RE = /\{\/\*\s*@ai-visualize\s+([\s\S]*?)\*\/\}/g;
-
-export function parseMarkers(body: string | undefined | null): AiMarker[] {
-  const out: AiMarker[] = [];
-  if (!body) return out;
-  for (const m of body.matchAll(MARKER_RE)) {
-    const raw = m[1];
-    const obj: Record<string, string> = {};
-    let key: string | null = null;
-    let multi: string[] | null = null;
-    for (const line of raw.split("\n")) {
-      const trimmed = line.replace(/\s+$/, "");
-      if (multi) {
-        if (/^\s*\S/.test(trimmed) && !/^\s{2,}/.test(trimmed) && trimmed.includes(":")) {
-          obj[key!] = multi.join("\n").trim();
-          multi = null;
-          key = null;
-        } else {
-          multi.push(trimmed.replace(/^\s{2}/, ""));
-          continue;
-        }
-      }
-      const mk = trimmed.match(/^\s*([a-zA-Z_]\w*)\s*:\s*(.*)$/);
-      if (!mk) continue;
-      const k = mk[1];
-      const v = mk[2];
-      if (v === "|") {
-        key = k;
-        multi = [];
-      } else {
-        obj[k] = v.trim();
-      }
-    }
-    if (multi && key) obj[key] = multi.join("\n").trim();
-    if (obj.id) {
-      out.push({
-        id: obj.id,
-        type: obj.type || "free",
-        status: (obj.status as AiMarker["status"]) || "pending",
-        prompt: obj.prompt || "",
-        ...(obj.caption ? { caption: obj.caption } : {}),
-      });
-    }
+/**
+ * 筆記的 @ai-visualize 標記。只有 .mdx 會被 AI 流程處理；.md 裡的標記回傳空陣列
+ * （不進待生成卡片、AI 佇列、Dashboard 計數），並在 build／dev log 對每個檔案 warn 一次。
+ */
+export function noteMarkers(note: Pick<RawNote, "body" | "filePath">): AiMarker[] {
+  if (acceptsMarkers(note.filePath)) return parseMarkers(note.body);
+  if (note.filePath && !warnedMdMarkers.has(note.filePath) && parseMarkers(note.body).length > 0) {
+    warnedMdMarkers.add(note.filePath);
+    console.warn(
+      `[notecraft] ${path.basename(note.filePath)} 含 @ai-visualize 標記，但 .md 不會被 AI 流程處理；要生成視覺化請把副檔名改成 .mdx。`,
+    );
   }
-  return out;
+  return [];
 }
 
 export async function getAllNotes(): Promise<EnrichedNote[]> {
@@ -152,20 +116,4 @@ export function tagStats(notes: Note[]): TagStat[] {
     }
   }
   return Array.from(m.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-}
-
-export function excerpt(body: string | undefined | null, fallback: string): string {
-  if (!body) return fallback.replace(/\s+/g, " ").slice(0, 220);
-  const stripped = body
-    .replace(/^---[\s\S]*?---/, "")
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
-    .replace(/^import[^\n]*$/gm, "")
-    .replace(/<[A-Z][^>]*\/?>/g, "")
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/^#+\s.*$/gm, "")
-    .replace(/^\s*[-*]\s.*$/gm, "")
-    .replace(/^>\s.*$/gm, "")
-    .trim();
-  const para = stripped.split(/\n{2,}/).find((p) => p.trim().length > 0);
-  return (para || fallback).replace(/\s+/g, " ").slice(0, 220);
 }

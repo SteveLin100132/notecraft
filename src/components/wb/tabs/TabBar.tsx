@@ -31,6 +31,7 @@ import type { TabStoreHandle } from "@/lib/wb-tabs-store";
 import { loadWbIndex } from "@/components/wb/useWbIndex";
 import { markerCounts } from "@/lib/wb-types";
 import { toast } from "@/lib/toast";
+import { writeClipboard } from "@/lib/clipboard";
 import { useTabStore } from "./useTabStore";
 import TabStrip from "./TabStrip";
 import TabMenu from "./TabMenu";
@@ -319,10 +320,7 @@ export default function TabBar({ self = null, workspace = "" }: TabBarProps) {
             pin: (k) => handle.update((s) => togglePin(s, k)),
             copy: (t) => {
               const url = location.origin + hrefOf(t);
-              navigator.clipboard
-                .writeText(url)
-                .then(() => toast("已複製連結", "check"))
-                .catch(() => toast("無法複製連結", "x"));
+              void writeClipboard(url).then((ok) => (ok ? toast("已複製連結", "check") : toast("無法複製連結", "x")));
             },
             newWindow: (t) => {
               window.open(hrefOf(t), "_blank", "noopener");

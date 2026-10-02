@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "astro:content";
 import type { SeriesDef } from "@/data/series";
-import { parseMarkers, type Note } from "@/lib/notes";
+import { noteMarkers, type Note } from "@/lib/notes";
 import type { ResolvedDataFile } from "@/lib/plugin-types";
 import { getInactiveMatches } from "@/lib/plugins";
 import { withBase } from "@/lib/base";
@@ -191,7 +191,7 @@ export function getSeriesChapters(
       console.warn(`[series] 系列 "${series.id}" 的章節 slug "${ref}" 找不到對應筆記，已跳過。`);
       continue;
     }
-    const ms = parseMarkers(note.body);
+    const ms = noteMarkers(note);
     chapters.push({
       kind: "note",
       ref: note.id,
