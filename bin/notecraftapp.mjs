@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // NoteCraftApp CLI（P6 / 三命令版）
 // - view <dir>：spawn astro dev，HMR、新增/編輯/刪除筆記即時反映
-// - build <dir>：astro build → ~/.notecraft/cache/<hash>/dist/（給 CI 或 serve 用）
+// - build <dir>：astro build + pagefind 索引 → ~/.notecraft/cache/<hash>/dist/（給 CI 或 serve 用）
 // - serve <dir>：Node HTTP 服務快取的 dist；純靜態、唯讀；仍掛 /notes-assets/* 讓外部圖片可見
 //
 // 「能寫」與否天然對齊 astro 的 dev/build 兩態，不再需要額外旗標。
@@ -111,6 +111,7 @@ const STATIC_MIME = {
   ".woff2": "font/woff2",
   ".txt": "text/plain; charset=utf-8",
   ".map": "application/json; charset=utf-8",
+  ".wasm": "application/wasm", // pagefind 的 wasm；其餘 .pf_* 索引檔走 octet-stream 即可
 };
 
 function cacheDirFor(absNotesDir) {
@@ -358,6 +359,43 @@ async function runAstroBuild(cwd, notesDir, outDir, userCwd) {
   });
 }
 
+// ── pagefind 全文索引 ────────────────────────────────────────────
+// 等同 `pagefind --site <siteDir>`，但走套件的 Node API：它以 require.resolve 找
+// @pagefind/<platform>-<arch> 的 binary（Windows 是 .exe），不依賴 shell PATH 或 .cmd shim。
+// 失敗只回傳錯誤、不 throw —— 沒有索引的站仍可用，只是 ⌘K 沒有內文結果。
+function hasPagefindIndex(siteDir) {
+  return existsSync(path.join(siteDir, "pagefind", "pagefind.js"));
+}
+
+async function runPagefind(siteDir) {
+  let pagefind = null;
+  try {
+    pagefind = await import("pagefind");
+    const { index, errors } = await pagefind.createIndex({});
+    if (!index) throw new Error(errors.join("; ") || "createIndex 沒有回傳 index");
+    const added = await index.addDirectory({ path: siteDir });
+    if (added.errors.length) throw new Error(added.errors.join("; "));
+    const written = await index.writeFiles({ outputPath: path.join(siteDir, "pagefind") });
+    if (written.errors.length) throw new Error(written.errors.join("; "));
+    return { ok: true, pages: added.page_count };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  } finally {
+    await pagefind?.close().catch(() => {});
+  }
+}
+
+async function indexSite(siteDir) {
+  const t0 = Date.now();
+  const result = await runPagefind(siteDir);
+  if (result.ok) {
+    log(`pagefind 索引完成（${result.pages} 頁，${Date.now() - t0}ms）`);
+  } else {
+    log(`⚠ pagefind 建索引失敗，站仍可用但 ⌘K 沒有全文搜尋：${result.error}`);
+  }
+  return result.ok;
+}
+
 // v2: 走 atomicRebuild、回傳結果物件而非 throw。
 // 兩點好處：
 // 1) 快取失效重 build 時走 dist.next → rename，途中失敗保留舊 dist（v1 直接寫入 distDir 有 corrupt 風險）
@@ -366,6 +404,13 @@ async function ensureBuild(cwd, notesDir, cacheDir, force, userCwd) {
   const check = await shouldRebuild(cacheDir, notesDir, force, userCwd);
   if (!check.should) {
     log(`快取有效，跳過 build（${check.meta.fileCount} 篇筆記）`);
+    // 舊版 CLI 的快取沒有 pagefind/（或上次建索引失敗）：只補索引，不必整站重 build。
+    // 此時 server 還沒起來，直接寫進 dist 不會被讀到半成品。
+    const distDir = path.join(cacheDir, "dist");
+    if (!hasPagefindIndex(distDir)) {
+      log(`快取沒有全文索引，補建 pagefind`);
+      await indexSite(distDir);
+    }
     return { ok: true };
   }
   log(`重 build：${check.why}`);
@@ -537,6 +582,8 @@ async function atomicRebuild(cwd, notesDir, cacheDir, userCwd) {
 
   // build 到 dist.next；失敗直接 throw，caller 保留舊 dist
   await runAstroBuild(cwd, notesDir, nextDir, userCwd);
+  // 索引建在 dist.next 裡、交換前完成，交換後的 dist 一定帶著與內容一致的索引
+  const indexed = await indexSite(nextDir);
 
   // 原子交換：舊 dist → prev，next → dist。rename 在同一 filesystem 內原子
   if (existsSync(distDir)) {
@@ -546,7 +593,7 @@ async function atomicRebuild(cwd, notesDir, cacheDir, userCwd) {
 
   // meta + 背景清理 prev（不 await，失敗也不影響 UX）
   const count = await countMdx(notesDir);
-  await writeMeta(cacheDir, notesDir, count, await countPluginInputs(notesDir, userCwd));
+  await writeMeta(cacheDir, notesDir, count, { ...(await countPluginInputs(notesDir, userCwd)), pagefind: indexed });
   fs.rm(prevDir, { recursive: true, force: true }).catch(() => {});
 }
 
