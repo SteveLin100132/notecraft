@@ -1,0 +1,62 @@
+---
+description: NoteCraftApp 和 Obsidian、Docusaurus 都處理 Markdown，但定位不同。這頁並列三者公開的功能事實，幫你判斷哪一個適合手上的筆記，或怎麼並用。
+---
+
+三者都以 Markdown 檔為內容來源，差別在「誰來讀」與「產出什麼」：
+
+- **Obsidian**：個人筆記 App。在桌面與行動裝置上編輯一個本機資料夾（vault）裡的 Markdown 檔
+- **Docusaurus**：文件站產生器。在一個 Docusaurus 專案裡寫 Markdown／MDX，build 成對外發佈的文件網站
+- **NoteCraftApp**：介於兩者之間的筆記工作台。用 `npx` 直接讀你現有的 md／mdx 資料夾，在瀏覽器開出工作台，也能 build 成靜態網站
+
+這頁只列各自公開的功能，不比較好壞。Obsidian 與 Docusaurus 的內容取自它們的官方網站與文件，細節以官方最新說明為準。
+
+## 比較表
+
+| 維度 | Obsidian | Docusaurus | NoteCraftApp |
+| :-- | :-- | :-- | :-- |
+| 資料放哪 | 本機資料夾（vault），Markdown 純文字檔；設定在 vault 裡的 `.obsidian` 資料夾 | Docusaurus 專案裡的資料夾，預設 `docs/`，路徑可用設定改 | 你指定的任何 md／mdx 資料夾；NoteCraftApp 自己的設定在執行目錄的 `.notecraft/` |
+| 需要的專案設定 | 無，開啟資料夾即可 | 需要 Docusaurus 專案（`docusaurus.config.js`、`sidebars.js` 等） | 無；frontmatter 全部選填 |
+| 怎麼開啟 | 桌面 App（Windows、macOS、Linux）與行動 App（iOS、Android） | 開發伺服器在瀏覽器預覽 | `npx notecraftapp view` 後在瀏覽器開 |
+| 輸出 | App 內閱讀與編輯；另有官方付費託管服務 Obsidian Publish 可把選定的筆記發佈成網站 | `build/` 底下的靜態檔案 | `build` 產生靜態網站，沒有執行期 API |
+| 頁內互動元件 | 透過社群外掛擴充（官網列出 Calendar、Kanban、Dataview 等） | MDX：在 Markdown 裡嵌 JSX 與 React 元件 | MDX 嵌 React 元件；也可以用 `@ai-visualize` 標記讓 AI 生成 |
+| AI 生成 | 官方文件未列為內建功能，本頁不列 | 官方文件未列為內建功能，本頁不列 | 在本機 Claude Code 對話中，依標記生成元件、把筆記轉成簡報 |
+| 搜尋 | 核心外掛 Search，在 vault 內搜尋 | 不內建；官方支援 Algolia DocSearch，另有社群方案 | ⌘K 指令面板；`build`／`serve` 的站內建 pagefind 全文索引 |
+| 多版本、多語系 | — | 文件版本化、i18n | 沒有 |
+| 結構化資料頁 | — | — | Plugin 把 JSON 資料檔畫成頁面（官方有 ER 圖、OpenAPI） |
+| 部署 | Obsidian Publish（託管在 Obsidian，可綁自訂網域） | 官方文件列出 GitHub Pages、Netlify、Vercel 等 | 任何靜態主機，見[部署](/docs/guides/deploy/) |
+
+表中寫「—」的格子代表官方文件裡沒找到對應說明，不代表做不到（例如 Obsidian 有大量社群外掛）。
+
+## 適合 Obsidian 的情況
+
+- 你要在手機與電腦上隨時寫、隨時改，編輯是主要工作
+- 你習慣用 `[[ ]]` 內部連結、關聯圖（Graph）、Canvas 白板整理想法
+- 你要跨裝置同步或把部分筆記發佈出去，而且願意用 Obsidian 的付費服務（Sync、Publish）
+- 你想從社群外掛裡挑功能，例如看板、任務、日曆
+
+## 適合 Docusaurus 的情況
+
+- 你要做一個對外的產品或專案文件站，讀者是使用者，不是你自己
+- 文件要跟著軟體版本走（文件版本化），或要提供多種語言
+- 你要文件以外的部落格與自訂頁面，並在 `docusaurus.config.js` 裡設定整個網站
+
+## 適合 NoteCraftApp 的情況
+
+- 你已經有一個 md／mdx 資料夾，不想先建專案或改寫 frontmatter，就想把它讀得舒服、找得到
+- 你要管理大量技術筆記：資料夾樹、四種列表檢視、儀表板、更新月曆、系列與閱讀進度、多筆記頁籤
+- 你希望流程、比較、策略這類文字說不清楚的內容，變成可以操作的 React 元件，而且元件是你 repo 裡的原始碼
+- 你要把一篇筆記轉成能播放的簡報，或把 ER 圖、OpenAPI 這類 JSON 資料檔畫成頁面
+- 你要部署成純靜態網站，不依賴任何執行期服務
+
+NoteCraftApp 沒有行動 App、跨裝置同步、文件版本化或多語系。寫入 UI（新增筆記、編輯標籤）只在本機的 `view` 模式出現，平常的編輯還是在你自己的編輯器裡做。
+
+## 並用
+
+三者讀的都是資料夾裡的 Markdown 檔，可以並用：
+
+- **Obsidian 寫、NoteCraftApp 讀**：把 Obsidian 的 vault 資料夾直接交給 `npx notecraftapp view <vault>`。NoteCraftApp 只讀 `.md`／`.mdx`，不碰 `.obsidian` 設定。Obsidian 特有的語法（例如 `[[ ]]` 內部連結）NoteCraftApp 沒有另外處理，會照原文顯示
+- **同一個 repo 裡分工**：對外文件用 Docusaurus 發佈，團隊自己的技術筆記用 NoteCraftApp 開工作台。兩者各自指向不同資料夾即可
+
+<Callout>
+直接把 Docusaurus 的 `docs/` 交給 NoteCraftApp 前先試一次 `view`。Docusaurus 文件裡 import 的主題元件或站內別名在 NoteCraftApp 裡不存在，有這類 import 的 MDX 會 build 失敗。
+</Callout>

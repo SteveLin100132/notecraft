@@ -1,0 +1,101 @@
+---
+description: init-skill 裝進專案的 Skill 與 Subagent 不建議修改。這頁說明它們是哪些檔、為什麼改了會在升級時卡住、想調整生成結果該怎麼做，以及已經改過時怎麼升級。
+---
+
+`init-skill` 裝進 `.claude/` 的 Skill 與 Subagent 是 NoteCraftApp 生成流程的一部分，**不建議修改**。想讓生成結果不一樣，在標記的 `prompt` 或對話裡把要求說清楚就好。
+
+## 裝了哪些檔
+
+`npx notecraftapp init-skill` 把套件內附的整個 `.claude/` 樹複製到你的專案：
+
+| 位置 | 內容 |
+| :-- | :-- |
+| `.claude/skills/content-visualize/` | `SKILL.md`、`VERSION`。處理 `@ai-visualize` 標記的規則與決策樹 |
+| `.claude/skills/content-present/` | `SKILL.md`、`VERSION`、`references/atoms.md`。筆記轉簡報的規則與 29 個原子 |
+| `.claude/skills/trendlink-design/` | 設計系統：`SKILL.md`、`tokens/`（色彩、字級、間距）、`components/`、`guidelines/` 等 |
+| `.claude/agents/` | 6 個 Subagent：`note-scanner`、`visualize-planner`、`component-generator`、`mdx-writer`、`present-planner`、`slide-generator` |
+
+各自的用途見[安裝內建 Skill](/docs/getting-started/skills/)。
+
+## 為什麼不建議改
+
+**升級只做逐檔比對，不做合併。** `init-skill` 拿套件裡的每個檔和你專案裡的同名檔比內容：
+
+- 你改過的檔，之後每次升級都會被當成衝突
+- 衝突只有兩條路：覆寫（你的修改不見）或略過（這個檔停在舊版）
+- 略過時，其他檔照樣更新成新版。這幾個檔會互相引用，例如 `component-generator` 生成前會讀 `content-visualize` 與 `trendlink-design`；略過之後，同一套 Skill 會是新舊版本混在一起
+
+**`--check` 看不出你改過什麼。** 它只比對 `content-visualize/VERSION` 裡的版本號。版本號一樣就顯示 `up to date`，不管其他檔的內容是否和套件裡的不同。
+
+**有些內容是跟著 NoteCraftApp 版本產生的。** 套件內附的 Skill 與 Subagent 在發版時由 NoteCraftApp 自己的設定產生，對應的是那一版 app 的行為：
+
+- 元件可以 import 的套件白名單
+- 元件的位置 `.notecraft/components/<id>.tsx` 與筆記裡的引用路徑 `@notes/components/<id>`
+- 驗證方式：看 `serve` 的背景 rebuild，或手動跑 `npx notecraftapp build`
+
+改掉這些段落，AI 照著做的事就和 app 實際的行為對不上。
+
+## 想調整結果時
+
+### 寫在 prompt 或對話裡
+
+標記的 `prompt` 是給這一張圖的指示，比改 Skill 精準，也只影響這一個元件。要換圖的形式、強調哪個重點、要不要互動，直接寫進 `prompt`，再請 AI 重新生成：
+
+- 「重新生成 `oauth-flow`」
+- 「`guides/oauth/flow.mdx` 的 `oauth-flow` 我改過 prompt 了，請重新生成」（`failed` 的標記要這樣明確要求才會重跑）
+
+生成過程中也可以直接在對話裡補充要求或請它改。滿意某一版、不想被之後的生成動到，把 `status` 改成 `locked`。見[狀態與重新生成](/docs/guides/ai-status/)。
+
+### 設計風格
+
+元件的色彩、字級、間距、圓角、陰影由 `trendlink-design` 決定，這是預設。
+
+`content-visualize` 的 `SKILL.md` 寫明了例外：**prompt 明確要求跳脫設計系統時**，AI 會暫時不套用 `trendlink-design`，並在對話裡告訴你它這麼做與理由。`SKILL.md` 舉的例子是「畫一張像黑板手繪的示意圖」「請用 80 年代復古風」。
+
+```mdx
+{/* @ai-visualize
+id: retro-timeline
+type: timeline
+prompt: |
+  跳脫設計系統，用 80 年代復古風畫這段發展時間軸
+status: pending
+*/}
+```
+
+簡報沒有這個例外。`content-present` 規定版面只能組合原子層、不可寫死色碼，自由度在「怎麼組合」，不在「要不要遵守設計系統」。
+
+### 白名單外的套件
+
+不用改白名單。需要白名單外的套件時，`component-generator` 會先停下來在對話裡問你，由你決定要不要引入。見[生成流程](/docs/guides/ai-pipeline/)。
+
+## 已經改了怎麼升級
+
+先把 `.claude/` 提交進 git，覆寫之後才有東西可以 diff。
+
+```bash
+npx notecraftapp init-skill --check
+npx notecraftapp init-skill
+```
+
+在一般終端機裡，每個衝突檔會問一次：
+
+| 輸入 | 效果 |
+| :-- | :-- |
+| `o` | 覆寫這一個 |
+| `s` | 略過這一個 |
+| `overwrite-all` | 覆寫這一個與之後所有衝突檔 |
+| `skip-all` | 略過這一個與之後所有衝突檔 |
+| `a` | 中止，不寫入任何檔案 |
+
+提示行裡寫的是 `[O]verwrite-all`／`[S]kip-all`，但輸入會先轉成小寫，只打 `O` 或 `S` 等於 `o`、`s`，只處理這一個檔。要一次處理全部，得完整輸入 `overwrite-all` 或 `skip-all`。
+
+<Callout type="warn">
+`--force` 不會詢問，所有衝突檔直接用套件裡的版本覆寫，你的修改全部不見。非互動環境（例如 CI）遇到衝突又沒帶 `--force` 時，會列出衝突檔、以 exit code 1 結束，不寫入任何檔案。
+</Callout>
+
+覆寫之後用 `git diff .claude/` 對照，把仍然需要的要求改寫到標記的 `prompt` 裡。
+
+另外兩件事 `init-skill` 不會做：
+
+- 你自己在 `.claude/` 新增的檔案不會被動到
+- 新版套件裡已經不存在的檔案，不會從你的專案刪掉
