@@ -18,7 +18,7 @@ description: 筆記頁的目錄取自 H1 到 H3 標題。這頁說明 H1 與 fro
 
 ## H1 與 frontmatter 的 title
 
-頁首的大標題來自 frontmatter 的 `title`。沒寫 `title` 時，用內文第一個 `# ` 開頭的那一行。
+頁首的大標題來自 frontmatter 的 `title`。沒寫 `title` 時，用內文第一個 `# ` 開頭的那一行；程式碼區塊（```` ``` ```` 或 `~~~` 圍住的）與 `{/* … */}` 註解裡的不算，例如 bash 範例裡的 `# 安裝相依套件` 不會變成標題。
 
 內文的 `# ` 標題不會因此被隱藏：它照樣顯示在內文，也列入目錄。所以：
 
@@ -26,7 +26,7 @@ description: 筆記頁的目錄取自 H1 到 H3 標題。這頁說明 H1 與 fro
 - 沒有 frontmatter 的純 Markdown，用一個 `# ` 當標題也可以，只是頁首與內文會各出現一次
 
 <Callout type="warn">
-沒寫 `title` 時，抓的是檔案裡第一個 `# ` 開頭的行，**程式碼區塊裡的也算**。例如 bash 範例裡的 `# 安裝相依套件` 若比真正的標題早出現，就會變成這篇的標題。把 `title` 寫進 frontmatter 就不會有這個問題。
+1.8.1 以前的版本沒有略過程式碼區塊：bash 範例裡的 `# 安裝相依套件` 若比真正的標題早出現，會變成這篇的標題。遇到時升級，或把 `title` 寫進 frontmatter。
 </Callout>
 
 `title` 的其他補值規則見 [Frontmatter](/docs/getting-started/frontmatter/)。

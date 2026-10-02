@@ -42,7 +42,7 @@ description: 從各頁文件整理出最常踩到的問題，依安裝啟動、�
 
 ### 從區網連進來時，程式碼的複製鈕按了沒用？
 
-複製靠瀏覽器的剪貼簿 API，只在 `localhost`、`127.0.0.1` 或 HTTPS 下可用。以 `http://<IP>` 連進來時，按鈕仍顯示「已複製」，但剪貼簿裡沒有東西。見[程式碼區塊](/docs/writing/code-blocks/#複製鈕)。
+1.8.1 以前的版本會這樣：以 `http://<IP>` 連進來時，瀏覽器不提供剪貼簿 API，按鈕仍顯示「已複製」，但剪貼簿裡沒有東西。升級到 1.8.2 以上，複製鈕會改用舊的複製方式；真的複製不了時顯示「無法複製」並選取整段程式碼，自己按複製鍵即可。見[程式碼區塊](/docs/writing/code-blocks/#複製鈕)。
 
 ### MDX 裡寫的 `<img>` 圖片不顯示？
 
@@ -54,7 +54,7 @@ description: 從各頁文件整理出最常踩到的問題，依安裝啟動、�
 
 ### 筆記標題變成程式碼裡的一行註解？
 
-沒寫 frontmatter 的 `title` 時，標題取檔案裡第一個 `# ` 開頭的行，程式碼區塊裡的也算。把 `title` 寫進 frontmatter 就好。見[標題、目錄與錨點](/docs/writing/headings/#h1-與-frontmatter-的-title)。
+1.8.1 以前的版本沒寫 frontmatter 的 `title` 時，標題取檔案裡第一個 `# ` 開頭的行，程式碼區塊裡的也算。升級到 1.8.2 以上就會略過程式碼區塊；不想升級的話，把 `title` 寫進 frontmatter。見[標題、目錄與錨點](/docs/writing/headings/#h1-與-frontmatter-的-title)。
 
 ### 新增筆記時選了資料夾，檔案卻在最上層？
 
