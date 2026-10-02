@@ -1,5 +1,5 @@
 ---
-description: 把 notecraftapp build 的產物複製出來，放到 GitHub Pages、Netlify 或任何靜態主機；也說明筆記圖片要另外複製、子路徑怎麼設，以及部署出去的站少了哪些功能。
+description: 把 notecraftapp build 的產物複製出來，放到 GitHub Pages、Netlify 或任何靜態主機；也說明筆記圖片怎麼進產物、子路徑怎麼設，以及部署出去的站少了哪些功能。
 ---
 
 `notecraftapp build` 產生的是純靜態網站：HTML、CSS、JS 與一份 `/wb-index.json`，沒有任何執行期 API。能放靜態檔案的主機都能用。
@@ -29,29 +29,23 @@ cp -R ~/.notecraft/cache/<hash>/dist/. site-out/
 
 ## 筆記裡的圖片
 
-筆記用相對路徑引用的圖片，會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`（見[圖片與附件](/docs/writing/images/)）。這些網址在 `view` 與 `serve` 是由 NoteCraftApp 從筆記資料夾即時送出的，**`build` 不會把圖片複製進產物**。直接部署的話，圖片全部是 404。
+筆記用相對路徑引用的圖片，會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`（見[圖片與附件](/docs/writing/images/)）。`build` 結束時會把產物**實際引用到的**檔案照同樣的相對路徑複製進 `dist/notes-assets/`，不必另外處理，直接部署就看得到。
 
-以一篇引用 `./cover.png` 與 `sub/inner.png` 的 `hello.md` 實測：
+以一篇引用 `./cover.png` 與 `sub/inner.png` 的 `hello.md` 為例：
 
 | 檢查 | 結果 |
 | :-- | :-- |
 | `dist/notes/hello/index.html` 的 `<img>` | `src="/notes-assets/cover.png"`、`src="/notes-assets/sub/inner.png"` |
-| `dist/` 底下的 `notes-assets/` | 不存在 |
-| `dist/` 底下任何 `.png` | 沒有 |
+| `dist/notes-assets/` | `cover.png`、`sub/inner.png` |
 
-部署前自己把圖片照原本的相對路徑複製到產物的 `notes-assets/` 底下：
+幾個規則：
 
-```bash
-cd notes
-rsync -a --prune-empty-dirs --exclude='.*/' \
-  --include='*/' \
-  --include='*.png' --include='*.jpg' --include='*.jpeg' --include='*.gif' \
-  --include='*.webp' --include='*.avif' --include='*.svg' --include='*.ico' --include='*.pdf' \
-  --exclude='*' \
-  ./ ../site-out/notes-assets/
-```
+- 只複製 HTML 裡真的出現的 `/notes-assets/…` 網址，筆記資料夾裡沒被引用的圖片不會進產物。手寫成 `/notes-assets/` 開頭的 PDF 連結也算引用
+- 只複製[支援的格式](/docs/writing/images/#支援的格式)；`.md`、`.mdx`、`.notecraft/` 不會被帶出去
+- 解析後落在筆記資料夾外面的路徑（含指向外面的 symlink）不複製
+- 引用的檔案不存在、或被上面兩條擋下時，build 照樣完成，log 會印一行 `[WARN] [notecraft-notes-assets]` 列出是哪個路徑
 
-複製之後，`/notes-assets/cover.png` 會對到 `site-out/notes-assets/cover.png`，靜態主機就能送出。這個指令會複製筆記資料夾裡**所有**符合副檔名的檔案，不只被引用的那些；有不想公開的圖片，先移出筆記資料夾或自己改 `--exclude`。
+只改了圖片、沒動筆記時，`build` 也會發現上次複製過的圖片變了而重建，不需要 `--rebuild`。
 
 ## 部署到子路徑
 
@@ -63,7 +57,7 @@ NOTECRAFT_BASE=/my-notes npx notecraftapp build ./notes --rebuild
 
 - 站內連結、CSS／JS 路徑、改寫後的圖片網址都會加上前綴，例如 `/my-notes/notes-assets/cover.png`
 - 產物的目錄結構不變，`index.html` 仍在 `dist/` 最上層。把整份內容放到主機上 `/my-notes/` 對應的位置
-- 圖片一樣要照上一節複製到 `notes-assets/`
+- 圖片仍放在 `dist/notes-assets/`，跟著整份產物一起放上去就對得到 `/my-notes/notes-assets/…`
 
 <Callout type="warn">
 `NOTECRAFT_BASE` 不是 CLI 旗標，`--help` 與 README 都沒有列出。它是 NoteCraftApp 本身部署官網 Demo 用的設定，CLI 會把它原樣傳給 build，所以目前可以用，但不算正式公開的功能，之後可能變動。另外 `serve` 不處理前綴：用 `NOTECRAFT_BASE` build 過之後，本機 `serve` 會找不到 CSS 與連結，要不帶這個變數再 `--rebuild` 一次。
