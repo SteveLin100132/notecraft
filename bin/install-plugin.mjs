@@ -384,13 +384,14 @@ export async function installPlugin(source, opts) {
     problems.push(`manifest 的 id 是 "${manifest.id}"，與安裝目錄名 "${id}" 不一致`);
   }
 
+  // 本地來源只記資料夾名：origin 會進 /wb-index.json 與 /plugins 頁，絕對路徑不得出現在產物裡
   const origin =
     src.kind === "local"
-      ? src.dir
+      ? `local:${path.basename(src.dir)}`
       : `https://github.com/${src.owner}/${src.repo}${src.dir ? "/tree/" + (src.ref ?? "HEAD") + "/" + src.dir : ""}`;
 
   console.log("");
-  log(`來源    : ${origin}`);
+  log(`來源    : ${src.kind === "local" ? src.dir : origin}`);
   log(`plugin  : ${id}${manifest?.version ? ` v${manifest.version}` : ""}${manifest?.title ? ` — ${manifest.title}` : ""}`);
   log(`檔案    : ${fetched.files.size} 個`);
   for (const rel of fetched.files.keys()) console.log(`          ${rel}`);

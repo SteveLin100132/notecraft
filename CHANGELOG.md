@@ -4,6 +4,14 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.8.5] - 2026-10-02
+
+### 修正
+
+- 從本機資料夾安裝的 plugin（`install-plugin ./my-plugin`）不再把資料夾的絕對路徑寫進正式產物：`.installed.json` 的 `origin` 改記 `local:<資料夾名>`，`/wb-index.json` 與 `/plugins` 頁的 Drawer 也顯示這個形式。plugin 原始碼放在專案資料夾內時，build 不會再因「/wb-index.json 的輸出含本機絕對路徑」失敗；之前安裝、仍記著絕對路徑的 plugin 不必重裝，輸出時會自動改成同樣的形式
+- 筆記內嵌的資料檔（`<PluginView>`）不再把 renderer 的絕對路徑寫進正式頁面；這個路徑只給 dev 的「以 VS Code 編輯 renderer」用，與 `/view/…` 頁一致
+- build 完會掃描產物的 `.html`／`.json`，含專案、筆記資料夾或 app 的本機絕對路徑就讓 build 失敗並列出檔案，避免日後再漏（dev 專用的 `vscode://` 連結不受影響）
+
 ## [1.8.2] - 2026-10-02
 
 ### 修正
