@@ -1,0 +1,148 @@
+---
+description: 圍欄程式碼會渲染成帶語言標籤、行號與複製鈕的程式碼塊。這頁說明檔名標題、整行高亮、上色規則，以及程式碼註解、提示框與分頁等擴充語法。
+---
+
+程式碼塊在 build 階段就渲染成靜態 HTML，`.md` 與 `.mdx` 寫法相同。
+
+## 基本寫法
+
+用三個反引號圍起來，後面接語言名稱：
+
+````md
+```ts
+export const ttl = 60;
+```
+````
+
+每個程式碼塊都有：
+
+- 標題列：左邊是語言標籤（語言名稱轉大寫，例如 `TS`；沒寫語言時顯示 `TEXT`），右邊是複製鈕
+- 行號欄：固定顯示，沒有關閉的選項
+- 長的行不會自動換行，程式碼區可以橫向捲動
+
+### 複製鈕
+
+按下後複製整段原始碼，按鈕顯示「已複製」約 1.6 秒。下方[程式碼註解](#程式碼註解)的 `(1)!` 標記不會被複製進去。
+
+<Callout type="warn">
+複製靠瀏覽器的剪貼簿 API，只有在 `localhost`、`127.0.0.1` 或 HTTPS 下可用。用 `--host 0.0.0.0` 讓區網其他電腦以 `http://<IP>` 連進來時，按鈕一樣會顯示「已複製」，但剪貼簿裡不會有東西。
+</Callout>
+
+## 檔名與整行高亮
+
+語言後面可以再加兩種設定，可以並用：
+
+| 寫法 | 效果 |
+| :-- | :-- |
+| `title="src/lib/auth.ts"` | 在標題列語言標籤旁顯示檔名。單引號、雙引號，或不含空白的值不加引號都可以 |
+| `{2}`、`{1,3-5}` | 整行高亮。行號從 1 起算，逗號分隔，`3-5` 表示第 3 到 5 行 |
+
+````md
+```ts title="src/lib/auth.ts" {2}
+import { createSession } from "./session";
+const token = readToken();
+export const session = createSession(token);
+```
+````
+
+## 上色規則
+
+NoteCraftApp 不使用 Shiki 這類依語言切換的高亮器，而是用一套內建的規則替所有語言上色。語言名稱只影響標籤文字，任何名稱都能寫；也沒有可以切換的配色主題。
+
+| 類別 | 認得的寫法 |
+| :-- | :-- |
+| 註解 | `//` 到行尾、同一行內的 `/* … */` |
+| 字串 | 同一行內以 `"`、`'` 或反引號包住的文字 |
+| 數字 | 整數、小數、`0x` 開頭的十六進位 |
+| 關鍵字 | JavaScript／TypeScript 的關鍵字，例如 `const`、`function`、`return`、`import`、`async`、`true`、`null` |
+| 函式 | 後面接 `(` 的名稱 |
+| 型別 | 大寫字母開頭的名稱 |
+| 屬性 | 後面接 `=`，或前面是 `.` 的名稱 |
+| 標點 | 括號、運算子等符號 |
+
+因此 JavaScript、TypeScript、JSX、JSON 的效果最完整。其他語言只有字串、數字、函式呼叫這些共通的部分會上色：
+
+- `#` 開頭的註解（Python、Bash、YAML）與 `--` 開頭的註解（SQL）不會顯示成註解色
+- 跨行的 `/* … */` 與跨行字串，只有逐行能配對的部分會上色
+
+```` ```mermaid ```` 這類圍欄只會顯示成一般程式碼，不會畫成圖。要畫圖請用 [@ai-visualize 標記](/docs/guides/ai-markers/)。
+
+## 行內 code
+
+用一對反引號：`` `Cache-Control` ``。行內 code 以等寬字、淺灰底顯示，不上色。
+
+在 `.mdx` 裡，`{`、`<` 放在行內 code 或程式碼塊裡都不用跳脫，見 [Markdown 與 MDX](/docs/writing/md-vs-mdx/#mdx-常見陷阱)。另外 `.md` 裡縮排四格的程式碼也會變成程式碼塊（標籤是 `TEXT`），`.mdx` 不會。
+
+## 程式碼註解
+
+用 `:::annotate` 包住「一個程式碼塊＋一個編號清單」，在程式碼裡寫 `(1)!`、`(2)!` 當標記。讀者點標記，就會浮出清單裡對應的那一項：
+
+````md
+:::annotate
+```ts
+function handler(req: Request) { // (1)!
+  validate(req);
+  return ok(req); // (2)!
+}
+```
+
+1. 進入點，先檢查請求格式。
+2. 回傳統一格式的成功回應。
+:::
+````
+
+- `(n)!` 對應清單的第 n 項
+- 再點一次標記、點別處或按 `Esc` 關閉說明
+- 標記數和清單項數不同時，build log 會出現警告
+- 容器裡少了程式碼塊或編號清單，會退回一般區塊顯示，同樣在 build log 警告
+
+## 提示框與分頁
+
+下面這些語法在 `.md` 與 `.mdx` 都能用。名稱打錯的 `:::xxx` 會原樣顯示成文字。
+
+### 提示框
+
+```md
+:::warning
+升級前先備份 `.notecraft/`。
+:::
+```
+
+| 類型 | 預設標題 |
+| :-- | :-- |
+| `note` | 提示 |
+| `info` | 資訊 |
+| `tip` | 小技巧 |
+| `success` | 完成 |
+| `warning` | 警告 |
+| `danger` | 注意 |
+
+- 自訂標題：`:::warning{title="升級前"}` 或 `:::warning[升級前]`
+- 可收合：`:::tip{collapsible}` 預設收起，`:::tip{collapsible open}` 預設展開
+
+### 分頁
+
+外層 `tabs` 要比內層 `tab` **多一個冒號**：
+
+```md
+::::tabs
+:::tab{label="npm"}
+程式碼塊或任何內容
+:::
+:::tab{label="pnpm"}
+程式碼塊或任何內容
+:::
+::::
+```
+
+`label` 沒寫時，分頁會被命名為「分頁 1」「分頁 2」……，並在 build log 警告。分頁按鈕取得焦點時，可以用 ← →、Home、End 鍵切換。
+
+### 其他
+
+| 語法 | 用途 | 選項 |
+| :-- | :-- | :-- |
+| `:tip[OAuth]{content="一種授權框架"}` | 行內提示，滑鼠移上或聚焦時顯示說明 | `content` 必填 |
+| `:badge[Beta]{variant="warning"}` | 行內標籤 | `variant`：`note`、`info`、`tip`、`success`、`warning`、`danger`、`neutral`（預設）；`outline`；`size="sm"`；`icon`；`href` |
+| `::::steps` 包多個 `:::step{title="…" status="done"}` | 步驟清單 | `steps`：`layout="horizontal"`、`start=3`；`step`：`status` 為 `done`、`current` 或 `todo`（預設） |
+
+`:badge` 的 `icon` 可用 `sparkle`、`check`、`star`、`bolt`、`flag`、`info`、`warning`、`danger`、`note`、`success`。和分頁一樣，`steps` 的冒號要比 `step` 多一個。
