@@ -5,6 +5,7 @@ import Fig2 from "../components/Fig2.tsx";
 import CopyCommand from "../components/CopyCommand.tsx";
 import CommandDemo from "../components/CommandDemo.tsx";
 import Tour, { SCENES } from "../components/Tour.tsx";
+import ClaimArt from "../components/ClaimArt.astro";
 import { readReleases, readVersion } from "../lib/changelog";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
@@ -25,6 +26,8 @@ const GITHUB = "https://github.com/SteveLin100132/notecraft";
 const NPM = "https://www.npmjs.com/package/notecraftapp";
 const DEMO = `${base}demo/`;
 
+
+const WIDE_CLAIMS = new Set([2, 3]);
 
 const claims = [
   {
@@ -367,14 +370,16 @@ const legend = [
           <span><b>NoteCraftApp 說明書</b></span>
           <span>第 4 頁</span>
         </div>
-        <h2 data-reveal class="paper-title" id="sec-claims"><span>它做得到的事，</span><span>逐條列出。</span></h2>
+        <h2 data-reveal class="paper-title" id="sec-claims"><span>它做得到的事，</span><span>一條一張圖。</span></h2>
+        {/* 磚牆：同一張圖紙被細線分格；寬格（2、3）文字在左、圖在右，其餘圖在上 */}
         <ol class="claims">
           {claims.map((c) => (
-            <li class="claim">
-              <span class="claim-n">{c.n}.</span>
-              <div>
-                <p class="claim-legal">{c.legal}</p>
-                <p class="claim-plain">{c.plain}</p>
+            <li class:list={["claim", { "is-wide": WIDE_CLAIMS.has(c.n) }]}>
+              <ClaimArt n={c.n} />
+              <div class="claim-text">
+                <span class="claim-n">{c.n}.</span>
+                <h3 class="claim-plain">{c.plain}</h3>
+                <p class="claim-legal"><span class="claim-legal-label">請求項 {c.n}</span>{c.legal}</p>
               </div>
             </li>
           ))}
