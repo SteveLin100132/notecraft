@@ -35,8 +35,6 @@
 
 NoteCraftApp 是一款為寫技術筆記的人打造的筆記工作台。它直接讀你專案裡的 md／mdx 資料夾，提供資料夾樹、四種筆記檢視、系列閱讀進度、⌘K 全站搜尋與多筆記頁籤；在 MDX 裡用 `@ai-visualize` 標記描述想要的圖，Claude Code 就會生成 React 互動元件並寫回筆記。同一份筆記還能一鍵轉成簡報，結構化的 JSON 資料檔（ER 圖、OpenAPI 文件）則交給可安裝的 plugin 渲染。寫筆記、補圖表、轉簡報，都在同一本筆記裡完成。
 
-![Dashboard](./docs/screenshots/dashboard.png)
-
 **完整說明請看 [使用文件](https://stevelin100132.github.io/notecraft/docs/)**：安裝、設定、各項功能的用法與 CLI 參考都在那裡。
 
 ---
@@ -51,6 +49,64 @@ NoteCraftApp 是一款為寫技術筆記的人打造的筆記工作台。它直�
 - **系列與頁籤** — 多篇筆記串成有順序的閱讀路徑；開過的筆記留下頁籤，切回來停在上次讀到的位置。→ [系列](https://stevelin100132.github.io/notecraft/docs/guides/series/)
 - **Plugin** — ER 圖、OpenAPI 這類結構化 JSON 交給可安裝的渲染器畫成頁面。→ [Plugin](https://stevelin100132.github.io/notecraft/docs/guides/plugin-install/)
 - **零鎖定** — 讀的是你現有的資料夾，產出是純靜態網站，生成的元件是 repo 裡的原始碼。
+
+---
+
+## 操作說明
+
+### 01 更新月曆 — 每篇筆記，落在它更新的那一天
+
+![更新月曆](./docs/assets/manual/01-calendar.webp)
+
+筆記依最後更新日排進日期格，色塊就是閱讀狀態；月檢視看整體節奏，週檢視看這幾天寫了什麼。→ [儀表板](https://stevelin100132.github.io/notecraft/docs/guides/dashboard/)
+
+### 02 儀表板 — 寫了多少、讀到哪，打開就知道
+
+![儀表板](./docs/assets/manual/02-dashboard.webp)
+
+筆記總數與閱讀狀態、AI 待生成、寫作頻率、最近更新、系列進度、標籤分布、更新日誌，集中在同一頁。→ [儀表板](https://stevelin100132.github.io/notecraft/docs/guides/dashboard/)
+
+### 03 新增筆記 — 新增、標記、刪除，不必離開瀏覽器
+
+![新增筆記](./docs/assets/manual/03-new-note.webp)
+
+`view` 模式下右上角會出現「+ 新增筆記」：自動產生 slug 並套用 frontmatter 模板，標籤用 chip 輸入並自動完成。→ [在工作台編輯](https://stevelin100132.github.io/notecraft/docs/guides/editing/)
+
+### 04 筆記頁籤 — 切回來，停在上次讀到的地方
+
+![筆記頁籤](./docs/assets/manual/04-tabs.webp)
+
+開過的筆記與資料檔都留在最上方，可固定、拖曳、右鍵管理；右側「全部頁籤」能篩選，也能重開剛關閉的。→ [頁籤](https://stevelin100132.github.io/notecraft/docs/guides/tabs/)
+
+### 05 Board view — 拖曳卡片，就改了閱讀狀態
+
+![Board view](./docs/assets/manual/05-board.webp)
+
+依未開始、閱讀中、已完成分成三欄，把卡片拖到另一欄，筆記的狀態就跟著更新。→ [筆記列表](https://stevelin100132.github.io/notecraft/docs/guides/notes-list/)
+
+### 06 Drawer 預覽 — 單擊先預覽，確定了再打開
+
+![Drawer 預覽](./docs/assets/manual/06-drawer.webp)
+
+單擊一列就在右側看到摘要、Metadata、`@ai-visualize` 標記與同系列章節；雙擊或點列尾箭頭才進入筆記。→ [筆記列表](https://stevelin100132.github.io/notecraft/docs/guides/notes-list/)
+
+### 07 List view — 四種分組，⌘K 隨時跳轉
+
+![List view](./docs/assets/manual/07-list.webp)
+
+依資料夾、系列、標籤、月份分組，篩選條件都寫在網址參數，分享連結就是同一個畫面。→ [⌘K 搜尋](https://stevelin100132.github.io/notecraft/docs/guides/palette/)
+
+### 08 Plugin 管理 — ER 圖、API 文件，交給 Plugin 渲染
+
+![Plugin 管理](./docs/assets/manual/08-plugins.webp)
+
+列出已安裝的外掛、映射規則與命中的資料檔；dev 環境下可以一鍵啟用或停用。→ [Plugin](https://stevelin100132.github.io/notecraft/docs/guides/plugin-install/)
+
+### 09 系列 — 一份 series.json，串成閱讀路徑
+
+![系列](./docs/assets/manual/09-series.webp)
+
+在 `.notecraft/series.json` 定義系列（選用），多篇筆記依章節排成有順序的閱讀路徑，進度一目了然。→ [系列](https://stevelin100132.github.io/notecraft/docs/guides/series/)
 
 ---
 
