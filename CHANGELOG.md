@@ -4,6 +4,13 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.8.4] - 2026-10-02
+
+### 安全
+
+- `install-plugin` 不再放行 plugin 夾帶的 `package.json`：原本只看副檔名，`.json` 一律通過，與設計文件「拒絕 `package.json`」不符。現在任何層的 `package.json`、lockfile（`package-lock.json`、`npm-shrinkwrap.json`、`yarn.lock`、`pnpm-lock.yaml`、`bun.lockb`、`bun.lock`）都會拒裝並說明原因；安裝本來就不執行任何腳本，這次是把「看起來會裝依賴」的檔案擋在門外
+- `install-plugin` 同時拒收 `tsconfig.json`／`jsconfig.json`：放進 `.notecraft/plugins/<id>/` 會被當成離 renderer 最近的編譯設定，改掉 JSX 等編譯行為
+
 ## [1.8.2] - 2026-10-02
 
 ### 修正
