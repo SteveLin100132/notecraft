@@ -1,0 +1,79 @@
+---
+description: 用 plugins.json 頂層的 disabled 陣列暫時關掉一個 plugin，規則與檔案都不用刪；壞掉的 plugin 先停用，站照樣 build 得出來。
+---
+
+停用是把一個 plugin 的 id 寫進 `.notecraft/plugins.json` 頂層的 `disabled` 陣列。規則本身原封不動，拿掉 id 就恢復。
+
+## 什麼時候停用
+
+- **plugin 讓 build 失敗，一時修不好。** 例如某個資料檔不符合 schema、JSON 寫壞了，或規則指到的 plugin 還沒裝。停用後這些檢查都會略過，站先 build 得出來
+- **暫時不想產生某一類頁面**，但之後還要用，不想刪規則
+
+想把 plugin 從專案徹底拿掉，用 `install-plugin --remove`，差別見本頁最後一節。
+
+## 在 /plugins 頁切換
+
+`view` 模式下，`/plugins` 每一列右側有一顆開關，打開某個 plugin 的 Drawer 也有「停用此外掛」／「啟用此外掛」按鈕。切換後會寫入 `plugins.json`，頁面約半秒後自動重新整理，讓新的狀態生效。
+
+<Plate name="plugins" alt="Plugin 管理頁" caption="Plugin 管理頁：已安裝的外掛與各自的啟用狀態。" />
+
+`build`／`serve` 的產物沒有開關，只顯示「啟用」或「停用」狀態。
+
+開關只在 `.notecraft/plugins.json` 已經存在時能用。還沒有這個檔，先照[映射規則](/docs/guides/plugin-mapping/)建一份。
+
+## 手改 plugins.json
+
+直接編輯也可以：
+
+```jsonc title=".notecraft/plugins.json"
+{
+  "disabled": ["openapi-renderer"],
+  "plugins": [
+    { "plugin": "er-diagram-renderer", "files": ["**/*.er.json"] },
+    { "plugin": "openapi-renderer", "files": ["api/**/*.openapi.json"] }
+  ]
+}
+```
+
+- `disabled` 是 plugin id 的字串陣列，可以有好幾個
+- 不是字串陣列時 build 失敗
+- 列了一個既沒安裝、也沒有規則引用的 id，build 會警告，通常是打錯字
+- 要恢復，從陣列拿掉 id；陣列空了可以整個鍵刪掉
+
+用開關切換時，NoteCraftApp 只改 `disabled` 這一個鍵，其他內容與你的排版不動；陣列變空時會把這個鍵移除。
+
+## 停用後會怎樣
+
+被停用的 plugin，它的所有規則在比對前就被略過，等同不存在：
+
+| 項目 | 結果 |
+| :-- | :-- |
+| 命中的資料檔 | 不產生 `/view/` 頁面，舊網址變成 404 |
+| Sidebar、`⌘K` 指令面板 | 不列出這些資料檔 |
+| `/plugins` | plugin 仍在清單上，標「停用」；Drawer 裡原本會命中的檔案標「已停用」 |
+| 是否已安裝、JSON 與 schema 檢查 | 不檢查 |
+| 系列裡的 `view:` 章節 | 跳過這一章，build 印警告 |
+| 筆記裡的 `<PluginView>` | **build 失敗**，因為它找不到被認領的資料檔 |
+
+<Callout type="warn">
+停用前先搜尋筆記裡有沒有 `<PluginView src="...">` 指向這個 plugin 的資料檔。有的話，先把那幾處拿掉或註解掉，否則 build 會以「找不到資料檔」失敗。
+</Callout>
+
+同一個檔案同時被停用與啟用中的規則命中時，由啟用中的那條接手，不會印多重命中的警告。
+
+## 停用與移除的差別
+
+| | 停用 | `install-plugin --remove` |
+| :-- | :-- | :-- |
+| `.notecraft/plugins/<id>/` | 保留 | 刪除 |
+| `plugins.json` 的規則 | 保留，只是略過 | 不動，要自己刪 |
+| renderer 程式碼 | 仍會被打包進瀏覽器端的程式 | 不再打包 |
+| 恢復方式 | 從 `disabled` 拿掉 id | 重新安裝 |
+
+停用不會把 renderer 移出打包，它只是不再被用到。想讓它完全離開產物，用移除：
+
+```bash
+npx notecraftapp install-plugin --remove openapi-renderer
+```
+
+移除後若 `disabled` 還列著這個 id，指令會提醒你一併清掉。安裝與移除的細節見[安裝來源](/docs/guides/plugin-install/)。

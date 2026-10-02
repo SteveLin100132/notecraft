@@ -1,0 +1,100 @@
+---
+description: 工作台各頁讀取的網址參數與 hash：用途、可用值與範例，以及哪些狀態刻意不放進網址。
+---
+
+篩選與分頁都寫在網址上，可以直接存成書籤或分享。在頁面裡切換時，網址會跟著改，但不會多一筆瀏覽紀錄，按「上一頁」會直接離開這一頁。
+
+這些參數都在瀏覽器端讀取，`view` 與 `build`／`serve` 的產物都適用。
+
+## 筆記列表 /notes
+
+| 參數 | 可用值 | 作用 |
+| :-- | :-- | :-- |
+| `folder` | 資料夾路徑 | 只列這個資料夾與它所有子資料夾的筆記 |
+| `series` | 系列 `id` | 只列這個系列的筆記 |
+| `tag` | 標籤名稱 | 只列帶這個標籤的筆記 |
+| `pending` | `1` | 只列有待生成 AI 標記的筆記 |
+| `hasAi` | `1` | 只列含 AI 標記的筆記 |
+| `nofm` | `1` | 只列沒寫 frontmatter 的筆記 |
+| `fav` | `1` | 只列收藏的筆記 |
+| `view` | `list`、`board`、`table`、`timeline` | 用哪一種檢視 |
+
+所有參數可以組合，條件同時成立才列出：
+
+```text
+/notes?folder=guides/oauth
+/notes?tag=React&view=board
+/notes?series=auth-guide&pending=1
+/notes?fav=1&view=timeline
+```
+
+### 值怎麼寫
+
+- `folder` 用**真實的資料夾路徑**，和 Sidebar 樹顯示的一樣，不是轉成小寫、空白換 `-` 的網址形式。前後的 `/` 會被忽略。`guides` 會命中 `guides/oauth`，但不會命中 `guides-old`
+- `series` 是 `series.json` 裡的 `id`，見[系列設定](/docs/getting-started/series/)
+- `tag` 要與標籤完全相同，包括大小寫
+- 開關型的參數寫 `1` 或 `true`，其他值等於沒帶
+- `view` 不分大小寫。沒帶或值不認得時，用設定頁的「預設 view」；手機只有 List，這個參數會被忽略
+
+中文或空白不用自己編碼，從 Sidebar、儀表板點出來的連結都已經處理好。各參數在介面上的對應見[筆記列表](/docs/guides/notes-list/)。
+
+## 分頁參數 ?tab=
+
+| 頁面 | 值 | 開哪個分頁 |
+| :-- | :-- | :-- |
+| `/`（儀表板） | `calendar` | 更新月曆 |
+| `/`（儀表板） | `week` | 更新月曆（舊版「本週」分頁的網址，仍然有效） |
+| `/`（儀表板） | `ai` | AI 佇列 |
+| `/plugins` | `installed` | 已安裝外掛 |
+| `/settings` | `about` | 關於 |
+
+不帶 `?tab=` 或值不認得時，開預設分頁：儀表板是總覽、`/plugins` 是資料檔、`/settings` 是設定。
+
+兩個舊網址會自動轉過去：`/about` → `/settings?tab=about`，`/view` → `/plugins`。資料檔頁 `/view/<路徑>` 不受影響。
+
+## 不放進網址的狀態
+
+下列狀態只存在頁面裡或瀏覽器的 localStorage，重新整理或分享連結時不會帶過去：
+
+| 狀態 | 存在哪裡 |
+| :-- | :-- |
+| `/notes` List 的分組方式 | 瀏覽器，和設定頁的「List 預設分組」是同一個值 |
+| `/notes` Toolbar 搜尋框的文字 | 只在當頁 |
+| 更新月曆的週／月檢視與目前看的日期 | 只在當頁，重新整理回到本月 |
+| 指令面板的搜尋字 | 只在當頁 |
+| Drawer 選中的那一列 | 只在當頁 |
+| OpenAPI 頁的篩選 | 只在當頁 |
+
+## Hash
+
+| 頁面 | 形式 | 作用 |
+| :-- | :-- | :-- |
+| 筆記 `/notes/<slug>` | `#<標題錨點>` | 捲到該標題。切回[頁籤](/docs/guides/tabs/)時以錨點為準，不還原上次的捲動位置 |
+| 簡報 `/present/<slug>` | `#<頁碼>` | 從 1 起算，`#3` 是第 3 頁；翻頁時自動更新，見[播放與快捷鍵](/docs/guides/deck-play/) |
+| OpenAPI 資料檔頁 | 見下方 | 指向文件裡的某個位置 |
+
+### OpenAPI 頁
+
+[OpenAPI Renderer](/docs/guides/plugin-openapi/) 的資料檔頁，位置和 hash 雙向同步：
+
+| hash | 指向 |
+| :-- | :-- |
+| （無） | 總覽 |
+| `#tag/<tag 名稱>` | 該 tag 底下的端點 |
+| `#op/<operationId>` | 該端點 |
+| `#op/<method>/<path>` | 沒寫 `operationId`，或 `operationId` 重複時改用這個，method 小寫 |
+| `#op/<…>/responses/<狀態碼>` | 該端點，並選中這個回應狀態碼、捲到 Responses 區 |
+| `#schema/<名稱>` | 該 schema |
+
+```text
+/view/api/orders.openapi#tag/orders
+/view/api/orders.openapi#op/createOrder
+/view/api/orders.openapi#op/get/orders/{id}
+/view/api/orders.openapi#op/createOrder/responses/409
+/view/api/orders.openapi#schema/Order
+```
+
+- 資料檔頁的網址只去掉 `.json`：`api/orders.openapi.json` → `/view/api/orders.openapi`
+- hash 對不到任何位置時，退回總覽
+- 頁面剛載入時一律先顯示總覽，接著才依 hash 切過去
+- 內嵌在筆記裡的 OpenAPI 卡片不讀也不寫 hash。要讓「開啟完整檢視頁」直接跳到某處，在 `<PluginView>` 加 `anchor`，見[映射規則 plugins.json](/docs/guides/plugin-mapping/)
