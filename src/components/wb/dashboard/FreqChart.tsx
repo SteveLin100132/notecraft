@@ -72,7 +72,7 @@ export default function FreqChart({
         ))}
       </div>
       <div className="dv-chart" role="img" aria-label={summary}>
-        <div className="dv-chart-y tnum" aria-hidden="true">
+        <div className={"dv-chart-y tnum" + (ready ? " nc-swap-in" : "")} aria-hidden="true">
           <span style={{ top: 0 }}>{ready ? top : "—"}</span>
           <span style={{ top: "50%" }}>{ready ? Math.round(top / 2) : "—"}</span>
           <span style={{ top: "100%" }}>{ready ? 0 : "—"}</span>

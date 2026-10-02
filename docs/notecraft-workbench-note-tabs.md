@@ -207,6 +207,7 @@ export interface TabSelf {
 
 - TabBar 是 `client:load`。layout 的 `<astro-island>` 已有 `.wb-main>astro-island{display:contents}` 規則，佔位的 `.nt-bar` 由 island 自己輸出、SSR 時就是空列，高度一致
 - 空狀態（沒有任何頁籤）也是 34px，與佔位同高（README §5 的理由）
+- **v1.8.0 起**：hydrate 前另有 layout 的預繪層 `#nt-pre`（inline script 依 localStorage 快照畫出相同外觀，TabBar 的清單含目前頁面時移除），換頁時頁籤列不再先空一段。見 [notecraft-workbench-loading-transitions.md](notecraft-workbench-loading-transitions.md) §6
 - `self` 經 island props inline：只有一篇的標題與路徑，量可忽略；**`path` 是相對 notesDir 的真實路徑**，不含本機絕對路徑（`assertNoAbsolutePath` 不受影響）
 
 ---
@@ -293,6 +294,9 @@ export interface TabSelf {
 ### 7.3 還原的時機
 
 照 README：hydrate 後設一次、下一個 `requestAnimationFrame` 再設一次。另外：
+
+> **v1.8.0 起**：主區結尾的 inline script 在第一次繪製前就先還原（`#nc-scroll[data-nc-restored]` 記下實際值），轉場中不跳動；TabBar 看到這個屬性時不再於 hydrate 時設，只保留下面兩條。見 [notecraft-workbench-loading-transitions.md](notecraft-workbench-loading-transitions.md) §7
+
 
 - 若當時 `scrollHeight` 不夠（`client:visible` 的生成元件、圖片還沒撐開），在 `load` 事件後再設一次，之後不再追
 - 使用者在還原完成前已經自己捲動（`wheel`／`touchstart`／`keydown`），取消後續的補設，不搶回位置

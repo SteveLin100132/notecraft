@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteCraft Loading 與轉場 — 設計規格</title>
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<style>
+:root{--wb-blue:#1b4f9c;--wb-blue-d:#163f7d;--wb-blue-l:#2c6ebb;--wb-gold:#ed9b26;--wb-bg:#f6f8fb;--wb-panel:#fff;--wb-line:#e1e6ee;--wb-line-2:#eef1f6;--wb-ink:#161c28;--wb-ink-2:#2b3546;--wb-ink-3:#6c798e;--wb-ok:#2e9e6b;--wb-warn:#e3a008;--wb-sk:#e8ecf2}
+html,body{margin:0;background:var(--wb-bg);color:var(--wb-ink);font-family:"Noto Sans TC","Noto Sans",sans-serif;font-size:14px}
+a{color:var(--wb-blue-l);text-decoration:none}a:hover{color:var(--wb-blue-d)}
+.sp{max-width:1180px;margin:0 auto;padding:40px 28px 80px}
+.sp-eb{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--wb-ink-3)}
+h1{font-size:30px;font-weight:800;color:var(--wb-blue);margin:6px 0 10px;line-height:1.25}
+.sp-lead{font-size:14px;line-height:1.85;color:var(--wb-ink-2);max-width:780px;margin:0;text-wrap:pretty}
+.sp-lead+.sp-lead{margin-top:8px}
+h2{font-size:19px;font-weight:700;margin:52px 0 6px;display:flex;align-items:baseline;gap:10px}
+h2 .n{font-size:12px;font-weight:700;color:var(--wb-gold);font-variant-numeric:tabular-nums}
+h3{font-size:14px;font-weight:700;margin:24px 0 8px}
+.sp-sub{font-size:13px;color:var(--wb-ink-3);line-height:1.8;margin:0 0 16px;max-width:800px;text-wrap:pretty}
+p,li{line-height:1.85;color:var(--wb-ink-2);text-wrap:pretty}
+ul{padding-left:20px;margin:6px 0}
+code,.kbd{font-family:var(--font-mono);font-size:12px;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:4px;padding:1px 5px;color:var(--wb-ink-2)}
+pre{margin:10px 0 0;padding:14px 16px;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--wb-ink-2);overflow-x:auto;white-space:pre}
+.fr{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,79,156,.06)}
+.fr-h{min-height:34px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--wb-line);font-size:12px;color:var(--wb-ink-3);flex-wrap:wrap}
+.fr-h b{color:var(--wb-ink);font-size:12.5px}
+.fr-h .sz{margin-left:auto;font-family:var(--font-mono);font-size:11px}
+.fr-v{position:relative;overflow:hidden;background:var(--wb-bg)}
+.fr-v iframe{position:absolute;top:0;left:0;border:0;transform-origin:0 0;background:#fff}
+.fr-cap{padding:10px 14px 12px;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2);border-top:1px solid var(--wb-line-2);text-wrap:pretty}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.gm{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:18px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;overflow:hidden}
+th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--wb-ink-3);background:var(--wb-bg);padding:8px 12px;border-bottom:1px solid var(--wb-line)}
+td{padding:8px 12px;border-bottom:1px solid var(--wb-line-2);vertical-align:top;line-height:1.7;color:var(--wb-ink-2)}
+tr:last-child td{border-bottom:none}
+td:first-child{color:var(--wb-ink);font-weight:500;white-space:nowrap}
+.tw{overflow-x:auto}
+.dec{display:flex;flex-direction:column;gap:10px}
+.dec-i{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;padding:12px 16px}
+.dec-q{font-weight:700;font-size:13.5px;display:flex;gap:10px}
+.dec-q span{color:var(--wb-gold);font-variant-numeric:tabular-nums;flex:none}
+.dec-o{margin:6px 0 0 26px;font-size:13px;line-height:1.8;color:var(--wb-ink-2)}
+.dec-o b{color:var(--wb-blue)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid var(--wb-line)}
+/* timeline */
+.film{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--wb-line)}
+.film-i{background:var(--wb-panel);min-width:0}
+.film-t{display:flex;align-items:baseline;gap:8px;padding:8px 12px;font-size:12px;color:var(--wb-ink-3);border-bottom:1px solid var(--wb-line-2)}
+.film-t b{font-family:var(--font-mono);font-size:12px;color:var(--wb-gold);flex:none}
+@media(max-width:900px){.film{grid-template-columns:1fr}}
+.tl{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:10px;padding:14px 16px 12px}
+.tl-h{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.tl-h b{font-size:13px}.tl-h span{font-size:12px;color:var(--wb-ink-3)}
+.tl-row{display:grid;grid-template-columns:120px minmax(0,1fr);align-items:center;gap:12px;height:26px}
+.tl-l{font-size:12px;color:var(--wb-ink-2);white-space:nowrap}
+.tl-tr{position:relative;height:14px;border-radius:3px;background:var(--wb-bg)}
+.tl-b{position:absolute;top:0;bottom:0;border-radius:3px;font-size:10.5px;line-height:14px;padding:0 5px;white-space:nowrap;overflow:hidden;color:#fff}
+.tl-b.wait{background:transparent;border:1px dashed var(--wb-line);color:var(--wb-ink-3)}
+.tl-b.prog{background:var(--wb-blue-l)}
+.tl-b.vt{background:var(--wb-blue)}
+.tl-b.sk{background:var(--wb-sk);color:var(--wb-ink-2)}
+.tl-b.ok{background:var(--wb-ok)}
+.tl-b.gold{background:var(--wb-gold)}
+.tl-ax{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;margin-top:4px}
+.tl-ax div{position:relative;height:16px;font-size:10.5px;color:var(--wb-ink-3);font-family:var(--font-mono)}
+.tl-ax i{position:absolute;top:0;transform:translateX(-50%);font-style:normal}
+.tl-th{position:absolute;top:-4px;bottom:-4px;width:0;border-left:1px dashed var(--wb-gold)}
+</style>
+</head>
+<body>
+<div class="sp">
+<div class="sp-eb">NOTECRAFT 工作台 ・ 功能設計</div>
+<h1>Loading 與轉場</h1>
+<p class="sp-lead">工作台是 Astro 靜態 MPA，每次切換筆記都是整頁導覽。這份規格處理兩個空白瞬間：第一次進站時殼還沒畫出來，以及換頁時主區先空一下。原則是殼（Rail、Sidebar、頁籤列）在換頁時完全不動，只有主區做 200–280ms 的淡入；骨架只在等待超過 150ms 時出現，出現後至少停 300ms。</p>
+<p class="sp-lead">下方畫面是 <a href="NoteCraft-Loading-Transitions.html" target="_blank">Loading 與轉場 Prototype</a> 的實際渲染，以 <code>?loadDemo=</code> 參數凍結在指定狀態。Prototype 右下 Tweaks 的「模擬網路」可切到慢速或卡住，看完整時序；「重播啟動載入」可重看第一次進站。</p>
+
+<h2><span class="n">01</span>時序與門檻</h2>
+<p class="sp-sub">一次換頁分成四段：舊頁等回應、View Transition、主區 Body、互動元件 hydrate。只有超過 150ms 的那段才會讓使用者看到等待狀態。下圖是 Prototype「慢速」與「快」兩種設定的實際時間。</p>
+<div class="stack">
+<div class="tl" id="tl-slow"></div>
+<div class="tl" id="tl-fast"></div>
+</div>
+<div class="tw" style="margin-top:18px"><table>
+<tr><th>門檻</th><th>值</th><th>套用在</th><th>做法</th></tr>
+<tr><td>出現延遲</td><td>150ms</td><td>所有骨架、island 佔位、舊頁進度線</td><td>CSS <code>transition-delay</code> 搭配 <code>@starting-style</code> 從 opacity 0 開始，不需要 JS，串流中的 HTML 也適用。</td></tr>
+<tr><td>最短顯示</td><td>300ms</td><td>JS 控制的替換：island 佔位、Prototype 的 Body 骨架</td><td>內容在 150ms 內到就直接換，骨架完全不出現；超過 150ms 則等到「出現後滿 300ms」才換，避免閃一下。純 CSS 骨架沒有最短顯示，改靠內容的 200ms 淡入讓替換不生硬。</td></tr>
+<tr><td>文字提示</td><td>800ms</td><td>視覺化佔位中的「互動圖表載入中」</td><td>多數時候 island 在 800ms 內就緒，文字不會出現。</td></tr>
+<tr><td>VT 起點</td><td>新頁 Header 解析完</td><td>跨文件 View Transition</td><td><code>&lt;link rel="expect" href="#nc-hd" blocking="render"&gt;</code>：新頁快照至少帶著真實 Header，Body 不擋，交給骨架。</td></tr>
+</table></div>
+
+<h2><span class="n">02</span>啟動 Loading（第一次進站）</h2>
+<p class="sp-sub">不做 splash，也不加額外的品牌元素。Rail 上的標誌與 Sidebar 的「NoteCraft 工作台」本來就是殼的一部分，第一個位元組就帶著真實內容輸出，所以網路快時看到的就是正式畫面。只有資料（樹狀項目、Header、Body）在 150ms 後以骨架呈現，區段標題這類靜態文字直接輸出真值。</p>
+<div class="stack">
+<div class="fr" data-screen-label="啟動・筆記頁"><div class="fr-h"><b>啟動骨架 ・ 直接開筆記網址</b>Rail、標誌、Sidebar 標題與頁籤列是真值<span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?loadDemo=boot#note/oauth-2-pkce"></div><div class="fr-cap">頁籤列由 <code>&lt;head&gt;</code> 後的 inline script 從 localStorage 同步畫出，所以啟動時就有真實頁籤，不用骨架。Body 骨架與真實筆記同一套格線（內文 + 220px 目錄、間距 40px），換成內容時不位移。</div></div>
+<div class="g2">
+<div class="fr" data-screen-label="啟動・儀表板"><div class="fr-h"><b>啟動骨架 ・ 儀表板</b><span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?loadDemo=boot"></div><div class="fr-cap">Widget 骨架保留外框與標題列高度 32px，KPI 卡高度與實卡相同。</div></div>
+<div class="fr" data-screen-label="啟動・深色"><div class="fr-h"><b>啟動骨架 ・ 深色</b><span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?loadDemo=boot&amp;dark=1#note/oauth-2-pkce"></div><div class="fr-cap">骨架色改用深色 token；shimmer 高光與底色只差約 4% 亮度。</div></div>
+</div>
+</div>
+<h3>骨架換成內容</h3>
+<p>正式版沒有覆蓋層。每個區域把骨架放在內容之前，CSS 一看到內容的開頭就把骨架藏起來：<code>.nc-body-wrap:has(&gt; .nc-content) &gt; .nc-body-sk{display:none}</code>。HTML 串流到哪裡就換到哪裡，殼與內容各自出現，不會整片閃一下。內容進場用 200ms 淡入（<code>--nc-dur-swap</code>）。Prototype 因為整頁由 React 渲染，用一層同樣排版的覆蓋層 200ms 淡出來模擬。</p>
+
+<h2><span class="n">03</span>筆記內容頁骨架</h2>
+<p class="sp-sub">換頁時 Header 已經是新筆記的真值（View Transition 等它解析完才開始），Body 以骨架等待。骨架只在慢速網路或冷快取時看得到。</p>
+<div class="stack">
+<div class="fr" data-screen-label="筆記骨架・桌面"><div class="fr-h"><b>筆記骨架 ・ 換頁中</b>Header 真值、Body 骨架<span class="sz">1440×860</span></div><div class="fr-v" data-w="1440" data-h="860" data-src="?loadDemo=note"></div><div class="fr-cap">由上而下：返回連結、標籤 pill ×3、標題兩行（30px，62%／34%）、描述兩行、meta 列（閱讀進度 pill、日期、視覺化數、右側動作），接著 H2、段落、程式碼區塊（有標題列、縮排不同的短行）、視覺化外框、段落。目錄是左側 2px 線加上不同縮排的短行，對應 H1／H2／H3 三層。</div></div>
+<div class="gm">
+<div class="fr" data-screen-label="筆記骨架・深色"><div class="fr-h"><b>筆記骨架 ・ 深色</b><span class="sz">1280×800</span></div><div class="fr-v" data-w="1280" data-h="800" data-src="?loadDemo=note&amp;dark=1"></div></div>
+<div class="fr" data-screen-label="筆記骨架・手機"><div class="fr-h"><b>手機</b><span class="sz">390×780</span></div><div class="fr-v" data-w="390" data-h="780" data-src="?loadDemo=note"></div><div class="fr-cap">單欄、目錄隱藏；Header 左側讓出 54px 給漢堡鈕，右側讓給頁籤計數鈕。</div></div>
+<div class="fr" data-screen-label="列表骨架"><div class="fr-h"><b>/notes 列表骨架</b>Toolbar 真值<span class="sz">1280×800</span></div><div class="fr-v" data-w="1280" data-h="800" data-src="?loadDemo=list"></div><div class="fr-cap">列高沿用 <code>--pt-row-h</code>；手機隱藏路徑與標籤欄，與真實列表的 RWD 規則一致。</div></div>
+</div>
+</div>
+
+<h2><span class="n">04</span>視覺化元件佔位與「—」佔位</h2>
+<p class="sp-sub">筆記內嵌的互動元件是 <code>client:visible</code>，會晚一拍出現。現在的問題是先空一塊、再突然撐開。改成 SSR 先輸出外框與預留高度，進入視窗前 200px 開始 hydrate，就緒後內容 200ms 淡入，高度不變。</p>
+<div class="g2">
+<div class="fr" data-screen-label="視覺化佔位"><div class="fr-h"><b>GeneratedFrame 佔位</b><span class="sz">1280×800</span></div><div class="fr-v" data-w="1280" data-h="800" data-src="?loadDemo=viz"></div><div class="fr-cap">外框、圓角、caption 列高 39px 與真實 Figure 相同；檔名 <code>generated/{id}.tsx</code> 是 SSR 真值。內部是低對比的 shimmer 區塊，800ms 後才出現提示文字。</div></div>
+<div class="fr" data-screen-label="數值佔位"><div class="fr-h"><b>「—」佔位 ・ 本週更新</b><span class="sz">1280×800</span></div><div class="fr-v" data-w="1280" data-h="800" data-src="?loadDemo=values"></div><div class="fr-cap">SSR 時不知道「今天」，相對數值先輸出「—」。「—」放在與真值同寬的槽位（tabular-nums），換成數字時只做 200ms 淡入，不改寬度。</div></div>
+</div>
+<h3>預留高度從哪來</h3>
+<ul>
+<li>能在伺服器端渲染的元件（多數生成元件）：Astro 的 <code>client:visible</code> 本來就會輸出 SSR HTML，只是還不能互動，這時不需要佔位，只把按鈕設為 <code>disabled</code>，hydrate 後加上 <code>data-hydrated</code>。</li>
+<li>需要量測容器寬度才能畫的元件（使用 ResizeObserver 的那幾支）：SSR 輸出佔位，高度由生成 skill 在驗證時量測後寫進 MDX：<code>&lt;Comp client:visible={{"{"}rootMargin:"200px"{"}"}} data-h="420" /&gt;</code>，佔位用 <code>min-height</code> 套這個值。</li>
+</ul>
+<h3>哪些值會是「—」</h3>
+<div class="tw"><table>
+<tr><th>層級</th><th>位置</th><th>做法</th></tr>
+<tr><td>殼內</td><td>Sidebar 系列進度（<code>3/5</code>、進度條）、頁籤列、手機頁籤計數</td><td>放在元素後面的 <code>&lt;script is:inline&gt;</code> 同步讀 localStorage 寫入，且位於 <code>#nc-hd</code> 之前，所以 View Transition 的新頁快照已經是真值。換頁時這些值不會變成「—」再跳回來。</td></tr>
+<tr><td>主區</td><td>Dashboard「本週更新」與閱讀狀態圖例、列表的相對日期欄、筆記 meta 的閱讀進度</td><td>SSR 輸出「—」（<code>--wb-ink-3</code>），由所在 island hydrate 後換成真值，200ms 淡入。</td></tr>
+</table></div>
+
+<h2><span class="n">05</span>切換筆記的轉場</h2>
+<p class="sp-sub">只有主區（Header + Toolbar + Body）有 <code>view-transition-name</code>，root 的動畫設為 none，所以 Rail、Sidebar、頁籤列在換頁時直接換成新頁的樣子，沒有淡入淡出。</p>
+<div class="fr" data-screen-label="轉場分格"><div class="fr-h"><b>轉場分格 ・ 從「HTTP 快取策略」頁籤切到「專案 V.S 產品」</b>peer，裁切上半部<span class="sz">1440×860</span></div>
+<div class="film">
+<div class="film-i"><div class="film-t"><b>0ms</b>點下頁籤，舊頁仍完整顯示</div><div class="fr-v" data-w="1440" data-h="860" data-crop="520" data-src="?loadDemo=mid&amp;t=0"></div></div>
+<div class="film-i"><div class="film-t"><b>60ms</b>舊主區約 17%、新主區約 53%，指示器走到一半</div><div class="fr-v" data-w="1440" data-h="860" data-crop="520" data-src="?loadDemo=mid&amp;t=60"></div></div>
+<div class="film-i"><div class="film-t"><b>120ms</b>舊主區已淡出，新主區約 83%、剩 0.7px 位移</div><div class="fr-v" data-w="1440" data-h="860" data-crop="520" data-src="?loadDemo=mid&amp;t=120"></div></div>
+<div class="film-i"><div class="film-t"><b>240ms</b>轉場結束</div><div class="fr-v" data-w="1440" data-h="860" data-crop="520" data-src="?loadDemo=mid&amp;t=240"></div></div>
+</div>
+<div class="fr-cap">兩頁內容只在前 120ms 重疊，而且舊頁很快變淡，實際播放時看起來是「舊內容退去、新內容浮上來」，不會讀成兩層文字。Rail、Sidebar 與頁籤列在四格中完全相同，只有頁籤上緣的 2px 藍線在移動。要看實際速度，請在 <a href="NoteCraft-Loading-Transitions.html" target="_blank">Prototype</a> 點頁籤，或把 Tweaks「模擬網路」切到慢速。</div></div>
+<div class="tw" style="margin-top:18px"><table>
+<tr><th>情境</th><th>例子</th><th>type</th><th>舊主區</th><th>新主區</th></tr>
+<tr><td>筆記之間</td><td>點頁籤、⌘K、系列上一章／下一章、內文連結、⌥ , ／ ⌥ .</td><td><code>peer</code></td><td>淡出 120ms</td><td>淡入＋上移 4px，240ms</td></tr>
+<tr><td>從列表進入</td><td>Dashboard、<code>/notes</code>、系列詳情、AI 佇列 → 筆記或資料檔</td><td><code>drill</code></td><td>淡出 120ms</td><td>淡入＋上移 8px，280ms</td></tr>
+<tr><td>頂層頁面、返回列表</td><td>Dashboard ↔ <code>/notes</code> ↔ <code>/plugins</code> ↔ <code>/settings</code>；筆記 → 列表</td><td><code>section</code></td><td>淡出 120ms</td><td>淡入 200ms，無位移</td></tr>
+<tr><td>頁籤指示器</td><td>任何有 active 頁籤的換頁</td><td>—</td><td colspan="2">2px 藍線從舊頁籤滑到新頁籤，位置與寬度 240ms。來源頁沒有 active 頁籤時淡入。</td></tr>
+<tr><td>手機抽屜</td><td>在抽屜點項目</td><td>—</td><td colspan="2">點下就關抽屜（220ms 滑出）；若新頁在關完前就到，<code>nc-drawer</code> 讓抽屜從快照位置繼續滑出，scrim 淡出。</td></tr>
+</table></div>
+<p>全部使用 <code>cubic-bezier(.22,.7,.3,1)</code>（與既有 Drawer 相同的 ease-out）。<code>drill</code> 比 <code>peer</code> 多 4px 位移與 40ms，表示「進到下一層」；兩者差異小，Tweaks「轉場：統一」可以全部改成 <code>peer</code> 比較。</p>
+
+<h3>決定</h3>
+<div class="dec">
+<div class="dec-i"><div class="dec-q"><span>D1</span>標題要不要做共享元素轉場？</div><div class="dec-o">建議：<b>不做</b>。來源有頁籤（12.5px）、列表列（13px）、Dashboard 卡片、⌘K 四種，與 20px 標題的比例約 1:1.6，快照放大後文字會糊；頁籤在 Header 上方，標題會往下飛過整個 Header，一天切幾十次會很干擾。實作上還要在換頁前把名稱指派給被點的元素。連續性已經由頁籤指示器提供。Tweaks 的「標題共享元素（評估用）」可以實際試看看。</div></div>
+<div class="dec-i"><div class="dec-q"><span>D2</span>頁籤指示器怎麼移動？</div><div class="dec-o">建議：<b>把 2px 藍線從 box-shadow 改成獨立元素 <code>.nt-ind</code></b>，只有 active 頁籤有，命名 <code>nc-tab-ind</code>，讓瀏覽器在兩頁之間補間位置與寬度。前提是頁籤列在快照前就畫好（見 04 的 inline script），否則新頁快照裡是空的頁籤列。新頁籤插入時頁籤列直接換成新排列，只有藍線在動。</div></div>
+<div class="dec-i"><div class="dec-q"><span>D3</span>從列表進入與筆記之間切換要不要不同？</div><div class="dec-o">建議：<b>要，但差異很小</b>（位移 8px／4px、280／240ms）。頂層頁面之間只淡入、不位移，因為它們是平行的頁面。type 由來源與目的網址決定，在新頁的 <code>pagereveal</code> 寫進 <code>&lt;html data-nc-vt&gt;</code>。</div></div>
+<div class="dec-i"><div class="dec-q"><span>D4</span>Dashboard、/notes、/plugins、/settings 之間套同一組嗎？</div><div class="dec-o">建議：<b>同一組機制，type 用 <code>section</code></b>。Rail 的選中狀態直接切換、不做動畫。重新整理（<code>navigationType === "reload"</code>）時跳過轉場。</div></div>
+<div class="dec-i"><div class="dec-q"><span>D5</span>回應很慢時，舊頁要不要有反饋？</div><div class="dec-o">建議：<b>要</b>。點擊後舊頁還活著，150ms 後在主區頂端出現 2px 進度線（<code>--wb-progress</code>），2.4s 內緩慢長到 85%。舊內容不變暗，避免使用者以為已經換頁。</div></div>
+</div>
+
+<h2><span class="n">06</span>新增 token</h2>
+<p class="sp-sub">集中定義在 <code>nc-loading.css</code> 的 <code>:root</code> 與 <code>.wb-dark</code>，規則裡不寫死色碼。</p>
+<div class="tw"><table>
+<tr><th>token</th><th>亮色</th><th>深色</th><th>用途</th></tr>
+<tr><td><code>--wb-sk</code></td><td><span class="sw" style="background:#e8ecf2"></span>#e8ecf2</td><td><span class="sw" style="background:#222935"></span>#222935</td><td>骨架底色</td></tr>
+<tr><td><code>--wb-sk-hi</code></td><td><span class="sw" style="background:#f4f6f9"></span>#f4f6f9</td><td><span class="sw" style="background:#29313d"></span>#29313d</td><td>shimmer 高光（與底色差約 4%）</td></tr>
+<tr><td><code>--wb-sk-frame</code></td><td><span class="sw" style="background:#fbfcfe"></span>#fbfcfe</td><td><span class="sw" style="background:#1d2430"></span>#1d2430</td><td>程式碼、視覺化佔位的框內底色</td></tr>
+<tr><td><code>--wb-progress</code></td><td colspan="2"><code>var(--wb-blue-l)</code></td><td>舊頁進度線</td></tr>
+<tr><td><code>--nc-sk-delay</code></td><td colspan="2">150ms</td><td>骨架與進度線出現延遲</td></tr>
+<tr><td><code>--nc-sk-min</code></td><td colspan="2">300ms</td><td>JS 控制骨架的最短顯示（JS 端同值常數）</td></tr>
+<tr><td><code>--nc-sk-label-delay</code></td><td colspan="2">800ms</td><td>佔位提示文字出現</td></tr>
+<tr><td><code>--nc-sk-period</code></td><td colspan="2">2.4s</td><td>shimmer 週期；<code>background-attachment: fixed</code> 讓全頁骨架同一道光</td></tr>
+<tr><td><code>--nc-ease</code></td><td colspan="2"><code>cubic-bezier(.22,.7,.3,1)</code></td><td>所有轉場</td></tr>
+<tr><td><code>--nc-dur-out</code> ／ <code>-in</code> ／ <code>-drill</code> ／ <code>-section</code></td><td colspan="2">120 ／ 240 ／ 280 ／ 200ms</td><td>主區舊頁淡出、peer、drill、section 進場</td></tr>
+<tr><td><code>--nc-dur-ind</code> ／ <code>-swap</code> ／ <code>-drawer</code></td><td colspan="2">240 ／ 200 ／ 220ms</td><td>頁籤指示器、骨架或佔位換成內容、手機抽屜</td></tr>
+<tr><td><code>--nc-rise</code> ／ <code>--nc-rise-drill</code></td><td colspan="2">4px ／ 8px</td><td>進場位移</td></tr>
+</table></div>
+
+<h2><span class="n">07</span>view-transition-name</h2>
+<div class="tw"><table>
+<tr><th>名稱</th><th>元素</th><th>條件</th><th>動畫</th></tr>
+<tr><td><code>root</code></td><td>整頁（殼）</td><td>—</td><td>none：殼直接切換</td></tr>
+<tr><td><code>nc-main</code></td><td><code>.nc-main-pane</code>（Header＋Toolbar＋Body）</td><td>每頁一個</td><td>依 <code>data-nc-vt</code> 選 peer／drill／section</td></tr>
+<tr><td><code>nc-tab-ind</code></td><td><code>.nt-ind</code></td><td>只有 active 頁籤</td><td>group 補間 240ms，old 隱藏</td></tr>
+<tr><td><code>nc-drawer</code></td><td><code>.wb-sb</code></td><td>≤1100px（抽屜模式）</td><td>group 補間 220ms</td></tr>
+<tr><td><code>nc-scrim</code></td><td><code>.wb-sb-scrim</code></td><td>抽屜開啟時</td><td>old 淡出 220ms</td></tr>
+<tr><td><code>nc-title</code></td><td>被點的標題 → <code>.wb-hd-title</code></td><td>不採用（評估用）</td><td>group 300ms</td></tr>
+</table></div>
+<p>名稱在同一份文件中必須唯一。Spec 截圖用的覆蓋層與複製節點一律設為 <code>none</code>。</p>
+
+<h2><span class="n">08</span>減少動態（prefers-reduced-motion）</h2>
+<div class="tw"><table>
+<tr><th>項目</th><th>一般</th><th>減少動態</th></tr>
+<tr><td>主區換頁</td><td>淡出＋淡入＋位移</td><td>舊頁直接消失，新頁 100ms 線性淡入，無位移</td></tr>
+<tr><td>頁籤指示器、抽屜</td><td>補間滑動</td><td>直接跳到新位置</td></tr>
+<tr><td>骨架</td><td>150ms 後淡入，shimmer</td><td>150ms 後直接出現，無 shimmer，純色塊</td></tr>
+<tr><td>進度線</td><td>緩慢增長</td><td>靜態滿版、opacity .55</td></tr>
+<tr><td>骨架／佔位／「—」換成內容</td><td>200ms 淡入</td><td>直接替換</td></tr>
+</table></div>
+<p>出現延遲與最短顯示在減少動態下照樣保留，它們是為了避免閃爍，不是動畫。Prototype 的 Tweaks「模擬減少動態」套用同一組規則。</p>
+
+<h2><span class="n">09</span>Astro 落地</h2>
+<pre>&lt;!-- src/layouts/Workbench.astro --&gt;
+&lt;head&gt;
+  &lt;style is:inline&gt;/* nc-loading.css 的 token、.nc-sk、.nc-sk-root（約 1.5KB），確保第一個回應就能畫骨架 */&lt;/style&gt;
+  &lt;link rel="stylesheet" href="/nc-loading.css"&gt;
+  &lt;link rel="expect" href="#nc-hd" blocking="render"&gt;
+  &lt;script is:inline src="/nc-vt.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="wb-app"&gt;
+    &lt;Rail /&gt;
+    &lt;Sidebar /&gt;&lt;script is:inline&gt;/* 從 localStorage 寫入系列進度 */&lt;/script&gt;
+    &lt;main class="wb-main has-tabs"&gt;
+      &lt;div class="nt-bar" id="nc-tabs"&gt;&lt;/div&gt;&lt;script is:inline&gt;/* 依 nc.tabs.v1 畫出頁籤與 .nt-ind */&lt;/script&gt;
+      &lt;div class="nc-main-pane"&gt;
+        &lt;Header id="nc-hd" /&gt;
+        &lt;div class="nc-body-wrap"&gt;
+          &lt;NoteSkeleton class="nc-body-sk" /&gt;   &lt;!-- :has(&gt; .nc-content) 時隱藏 --&gt;
+          &lt;article class="nc-content"&gt;&lt;slot /&gt;&lt;/article&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/main&gt;
+  &lt;/div&gt;
+&lt;/body&gt;</pre>
+<pre>// public/nc-vt.js — 依來源與目的網址決定轉場 type
+const HUB = /^\/(?:$|notes\/?$|plugins\/?$|settings|series\/?$|tags|ai)/;
+const kind = (u) =&gt; (HUB.test(new URL(u).pathname) ? "hub" : "leaf");
+addEventListener("pagereveal", (e) =&gt; {
+  if (!e.viewTransition) return;
+  const act = navigation.activation;
+  if (!act || !act.from || act.navigationType === "reload") { e.viewTransition.skipTransition(); return; }
+  const to = kind(location.href), from = kind(act.from.url);
+  document.documentElement.dataset.ncVt = to === "hub" ? "section" : from === "hub" ? "drill" : "peer";
+  e.viewTransition.finished.finally(() =&gt; delete document.documentElement.dataset.ncVt);
+});</pre>
+<ul>
+<li>舊頁進度線：攔截站內連結的 <code>click</code>，在 <code>.nc-main-pane</code> 頂端插入 <code>&lt;i class="nc-progress"&gt;</code>；<code>pageswap</code> 或 <code>pagehide</code> 時移除。bfcache 還原（<code>pageshow</code> 且 <code>persisted</code>）時也要移除。</li>
+<li>手機抽屜：點項目立即移除 <code>.open</code>，再讓瀏覽器導覽。</li>
+<li>不支援跨文件 View Transitions 的瀏覽器（目前 Firefox）直接整頁切換；殼的位置固定，視覺上只有主區換內容，不會整片閃白。</li>
+</ul>
+</div>
+<script>
+(function(){
+  function tl(id,title,sub,max,rows,ticks,th){
+    var el=document.getElementById(id),h='<div class="tl-h"><b>'+title+'</b><span>'+sub+'</span></div>';
+    rows.forEach(function(r){h+='<div class="tl-row"><div class="tl-l">'+r[0]+'</div><div class="tl-tr">';r[1].forEach(function(b){h+='<span class="tl-b '+b[2]+'" style="left:'+(b[0]/max*100)+'%;width:'+((b[1]-b[0])/max*100)+'%">'+(b[3]||'')+'</span>';});(r[2]||[]).forEach(function(x){h+='<span class="tl-th" style="left:'+(x/max*100)+'%"></span>';});h+='</div></div>';});
+    h+='<div class="tl-ax"><span></span><div>';ticks.forEach(function(t){h+='<i style="left:'+(t/max*100)+'%">'+t+'</i>';});h+='</div></div>';el.innerHTML=h;
+  }
+  tl("tl-slow","慢速","回應 650ms、Body 1100ms、JS 900ms、元件進入視窗後 500ms",3300,[
+    ["舊頁",[[0,150,"wait","等待"],[150,650,"prog","進度線"]],[150]],
+    ["View Transition",[[650,890,"vt","240ms"]]],
+    ["Body",[[650,800,"wait",""],[800,1750,"sk","骨架"],[1750,1950,"ok","淡入"]],[800]],
+    ["數值「—」",[[1750,2650,"sk","—"],[2650,2850,"ok",""]]],
+    ["視覺化佔位",[[1750,1900,"wait",""],[1900,3150,"sk","佔位（2550 起顯示文字）"],[3150,3300,"gold",""]]]
+  ],[0,500,1000,1500,2000,2500,3000]);
+  tl("tl-fast","快（CDN 快取）","回應 30ms、Body 已在 HTML、JS 60ms、元件 60ms",600,[
+    ["舊頁",[[0,30,"wait",""]],[150]],
+    ["View Transition",[[30,270,"vt","240ms"]]],
+    ["Body",[[30,30,"ok",""]],[180]],
+    ["數值「—」",[[30,90,"wait",""]]],
+    ["視覺化佔位",[[90,150,"wait",""]],[240]]
+  ],[0,100,200,300,400,500,600]);
+})();
+(function(){
+  var base="NoteCraft-Loading-Transitions.html";
+  var vs=[].slice.call(document.querySelectorAll(".fr-v"));
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&!e.target.dataset.loaded){var v=e.target;v.dataset.loaded=1;var f=document.createElement("iframe");f.src=base+v.dataset.src;f.width=v.dataset.w;f.height=v.dataset.h;f.title=v.closest(".fr").querySelector(".fr-h b").textContent;v.appendChild(f);fit();}})},{rootMargin:"300px"});
+  vs.forEach(function(v){io.observe(v)});
+  function fit(){vs.forEach(function(v){var w=+v.dataset.w,h=+v.dataset.h,s=v.clientWidth/w;v.style.height=((+v.dataset.crop||h)*s)+"px";var f=v.querySelector("iframe");if(f)f.style.transform="scale("+s+")";})}
+  window.addEventListener("resize",fit);fit();
+})();
+</script>
+</body>
+</html>

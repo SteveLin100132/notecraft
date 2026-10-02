@@ -138,6 +138,8 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
 
 代價是換頁會整頁重載，Sidebar 的展開狀態與捲動位置必須自己保存（§4.4）。
 
+v1.8.0 起換頁走瀏覽器原生的跨文件 View Transitions：只有主區（`.nc-main-pane`）淡入，Rail、Sidebar、頁籤列不動；頁籤列與系列進度由 inline script 在第一次繪製前預繪。見 [notecraft-workbench-loading-transitions.md](notecraft-workbench-loading-transitions.md)。
+
 ### 4.2 `WorkbenchLayout.astro`
 
 取代 `BaseLayout.astro`，由各頁傳入頁首資料：
@@ -166,9 +168,12 @@ Prototype 是一棵 React tree，但正式版**不照搬成 SPA**。理由：
   <Sidebar />                   靜態 .astro + 一個小 island
   <div class="wb-main">
     <TabBar client:load />      頁籤列 34px（v1.7.0 起，見 notecraft-workbench-note-tabs.md）
-    <Header />                  靜態 .astro（互動型 Tab 例外，見 §4.3）
-    <slot name="toolbar" />
-    <div id="nc-scroll" class="wb-body"> <slot /> </div>
+    <div id="nt-pre" />         頁籤列預繪層（v1.8.0；inline script 畫、TabBar 畫好後移除）
+    <div class="nc-main-pane">  換頁時唯一轉場的區塊（view-transition-name: nc-main，v1.8.0）
+      <Header />                靜態 .astro（互動型 Tab 例外，見 §4.3）
+      <slot name="toolbar" />
+      <div id="nc-scroll" class="wb-body"> <slot /> </div>
+    </div>
   </div>
 </div>
 <Palette client:idle />  <ToastHost client:idle />  {isDev && <NewNoteModal client:idle />}

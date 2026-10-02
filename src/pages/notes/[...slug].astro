@@ -10,6 +10,7 @@ import ReadingControl from "@/components/islands/ReadingControl.tsx";
 import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
+import NoteSkeleton from "@/components/wb/NoteSkeleton.astro";
 import Icon from "@/components/Icon.astro";
 import { getAllNotes, parseMarkers, tagStats } from "@/lib/notes";
 import { loadSeries, seriesOf } from "@/lib/series";
@@ -105,7 +106,10 @@ const toc = headings
       />
     )}
   </Fragment>
-  <div class="wb-host">
+  {/* 骨架在內容之前，內容開頭一到就藏（loading-transitions §8.3） */}
+  <div class="nc-body-wrap">
+  <NoteSkeleton toc={toc.length > 0} />
+  <div class="wb-host nc-content">
   <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
     <article class="nc-note-article" style="min-width:0;">
       <div style="margin-bottom:14px;">
@@ -166,6 +170,7 @@ const toc = headings
         <Toc client:visible items={toc} />
       </div>
     )}
+  </div>
   </div>
   </div>
 </WorkbenchLayout>

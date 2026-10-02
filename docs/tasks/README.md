@@ -578,3 +578,36 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - **每次寫 store 都先重讀 localStorage**，不拿 React state 當來源（多個瀏覽器分頁同時開）
 > - 浮層（選單、下拉、手機抽屜）走 `wb-escape` 堆疊；`workbench.css` 規則零色碼；`.nt-*` 規則放在第一個 860px 殼響應式區塊之前
 > - 快捷鍵只用 `⌥`、比對 `event.code`，焦點在輸入元件內不攔截
+
+## v1.19.0 追加功能（§8.1 Phase 4.23）— Loading 與轉場（notecraftapp v1.8.0） ✅ 已完成（2026-10-02）
+
+規格 [notecraft-workbench-loading-transitions.md](../notecraft-workbench-loading-transitions.md)；設計交付 [design_handoff_loading_transitions](../prototype/design_handoff_loading_transitions/)。
+處理兩個空白瞬間：第一次進站、進入或切換筆記。換頁改用跨文件 View Transitions，Rail、Sidebar、頁籤列不動，只有主區依情境淡入；頁籤列、系列進度、捲動位置在第一次繪製前就是真值；骨架只在等待超過 150ms 時出現。
+
+> **規格與設計稿不一致時，一律以規格為準。** 主要偏離：頁籤列畫在島外的預繪層、不改 island 的 DOM（Q1）；
+> 不 inline `window.__NC_INDEX`（頁籤已存標題快照）；key、DOM、抽屜 class 依 codebase 實際值；token 全改 `--wb-*`；不做深色模式；
+> Google Fonts 改非阻塞（Q2）；捲動還原提前到 inline script（Q4）；`VizIsland` 只包實測高度差 > 8px 的元件（Q3）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 109](task-109-loading-measure-vt-foundation.md) | 地基：Phase 0 量測、字型非阻塞、主區包裝、跨文件轉場、進度線 | §2、§4、§5、§11、§12 | `WorkbenchLayout.astro`（`.nc-main-pane`、head script）、`workbench.css`（token、轉場規則）、`lib/wb-nav.ts`、`scripts/checks/wb-nav.mjs` |
+| [Task 110](task-110-loading-tabs-prepaint-scroll.md) | 殼的預繪：頁籤列、`.nt-ind` 指示器、系列進度、捲動還原提前、`rel=expect` | §4.4、§5.3、§6、§7、§8.2 | `lib/wb-tabs-prepaint.ts`、`lib/series-progress-pure.ts`、`TabStrip.tsx`、`TabBar.tsx`、`WorkbenchLayout.astro` |
+| [Task 111](task-111-loading-skeletons-viz-island.md) | 骨架、`/notes` 首屏、生成元件高度盤點、`VizIsland`、「—」換值 | §8、§9、§10 | `NoteSkeleton.astro`、`ListSkeleton.astro`、`VizIsland.tsx`、`notes/[...slug].astro`、`view/[...path].astro`、content-visualize skill 與兩個 subagent |
+| [Task 112](task-112-loading-a11y-docs-release.md) | reduced motion、響應式、瀏覽器、viewer 實測、文件回填、發版 | §13–§17、§22 | `workbench.css`、CLAUDE.md／workbench.md／note-tabs.md／PRD／CHANGELOG、v1.8.0 |
+
+**順序**：一條直線。
+
+```
+109 ─ 110 ─ 111 ─ 112
+```
+
+> **交付節奏**：全程在 `feat/loading-transitions` 單一分支上，依 Task 逐步 commit，**Task 112 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `wb-nav.ts`／`wb-tabs-prepaint.ts`／`series-progress-pure.ts` 的再跑 `npm run check:wb`。
+>
+> **幾條貫穿整批的規則**：
+> - **Task 109 的量測先做**；結論與規格 §2 的假設差很多時，先停下來跟作者確認後續優先順序
+> - **以 `toString()` 內嵌進 inline script 的函式必須自足**（不引用模組內其他識別碼），且只能 `import type`、無 JSX、不碰 `window`
+> - **inline script 不改 island 內的 DOM**（React 18 hydration mismatch）；預繪一律畫在島外
+> - `view-transition-name` 同一份文件內唯一（尤其 `nc-tab-ind`）
+> - 新 token 一律 `--wb-*`，規則零色碼；每條動畫都要有 reduced-motion 對應
+> - 驗收以 `astro preview` 為準（`astro dev` 下骨架與進度線出現機率高很多）

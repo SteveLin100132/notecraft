@@ -6,6 +6,7 @@ import { withBase } from "@/lib/base";
 // ER 圖是橫向佈局，1120 都塞不下；渲染器自帶工具列、橫向捲動與全寬覆蓋層，
 // 外層再包一層外框卡片或放大檢視都是重複功能（Q22）。
 import path from "node:path";
+import NoteSkeleton from "@/components/wb/NoteSkeleton.astro";
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import Icon from "@/components/Icon.astro";
 import RelativeTime from "@/components/wb/RelativeTime.tsx";
@@ -85,7 +86,10 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
     <div data-pagefind-body hidden aria-hidden="true">{file.descriptionIndex}</div>
   )}
 
-  <div class="nc-dv-stage">
+  {/* 骨架在內容之前，內容開頭一到就藏（loading-transitions §8.3）；plugin 版面差異大，骨架只示意、不畫目錄 */}
+  <div class="nc-body-wrap">
+  <NoteSkeleton toc={false} />
+  <div class="nc-dv-stage nc-content">
     <PluginHost
       client:load
       pluginId={file.pluginId}
@@ -96,6 +100,7 @@ const series = seriesOf(allNotes, ref, await loadSeries(), getDataFiles());
       rendererPath={rendererPath}
       isDev={isDev}
     />
+  </div>
   </div>
 </WorkbenchLayout>
 

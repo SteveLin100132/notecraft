@@ -8,6 +8,8 @@ export interface Props {
   description?: string;
 }
 const { title, description } = Astro.props;
+const FONTS =
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap";
 ---
 
 <!doctype html>
@@ -19,10 +21,9 @@ const { title, description } = Astro.props;
     {description && <meta name="description" content={description} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap"
-    />
+    {/* 字型 CSS 非阻塞（docs/notecraft-workbench-loading-transitions.md §4.3） */}
+    <link rel="preload" as="style" href={FONTS} onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href={FONTS} /></noscript>
   </head>
   <body style="margin:0;overflow:hidden;background:var(--neutral-100);">
     <slot />

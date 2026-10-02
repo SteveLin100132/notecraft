@@ -42,15 +42,17 @@ function StageCard({
   stage,
   index,
   reduced,
+  show = true,
 }: {
   stage: (typeof PIPELINE_STAGES)[number]
   index: number
   reduced: boolean
+  show?: boolean
 }) {
   return (
     <motion.div
       initial={reduced ? false : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={show ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
       transition={{ duration: 0.3, delay: reduced ? 0 : index * 0.08, ease: 'easeOut' }}
       className={clsx(
         'flex flex-col items-center justify-center rounded-xl px-3 py-3 text-center min-w-0 flex-1',
@@ -237,9 +239,8 @@ export default function ProposalSummary() {
       <div ref={pipelineRef} className="flex items-stretch gap-1.5">
         {PIPELINE_STAGES.map((stage, i) => (
           <div key={stage.label} className="flex items-center gap-1.5 flex-1 min-w-0">
-            {(pipelineInView || reduced) && (
-              <StageCard stage={stage} index={i} reduced={reduced} />
-            )}
+            {/* 一律 render、只延後進場動畫：卡片等進入視窗才出現的話，SSR 那一列是空的，hydrate 時會撐開 42px 推動下方內容 */}
+            <StageCard stage={stage} index={i} reduced={reduced} show={pipelineInView || reduced} />
             {i < PIPELINE_STAGES.length - 1 && (
               <ChevronRight
                 size={14}

@@ -1,0 +1,39 @@
+---
+// 筆記 Body 骨架（純 HTML/CSS，不依賴 JS）。放在 <article class="nc-content"> 之前；
+// CSS（nc-loading.css 已含）：.nc-body-wrap:has(> .nc-content) > .nc-body-sk-flow { display:none }
+// 尺寸對應 NoteView：wb-host padding 26px 32px，內文 + 220px 目錄、gap 40px（≤860px 單欄、目錄隱藏）
+const P = (ws: number[]) => ws;
+---
+<div class="nc-body-sk-flow wb-body" aria-busy="true" aria-label="筆記載入中">
+  <div class="wb-host nc-sk-root" aria-hidden="true">
+    <span class="nc-sk" style="width:96px;height:12px;margin-bottom:22px"></span>
+    <div class="nc-sk-note">
+      <div class="nc-sk-art">
+        <div style="display:flex;gap:6px;margin-bottom:18px">
+          <span class="nc-sk r" style="width:56px;height:22px"></span><span class="nc-sk r" style="width:68px;height:22px"></span><span class="nc-sk r" style="width:46px;height:22px"></span>
+        </div>
+        <span class="nc-sk" style="width:62%;height:30px;margin-bottom:10px"></span>
+        <span class="nc-sk" style="width:34%;height:30px;margin-bottom:20px"></span>
+        <div class="nc-sk-lines" style="margin-bottom:20px"><span class="nc-sk" style="width:88%;height:14px"></span><span class="nc-sk" style="width:64%;height:14px"></span></div>
+        <div class="nc-sk-meta">
+          <span class="nc-sk r" style="width:168px;height:26px"></span><span class="nc-sk" style="width:112px;height:11px"></span><span class="nc-sk" style="width:124px;height:11px"></span><span style="flex:1"></span><span class="nc-sk r" style="width:86px;height:26px"></span>
+        </div>
+        <span class="nc-sk" style="width:38%;height:20px;margin:34px 0 16px"></span>
+        <div class="nc-sk-lines" style="margin-bottom:18px">{P([100, 97, 99, 58]).map((w) => <span class="nc-sk" style={`width:${w}%`}></span>)}</div>
+        <div class="nc-sk-code">
+          <div class="nc-sk-code-h"><span class="nc-sk" style="width:52px;height:9px"></span><span style="flex:1"></span><span class="nc-sk" style="width:40px;height:9px"></span></div>
+          <div class="nc-sk-code-b">{[[46, 0], [62, 18], [38, 18], [70, 36], [52, 18], [28, 0]].map(([w, m]) => <span class="nc-sk" style={`width:${w}%;height:9px;margin-left:${m}px`}></span>)}</div>
+        </div>
+        <div class="nc-sk-lines" style="margin-bottom:18px">{P([98, 100, 74]).map((w) => <span class="nc-sk" style={`width:${w}%`}></span>)}</div>
+        <div class="nc-sk-fig" style="height:300px">
+          <div class="nc-sk-fig-h"><span class="nc-sk sq" style="width:14px;height:14px"></span><span class="nc-sk" style="width:72px;height:9px"></span><span style="flex:1"></span><span class="nc-sk" style="width:140px;height:9px"></span></div>
+          <div class="nc-island-ph-b"><span class="nc-sk" style="width:auto;height:auto"></span></div>
+        </div>
+      </div>
+      <nav class="nc-sk-toc" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between"><span class="nc-sk" style="width:34px;height:10px"></span><span class="nc-sk" style="width:64px;height:9px"></span></div>
+        <div class="nc-sk-toc-l">{[[0, 120], [1, 96], [1, 132], [0, 104], [1, 88], [2, 72], [0, 112]].map(([d, w]) => <span class="nc-sk" style={`width:${w}px;height:${d ? 9 : 11}px;margin-left:${14 + d * 12}px`}></span>)}</div>
+      </nav>
+    </div>
+  </div>
+</div>

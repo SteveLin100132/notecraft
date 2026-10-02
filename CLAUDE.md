@@ -29,6 +29,7 @@ src/
 ├── lib/wb-calendar.ts           更新月曆的純函式（月格／日曆週／翻頁／標題）；同樣只能 import type、不 import wb-time.ts，scripts/checks/wb-calendar.mjs 斷言
 ├── lib/wb-tabs.ts               頁籤清單的純函式（ensure／close／固定／移動／LRU／鄰居／重開）；只能 import type、不碰 window，scripts/checks/wb-tabs.mjs 斷言
 ├── lib/wb-tabs-store.ts         頁籤的 localStorage 讀寫（每次寫入先重讀、storage 事件同步）；lib/toast.ts 是 ToastHost 掛載前的提示佇列
+├── lib/wb-nav.ts                換頁轉場分類（peer／drill／section）；lib/wb-tabs-prepaint.ts、lib/series-progress-pure.ts 是殼的預繪。三者都以 toString() 內嵌進 inline script：函式必須自足、只能 import type，check:wb 斷言
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
 ├── pages/
@@ -121,6 +122,10 @@ status: pending | generated | locked | failed
   清單存 `nc-tabs-v1:<workspaceLabel>`（依工作區分開），**含標題快照**、idle 時以 `/wb-index.json` 覆寫並清掉已不存在的；SSR 只輸出空列（手機是空的計數框）。
   頁籤是 `<a role="tab">` 並排 ✕（中鍵關閉）；捲動還原遇網址 hash 讓位、還原期間不記錄；快捷鍵只用 ⌥ 且比對 `event.code`、輸入元件內不攔；
   頁面剛載入時要發的提示走 `lib/toast.ts`（`nc-toast` 事件在 ToastHost 掛載前會遺失）；刪除筆記要先關掉對應頁籤
+- **Loading 與轉場**（v1.8.0，[docs/notecraft-workbench-loading-transitions.md](docs/notecraft-workbench-loading-transitions.md)）：跨文件 View Transitions，只有 `.nc-main-pane` 命名 `nc-main`，Rail／Sidebar／頁籤列不動；
+  **`@view-transition` 必須在 head 的 inline `<style>`**（只放外部 CSS 時，快速就緒的頁面會被 Chrome 中止轉場），與 `workbench.css` 的同名規則由 `check:wb` 對照；head 固定 `rel=expect` 主區開頭的 `#nc-pane-start`（否則新頁快照沒有主區）。
+  頁籤列與 Sidebar 系列進度由 inline script 在第一次繪製前預繪，頁籤畫在**島外**的 `#nt-pre`（**不可改 island 自己的 DOM**，React 18 會 hydration mismatch），TabBar 清單含目前頁面時移除；`.nt-ind` 的 `view-transition-name` 同一份文件只能有一個。
+  捲動還原在主區結尾的 inline script（`data-nc-restored`）；`.nc-main-pane` 不設 position（Drawer 以 `.wb-main` 為定位基準）。骨架外層不用 `.wb-host` class（`Toc.tsx` 以它量寬度）。新 token 一律 `--wb-*`，每條動畫要有 reduced-motion 對應
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）

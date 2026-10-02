@@ -1,0 +1,131 @@
+/* NoteCraft — Loading 與轉場（Prototype 與正式版共用）
+   依賴 wb/pt.css 的 --wb-* token。新增 token 集中在下方 :root／.wb-dark。 */
+:root{
+--wb-sk:#e8ecf2;--wb-sk-hi:#f4f6f9;--wb-sk-frame:#fbfcfe;--wb-progress:var(--wb-blue-l);
+--nc-sk-delay:150ms;--nc-sk-min:300ms;--nc-sk-label-delay:800ms;--nc-sk-period:2.4s;
+--nc-ease:cubic-bezier(.22,.7,.3,1);
+--nc-dur-out:120ms;--nc-dur-in:240ms;--nc-dur-drill:280ms;--nc-dur-section:200ms;--nc-dur-ind:240ms;--nc-dur-swap:200ms;--nc-dur-drawer:220ms;
+--nc-rise:4px;--nc-rise-drill:8px}
+.wb-dark{--wb-sk:#222935;--wb-sk-hi:#29313d;--wb-sk-frame:#1d2430}
+
+/* ── 骨架 ── */
+.nc-sk-root{opacity:1;transition:opacity 200ms var(--nc-ease) var(--nc-sk-delay)}
+@starting-style{.nc-sk-root{opacity:0}}
+.nc-sk{display:block;flex:none;height:12px;border-radius:4px;background:linear-gradient(100deg,transparent 38%,var(--wb-sk-hi) 50%,transparent 62%) 0 0/200vw 100% fixed var(--wb-sk);animation:ncSkSweep var(--nc-sk-period) linear infinite}
+.nc-sk.r{border-radius:999px}
+.nc-sk.sq{border-radius:3px}
+@keyframes ncSkSweep{from{background-position:0 0}to{background-position:200vw 0}}
+.nc-sk-row{height:var(--pt-row-h,38px);display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid var(--wb-line-2);background:var(--wb-panel)}
+.nc-sk-tb{height:40px;flex:0 0 40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--wb-line);background:var(--wb-panel)}
+.nc-sk-note{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:40px;align-items:start}
+.nc-sk-art{display:flex;flex-direction:column;min-width:0}
+.nc-sk-lines{display:flex;flex-direction:column;gap:11px}
+.nc-sk-meta{display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--wb-line);flex-wrap:wrap}
+.nc-sk-code{border:1px solid var(--wb-line);border-radius:var(--radius-lg,8px);background:var(--wb-sk-frame);overflow:hidden;margin:22px 0}
+.nc-sk-code-h{height:34px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--wb-line-2);background:var(--wb-panel)}
+.nc-sk-code-b{padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+.nc-sk-fig{border:1px solid var(--wb-line);border-radius:var(--radius-lg,8px);background:var(--wb-sk-frame);overflow:hidden;margin:26px 0;display:flex;flex-direction:column}
+.nc-sk-fig-h{height:39px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--wb-line-2);background:var(--wb-panel);font-family:var(--font-mono);font-size:11px;color:var(--wb-ink-3)}
+.nc-sk-toc{display:flex;flex-direction:column;gap:12px;position:sticky;top:8px}
+.nc-sk-toc-l{display:flex;flex-direction:column;gap:12px;border-left:2px solid var(--wb-line);padding:4px 0}
+.nc-sk-tab{width:150px;flex:none;display:flex;align-items:center;gap:7px;padding:0 10px;border-right:1px solid var(--wb-line)}
+@media(max-width:860px){.nc-sk-note{grid-template-columns:minmax(0,1fr)}.nc-sk-toc{display:none}}
+body.pt-mobile .nc-sk-note{grid-template-columns:minmax(0,1fr)}
+body.pt-mobile .nc-sk-toc{display:none}
+@media(max-width:860px){.nc-sk-row .nc-sk-x{display:none}.nc-sk-row{height:auto;min-height:46px;flex-wrap:wrap;padding:9px 14px;row-gap:6px}}
+body.pt-mobile .nc-sk-row .nc-sk-x{display:none}
+body.pt-mobile .nc-sk-row{height:auto;min-height:46px;flex-wrap:wrap;padding:9px 14px;row-gap:6px}
+
+/* ── 殼與主區 ── */
+.nc-main-pane{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;view-transition-name:nc-main}
+.nc-body-wrap{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.nc-skel .nc-body-wrap>.wb-body{visibility:hidden}
+.nc-body-sk{position:absolute;left:0;right:0;bottom:0;overflow:hidden;background:var(--wb-bg);z-index:2}
+.nc-swap>.wb-body{animation:ncFadeIn var(--nc-dur-swap) var(--nc-ease)}
+/* 正式版：串流骨架與內容在同一個 .nc-body-wrap，內容開頭一到就藏起骨架（不需要 JS） */
+.nc-body-sk-flow{flex:1;min-height:0;overflow:hidden}
+.nc-body-wrap:has(>.nc-content)>.nc-body-sk-flow{display:none}
+.nc-body-wrap>.nc-content{animation:ncFadeIn var(--nc-dur-swap) var(--nc-ease)}
+
+.nc-boot{position:fixed;inset:0;z-index:90;background:var(--wb-bg);transition:opacity 200ms var(--nc-ease)}
+.nc-boot.out{opacity:0;pointer-events:none}
+.nc-boot .nc-main-pane,.nc-boot .nt-ind,.nc-boot .wb-sb,.nc-ghost,.nc-ghost *{view-transition-name:none!important}
+.nc-boot .wb-rail-btn,.nc-boot .nt-tab{pointer-events:none}
+
+/* 舊頁等待回應：超過門檻才出現的 2px 進度線 */
+.nc-progress{position:absolute;left:0;right:0;top:0;height:2px;z-index:8;background:var(--wb-progress);transform-origin:0 50%;transform:scaleX(.35);opacity:1;transition:opacity 0s var(--nc-sk-delay);animation:ncProg 2.4s var(--nc-ease) var(--nc-sk-delay) both;pointer-events:none}
+@starting-style{.nc-progress{opacity:0}}
+@keyframes ncProg{from{transform:scaleX(.06)}to{transform:scaleX(.85)}}
+
+/* ── 頁籤指示器（獨立命名，跨頁滑動）── */
+.nt-tab.on{box-shadow:none}
+.nt-tab.on:focus-visible{box-shadow:inset 0 0 0 2px var(--wb-blue-l)}
+.nt-ind{position:absolute;left:0;right:0;top:0;height:2px;background:var(--wb-blue);view-transition-name:nc-tab-ind;pointer-events:none}
+
+/* ── 互動元件（island）佔位 ── */
+.nc-island{position:relative;display:flow-root}
+.nc-island.pending>.nc-island-real{visibility:hidden}
+.nc-island.ready>.nc-island-real.was{animation:ncFadeIn var(--nc-dur-swap) var(--nc-ease)}
+.nc-island-ph{position:absolute;inset:26px 0;margin:0}
+.nc-island-ph .nc-sk-fig{position:absolute;inset:0;margin:0}
+.nc-island-ph-b{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.nc-island-ph-b .nc-sk{position:absolute;inset:14px;height:auto;opacity:.55;border-radius:6px}
+.nc-island-lbl{position:relative;font-size:12px;color:var(--wb-ink-3);background:var(--wb-sk-frame);padding:3px 10px;border-radius:999px;opacity:1;transition:opacity 200ms var(--nc-ease) var(--nc-sk-label-delay)}
+@starting-style{.nc-island-lbl{opacity:0}}
+
+/* ── SSR「—」佔位 → 真值（第二層：主區內的相對數值）── */
+.nc-pending :is(.wb-row-d.tnum,.wb-kpi-sub b,.dv-row1>:nth-child(2) .dv-kpi-n){position:relative;color:transparent!important}
+.nc-pending :is(.wb-row-d.tnum,.wb-kpi-sub b,.dv-row1>:nth-child(2) .dv-kpi-n)::after{content:"—";position:absolute;right:0;top:0;color:var(--wb-ink-3);font-weight:400}
+.nc-pending :is(.wb-kpi-sub b,.dv-kpi-n)::after{left:0;right:auto}
+.nc-hyd :is(.wb-row-d.tnum,.wb-kpi-sub b,.dv-row1>:nth-child(2) .dv-kpi-n){animation:ncFadeIn var(--nc-dur-swap) var(--nc-ease)}
+
+/* ── 跨文件 View Transitions ── */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation:none}
+::view-transition-group(nc-main){animation-duration:var(--nc-dur-in)}
+::view-transition-old(nc-main){animation:ncOut var(--nc-dur-out) var(--nc-ease) both}
+::view-transition-new(nc-main){animation:ncInPeer var(--nc-dur-in) var(--nc-ease) both}
+html[data-nc-vt="drill"]::view-transition-new(nc-main){animation:ncInDrill var(--nc-dur-drill) var(--nc-ease) both}
+html[data-nc-vt="section"]::view-transition-new(nc-main){animation:ncFadeIn var(--nc-dur-section) var(--nc-ease) both}
+::view-transition-group(nc-tab-ind){animation-duration:var(--nc-dur-ind);animation-timing-function:var(--nc-ease)}
+::view-transition-old(nc-tab-ind){animation:none;display:none}
+::view-transition-new(nc-tab-ind){animation:none}
+::view-transition-group(nc-title){animation-duration:300ms;animation-timing-function:var(--nc-ease)}
+@media(max-width:1100px){.wb-sb{view-transition-name:nc-drawer}.wb-sb-scrim{view-transition-name:nc-scrim}}
+body.pt-mobile .wb-sb,body.pt-tablet .wb-sb{view-transition-name:nc-drawer}
+::view-transition-group(nc-drawer){animation-duration:var(--nc-dur-drawer);animation-timing-function:var(--nc-ease)}
+::view-transition-old(nc-drawer){display:none}
+::view-transition-new(nc-drawer){animation:none}
+::view-transition-old(nc-scrim){animation:ncOut var(--nc-dur-drawer) var(--nc-ease) both}
+@keyframes ncOut{to{opacity:0}}
+@keyframes ncFadeIn{from{opacity:0}}
+@keyframes ncInPeer{from{opacity:0;transform:translateY(var(--nc-rise))}}
+@keyframes ncInDrill{from{opacity:0;transform:translateY(var(--nc-rise-drill))}}
+
+/* ── 減少動態：取消位移、shimmer、指示器滑動；主區只留 100ms 淡入 ── */
+@media (prefers-reduced-motion:reduce){
+::view-transition-group(*){animation-duration:0s!important}
+::view-transition-old(*){animation:none!important;display:none}
+::view-transition-new(*){animation:none!important}
+::view-transition-new(nc-main){animation:ncFadeIn 100ms linear both!important}
+.nc-sk{animation:none;background-image:none}
+.nc-sk-root,.nc-island-lbl{transition-duration:0s}
+.nc-progress{animation:none;transform:none;opacity:.55}
+.nc-swap>.wb-body,.nc-body-wrap>.nc-content,.nc-island.ready>.nc-island-real.was,.nc-hyd :is(.wb-row-d.tnum,.wb-kpi-sub b,.dv-row1>:nth-child(2) .dv-kpi-n){animation:none}
+.nc-boot{transition:none}
+}
+html.nc-rm::view-transition-group(*){animation-duration:0s!important}
+html.nc-rm::view-transition-old(*){animation:none!important;display:none}
+html.nc-rm::view-transition-new(*){animation:none!important}
+html.nc-rm::view-transition-new(nc-main){animation:ncFadeIn 100ms linear both!important}
+.nc-rm .nc-sk{animation:none;background-image:none}
+.nc-rm .nc-sk-root,.nc-rm .nc-island-lbl{transition-duration:0s}
+.nc-rm .nc-progress{animation:none;transform:none;opacity:.55}
+.nc-rm .nc-swap>.wb-body,.nc-rm .nc-island.ready>.nc-island-real.was,.nc-rm .nc-hyd :is(.wb-row-d.tnum,.wb-kpi-sub b,.dv-row1>:nth-child(2) .dv-kpi-n){animation:none}
+.nc-rm .nc-boot{transition:none}
+
+/* ── 靜態示範：轉場中間格（只用於 Spec 截圖）── */
+.nc-ghost{position:absolute;z-index:3;pointer-events:none;opacity:.2}
+.nc-mid-new{opacity:.45;transform:translateY(2.4px)}
+.nc-mid-bar .nt-ind{display:none}
+.nc-mid-ind{position:absolute;top:0;height:2px;background:var(--wb-blue);z-index:5;pointer-events:none}

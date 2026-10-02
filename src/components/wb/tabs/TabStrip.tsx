@@ -180,6 +180,8 @@ export default function TabStrip({ tabs, activeKey, allOpen = false, onClose, on
                       onMenu(t.key, e.clientX, e.clientY, false);
                     }}
                   >
+                    {/* 指示器是獨立元素：view-transition-name: nc-tab-ind 讓它跨頁滑動（loading-transitions §5.3） */}
+                    {on ? <i className="nt-ind" aria-hidden="true" /> : null}
                     <a
                       className="nt-tab-main"
                       role="tab"
