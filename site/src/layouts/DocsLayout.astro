@@ -10,14 +10,12 @@ import { readVersion } from "../lib/changelog";
 type Props = {
   title: string;
   description: string;
-  /** 目前頁的 slug；文件首頁不帶。 */
-  slug?: string;
+  slug: string;
   headings?: MarkdownHeading[];
 };
 
 const { title, description, slug, headings = [] } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
-const docsHome = `${base}docs/`;
 const href = (s: string) => `${base}docs/${s}/`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const version = readVersion();
@@ -29,8 +27,8 @@ const pages = flatPages(nav);
 const idx = slug ? pages.findIndex((p) => p.slug === slug) : -1;
 const page = idx >= 0 ? pages[idx] : undefined;
 const prev = idx > 0 ? pages[idx - 1] : undefined;
-const next = idx >= 0 ? pages[idx + 1] : pages[0];
-const folio = page ? `第 ${page.chapter.no} 章・${page.chapter.title}` : "目錄";
+const next = idx >= 0 ? pages[idx + 1] : undefined;
+const folio = page ? `第 ${page.chapter.no} 章・${page.chapter.title}` : "";
 
 const contains = (n: NavNode): boolean => n.slug === slug || !!n.children?.some(contains);
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
@@ -74,7 +72,7 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
             </svg>
             <span>NoteCraftApp</span>
           </a>
-          <a class="spine-title" href={docsHome} aria-current={page ? undefined : "page"}>
+          <a class="spine-title" href={href(pages[0].slug)}>
             使用文件<span class="spine-ver">v{version}</span>
           </a>
         </div>
@@ -84,7 +82,7 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
             {
               nav.map((ch) => (
                 <li>
-                  <details open={page ? page.chapter.no === ch.no : ch.no === "1" || ch.no === "2"}>
+                  <details open={page?.chapter.no === ch.no}>
                     <summary>
                       <span class="ch-no">{ch.no}</span>
                       <span class="ch-title">{ch.title}</span>
@@ -197,7 +195,7 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
                   )}
                   {next && (
                     <a class="pager-link pager-next" href={href(next.slug)} rel="next">
-                      <span class="pager-dir">{page ? "下一節" : "從第一節開始"}</span>
+                      <span class="pager-dir">下一節</span>
                       <span class="pager-t">
                         <span class="pager-no">{next.no}</span>
                         {next.title}

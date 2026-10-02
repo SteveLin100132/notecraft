@@ -1,0 +1,123 @@
+---
+description: 從各頁文件整理出最常踩到的問題，依安裝啟動、撰寫顯示、AI 生成、Plugin、部署與搜尋分類，每題附解法與詳細說明的連結。
+---
+
+每題只寫結論與解法，細節請跟著連結到對應的頁面。
+
+## 安裝與啟動
+
+### 執行後一直出錯，Node.js 版本要多少？
+
+需要 Node.js 22 以上。先跑 `node -v` 確認；電腦上裝了多個版本（例如用 nvm 管理）時，目前終端機用的可能是比較舊的那個。首次執行還會跑一次 `npm install`，`npm` 也要能用。見[系統需求](/docs/getting-started/requirements/#nodejs)。
+
+### 執行 `view` 之後，瀏覽器沒有打開？
+
+`view` 本來就不會自動開瀏覽器，手動前往 `http://127.0.0.1:4321/`。實際網址以終端機裡 Astro 啟動訊息的 `Local` 那一行為準。會自動開瀏覽器的是 `serve`。見[第一次啟動](/docs/getting-started/first-run/#打開瀏覽器)。
+
+### `view` 和 `serve` 可以同時開嗎？
+
+兩者預設都用 port `4321`。要同時開，其中一個加 `--port` 換個 port，例如 `npx notecraftapp serve ./docs --port 4322`；或照教學的做法，先在 `view` 的終端機按 `Ctrl+C` 停掉，再開 `serve`。見[五分鐘教學](/docs/getting-started/tutorial/#5-開-serve請-claude-code-生成)與 [CLI](/docs/reference/cli/)。
+
+### 頁首沒有「+ 新增筆記」，也不能改標籤？
+
+寫入 UI 只在 `view` 出現。`serve`、`build` 的產物與部署出去的站都是唯讀的。要新增或編輯，改用 `npx notecraftapp view`。見[三個子命令怎麼選](/docs/getting-started/install/#三個子命令怎麼選)。
+
+### 換個目錄執行，生成元件和 Plugin 就不見了？
+
+`.notecraft/`（生成元件、Plugin、設定）以**執行指令時所在的目錄**為準，不是筆記資料夾。固定在專案根執行，把筆記資料夾當參數傳入，例如 `npx notecraftapp view ./docs`。見[專案結構](/docs/getting-started/project-structure/#notecraft-在哪裡)。
+
+### 升級後沒看到新功能？
+
+先用 `npx notecraftapp --version` 確認跑的是新版。不寫版本時 npx 可能沿用之前下載過的版本，寫成 `npx notecraftapp@latest …` 才確定是最新版。1.8.1 起，升級後第一次 `build`／`serve` 會自動重新 build；更早的版本在筆記沒變時會沿用舊產物，要加 `--rebuild`。`view` 不用快取，不受影響。用到 AI 生成的話，再跑一次 `init-skill` 更新 Skill。見[升級](/docs/resources/upgrade/)與[安裝內建 Skill](/docs/getting-started/skills/#檢查版本)。
+
+### Windows 上筆記和使用者目錄在不同磁碟，能用嗎？
+
+可以。Windows 11 已驗證筆記資料夾與 `~/.notecraft` 位於不同磁碟的情況，`view`、`build`、`serve`、`init-skill`、`install-plugin` 都能用。見[系統需求](/docs/getting-started/requirements/#作業系統)。
+
+## 撰寫與顯示
+
+### 用 `--host 0.0.0.0` 開放到區網，其他裝置看不到圖片？
+
+這是刻意的。筆記圖片走 `/notes-assets/*`，只回應本機（`127.0.0.1`）的連線，其他裝置連進來時回 403：頁面看得到，相對路徑的圖片不會顯示。要讓別人看到圖片，把 `build` 產物連同圖片部署出去。見[安全模型](/docs/advanced/security/#開放到區網)與[圖片與附件](/docs/writing/images/#會被改寫成什麼)。
+
+### 從區網連進來時，程式碼的複製鈕按了沒用？
+
+1.8.1 以前的版本會這樣：以 `http://<IP>` 連進來時，瀏覽器不提供剪貼簿 API，按鈕仍顯示「已複製」，但剪貼簿裡沒有東西。升級到 1.8.2 以上，複製鈕會改用舊的複製方式；真的複製不了時顯示「無法複製」並選取整段程式碼，自己按複製鍵即可。見[程式碼區塊](/docs/writing/code-blocks/#複製鈕)。
+
+### MDX 裡寫的 `<img>` 圖片不顯示？
+
+只有 Markdown 的圖片語法 `![](…)` 的相對路徑會被改寫成 `/notes-assets/…`。手寫的 `<img src="./cover.png" />` 不會處理，改用 `![](./cover.png)`。見[圖片與附件](/docs/writing/images/#不會被改寫的)。
+
+### MDX 編譯錯誤，要怎麼看？
+
+`view` 打開那篇筆記會出現錯誤畫面，`build` 會整個失敗，錯誤訊息都會標出行號與欄位。常見原因是一般文字裡的 `{`、`<`，以及 `<!-- -->` 註解，改法見 [MDX 常見陷阱](/docs/writing/md-vs-mdx/#mdx-常見陷阱)。用 `serve` 時，已有能用的產物就保留舊版、錯誤印在終端機；第一次 build 就失敗則每頁顯示一張附錯誤節錄的等待頁，修好存檔會自動恢復，見[即時預覽](/docs/guides/live-preview/#build-失敗時)。
+
+### 筆記標題變成程式碼裡的一行註解？
+
+1.8.1 以前的版本沒寫 frontmatter 的 `title` 時，標題取檔案裡第一個 `# ` 開頭的行，程式碼區塊裡的也算。升級到 1.8.2 以上就會略過程式碼區塊；不想升級的話，把 `title` 寫進 frontmatter。見[標題、目錄與錨點](/docs/writing/headings/#h1-與-frontmatter-的-title)。
+
+### 新增筆記時選了資料夾，檔案卻在最上層？
+
+透過 `npx notecraftapp view` 建立的筆記一律放在筆記資料夾最上層，表單裡的資料夾選項目前不會生效。建立後自己把檔案搬進子資料夾。見[在介面新增與編輯](/docs/guides/editing/#新增筆記)。
+
+## AI 生成
+
+### 寫了 `@ai-visualize` 標記，卻沒有反應？
+
+依序檢查：
+
+- **副檔名是 `.md`**：標記只在 `.mdx` 有效，`.md` 不會被掃描，標記文字還會直接顯示出來。改成 `.mdx`，見 [Markdown 與 MDX](/docs/writing/md-vs-mdx/#什麼時候改成-mdx)
+- **`status` 是 `locked` 或 `failed`**：`locked` 一律跳過；`failed` 預設不重跑，要改 `prompt` 後明確要求，或把 `status` 改回 `pending`。見[狀態與重新生成](/docs/guides/ai-status/#重新生成)
+- **還沒叫 Claude Code 處理**：生成只在 Claude Code 對話裡發生，`view`、`build` 不會自動生成。先跑過 `init-skill`，再在對話裡說「處理視覺化」，見[生成流程](/docs/guides/ai-pipeline/#事前準備)
+
+### 生成完元件沒出現，或標記變成 `failed`？
+
+元件驗證沒過就不會寫回筆記。component-generator 最多修 3 次，仍失敗就把標記改成 `status: failed`，錯誤節錄在對話裡。驗證看的是 build 結果：開著 `serve` 時錯誤印在它的終端機，第一次 build 就失敗時瀏覽器會顯示錯誤頁。見[驗證與失敗](/docs/guides/ai-pipeline/#驗證與失敗)與[即時預覽](/docs/guides/live-preview/#build-失敗時)。
+
+### AI 說要用某個套件，停下來問我？
+
+元件只能 import 白名單裡的套件：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`，以及相對路徑。需要白名單外的套件時，component-generator 會刪掉剛寫的檔並在對話裡問你，不會直接用。見[驗證與失敗](/docs/guides/ai-pipeline/#驗證與失敗)。
+
+### 互動元件出現了，但按了沒反應？
+
+有動畫或互動的元件要在被包住的元件上加 `client:visible`，少了它畫面照樣出現，但不會動。加在元件上，不是 `GeneratedFrame` 上。見[在筆記裡嵌元件](/docs/writing/embed/#clientvisible-什麼時候加)。
+
+### 刪掉元件檔之後 build 失敗？
+
+刪掉一個還被筆記 `import` 的元件，build 會失敗。把元件檔還原，或把筆記裡的 `import` 與元件拿掉。刪之前先用 `grep` 確認沒有筆記在引用它。見[孤兒元件](/docs/guides/ai-orphans/#手動清理)。
+
+## Plugin
+
+### 加了 Plugin 之後 build 失敗？
+
+`plugins.json` 指到沒安裝的 plugin、JSON 寫壞、資料不符合 schema、`files` 比對到 `.md`／`.mdx`，build 都會失敗。一時修不好，先把 plugin id 寫進 `plugins.json` 頂層的 `disabled`，或在 `view` 的 `/plugins` 頁關掉開關，站就 build 得出來。見[啟用與停用](/docs/guides/plugin-toggle/#什麼時候停用)與 [plugins.json 的 build 檢查](/docs/reference/plugin-json/#build-時的檢查)。
+
+### 停用 Plugin 之後，build 反而失敗？
+
+筆記裡有 `<PluginView>` 指向被停用 plugin 的資料檔時，build 會以「找不到資料檔」失敗。停用前先搜尋筆記裡的 `<PluginView src="...">`，把那幾處拿掉或註解掉。見[停用後會怎樣](/docs/guides/plugin-toggle/#停用後會怎樣)。
+
+### `install-plugin --remove` 之後，build 失敗？
+
+`--remove` 只刪 `.notecraft/plugins/<id>/`，不動 `plugins.json`。裡面還有指向它的規則，下次 build 就會失敗，把那幾條規則刪掉。見 [CLI](/docs/reference/cli/#install-plugin)。
+
+### `install-plugin` 列不出官方 store？
+
+官方 store 的清單每次都即時從 GitHub 讀取，離線時無法列出或安裝官方 Plugin。連上網路再試；開發自己的 plugin 時可以用本地資料夾來源，例如 `./my-plugin`。見[安裝來源](/docs/guides/plugin-install/#三種來源)。
+
+## 部署與搜尋
+
+### 部署出去的站，筆記圖片全是 404？
+
+`build` 不會把筆記圖片複製進產物。`/notes-assets/*` 在 `view`、`serve` 是從筆記資料夾即時送出的，部署前要自己把圖片照原本的相對路徑複製到產物的 `notes-assets/` 底下。見[部署](/docs/guides/deploy/#筆記裡的圖片)。
+
+### 用 `NOTECRAFT_BASE` build 過，本機 `serve` 就壞了？
+
+`serve` 不處理子路徑前綴，會找不到 CSS 與連結。不帶 `NOTECRAFT_BASE` 再執行一次 `serve`：1.8.1 起 CLI 發現前綴跟上次 build 不同，會自動重新 build。更早的版本快取不看這個變數，要加 `--rebuild`，之後每次改了它也一樣。見[部署到子路徑](/docs/guides/deploy/#部署到子路徑)。
+
+### `⌘K` 搜不到筆記內文？
+
+「內文」分區只在 `build`／`serve` 的產物出現，`view` 不載入全文索引。部署時要連同 `pagefind/` 資料夾一起上傳；終端機印過建索引失敗的警告時，站可用但沒有「內文」，下次 `build` 或 `serve` 啟動會補建。中文較長的詞組可能搜不到，換短一點的詞。見[指令面板與全文搜尋](/docs/guides/palette/#全文搜尋)。
+
+### 閱讀進度在另一台電腦不見了？
+
+閱讀狀態、頁籤、收藏存在瀏覽器的 localStorage，不寫進筆記檔，也不跨瀏覽器或裝置同步，清掉網站資料就歸零。見[系列與閱讀進度](/docs/guides/series/)。

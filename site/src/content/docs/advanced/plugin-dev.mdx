@@ -1,0 +1,305 @@
+---
+description: 從零做一個把 JSON 清單畫成表格的 plugin：寫 manifest、schema 與 renderer.tsx，以本地路徑安裝、嵌進筆記，並知道改完之後怎麼更新、常見錯誤會在哪一步出現。
+---
+
+plugin 由三個檔案組成：manifest、資料的 JSON Schema、渲染器 `renderer.tsx`。這頁做一個叫 `list-table` 的 plugin，把 `*.list.json` 資料檔畫成表格，每一步都可以照著跑。
+
+每個欄位的完整規格見 [plugins.json 與 notecraft-plugin.json](/docs/reference/plugin-json/)。
+
+## 資料夾結構
+
+plugin 原始資料夾放在專案資料夾**外面**，用 `install-plugin` 複製進專案：
+
+```text
+list-table/                   plugin 原始資料夾（你在這裡開發）
+├── notecraft-plugin.json
+├── schema.json
+└── renderer.tsx
+
+my-notes/                     專案根，在這裡執行指令
+├── .notecraft/
+│   ├── plugins.json          安裝時 --apply 寫入
+│   └── plugins/
+│       ├── _types.d.ts       安裝時產生
+│       └── list-table/       安裝時複製過來
+└── notes/                    筆記資料夾
+    └── reading/
+        ├── 2026.mdx
+        └── books.list.json
+```
+
+<Callout type="warn">
+原始資料夾不要放在專案根或筆記資料夾裡面。本地安裝會把來源的絕對路徑記進 `.notecraft/plugins/<id>/.installed.json`，這個路徑落在專案裡時，build 會以「`/wb-index.json` 的輸出含本機絕對路徑」失敗。放在外面就能 build，但來源路徑仍會顯示在 `/plugins` 的 Drawer 上，build 產物也一樣。
+</Callout>
+
+資料檔要放在筆記資料夾裡，`plugins.json` 才比對得到。
+
+## manifest 與 schema
+
+### notecraft-plugin.json
+
+```json title="list-table/notecraft-plugin.json"
+{
+  "$schema": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/notecraft-plugin.schema.json",
+  "id": "list-table",
+  "title": "清單表格",
+  "description": "把 JSON 清單畫成表格",
+  "version": "0.1.0",
+  "dataSchema": "schema.json",
+  "engines": { "notecraftapp": ">=1.6.0" }
+}
+```
+
+- `id` 決定安裝後的資料夾名 `.notecraft/plugins/list-table/`，小寫英數以 `-` 連接
+- `title` 會出現在 `/plugins` 與筆記內嵌的外框上
+- 這個例子會在筆記裡用 `<PluginView options>`，它需要 1.6.0 以上，所以 `engines` 寫 `>=1.6.0`
+- 不寫 `entry` 也不寫要吃哪些檔：入口固定是 `renderer.tsx`，檔案由專案的 `plugins.json` 決定
+
+### schema.json
+
+build 時每個命中的資料檔都會用這份 schema 驗證，規則是 JSON Schema 2020-12。
+
+```json title="list-table/schema.json"
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "清單表格資料檔",
+  "type": "object",
+  "required": ["columns", "items"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "backTo": { "type": "string" }
+      }
+    },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "label"],
+        "properties": {
+          "key": { "type": "string" },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+      }
+    }
+  }
+}
+```
+
+`meta.title`、`meta.description`、`meta.backTo` 是 app 會讀的三個欄位：資料檔頁的標題、描述與「回到來源筆記」連結。schema 要允許它們，資料檔才能帶。
+
+對應的資料檔：
+
+```json title="notes/reading/books.list.json"
+{
+  "meta": {
+    "title": "2026 書單",
+    "description": "今年讀過與想讀的書",
+    "backTo": "/notes/reading/2026"
+  },
+  "columns": [
+    { "key": "title", "label": "書名" },
+    { "key": "author", "label": "作者" },
+    { "key": "status", "label": "狀態" }
+  ],
+  "items": [
+    { "title": "原子習慣", "author": "James Clear", "status": "讀完" },
+    { "title": "深度工作力", "author": "Cal Newport", "status": "讀完" },
+    { "title": "設計的心理學", "author": "Don Norman", "status": "閱讀中" },
+    { "title": "人月神話", "author": "Frederick Brooks", "status": "想讀" }
+  ]
+}
+```
+
+## renderer.tsx
+
+```tsx title="list-table/renderer.tsx"
+import type { PluginRendererProps } from "@notes/plugins/_types";
+
+interface Column {
+  key: string;
+  label: string;
+}
+
+interface ListData {
+  meta?: { title?: string; description?: string };
+  columns: Column[];
+  items: Record<string, string | number | boolean | null>[];
+}
+
+// 以字串注入 <style>：不可含 < > & " ' 這五個字元
+const CSS = `
+.lt-root { padding: 16px; font-size: 14px; color: var(--text-body); }
+.lt-root table { width: 100%; border-collapse: collapse; }
+.lt-root th, .lt-root td { padding: 6px 10px; border-bottom: 1px solid var(--border-subtle); text-align: left; }
+.lt-root th { color: var(--text-muted); font-weight: 600; }
+.lt-root .lt-more { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+`;
+
+export default function ListTable({ data, options, mode }: PluginRendererProps<ListData>) {
+  const limit = typeof options.limit === "number" ? options.limit : data.items.length;
+  const rows = data.items.slice(0, limit);
+  const hidden = data.items.length - rows.length;
+
+  return (
+    <div className="lt-root">
+      <style>{CSS}</style>
+      <table>
+        <thead>
+          <tr>
+            {data.columns.map((c) => (
+              <th key={c.key}>{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((item, i) => (
+            <tr key={i}>
+              {data.columns.map((c) => (
+                <td key={c.key}>{String(item[c.key] ?? "")}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {mode === "embed" && hidden > 0 && <p className="lt-more">還有 {hidden} 筆，開啟完整檢視頁查看。</p>}
+    </div>
+  );
+}
+```
+
+### props
+
+default export 一個 React 元件，收到四個 props：
+
+| prop | 內容 |
+| :-- | :-- |
+| `data` | 資料檔內容，build 時已解析並通過 schema，不是 Promise |
+| `file` | `path`（相對筆記資料夾）、`name`、`updatedAt` |
+| `options` | `plugins.json` 規則的 `options`，筆記內嵌時再疊上 `<PluginView options>`。型別是 `Record<string, unknown>`，自己檢查型別、自己給預設值 |
+| `mode` | `"page"`：`/view/` 獨立頁，標題與描述由頁首顯示，renderer 不用再畫；`"embed"`：嵌在筆記內文的外框裡，寬度較窄 |
+
+型別 `PluginRendererProps` 來自安裝時產生的 `.notecraft/plugins/_types.d.ts`，`@notes` 指向專案根的 `.notecraft/`。plugin 原始資料夾在專案外，編輯器在那裡解析不到這個路徑；介意的話可以把介面直接寫在 `renderer.tsx` 裡，官方 plugin 就是這樣做的，形狀相同即可。
+
+### 能 import 什麼
+
+- 套件只能用白名單：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`
+- plugin 資料夾內的相對路徑可以，例如把樣式拆到 `./styles.ts`
+- 不能用 `dangerouslySetInnerHTML`
+- plugin 資料夾只收 `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png`
+
+這些在安裝時就檢查，不過就拒絕安裝。沒有 `npm install` 這一步，plugin 不能自帶依賴。
+
+### 樣式
+
+上例用 `<style>{CSS}</style>` 注入一段字串：
+
+- 所有規則以自己的根 class（`.lt-root`）開頭，避免影響筆記內文
+- **字串裡不能有 `<`、`>`、`&`、`"`、`'`。** build 時 React 會把它們轉成 `&gt;` 這類實體，`<style>` 裡不會轉回來，選擇器就壞了。子代選擇器用空白（`.lt-root table`），不要用 `>`
+- 顏色可以用 app 的 CSS 變數，例如 `--text-body`、`--text-muted`、`--border-subtle`
+- 也可以直接寫 Tailwind class，build 時會掃描 `.notecraft/plugins/` 裡的檔案
+
+### build 時就會執行一次
+
+renderer 會在 build 時先渲染出 HTML，到瀏覽器再執行一次接上互動。所以：
+
+- 元件本體（render 期間）不能碰 `window`、`document`、`localStorage`，build 會以 `window is not defined` 失敗。這類程式放進 `useEffect`
+- 第一次渲染的結果在 build 與瀏覽器要一樣，依瀏覽器狀態才決定的內容，等 `useEffect` 之後再切換
+- 資料整份寫進頁面 HTML，單一資料檔超過 256 KB 時 build 會印警告
+
+## 安裝與試跑
+
+在專案根執行，用本地路徑安裝，`--apply` 順便寫入映射：
+
+```bash
+npx notecraftapp install-plugin ../list-table --apply "**/*.list.json"
+```
+
+指令會列出來源、id、版本與檔案清單，跑完靜態檢查後問你確認。完成時印出：
+
+```text
+[notecraftapp] ✓ 已安裝 list-table v0.1.0 → .notecraft/plugins/list-table/
+[notecraftapp] ✓ 已在 .notecraft/plugins.json 加入映射：**/*.list.json
+```
+
+`plugins.json` 會多一條規則：
+
+```json title=".notecraft/plugins.json"
+{
+  "plugins": [
+    {
+      "plugin": "list-table",
+      "files": [
+        "**/*.list.json"
+      ]
+    }
+  ]
+}
+```
+
+接著 build：
+
+```bash
+npx notecraftapp build ./notes
+```
+
+`notes/reading/books.list.json` 會變成 `/view/reading/books.list` 一頁，標題取自 `meta.title`。用 `view` 或 `serve` 打開就看得到。
+
+### 嵌進筆記
+
+```mdx title="notes/reading/2026.mdx"
+import PluginView from "@/components/PluginView.astro";
+
+今年的書單前兩本：
+
+<PluginView src="reading/books.list.json" options={{ limit: 2 }} caption="書單前兩本" />
+```
+
+- `src` 的基準是筆記資料夾，不是這篇筆記所在的資料夾
+- `options={{ limit: 2 }}` 只影響這一處，renderer 收到 `mode: "embed"`，表格只畫兩列，下面多一行「還有 2 筆」
+- 外框、放大檢視與「開啟完整檢視頁」連結由 app 提供，renderer 不用畫
+
+`PluginView` 的其他屬性見[嵌入元件](/docs/writing/embed/)。
+
+## 修改後更新
+
+安裝是複製，改原始資料夾不會自動反映到專案。改完用 `--force` 重裝一次：
+
+```bash
+npx notecraftapp install-plugin ../list-table --force
+```
+
+- `--force` 直接覆寫已安裝的檔案，不再問「已安裝，覆寫？」。安裝確認仍會問，加 `--yes` 一起略過
+- 映射已經在了，不用再帶 `--apply`。終端機印出的「下一步」映射提示可以忽略
+- 下一次 `build` 會偵測到 plugin 檔案變動，自動重新 build
+- 覆寫不會刪掉原始資料夾已經刪除的檔案。改過檔名或拆過檔時，先 `install-plugin --remove list-table` 再裝；`--remove` 不會動 `plugins.json`，規則保留
+
+安裝、移除與其他來源見[安裝來源](/docs/guides/plugin-install/)。
+
+## 常見錯誤
+
+| 情況 | 在哪一步出現 | 結果 |
+| :-- | :-- | :-- |
+| import 了白名單外的套件 | 安裝 | 拒絕安裝，例如 `renderer.tsx:2 import 了白名單外的套件「dayjs」` |
+| 用了 `dangerouslySetInnerHTML` | 安裝 | 拒絕安裝，指出檔案與行號 |
+| 已安裝、沒帶 `--force`，又在非互動環境 | 安裝 | 結束並提示帶 `--force` |
+| 資料檔不符合 schema | build | 失敗，例如 `資料檔 reading/bad.list.json 不符合 plugin "list-table" 的 schema：(根層) must have required property 'columns'` |
+| 資料檔不是合法 JSON | build | 失敗，指出檔案 |
+| render 期間碰了 `window` 等瀏覽器物件 | build | 失敗，`window is not defined` |
+| `<style>` 字串含 `>` 等字元 | build 成功 | 選擇器被轉成 `&gt;`，樣式沒套上 |
+| renderer 在瀏覽器執行時 throw | 瀏覽頁面 | 該區塊換成錯誤卡片「這份資料沒有畫出來」，列出 plugin、資料檔與錯誤訊息，頁面其他部分照常 |
+
+錯誤卡片在 `view` 模式多兩顆按鈕：「以 VS Code 開啟渲染器」與「重新載入此區塊」。
+
+壞掉的 plugin 一時修不好，可以先[停用](/docs/guides/plugin-toggle/)讓站照常 build。官方 plugin 的原始碼在 NoteCraftApp repo 的 `plugins/` 資料夾，想看完整的寫法可以參考。

@@ -1,0 +1,132 @@
+---
+description: 筆記裡能嵌兩種東西：AI 生成的元件，以及用 PluginView 內嵌的資料檔。這頁說明兩者的寫法、外框、什麼時候要加 client:visible，以及手動調整時要避開的地方。
+---
+
+嵌元件要用 `import` 與 JSX，所以只能寫在 `.mdx` 筆記裡。`.md` 檔不支援，兩者的差別見 [Markdown 與 MDX](/docs/writing/md-vs-mdx/)。
+
+| 要嵌什麼 | 元件 | 通常誰寫 |
+| :-- | :-- | :-- |
+| AI 生成的視覺化 | `GeneratedFrame` 包住 `.notecraft/components/<id>.tsx` | 生成流程的 mdx-writer |
+| Plugin 渲染的資料檔 | `PluginView` | 你 |
+
+## 生成元件長什麼樣
+
+生成成功後，mdx-writer 會在 `@ai-visualize` 標記正下方寫入 `import` 與元件：
+
+```mdx title="guides/oauth/flow.mdx"
+{/* @ai-visualize
+id: oauth-flow
+type: diagram
+prompt: |
+  畫一張 OAuth 2.0 + PKCE 的時序圖
+status: generated
+*/}
+
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import OauthFlow from '@notes/components/oauth-flow'
+
+<GeneratedFrame id="oauth-flow" type="diagram" prompt={"畫一張 OAuth 2.0 + PKCE 的時序圖"}>
+  <OauthFlow client:visible />
+</GeneratedFrame>
+```
+
+| 部分 | 說明 |
+| :-- | :-- |
+| `@/components/GeneratedFrame.astro` | 外框，內建在 NoteCraftApp 裡，不在你的專案中 |
+| `@notes/components/<id>` | 指向專案根的 `.notecraft/components/<id>.tsx` |
+| 元件名稱 | `id` 轉成大寫開頭的駝峰，例如 `oauth-flow` → `OauthFlow` |
+| `id`、`type` | 與標記相同。`type` 決定外框左上角的類型標示 |
+| `prompt` | 標記的 prompt，以 JSON 字串帶入，給外框的「複製提示詞」按鈕用 |
+| `caption` | 選用。外框底部的一行說明 |
+
+`GeneratedFrame` 的 `import` 每個檔案只寫一次，同一篇有多個生成元件時共用。
+
+標記本身是 MDX 註解，讀者看不到。生成流程的細節見[生成流程](/docs/guides/ai-pipeline/)，標記的寫法見[標記語法](/docs/guides/ai-markers/)。
+
+## 外框提供什麼
+
+`GeneratedFrame` 是一張卡片，標題列由左到右：
+
+- 類型標示，例如「示意圖 · diagram」
+- 來源檔名 `generated/<id>.tsx`
+- 「複製提示詞」（有 `prompt` 時）
+- [放大檢視](/docs/guides/zoom/)
+
+元件本體放在卡片中間，`caption` 在最下面。外框只是展示，不影響元件的互動。
+
+## client:visible 什麼時候加
+
+`client:visible` 讓元件捲到畫面上時才在瀏覽器載入 JavaScript。
+
+| 元件 | 加不加 |
+| :-- | :-- |
+| 有動畫、可以點、拖曳、切換的 | 加 |
+| 純靜態的 SVG 圖 | 不加。只輸出 HTML，頁面比較輕 |
+
+- 加在**被包住的元件**上，不是 `GeneratedFrame` 上
+- 有互動的元件少了它，畫面照樣出現，但按了沒反應
+- mdx-writer 會依元件內容決定加不加，通常不用你處理
+
+## 手動調整時注意
+
+可以自己改的：
+
+- 補上或修改 `caption`
+- 在元件前後加文字段落
+- 直接改 `.notecraft/components/<id>.tsx`。改完把標記的 `status` 改成 `locked`，之後重新生成就不會蓋掉你的修改，見[狀態與重新生成](/docs/guides/ai-status/)
+
+<Callout type="warn">
+不要拿掉 `GeneratedFrame` 這層外框，也不要在外面再包一層自己的卡片。放大檢視是從外框裡把元件搬進全螢幕畫布，少了外框就不能放大，也沒有複製提示詞。
+</Callout>
+
+- 不要只刪標記、留著元件。掃描時比對的是標記的 `id`，這個元件會被列成孤兒，見[孤兒元件](/docs/guides/ai-orphans/)
+- 刪掉 `import` 卻留著 JSX，build 會失敗
+
+## 內嵌資料檔 PluginView
+
+已經交給 plugin 渲染的資料檔，可以用 `PluginView` 嵌進筆記內文：
+
+```mdx
+import PluginView from "@/components/PluginView.astro";
+
+<PluginView src="planning/orders.er.json" caption="訂單模組的資料表關聯" />
+```
+
+| 屬性 | 必填 | 說明 |
+| :-- | :-- | :-- |
+| `src` | ✓ | 資料檔路徑，見下方 |
+| `caption` | | 外框底部的說明 |
+| `options` | | 只影響這一處的 plugin 選項 |
+| `anchor` | | 外框「開啟完整檢視頁」連結後面附加的 hash |
+
+`PluginView` 自己會處理載入，不用加 `client:visible`。
+
+### src 怎麼寫
+
+- 基準是**筆記資料夾**，和 `plugins.json` 的 `files` 一樣，不是這篇筆記所在的資料夾
+- 寫完整檔名，例如 `api/orders.openapi.json`。開頭的 `./` 或 `/` 會被忽略
+- 這個檔案必須已經被 `plugins.json` 的某條規則命中。找不到檔案、或沒有規則認領它，build 會失敗
+
+規則怎麼寫見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。停用 plugin 也會讓指向它的 `PluginView` 找不到檔案，見[啟用與停用](/docs/guides/plugin-toggle/)。
+
+### options 與 anchor
+
+`options` 是淺合併：它蓋過 `plugins.json` 規則裡的同名鍵，其他鍵照舊，只影響這一處內嵌。
+
+```mdx
+<PluginView src="planning/orders.er.json" options={{ defaultRows: 10 }} />
+```
+
+`anchor` 不含 `#`，NoteCraftApp 不解讀它，原樣接在連結後面。能不能用、怎麼寫，由各 plugin 決定：
+
+| Plugin | `anchor` |
+| :-- | :-- |
+| [OpenAPI Renderer](/docs/guides/plugin-openapi/) | 支援，例如 `op/getOrder`、`schema/Order` |
+| [ER Diagram Renderer](/docs/guides/plugin-er/) | 沒有作用，它不讀網址 hash |
+
+### 內嵌的外框
+
+資料檔也包在同一種外框裡，標示換成「資料檔 · plugin 名稱」與資料檔路徑，並多一顆「開啟完整檢視頁」連到 `/view/…`。`view` 模式下還有「以 VS Code 編輯」。
+
+- 內嵌的內容不進全文搜尋索引，避免把整份資料灌進這篇筆記
+- 整份資料會跟著頁面一起送出。大型資料檔只內嵌少數幾處，否則筆記頁會變得很大

@@ -59,7 +59,7 @@ status: pending | generated | locked | failed
 ## 寫法規則
 
 - 開頭固定 `{/* @ai-visualize`，結尾 `*/}`。這是 MDX 註解，不會顯示在內文
-- 標記與寫回的 `import`、元件都是 MDX 語法，只在 `.mdx` 筆記有效；note-scanner 也只掃描 `.mdx`
+- 標記與寫回的 `import`、元件都是 MDX 語法，只在 `.mdx` 筆記有效；note-scanner 也只掃描 `.mdx`。`.md` 裡的標記不會出現在待生成卡片、AI 標記佇列與儀表板計數，`view`／`build` 時終端機會提示把該檔改成 `.mdx`
 - 一行一個欄位，寫成 `欄位: 值`。欄位順序不拘
 - `prompt` 寫成 `prompt: |`，從下一行起每行縮排兩格，可以寫多行
 - 放在你希望元件出現的位置。生成後，`import` 與元件會插在 `*/}` 正下方
