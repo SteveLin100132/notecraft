@@ -4,6 +4,33 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.8.0] - 2026-10-02
+
+### 新增
+
+- 工作台**換頁轉場**（設計文件 `docs/notecraft-workbench-loading-transitions.md`）：Rail、側欄、頁籤列在換頁時不動，只有主區淡入。筆記之間、從列表進入、回到頂層頁面各有一種節奏；重新整理與簡報頁不轉場。不支援的瀏覽器（Firefox）照舊直接切換
+- 頁籤的藍色指示器在切換頁籤時滑到新頁籤
+- 點連結後超過 150ms 還沒換頁，主區頂端出現一條細進度線
+- 慢速網路下，筆記頁與資料檔頁的內容還沒到時顯示骨架（等待不到 150ms 不會出現）
+
+### 變更
+
+- 換頁時頁籤列與側欄的系列進度在第一個畫面就是正確的，不再先空白或閃一下 `0/N`
+- 切回頁籤時，捲動位置在畫面出現前就已還原，轉場中不跳動
+- `/notes` 帶篩選條件開啟時，hydrate 前不再整塊空白，改顯示列表骨架
+- 儀表板的「—」換成數字時淡入
+- Google Fonts 改為非阻塞載入，第一次進站更快畫出畫面（字型可能在載入後換一次）
+
+### 修正
+
+- AI 生成元件 `proposal-summary` 捲到時不再撐開、推動下方內文
+
+### 內部
+
+- 新增 `src/lib/wb-nav.ts`（轉場分類）、`src/lib/wb-tabs-prepaint.ts`（頁籤列預繪）、`src/lib/series-progress-pure.ts`（系列完成數），以原始碼內嵌進 inline script；`check:wb` 串上 `wb-nav`、`wb-tabs-prepaint`、`wb-critical-css` 斷言
+- 新增 `scripts/fixtures/viz-height-audit.mjs`：比對生成元件 SSR 與 hydrate 後的高度
+- content-visualize skill 與 component-generator 新增「SSR 輸出最終高度」規則
+
 ## [1.7.0] - 2026-10-01
 
 ### 新增

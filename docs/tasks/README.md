@@ -579,7 +579,7 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - 浮層（選單、下拉、手機抽屜）走 `wb-escape` 堆疊；`workbench.css` 規則零色碼；`.nt-*` 規則放在第一個 860px 殼響應式區塊之前
 > - 快捷鍵只用 `⌥`、比對 `event.code`，焦點在輸入元件內不攔截
 
-## v1.19.0 追加功能（§8.1 Phase 4.23）— Loading 與轉場（notecraftapp v1.8.0）
+## v1.19.0 追加功能（§8.1 Phase 4.23）— Loading 與轉場（notecraftapp v1.8.0） ✅ 已完成（2026-10-02）
 
 規格 [notecraft-workbench-loading-transitions.md](../notecraft-workbench-loading-transitions.md)；設計交付 [design_handoff_loading_transitions](../prototype/design_handoff_loading_transitions/)。
 處理兩個空白瞬間：第一次進站、進入或切換筆記。換頁改用跨文件 View Transitions，Rail、Sidebar、頁籤列不動，只有主區依情境淡入；頁籤列、系列進度、捲動位置在第一次繪製前就是真值；骨架只在等待超過 150ms 時出現。

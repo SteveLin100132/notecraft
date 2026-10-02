@@ -130,6 +130,9 @@ const seriesDoneSrc = seriesDone.toString();
         放在外部樣式表時，新頁很快就緒（約 40ms 內）的導覽會被 Chrome 以「opt-in disabled」中止（Task 109 實測）。
         每條規則都要與 workbench.css 的同名規則一字不差（scripts/checks/wb-critical-css.mjs 把關）。 */}
     <style is:inline>@view-transition{navigation:auto}</style>
+    {/* 新頁在主區元素出現前不做第一次繪製：否則轉場快照裡沒有 nc-main，新內容會直接跳出來、沒有淡入（Task 112 實測）。
+        主區開頭的標記在頁籤預繪之後，等它幾乎不增加首次繪製時間；之後的內容會繼續流進 live 的新畫面 */}
+    <link rel="expect" href="#nc-pane-start" blocking="render" />
     {selfKey && (
       <script is:inline define:vars={{ ws: prepaint.ws, selfKey }}>
         // 有捲動位置要還原時，等主區解析完才第一次繪製：轉場快照已經在正確位置，不會淡入到一半跳動（§4.4、§7）。
@@ -300,6 +303,7 @@ const seriesDoneSrc = seriesDone.toString();
         </script>
         {/* 換頁時只有這一塊轉場（view-transition-name: nc-main）；規格 docs/notecraft-workbench-loading-transitions.md §4.1 */}
         <div class="nc-main-pane">
+        <i id="nc-pane-start" hidden></i>
         {bare ? (
           <slot />
         ) : (

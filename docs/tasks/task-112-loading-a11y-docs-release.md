@@ -104,3 +104,12 @@ DevTools 模擬 `prefers-reduced-motion: reduce`，逐項對照 handoff 表：
 ## 依賴
 
 [Task 111](task-111-loading-skeletons-viz-island.md)。
+
+## 實作記錄（2026-10-02）
+
+- **修正**：平板與手機寬度實測發現，新頁常在 `.nc-main-pane` 解析到之前就第一次繪製，快照裡沒有 `nc-main`，只有舊主區淡出、新內容直接跳出來。head 改為固定 `rel=expect` 主區開頭的 `#nc-pane-start`（推翻 Task 110 的「只在還原捲動時才加」）。代價是 Fast 4G 下切換筆記 FCP 晚約 125ms（舊頁停留，不是白屏），無節流無差別；之後 1400／1000／375 三種寬度每次轉場都有 `new(nc-main)`
+- reduced motion：`document.getAnimations()` 確認群組 0ms、新主區 100ms linear 淡入；骨架、進度線、`.nc-swap-in` 都有對應規則
+- 瀏覽器：Firefox 不轉場、其他功能照常、無錯誤；Safari 未驗證（Playwright WebKit 在 macOS 14 啟動即崩潰）
+- viewer：BASE build 已在 Task 109 驗證；雙工作區同埠實測未做（磁碟空間不足）
+- 清理：`--nc-*` 只剩既有的 `global.css` `--nc-tone-*`（與本批無關）；prototype 專用名稱只出現在註解；新規則零色碼；三支純函式只有 `import type`；`npm pack --dry-run` 含新檔
+- 預先存在、與本批無關：`PluginView.astro` 在正式 build 也輸出 renderer 的本機絕對路徑（`rendererPath`），`main` 同樣存在，未在本批處理

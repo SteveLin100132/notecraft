@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.18.0
+文件版本: v1.19.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-10-01
+更新日期: 2026-10-02
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -97,7 +97,7 @@ Project Name: NoteCraft
 ## 5. Site Map（網站地圖）
 
 ```
-NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19；v1.16.0 空狀態插圖，見 Phase 4.20；v1.18.0 筆記頁籤，見 Phase 4.22）
+NoteCraft（v1.13.0 起為三欄工作台殼：Rail + 檔案樹 Sidebar + 主區，見 Phase 4.16；v1.14.0 儀表板總覽改版，見 Phase 4.18；v1.15.0 首頁「更新月曆」頁籤，見 Phase 4.19；v1.16.0 空狀態插圖，見 Phase 4.20；v1.18.0 筆記頁籤，見 Phase 4.22；v1.19.0 Loading 與轉場，見 Phase 4.23）
 ├── /                       Dashboard（widget grid + 總覽／本週／AI 佇列三個 Tab）
 ├── /notes                  筆記列表（List／Board／Table／Timeline 四種 view + Drawer；篩選在 query string）
 ├── /notes/[slug]           筆記檢視頁面（頁首接手標題與動作；dev 動作收進「⋯」選單）
@@ -2673,6 +2673,19 @@ model: haiku
 - **不做**：預覽頁籤（斜體暫時頁籤，單擊列已是 Drawer 預覽）、頁籤上的狀態小點、深色模式
 - 對應實作 Task 105–108；完整設計見 [notecraft-workbench-note-tabs.md](./notecraft-workbench-note-tabs.md)（5 題定案紀錄在其 §16，實作後回填在 §17）
 
+#### Phase 4.23 — Loading 與轉場（v1.19.0 追加）
+
+**目標：第一次進站與切換筆記時不再有空白的瞬間**
+
+- 換頁走瀏覽器原生的跨文件 View Transitions：Rail、Sidebar、頁籤列不動，只有主區淡入；筆記之間（peer，上移 4px／240ms）、從列表進入（drill，8px／280ms）、回到頂層頁面（section，純淡入 200ms）三種，重新整理與簡報頁不轉場
+- 頁籤列與 Sidebar 系列進度在第一次繪製前就是真值（inline script 預繪），頁籤的藍色指示器跨頁滑到新頁籤；切回頁籤時捲動位置在第一次繪製前還原
+- 骨架只在等待超過 150ms 時出現：筆記與資料檔頁的 Body 骨架、`/notes` 有篩選時的列表骨架；Dashboard 的「—」換成真值時淡入、不改寬度
+- 點連結超過 150ms 還沒換頁時，主區頂端出現 2px 進度線；Google Fonts 改非阻塞載入（Fast 4G 冷啟動首次繪製約 712ms → 430ms）
+- 生成元件要在 SSR 就輸出最終高度（不以 `inView`／`mounted` 讓內容晚出現），content-visualize skill 與 component-generator 已加規則
+- 尊重 `prefers-reduced-motion`；不支援跨文件轉場的瀏覽器（Firefox）直接整頁切換
+- **不做**：啟動 splash、標題共享元素轉場、深色模式
+- 對應實作 Task 109–112；完整設計見 [notecraft-workbench-loading-transitions.md](./notecraft-workbench-loading-transitions.md)（5 題定案紀錄在其 §21，實作後回填在 §22）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2832,6 +2845,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.19.0] - 2026-10-02
+- **Added**: 新增 Workbench Loading 與轉場：換頁轉場、殼預繪、骨架
 
 ### [1.18.0] - 2026-10-01
 - **Added**: 新增 Phase 4.22 筆記頁籤規格（notecraftapp v1.7.0）

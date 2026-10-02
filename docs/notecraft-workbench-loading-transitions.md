@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft Workbench — Loading 與轉場
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；轉場用瀏覽器原生的跨文件 View Transitions）
-文件狀態: 已定案、待實作 —— §19 的 5 題已於 2026-10-02 逐題確認（紀錄見 §21）
+文件狀態: 已實作（notecraftapp v1.8.0，Task 109–112，2026-10-02）—— §19 的 5 題已於 2026-10-02 逐題確認（紀錄見 §21）；實作後回填見 §22
 文件作者: 建宇
 建立日期: 2026-10-02
 更新日期: 2026-10-02
@@ -512,5 +512,8 @@ Task 111 第一步：`astro build` 後對每篇筆記比對「SSR HTML 中每個
 - **`.nc-body-wrap` 是 `display:contents`**（Task 111）：資料檔頁的舞台靠 `min-height:100%`，多一層盒子會壞；`:has()` 看的是 DOM，不受影響
 - **`/notes` 首屏骨架用 Body 的 `::before`**（Task 111）：Body 由 island 輸出，layout 插不進 DOM。每 38px 一列的底線與三段條以漸層畫出（條的兩端是直角）；Toolbar 照舊隱藏、不畫骨架
 - 「—」淡入的位置（Task 111）：Dashboard KPI 數字與閱讀狀態圖例、頻率圖 Y 軸、月曆標題與底部計數。列表的 `.wb-row-d` 是絕對日期，SSR 就是真值，不需要
-- 預先存在、與本批無關的問題：`/tags` 每次載入有 React hydration 錯誤（#418／#425／#423），`main` 上同樣存在，另開工作處理
+- **主區開頭固定 `rel=expect`**（Task 112，推翻 Task 110 的「只在還原捲動時才加」）：平板與手機寬度實測，新頁常在 `.nc-main-pane` 解析到之前就第一次繪製，快照裡沒有 `nc-main`，結果只有舊主區淡出、新內容直接跳出來。改成 head 固定 `<link rel="expect" href="#nc-pane-start" blocking="render">`（主區第一個子元素）。代價：Fast 4G 下切換筆記的 FCP 約晚 125ms（405 → 530，期間舊頁停留、不是白屏），無節流時沒有差別。需要還原捲動時另加的 `#nc-pane-end` 不變
+- 瀏覽器（Task 112）：Chrome 152 全部功能實測。Firefox（Playwright）沒有 `pagereveal`、不轉場，頁籤預繪、系列進度、捲動還原照常，無 console 錯誤。**Safari 未驗證**：Playwright 的 WebKit 在這台 macOS 14 啟動即崩潰（Bus error）
+- npx viewer：`BASE=/notecraft/demo` 的 build 三種轉場 type 與預繪連結正確（Task 109）；預繪讀的 key 與 TabBar 同為 `nc-tabs-v1:<workspaceLabel>`。雙工作區同埠實測**未做**（磁碟空間不足以再跑 dev server）
+- 預先存在、與本批無關的問題：`/tags` 每次載入有 React hydration 錯誤（#418／#425／#423），`main` 上同樣存在；已在 `fix/tags-hydration` 修正（[SteveLin100132/notecraft#24](https://github.com/SteveLin100132/notecraft/pull/24)）。另外 `PluginView.astro` 在正式 build 也把 renderer 的本機絕對路徑（`rendererPath`）inline 進 island props（資料檔頁有 `isDev` 判斷、內嵌版沒有），違反「本機絕對路徑不得出現在輸出」，`main` 同樣存在，未在本批處理
 
