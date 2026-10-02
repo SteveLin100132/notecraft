@@ -4,6 +4,7 @@
 import { promises as fs } from "node:fs";
 import fsSync from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { slug as githubSlug } from "github-slugger";
 
@@ -289,6 +290,102 @@ async function handleNotesAsset(notesRoot, urlPath, res) {
     res.statusCode = 404;
     return res.end("not found");
   }
+}
+
+// ── build 產物的 notes-assets/ ────────────────────────────────────────
+// build 完掃輸出的 HTML，把裡面出現的 `<base>/notes-assets/<路徑>` 對應的檔案從筆記資料夾複製到
+// `<outDir>/notes-assets/<路徑>`。看的是「產物實際引用的網址」而不是 remark 階段收集：
+// - 作者手寫的 `/notes-assets/specs/v2.pdf` 連結（一般連結不會被 remark 改寫）也涵蓋
+// - Astro 會快取 .md 的渲染結果，快取命中時 remark 外掛根本不會跑，收集清單會缺
+// 只複製 MIME_MAP 內的副檔名、路徑要通過 assertSafePath（拒絕 `..` 與 symlink 逃脫）。
+// 找不到或被拒的只回報，不讓 build 失敗（與 view／serve 執行期 404 的行為一致）。
+
+/** 從一段 HTML 抽出 notes-assets 的相對路徑（已 decode、去掉 query／hash）。純函式，不碰檔案系統。 */
+export function extractNotesAssetPaths(html, base = "") {
+  const prefix = `${base.replace(/\/+$/, "")}/notes-assets/`;
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`${escaped}([^"'\\s<>()?#]+)`, "g");
+  const out = new Set();
+  for (const m of html.matchAll(re)) {
+    // 屬性值裡的 & 會是 &amp;；其他實體在檔名裡極少見，不處理
+    let raw = m[1].replace(/&amp;/g, "&");
+    try {
+      raw = decodeURIComponent(raw);
+    } catch {
+      continue;
+    }
+    out.add(raw);
+  }
+  return out;
+}
+
+export async function copyReferencedNotesAssets(notesRoot, outDir, base = "") {
+  const refs = new Set();
+  async function walk(dir) {
+    let ents;
+    try {
+      ents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of ents) {
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) await walk(abs);
+      else if (e.isFile() && e.name.endsWith(".html")) {
+        for (const p of extractNotesAssetPaths(await fs.readFile(abs, "utf-8"), base)) refs.add(p);
+      }
+    }
+  }
+  await walk(outDir);
+
+  const destRoot = path.join(outDir, "notes-assets");
+  const copied = [];
+  const missing = [];
+  const rejected = [];
+  for (const rel of [...refs].sort()) {
+    if (!MIME_MAP[path.extname(rel).toLowerCase()]) {
+      rejected.push(rel);
+      continue;
+    }
+    const src = path.resolve(notesRoot, rel);
+    try {
+      await assertSafePath(src, notesRoot);
+    } catch {
+      rejected.push(rel);
+      continue;
+    }
+    try {
+      if (!(await fs.stat(src)).isFile()) throw new Error("not a file");
+    } catch {
+      missing.push(rel);
+      continue;
+    }
+    // 目的地用 notesRoot 相對路徑重組，保證落在 destRoot 內
+    const dest = path.join(destRoot, path.relative(notesRoot, src));
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    await fs.copyFile(src, dest);
+    copied.push(rel);
+  }
+  return { copied, missing, rejected };
+}
+
+/**
+ * astro:build:done 用：viewer 模式才動作，base 取自 NOTECRAFT_BASE（與 remark-notecraft-base 同一套正規化）。
+ * HTML 裡是 `/base/notes-assets/...`，產物仍放 `<outDir>/notes-assets/...`（outDir 對應站台根 base）。
+ * log 只印筆記資料夾相對路徑，不輸出本機絕對路徑。
+ */
+export async function copyNotesAssetsAfterBuild(outDirUrl, logger) {
+  if (!isViewerMode()) return;
+  const raw = process.env.NOTECRAFT_BASE ?? "";
+  const base = raw === "/" ? "" : raw.replace(/\/+$/, "");
+  const { copied, missing, rejected } = await copyReferencedNotesAssets(
+    resolveNotesRoot(process.cwd()),
+    fileURLToPath(outDirUrl),
+    base,
+  );
+  if (copied.length) logger.info(`複製 ${copied.length} 個筆記附件到 notes-assets/`);
+  for (const p of missing) logger.warn(`筆記引用的附件不存在：notes-assets/${p}`);
+  for (const p of rejected) logger.warn(`略過不支援的格式或筆記資料夾外的路徑：notes-assets/${p}`);
 }
 
 // ── API handlers ────────────────────────────────────────────────

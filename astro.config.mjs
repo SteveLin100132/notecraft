@@ -10,6 +10,7 @@ import remarkNotecraftNotesAssets from "./src/lib/remark-notecraft-notes-assets.
 import remarkNotecraftBase from "./src/lib/remark-notecraft-base.ts";
 import { GENERATED_COMPONENT_PACKAGE_WHITELIST } from "./src/lib/generated-component-whitelist.ts";
 import devApi from "./src/dev-api/integration.ts";
+import notesAssets from "./src/lib/notes-assets-integration.ts";
 import crossDriveContent from "./src/lib/vite-cross-drive-content.ts";
 
 // v2 Q3 + Bug fix: `.notecraft/` 資料夾**放在 userCwd**（使用者專案根、與 .claude/ 同層），
@@ -50,6 +51,8 @@ export default defineConfig({
     react(),
     tailwind({ applyBaseStyles: false }),
     devApi(),
+    // viewer 模式 build 完把產物引用的 /notes-assets/* 複製進 outDir（見檔頭說明）
+    notesAssets(),
   ],
   vite: {
     // Windows：viewer app 與筆記在不同磁碟時修正 content entry 與 @notes glob 的路徑（見檔頭說明）
