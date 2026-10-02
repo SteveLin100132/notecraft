@@ -3,6 +3,8 @@
 // 純前端、正式環境亦可用、零 API（與 src/lib/favorites.ts 同性質）。
 // 所有筆記皆可追蹤（不做「未發佈」判定，見 PRD §7.1〈系列資料模型〉Q2）。
 
+import { seriesDone } from "./series-progress-pure.ts";
+
 export type ReadingStatus = "not-started" | "reading" | "done";
 
 const KEY = "nc-reading-progress-v1";
@@ -95,10 +97,12 @@ export type SeriesProgress = {
 export function seriesProgress(slugs: string[], live = true): SeriesProgress {
   const statuses: ReadingStatus[] = live ? slugs.map(readingStatus) : slugs.map(() => "not-started");
   const total = slugs.length;
-  const done = statuses.filter((s) => s === "done").length;
+  // 完成數與百分比和 Sidebar 預繪的 inline script 共用同一個計算（series-progress-pure.ts）
+  const agg = seriesDone(live ? load() : {}, slugs);
+  const done = agg.done;
   const reading = statuses.filter((s) => s === "reading").length;
   const notStarted = total - done - reading;
-  const pct = total ? Math.round((done / total) * 100) : 0;
+  const pct = agg.pct;
   const completed = total > 0 && done === total;
   const started = done + reading > 0;
   let nextIndex = statuses.findIndex((s) => s === "reading");

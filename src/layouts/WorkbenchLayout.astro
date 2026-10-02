@@ -24,6 +24,11 @@ import TabBar from "@/components/wb/tabs/TabBar.tsx";
 import { getWorkbenchIndex } from "@/lib/workbench";
 import type { TabSelf } from "@/lib/wb-tabs";
 import { vtType } from "@/lib/wb-nav";
+import { prepaintHtml, prepaintTabs } from "@/lib/wb-tabs-prepaint";
+import { seriesDone } from "@/lib/series-progress-pure";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ChevronDown, FileText, Pin, X } from "lucide-react";
 
 export interface Props {
   title: string;
@@ -72,6 +77,24 @@ const FONTS =
   "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap";
 // 轉場分類以原始碼內嵌進 inline script（pagereveal 要在第一次繪製前處理，等不到模組）。規格 §5.2
 const vtTypeSrc = vtType.toString();
+
+// 殼的預繪（規格 §6、§7、§8.2）：頁籤列、手機計數、系列進度、捲動位置在第一次繪製前由 inline script 畫出。
+// 函式以原始碼內嵌；圖示是與 TabStrip 相同的 lucide SVG（同尺寸、同線寬）
+const prepaint = {
+  ws: `nc-tabs-v1:${index.workspaceLabel}`,
+  self: tab ? { kind: tab.kind, id: tab.id, title: tab.title, path: tab.path, pending: tab.pending } : null,
+  tabsSrc: prepaintTabs.toString(),
+  htmlSrc: prepaintHtml.toString(),
+  icons: {
+    file: renderToStaticMarkup(createElement(FileText, { size: 13, strokeWidth: 1.7, "aria-hidden": true })),
+    pin: renderToStaticMarkup(createElement(Pin, { size: 12, strokeWidth: 1.7 })),
+    x: renderToStaticMarkup(createElement(X, { size: 12, strokeWidth: 2 })),
+    chevron: renderToStaticMarkup(createElement(ChevronDown, { size: 12, strokeWidth: 2 })),
+  },
+  colors: { on: "var(--wb-blue-l)", off: "var(--wb-ink-3)", view: "var(--wb-gold)" },
+};
+const selfKey = tab ? `${tab.kind}:${tab.id}` : null;
+const seriesDoneSrc = seriesDone.toString();
 ---
 <!doctype html>
 <html lang="zh-Hant">
@@ -107,6 +130,17 @@ const vtTypeSrc = vtType.toString();
         放在外部樣式表時，新頁很快就緒（約 40ms 內）的導覽會被 Chrome 以「opt-in disabled」中止（Task 109 實測）。
         每條規則都要與 workbench.css 的同名規則一字不差（scripts/checks/wb-critical-css.mjs 把關）。 */}
     <style is:inline>@view-transition{navigation:auto}</style>
+    {selfKey && (
+      <script is:inline define:vars={{ ws: prepaint.ws, selfKey }}>
+        // 有捲動位置要還原時，等主區解析完才第一次繪製：轉場快照已經在正確位置，不會淡入到一半跳動（§4.4、§7）。
+        // 沒有要還原的頁面不付這個成本（Fast 4G 下約 135ms）。document.write 讓 link 成為 parser-inserted，blocking 才有效
+        try {
+          var st = JSON.parse(localStorage.getItem(ws) || "null");
+          var hit = st && Array.isArray(st.tabs) && st.tabs.find(function (t) { return t && t.key === selfKey; });
+          if (!location.hash && hit && hit.scroll > 0) document.write('<link rel="expect" href="#nc-pane-end" blocking="render">');
+        } catch (e) {}
+      </script>
+    )}
     <link rel="icon" type="image/svg+xml" href={withBase("/favicon.svg")} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -185,14 +219,85 @@ const vtTypeSrc = vtType.toString();
     <div class="wb-app">
       <Rail active={rail} pending={index.pending.markers} />
       <Sidebar index={index} folderPath={folderPath} />
+      <script is:inline define:vars={{ seriesDoneSrc }}>
+        // Sidebar 系列進度預繪（§8.2）：SSR 是 0/N，換頁時不再閃一下。之後的變動仍由 SidebarLive 處理
+        try {
+          var seriesDone = new Function("return (" + seriesDoneSrc + ")")();
+          var map = JSON.parse(localStorage.getItem("nc-reading-progress-v1") || "{}") || {};
+          document.querySelectorAll("#wb-sb [data-wb-series]").forEach(function (row) {
+            var refs = [];
+            try { refs = JSON.parse(row.getAttribute("data-wb-refs") || "[]"); } catch (e) {}
+            var p = seriesDone(map, Array.isArray(refs) ? refs : []);
+            var bar = row.querySelector(".wb-sb-prog i");
+            var n = row.querySelector("[data-wb-series-n]");
+            if (bar) bar.style.width = p.pct + "%";
+            if (n) n.textContent = p.done + "/" + p.total;
+          });
+        } catch (e) {}
+      </script>
       <main class="wb-main" id="nc-main">
-        {/* 頁籤列：bare 與否都在。SSR 只輸出 34px 空列，hydrate 後才畫頁籤（零位移） */}
+        {/* 頁籤列：bare 與否都在。SSR 只輸出 34px 空列，hydrate 後才畫頁籤（零位移）；hydrate 前由下方的 #nt-pre 預繪 */}
         <TabBar client:load self={tab ?? null} workspace={index.workspaceLabel} />
         <button type="button" class="wb-mburger" id="wb-mburger" aria-label="開啟側欄" aria-expanded="false" aria-controls="wb-sb">
           <Icon name="layers" size={16} stroke={1.7} />
         </button>
         {/* 手機（≤860）的頁籤計數鈕位置：SSR 是空框，TabBar 以 portal 填入按鈕 */}
         <div class="nt-count-slot" id="nt-count-slot" data-pagefind-ignore></div>
+        {/* 頁籤列預繪層（§6）：蓋在 island 的空列上，island 畫好頁籤後由 TabBar 移除。不可改 island 自己的 DOM */}
+        <div class="nt-pre" id="nt-pre" aria-hidden="true" data-pagefind-ignore></div>
+        <script is:inline define:vars={{ base: BASE, pp: prepaint }}>
+          (function () {
+            var pre = document.getElementById("nt-pre");
+            try {
+              var tabsOf = new Function("return (" + pp.tabsSrc + ")")();
+              var htmlOf = new Function("return (" + pp.htmlSrc + ")")();
+              var raw = null;
+              try { raw = localStorage.getItem(pp.ws); } catch (e) { return; }
+              var tabs = tabsOf(raw, pp.self, base);
+              pre.innerHTML = htmlOf(tabs, pp.icons, pp.colors);
+              if (window.performance && performance.mark) performance.mark("nc-tabs-prepaint");
+              // 溢出：active 捲進可視區（左右 24px）、兩側遮罩，與 TabStrip 相同
+              var sc = pre.querySelector(".nt-scroll");
+              var on = pre.querySelector(".nt-tab.on");
+              if (sc && on) {
+                var l = on.offsetLeft, r = l + on.offsetWidth;
+                if (l < sc.scrollLeft + 24) sc.scrollLeft = l - 24;
+                else if (r > sc.scrollLeft + sc.clientWidth - 24) sc.scrollLeft = r - sc.clientWidth + 24;
+              }
+              if (sc) {
+                var w = sc.parentNode;
+                if (sc.scrollLeft > 2) w.classList.add("fl");
+                if (sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 2) w.classList.add("fr");
+              }
+              // 手機計數框（≤860）：與 TabBar portal 的按鈕同外觀
+              var slot = document.getElementById("nt-count-slot");
+              if (slot && raw !== null) {
+                var c = document.createElement("span");
+                c.className = "nt-count nt-count-pre" + (tabs.some(function (t) { return t.on; }) ? " on" : "");
+                c.setAttribute("aria-hidden", "true");
+                c.innerHTML = '<span class="tnum">' + tabs.length + "</span>";
+                slot.appendChild(c);
+              }
+            } catch (e) {
+              pre.innerHTML = "";
+            }
+            // 保險：island 已 hydrate 卻沒移除預繪層（例如 TabBar 例外）時，1 秒後移除，避免蓋住真的頁籤列。
+            // island 一直沒 hydrate（JS 失敗）時保留：預繪層的連結仍可導覽
+            var island = pre.parentNode.querySelector("astro-island");
+            var tries = 0;
+            var timer = setInterval(function () {
+              if (!document.getElementById("nt-pre")) return clearInterval(timer);
+              if (island && !island.hasAttribute("ssr")) {
+                clearInterval(timer);
+                setTimeout(function () {
+                  var p = document.getElementById("nt-pre");
+                  if (p) p.remove();
+                  document.querySelectorAll(".nt-count-pre").forEach(function (n) { n.remove(); });
+                }, 1000);
+              } else if (++tries > 120) clearInterval(timer);
+            }, 250);
+          })();
+        </script>
         {/* 換頁時只有這一塊轉場（view-transition-name: nc-main）；規格 docs/notecraft-workbench-loading-transitions.md §4.1 */}
         <div class="nc-main-pane">
         {bare ? (
@@ -223,6 +328,21 @@ const vtTypeSrc = vtType.toString();
               </>
             )}
           </>
+        )}
+        {selfKey && (
+          <script is:inline define:vars={{ ws: prepaint.ws, selfKey }}>
+            // 捲動還原提前到第一次繪製前（§7、Q4）。條件與 TabBar 相同：網址有 hash 時讓位
+            try {
+              var el = document.getElementById("nc-scroll");
+              var st = JSON.parse(localStorage.getItem(ws) || "null");
+              var hit = st && Array.isArray(st.tabs) && st.tabs.find(function (t) { return t && t.key === selfKey; });
+              if (el && !location.hash && hit && hit.scroll > 0) {
+                el.scrollTop = hit.scroll;
+                // 記下實際設到的值：TabBar hydrate 時若位置已不同，代表使用者自己捲過，不再搶回
+                el.setAttribute("data-nc-restored", String(el.scrollTop));
+              }
+            } catch (e) {}
+          </script>
         )}
         <i id="nc-pane-end" hidden></i>
         </div>

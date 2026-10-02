@@ -104,3 +104,13 @@ export function prepaintTabs(raw: string | null, self: { key: string; kind: "not
 ## 依賴
 
 [Task 109](task-109-loading-measure-vt-foundation.md)。
+
+## 實作記錄（2026-10-02）
+
+- **預繪層**：`src/lib/wb-tabs-prepaint.ts` 的 `prepaintTabs`（排序）與 `prepaintHtml`（DOM）以 `toString()` 內嵌；lucide 圖示在 layout frontmatter 用 `renderToStaticMarkup` 產生，與 `TabStrip` 同尺寸同線寬。預繪層裡的 ✕ 與「全部頁籤」是 `<span>`（只有外觀），連結 `tabindex=-1`
+- **交接改由 `TabBar` 負責**（不是 `TabStrip`）：清單已含目前頁面時才移除 `#nt-pre`，否則 ensure 前的一輪會讓 active 閃一下；手機計數框等 portal 的 slot 就位才移除
+- **保險邏輯改了**：不是固定 4 秒移除，而是 island 已 hydrate（`astro-island` 沒有 `ssr` 屬性）卻 1 秒後還在才移除；island 一直沒 hydrate（JS 失敗）時保留，預繪層的連結仍可導覽
+- **`rel=expect` 只在需要還原捲動時才加**：固定加 `#nc-pane-end`（或頁籤預繪後的標記）在 Fast 4G 下讓切換筆記的 FCP 晚約 130ms；實測不加時預繪 script 也一定在第一次繪製前執行（`performance.mark("nc-tabs-prepaint")` 早於 FCP 2–90ms）。改成 head 的 inline script 讀 store，目前頁有 `scroll > 0` 且無 hash 時才 `document.write` 一條 `<link rel="expect" href="#nc-pane-end" blocking="render">`（parser-inserted 才會阻塞）
+- **捲動還原**：主區結尾 inline script 設 `scrollTop` 並寫 `data-nc-restored="<實際值>"`；`TabBar` 看到屬性時不再於 hydrate 時設，位置已不同（使用者捲過）就不搶回，否則照舊等 `load` 補設
+- 系列進度的計算抽成 `src/lib/series-progress-pure.ts` 的 `seriesDone`，`seriesProgress()` 也改用它
+- 驗證（Playwright + 本機 Chrome，`astro preview`）：預繪層與 island 的頁籤列截圖在 1400／1000／375 寬度差異 0 像素；切回捲到 1800px 的頁籤，從第一個 frame 起都是 1800（含 Fast 4G）；網址帶 hash 時不還原；系列進度在每個繪製的 frame 都是真值（`2/8`）；指示器轉場有 `::view-transition-group(nc-tab-ind)` 240ms；各頁無 console 錯誤；tsc 錯誤數 49（不變）

@@ -501,5 +501,7 @@ Task 111 第一步：`astro build` 後對每篇筆記比對「SSR HTML 中每個
 - **`@view-transition` 必須寫在 head 的 inline `<style>`**（Task 109）：只寫在外部樣式表時，新頁很快就緒（約 40ms 內，Dashboard、`/notes`、`/plugins`、`/settings`、`/tags`、資料檔頁）的導覽會被 Chrome 以「Transition was aborted because of invalid state. ViewTransition opt-in disabled」中止，筆記頁（約 100ms）才正常。改成 inline 後全部正常。`workbench.css` 保留同一條規則，由 critical CSS 斷言確認兩邊一致
 - **`.nc-main-pane` 不設 `position`**（Task 109）：設了之後 `/notes` 的 Drawer（absolute）改以它為定位基準，變成從頁籤列下方開始，與原本「從頂端蓋住頁籤列」不同。改成不設 position；Drawer 開著時以 `:has(.wb-drawer)` 給 `z-index:7`（view-transition-name 讓它成為 stacking context，否則會在頁籤列〔4〕與漢堡鈕〔6〕之下）。進度線改成主區第一個子元素、`position:relative` + `margin-bottom:-2px`，不佔高度
 - **`rel=expect` 移到 Task 110 再評估**：先放 `#nc-pane-end` 量到切換筆記的 FCP 在 Fast 4G 晚約 135ms（405 → 540），超過 §20 的 50ms 門檻
+- **`rel=expect` 只在需要還原捲動時才加**（Task 110）：頁籤預繪不需要它（實測預繪 script 一定早於第一次繪製）；只有目前頁有捲動位置要還原、且無 hash 時，head 的 inline script 以 `document.write` 加上 `#nc-pane-end`，其餘頁面不付約 130ms 的成本
+- **預繪層的保險**（Task 110）：不是固定 4 秒移除，而是 island 已 hydrate 卻還在時 1 秒後移除；JS 失敗時保留（連結仍可用）
 - 預先存在、與本批無關的問題：`/tags` 每次載入有 React hydration 錯誤（#418／#425／#423），`main` 上同樣存在，另開工作處理
 

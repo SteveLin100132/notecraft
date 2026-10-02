@@ -572,9 +572,8 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .wb-app .nt-scroll::-webkit-scrollbar{height:0;display:none}
 .nt-tab{position:relative;flex:0 1 auto;min-width:120px;max-width:200px;height:34px;margin-bottom:-1px;display:flex;align-items:center;gap:6px;padding:0 6px 0 10px;border-right:1px solid var(--wb-line);color:var(--wb-ink-3);font-size:12.5px;cursor:pointer;user-select:none;box-sizing:border-box}
 .nt-tab:hover{background:var(--wb-a-blue-04);color:var(--wb-ink-2)}
-.nt-tab.on{background:var(--wb-panel);color:var(--wb-ink);font-weight:500;box-shadow:inset 0 2px 0 var(--wb-blue)}
+.nt-tab.on{background:var(--wb-panel);color:var(--wb-ink);font-weight:500}  /* 頂端藍線改由 .nt-ind 畫（loading-transitions §5.3） */
 .nt-tab:has(.nt-tab-main:focus-visible){box-shadow:inset 0 0 0 2px var(--wb-blue-l)}
-.nt-tab.on:has(.nt-tab-main:focus-visible){box-shadow:inset 0 2px 0 var(--wb-blue),inset 0 0 0 2px var(--wb-blue-l)}
 .nt-tab.pinned{max-width:150px}
 .nt-tab.dragging{opacity:.45}
 .nt-tab.over{box-shadow:inset 2px 0 0 var(--wb-blue-l)}
@@ -946,3 +945,14 @@ html[data-nc-vt="section"]::view-transition-new(nc-main){animation:wbVtFade var(
   ::view-transition-new(nc-main){animation:wbVtFade 100ms linear both!important}
   .nc-progress{animation:none;transform:none;opacity:.55}
 }
+
+/* 頁籤指示器（§5.3）：獨立元素、跨頁補間位置與寬度；舊頁快照隱藏，只看得到一條線在滑 */
+.nt-ind{position:absolute;left:0;right:0;top:0;height:2px;background:var(--wb-blue);view-transition-name:nc-tab-ind;pointer-events:none;z-index:1}
+::view-transition-group(nc-tab-ind){animation-duration:var(--wb-dur-ind);animation-timing-function:var(--wb-ease)}
+::view-transition-old(nc-tab-ind){animation:none;display:none}
+::view-transition-new(nc-tab-ind){animation:none}
+
+/* 頁籤列預繪層（§6）：蓋在 TabBar island 的空列上，外觀沿用 .nt-*；island 畫好後移除 */
+.nt-pre{position:absolute;top:0;left:0;right:0;height:34px;z-index:5;pointer-events:none}
+.nt-pre .nt-bar{pointer-events:auto}  /* ≤860 的 .nt-bar 是 display:none，空的預繪層不能擋住頁首 */
+.nt-pre .nt-all{cursor:default}
