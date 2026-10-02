@@ -15,7 +15,7 @@ description: 在筆記裡用相對路徑引用圖片，NoteCraftApp 會自動改
 
 ## 會被改寫成什麼
 
-相對路徑會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`，由 NoteCraftApp 從你的筆記資料夾直接送出檔案。
+相對路徑會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`。
 
 | 筆記 | 圖片寫法 | 改寫後 |
 | :-- | :-- | :-- |
@@ -23,7 +23,13 @@ description: 在筆記裡用相對路徑引用圖片，NoteCraftApp 會自動改
 | `guides/setup.md` | `./img/step1.png` | `/notes-assets/guides/img/step1.png` |
 | `guides/oauth/flow.md` | `../../shared/logo.svg` | `/notes-assets/shared/logo.svg` |
 
-`view` 與 `serve` 都會提供 `/notes-assets/*`，但只回應來自本機（`127.0.0.1`）的連線。用 `--host 0.0.0.0` 讓區網其他電腦連進來時，對方看不到這些圖片。
+這個網址由誰送出，看你用哪個子命令：
+
+| 子命令 | `/notes-assets/*` 從哪裡來 |
+| :-- | :-- |
+| `view` | 從筆記資料夾即時送出，只回應本機（`127.0.0.1`）的連線。用 `--host 0.0.0.0` 讓區網其他電腦連進來時，對方看不到圖片 |
+| `serve` | 本機連線一樣即時送出，改圖或新加的圖馬上看得到。區網連線拿的是上次 build 複製進產物的那份：只有被筆記引用的檔案，內容停在上次 build |
+| `build` | 產物實際引用到的檔案會複製進 `dist/notes-assets/`，部署到靜態主機就能送出 |
 
 ### 不會被改寫的
 
@@ -36,7 +42,7 @@ description: 在筆記裡用相對路徑引用圖片，NoteCraftApp 會自動改
 只有 Markdown 的圖片語法 `![](…)` 會被改寫。在 MDX 裡手寫的 `<img src="./cover.png" />` 不會被處理。
 </Callout>
 
-`/notes-assets/*` 由 `view` 與 `serve` 從筆記資料夾即時送出。`build` 的產物**不包含**這些圖片，部署前要自己複製一份，做法見[部署](/docs/guides/deploy/#筆記裡的圖片)。
+`build` 只複製**被引用**的檔案，不會把整個筆記資料夾的圖片帶出去。複製規則見[部署](/docs/guides/deploy/#筆記裡的圖片)。
 
 ## 支援的格式
 
