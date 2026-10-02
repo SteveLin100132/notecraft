@@ -119,3 +119,13 @@ layout head 加一支 `<script is:inline define:vars={{ base: BASE }}>`，內容
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-02）
+
+- **量測**：結果在規格 §22。Browser pane 隱藏時不繪製，改用 Playwright（臨時裝在 scratchpad，不進專案 dependencies）驅動本機 Chrome。字型 CSS 確認是冷啟動的主要阻塞（Fast 4G 下 FCP 712 → 約 430）；換頁最明顯的空白是頁籤列晚 0.9 秒以上（Task 110 處理）
+- **`@view-transition` 改放 head 的 inline `<style>`**：只放外部樣式表時，新頁約 40ms 內就緒的導覽（Dashboard、`/notes`、`/plugins`、`/settings`、`/tags`、資料檔頁）會被 Chrome 以「opt-in disabled」中止。`workbench.css` 保留同一條（Task 111 的 critical CSS 斷言把關）
+- **`.nc-main-pane` 不設 `position`**：設了會讓 `/notes` Drawer 改從頁籤列下方開始。Drawer 開著時以 `:has(.wb-drawer){z-index:7}` 抬高；進度線改為主區第一個子元素（`position:relative`、`margin-bottom:-2px`）
+- **`rel=expect` 延後到 Task 110**：量到切換筆記 FCP 在 Fast 4G 晚約 135ms，超過規格 §20 門檻
+- inline script 以 `define:vars` 傳入 `vtType.toString()`，再 `new Function` 重建（`set:html` 組字串的寫法在 `define:vars` 腳本裡不直觀）
+- 驗證：`main` 與本分支 12 頁 × 3 寬度截圖比對，差異只有排序並列項目換位；轉場 type（含 BASE `/notecraft/demo`）、reduced motion 的動畫清單（`document.getAnimations()`）、進度線（50ms 時 opacity 0、400ms 時 1；bfcache 回來無殘留）、抽屜點擊後立即關閉，皆以 Playwright 實測
+- 未驗證：Firefox、Safari（Playwright 只有 Chrome channel 可用；留到 Task 112）

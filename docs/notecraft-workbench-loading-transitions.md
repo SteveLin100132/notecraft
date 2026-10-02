@@ -475,4 +475,31 @@ Task 111 第一步：`astro build` 後對每篇筆記比對「SSR HTML 中每個
 
 ## 22. 實作後回填
 
-（Phase 0 量測結果與實作偏離待回填）
+### Phase 0 量測（Task 109，2026-10-02）
+
+`astro build && astro preview`，Playwright 驅動本機 Chrome（headless；Browser pane 隱藏時不繪製，量不到 paint）。「Fast 4G」= CDP 節流 RTT 150ms、下行 4 Mbps；冷啟動停用快取。單位 ms，取兩次的代表值。
+
+| 情境 | 改前 FCP | 改後 FCP（字型非阻塞） | 頁籤列出現 | 備註 |
+| :-- | --: | --: | --: | :-- |
+| 冷啟動 `/`，Fast 4G | 712 | ≈ 410–460 | —（非頁籤頁） | 改前 Google Fonts CSS 阻塞到 633ms，`_astro/*.css` 在 379ms 就到了 |
+| 冷啟動長筆記（230 KB），Fast 4G | 368 | ≈ 390 | 1266–1440 | 頁籤列比內容晚約 **0.9–1 秒** |
+| 切換筆記（快取），Fast 4G | 392 | ≈ 405 | 1164–1318 | 同上 |
+| 切換筆記，無節流 | 204 | ≈ 230 | 216–240 | 本機幾乎同時 |
+| 冷啟動，無節流，封鎖 Google Fonts 對照 | 176–272 → 64–116 | | | 字型 CSS 本身約多 100–200ms |
+
+結論（對照 §2）：
+
+- **#1 成立**：Google Fonts 是第一次進站最大的阻塞來源，非阻塞後冷啟動 FCP 少約 250ms
+- **#2 不明顯**：兩支 `_astro/*.css` 在 Fast 4G 也比字型 CSS 早到
+- **#3**：切換筆記時 Chrome 的 paint holding 讓舊頁停留到新頁第一次繪製，**沒有白屏**；「空白」主要是 #4
+- **#4 成立，而且是換頁時最明顯的空白**：頁籤列在節流下比內容晚 0.9 秒以上 → Task 110 的預繪是重點
+- **#5–#7** 未在此量測，見 Task 110／111
+- HTML 在 Fast 4G 下 190–290ms 內就完整到達，主區骨架在一般網路下不太會出現（符合 §8.1 的預期）
+
+### 實作中新增的決定
+
+- **`@view-transition` 必須寫在 head 的 inline `<style>`**（Task 109）：只寫在外部樣式表時，新頁很快就緒（約 40ms 內，Dashboard、`/notes`、`/plugins`、`/settings`、`/tags`、資料檔頁）的導覽會被 Chrome 以「Transition was aborted because of invalid state. ViewTransition opt-in disabled」中止，筆記頁（約 100ms）才正常。改成 inline 後全部正常。`workbench.css` 保留同一條規則，由 critical CSS 斷言確認兩邊一致
+- **`.nc-main-pane` 不設 `position`**（Task 109）：設了之後 `/notes` 的 Drawer（absolute）改以它為定位基準，變成從頁籤列下方開始，與原本「從頂端蓋住頁籤列」不同。改成不設 position；Drawer 開著時以 `:has(.wb-drawer)` 給 `z-index:7`（view-transition-name 讓它成為 stacking context，否則會在頁籤列〔4〕與漢堡鈕〔6〕之下）。進度線改成主區第一個子元素、`position:relative` + `margin-bottom:-2px`，不佔高度
+- **`rel=expect` 移到 Task 110 再評估**：先放 `#nc-pane-end` 量到切換筆記的 FCP 在 Fast 4G 晚約 135ms（405 → 540），超過 §20 的 50ms 門檻
+- 預先存在、與本批無關的問題：`/tags` 每次載入有 React hydration 錯誤（#418／#425／#423），`main` 上同樣存在，另開工作處理
+

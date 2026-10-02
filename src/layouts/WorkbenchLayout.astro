@@ -23,6 +23,7 @@ import NewNoteModal from "@/components/islands/NewNoteModal.tsx";
 import TabBar from "@/components/wb/tabs/TabBar.tsx";
 import { getWorkbenchIndex } from "@/lib/workbench";
 import type { TabSelf } from "@/lib/wb-tabs";
+import { vtType } from "@/lib/wb-nav";
 
 export interface Props {
   title: string;
@@ -66,6 +67,11 @@ const {
 
 const isDev = import.meta.env.DEV;
 const index = await getWorkbenchIndex();
+// Google Fonts 改非阻塞（loading-transitions §4.3、Q2）：先用系統字型畫出頁面，字型 CSS 到了再套用
+const FONTS =
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap";
+// 轉場分類以原始碼內嵌進 inline script（pagereveal 要在第一次繪製前處理，等不到模組）。規格 §5.2
+const vtTypeSrc = vtType.toString();
 ---
 <!doctype html>
 <html lang="zh-Hant">
@@ -97,13 +103,82 @@ const index = await getWorkbenchIndex();
         } catch (e) {}
       })();
     </script>
+    {/* 首屏 critical CSS（規格 §4.2）：@view-transition 必須在 head 的 inline <style>。
+        放在外部樣式表時，新頁很快就緒（約 40ms 內）的導覽會被 Chrome 以「opt-in disabled」中止（Task 109 實測）。
+        每條規則都要與 workbench.css 的同名規則一字不差（scripts/checks/wb-critical-css.mjs 把關）。 */}
+    <style is:inline>@view-transition{navigation:auto}</style>
     <link rel="icon" type="image/svg+xml" href={withBase("/favicon.svg")} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap"
-    />
+    <link rel="preload" as="style" href={FONTS} onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href={FONTS} /></noscript>
+    <script is:inline define:vars={{ base: BASE, vtTypeSrc }}>
+      // 換頁轉場與舊頁進度線（規格 docs/notecraft-workbench-loading-transitions.md §5、§11）。
+      (function () {
+        var vtType;
+        try {
+          vtType = new Function("return (" + vtTypeSrc + ")")();
+        } catch (e) {
+          return;
+        }
+        var de = document.documentElement;
+        // 新頁：依來源／目的網址決定 peer／drill／section；reload、無來源、簡報頁一律不轉場
+        addEventListener("pagereveal", function (e) {
+          var vt = e.viewTransition;
+          if (!vt) return;
+          var act = window.navigation && navigation.activation;
+          if (act && act.navigationType === "reload") return vt.skipTransition();
+          var from = (act && act.from && act.from.url) || document.referrer || null;
+          var type = vtType(from, location.href, base);
+          if (!type) return vt.skipTransition();
+          try {
+            if (vt.types) vt.types.add(type);
+          } catch (err) {}
+          de.setAttribute("data-nc-vt", type);
+          vt.finished.finally(function () {
+            de.removeAttribute("data-nc-vt");
+          });
+        });
+        // 舊頁：點站內連結後在主區頂端插進度線（CSS 讓它 150ms 後才出現）；平板／手機的 Sidebar 抽屜先關
+        var clear = function () {
+          document.querySelectorAll(".nc-progress").forEach(function (n) {
+            n.remove();
+          });
+        };
+        addEventListener(
+          "click",
+          function (e) {
+            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+            if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+            if (!/^https?:$/.test(a.protocol) || a.origin !== location.origin) return;
+            if (a.pathname === location.pathname && a.search === location.search && a.hash) return;
+            var pane = document.querySelector(".nc-main-pane");
+            if (pane && !pane.querySelector(".nc-progress")) {
+              var i = document.createElement("i");
+              i.className = "nc-progress";
+              i.setAttribute("aria-hidden", "true");
+              pane.prepend(i);
+            }
+            if (document.body.classList.contains("wb-sb-open") && a.closest("#wb-sb")) {
+              // 與 SidebarLive 的 close() 相同的 DOM 變化（焦點不還原：頁面即將離開）
+              var sb = document.getElementById("wb-sb");
+              var scrim = document.getElementById("wb-sb-scrim");
+              var burger = document.getElementById("wb-mburger");
+              if (sb) sb.classList.remove("open");
+              document.body.classList.remove("wb-sb-open");
+              if (scrim) scrim.hidden = true;
+              if (burger) burger.setAttribute("aria-expanded", "false");
+            }
+          },
+          true,
+        );
+        addEventListener("pageswap", clear);
+        addEventListener("pageshow", function (e) {
+          if (e.persisted) clear();
+        });
+      })();
+    </script>
   </head>
   <body>
     <a class="wb-skip" href="#nc-main">跳到主要內容</a>
@@ -118,6 +193,8 @@ const index = await getWorkbenchIndex();
         </button>
         {/* 手機（≤860）的頁籤計數鈕位置：SSR 是空框，TabBar 以 portal 填入按鈕 */}
         <div class="nt-count-slot" id="nt-count-slot" data-pagefind-ignore></div>
+        {/* 換頁時只有這一塊轉場（view-transition-name: nc-main）；規格 docs/notecraft-workbench-loading-transitions.md §4.1 */}
+        <div class="nc-main-pane">
         {bare ? (
           <slot />
         ) : (
@@ -147,6 +224,8 @@ const index = await getWorkbenchIndex();
             )}
           </>
         )}
+        <i id="nc-pane-end" hidden></i>
+        </div>
       </main>
     </div>
     <SidebarLive client:idle />

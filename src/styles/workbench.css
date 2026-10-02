@@ -67,6 +67,17 @@
   --wb-z-drawer-scrim: 590;  --wb-z-drawer: 600;
   --wb-z-tabbar: 650;        --wb-z-overlay: 1000;
   --wb-z-tip: 50;            /* 標籤 tooltip：在 .wb-main 內、低於所有浮層 */
+
+  /* ── Loading 與轉場（規格 docs/notecraft-workbench-loading-transitions.md §12.1；照 handoff 原值，--nc-* 改名 --wb-*）── */
+  --wb-sk: #e8ecf2;             /* 骨架底色 */
+  --wb-sk-hi: #f4f6f9;          /* shimmer 高光 */
+  --wb-sk-frame: #fbfcfe;       /* 程式碼、視覺化佔位框內底 */
+  --wb-progress: var(--wb-blue-l);  /* 舊頁進度線 */
+  --wb-sk-delay: 150ms;  --wb-sk-label-delay: 800ms;  --wb-sk-period: 2.4s;
+  --wb-ease: cubic-bezier(.22,.7,.3,1);
+  --wb-dur-out: 120ms;   --wb-dur-in: 240ms;   --wb-dur-drill: 280ms;  --wb-dur-section: 200ms;
+  --wb-dur-ind: 240ms;   --wb-dur-swap: 200ms; --wb-dur-drawer: 220ms;
+  --wb-rise: 4px;        --wb-rise-drill: 8px;
 }
 
 /* ── 只作用在殼內的基礎規則（prototype 寫在 html／body／a／button 上，這裡收進 .wb-app）── */
@@ -438,7 +449,7 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .wb-tl-axis::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--wb-blue-l);align-self:center;position:relative}
 /* drawer */
 .wb-scrim{position:absolute;inset:0;background:var(--wb-a-ink-18);z-index:var(--wb-z-drawer-scrim);border:none;animation:wbFade 160ms ease-out}
-.wb-drawer{position:absolute;top:0;right:0;bottom:0;width:480px;background:var(--wb-panel);border-left:1px solid var(--wb-line);box-shadow:-10px 0 28px var(--wb-a-blue-14);z-index:var(--wb-z-drawer);display:flex;flex-direction:column;animation:wbSlide 200ms cubic-bezier(.22,.7,.3,1)}
+.wb-drawer{position:absolute;top:0;right:0;bottom:0;width:480px;background:var(--wb-panel);border-left:1px solid var(--wb-line);box-shadow:-10px 0 28px var(--wb-a-blue-14);z-index:var(--wb-z-drawer);display:flex;flex-direction:column;animation:wbSlide 200ms var(--wb-ease)}
 @keyframes wbFade{from{opacity:0}to{opacity:1}}
 @keyframes wbSlide{from{transform:translateX(30px);opacity:.6}to{transform:none;opacity:1}}
 .wb-dw-h{height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px 0 16px;border-bottom:1px solid var(--wb-line)}
@@ -616,7 +627,7 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 /* 手機底部抽屜：蓋過底部 Tab bar（650），所以在 overlay 層 */
 .nt-sheet-wrap{position:fixed;inset:0;z-index:var(--wb-z-overlay);display:flex;flex-direction:column;justify-content:flex-end;font-size:13px;color:var(--wb-ink)}
 .nt-sheet-scrim{position:absolute;inset:0;border:none;padding:0;background:var(--wb-a-scrim-44);animation:wbFade 160ms ease-out;cursor:default}
-.nt-sheet{position:relative;background:var(--wb-panel);border-radius:14px 14px 0 0;max-height:72%;display:flex;flex-direction:column;box-shadow:0 -10px 30px var(--wb-a-shade-18);animation:ncRiseUp 220ms cubic-bezier(.22,.7,.3,1)}
+.nt-sheet{position:relative;background:var(--wb-panel);border-radius:14px 14px 0 0;max-height:72%;display:flex;flex-direction:column;box-shadow:0 -10px 30px var(--wb-a-shade-18);animation:ncRiseUp 220ms var(--wb-ease)}
 .nt-sheet-grip{width:36px;height:4px;border-radius:999px;background:var(--wb-line);margin:8px auto 2px}
 .nt-sheet-h{display:flex;align-items:center;gap:8px;padding:6px 12px 10px 16px;border-bottom:1px solid var(--wb-line)}
 .nt-sheet-h b{font-size:15px}
@@ -888,3 +899,50 @@ html[data-wb-filtering] .wb-main .wb-body{visibility:hidden}
 
 /* 頁首上半段的高度對齊 Sidebar 的工作區頭（.wb-sb-ws 68px + 1px 邊線）：沒有 Tab 列的頁面（筆記頁、資料檔頁…）兩邊的底線才會連成一線 */
 .wb-hd-top{min-height:68px;box-sizing:border-box}
+
+/* ── Loading 與轉場（規格 docs/notecraft-workbench-loading-transitions.md；由 handoff 的 nc-loading.css 移植）──
+   差異：token 全改 --wb-*；不搬 .wb-dark、body.pt-*、html.nc-rm、.nc-boot、.nc-ghost、.nc-mid-*、nc-title（prototype 專用）；
+   抽屜 class 用實際的 body.wb-sb-open／.wb-sb-scrim[hidden]。 */
+
+/* 主區：換頁時只有它轉場（view-transition-name: nc-main），Rail／Sidebar／頁籤列不動（§4.1） */
+/* 不設 position：Drawer／scrim（absolute）的定位基準仍是 .wb-main，與原本一樣從頂端蓋住頁籤列。
+   view-transition-name 會讓它成為 stacking context（z-index 視同 0，低於頁籤列的 4）：Drawer 開著時要整塊抬到頁籤列與漢堡鈕（6）之上 */
+.nc-main-pane{flex:1;min-height:0;display:flex;flex-direction:column;min-width:0;view-transition-name:nc-main}
+.nc-main-pane:has(.wb-drawer){z-index:7}  /* flex 子項不需 position 就吃 z-index */
+/* bare 頁：island 自己輸出 Header／Toolbar／Body，<astro-island> 不可成為 flex 子項（同 .wb-main>astro-island） */
+.nc-main-pane>astro-island{display:contents}
+
+/* 舊頁等待回應：超過 150ms 才出現的 2px 進度線（§11）。插在 .nc-main-pane 最前面、不佔高度（margin-bottom 抵掉） */
+.nc-progress{position:relative;display:block;flex:none;height:2px;margin-bottom:-2px;z-index:8;background:var(--wb-progress);transform-origin:0 50%;transform:scaleX(.35);opacity:1;transition:opacity 0s var(--wb-sk-delay);animation:wbProg 2.4s var(--wb-ease) var(--wb-sk-delay) both;pointer-events:none}
+@starting-style{.nc-progress{opacity:0}}
+@keyframes wbProg{from{transform:scaleX(.06)}to{transform:scaleX(.85)}}
+
+/* 跨文件 View Transitions（§5）。type 兩種選擇器都寫：View Transition Types（Chrome 125+／Safari 18.2+）與 html[data-nc-vt] 退回 */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation:none}
+::view-transition-group(nc-main){animation-duration:var(--wb-dur-in)}
+::view-transition-old(nc-main){animation:wbVtOut var(--wb-dur-out) var(--wb-ease) both}
+::view-transition-new(nc-main){animation:wbVtIn var(--wb-dur-in) var(--wb-ease) both}
+html:active-view-transition-type(drill)::view-transition-new(nc-main){animation:wbVtInDrill var(--wb-dur-drill) var(--wb-ease) both}
+html[data-nc-vt="drill"]::view-transition-new(nc-main){animation:wbVtInDrill var(--wb-dur-drill) var(--wb-ease) both}
+html:active-view-transition-type(section)::view-transition-new(nc-main){animation:wbVtFade var(--wb-dur-section) var(--wb-ease) both}
+html[data-nc-vt="section"]::view-transition-new(nc-main){animation:wbVtFade var(--wb-dur-section) var(--wb-ease) both}
+/* 平板／手機：Sidebar 是抽屜。點了項目先開始滑出，新頁若在抽屜關完前就到，從快照位置繼續（§5.4） */
+@media(max-width:1100px){.wb-sb{view-transition-name:nc-drawer}.wb-sb-scrim:not([hidden]){view-transition-name:nc-scrim}}
+::view-transition-group(nc-drawer){animation-duration:var(--wb-dur-drawer);animation-timing-function:var(--wb-ease)}
+::view-transition-old(nc-drawer){display:none}
+::view-transition-new(nc-drawer){animation:none}
+::view-transition-old(nc-scrim){animation:wbVtOut var(--wb-dur-drawer) var(--wb-ease) both}
+@keyframes wbVtOut{to{opacity:0}}
+@keyframes wbVtFade{from{opacity:0}}
+@keyframes wbVtIn{from{opacity:0;transform:translateY(var(--wb-rise))}}
+@keyframes wbVtInDrill{from{opacity:0;transform:translateY(var(--wb-rise-drill))}}
+
+/* 減少動態：取消位移、補間；主區只留 100ms 淡入；進度線靜態（§13） */
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-group(*){animation-duration:0s!important}
+  ::view-transition-old(*){animation:none!important;display:none}
+  ::view-transition-new(*){animation:none!important}
+  ::view-transition-new(nc-main){animation:wbVtFade 100ms linear both!important}
+  .nc-progress{animation:none;transform:none;opacity:.55}
+}
