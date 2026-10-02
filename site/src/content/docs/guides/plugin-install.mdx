@@ -50,7 +50,7 @@ NoteCraftApp **不會執行任何安裝腳本**，也不會跑 `npm install`；p
 
 ## 裝完之後
 
-安裝目錄裡會多一份 `.installed.json`，記錄來源網址、版本參照與實際的 commit，方便日後追溯。終端機會印出一段可以直接貼進 `.notecraft/plugins.json` 的映射。想一步完成，加 `--apply`：
+安裝目錄裡會多一份 `.installed.json`，記錄來源網址、版本參照與實際的 commit，方便日後追溯；從本機資料夾安裝的只記 `local:<資料夾名>`，不記絕對路徑。終端機會印出一段可以直接貼進 `.notecraft/plugins.json` 的映射。想一步完成，加 `--apply`：
 
 ```bash
 npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
