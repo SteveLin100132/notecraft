@@ -354,7 +354,7 @@ components:
 ### 使用文件（/docs，深藍書脊）
 使用文件是說明書的附冊：框架承接官網的世界，閱讀欄保持安靜。殼在 `src/layouts/DocsLayout.astro`，樣式在 `src/styles/docs.css`，章節大綱在 `src/lib/docs.ts`。
 - **書脊（Spine）：** 左側 280px、滿高 sticky 的 `sheet`。頂端 logo、「使用文件」（Archivo 800 24px）加版本號；下面 7 章以 `<details>` 收合，章號 Archivo 窄體 700 24px（展開時轉 `line`），章名 16px 700。節：節號 13px 窄體 `on-sheet-2`、節名 14.5px `line`；分組節點 600 不可點。**所在的節**：白色粗體、節號轉 `mark`、左側 7px `mark` 實心方塊（圖版引線的端點）。**撰寫中**的節 `on-sheet-2`、附 11px 外框小字「撰寫中」、不可點；指向撰寫中節的內文連結自動降成純文字。
-- **白紙側：** 頁眉左「NoteCraftApp 使用文件」、右「第 n 章・章名」（首頁寫「目錄」）。頁標題 `doc-title`，前接 `mark-paper` 窄體節號；導言 18px `ink-2`；頭與內文最寬 68ch。內文 17px／1.75、68ch；`##` 以 2px `rule-strong` 起頭（章節線），`###` 18px。
+- **白紙側：** 頁眉左「NoteCraftApp 使用文件」、右「第 n 章・章名」。`/docs/` 沒有獨立目錄頁，直接轉到第一節；書脊就是目錄。頁標題 `doc-title`，前接 `mark-paper` 窄體節號；導言 18px `ink-2`；頭與內文最寬 68ch。內文 17px／1.75、68ch；`##` 以 2px `rule-strong` 起頭（章節線），`###` 18px。
 - **本頁目錄：** ≥1200px 是 220px sticky 右欄，2px 章節線起頭、節名「本頁目錄」；目前讀到的小節 `ink` 600 加 6px `sheet` 方塊。內文欄與目錄這一組在白紙上置中。<1200px 收進文首，成為 1px `rule` 框的 `<details>`（自繪折角，不用瀏覽器三角形）。
 - **程式碼框：** 沿用 Diff 圖：1.5px `ink` 框、上方 38px 頭（檔名用 mono、語言名用 Archivo 13px `ink-2`）、右側「複製」鈕（hover 反白、成功轉 `sheet`）。高亮只用 `ink`、`sheet`、`ink-2` 三色（Shiki 自訂主題，`astro.config.mjs`）。
 - **表格：** 沿用 DataTable：表頭 2px `ink` 底線、列間 1px `rule`；外包一層橫向捲動，不讓整頁出現水平捲軸。
