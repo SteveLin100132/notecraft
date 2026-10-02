@@ -1,0 +1,54 @@
+---
+description: 在筆記裡用相對路徑引用圖片，NoteCraftApp 會自動改寫成可存取的網址；也說明支援哪些格式、PDF 附件怎麼連。
+---
+
+圖片直接放在筆記資料夾裡，用相對路徑引用就好，不用另外搬到某個 `public/` 資料夾。
+
+## 寫法
+
+```md title="guides/oauth/flow.md"
+![流程總覽](./cover.png)
+![Logo](../../shared/logo.svg)
+```
+
+`.md` 與 `.mdx` 都適用。路徑相對於**這篇筆記所在的資料夾**。
+
+## 會被改寫成什麼
+
+相對路徑會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`，由 NoteCraftApp 從你的筆記資料夾直接送出檔案。
+
+| 筆記 | 圖片寫法 | 改寫後 |
+| :-- | :-- | :-- |
+| `hello.md` | `./cover.png` | `/notes-assets/cover.png` |
+| `guides/setup.md` | `./img/step1.png` | `/notes-assets/guides/img/step1.png` |
+| `guides/oauth/flow.md` | `../../shared/logo.svg` | `/notes-assets/shared/logo.svg` |
+
+`view` 與 `serve` 都會提供 `/notes-assets/*`，但只回應來自本機（`127.0.0.1`）的連線。用 `--host 0.0.0.0` 讓區網其他電腦連進來時，對方看不到這些圖片。
+
+### 不會被改寫的
+
+- 完整網址：`https://…`、`data:…`
+- 已經是 `/` 開頭的絕對路徑
+- `#` 開頭的頁內錨點
+- 解析後落在筆記資料夾**外面**的路徑：照原樣保留，不會送出資料夾以外的檔案
+
+<Callout type="warn">
+只有 Markdown 的圖片語法 `![](…)` 會被改寫。在 MDX 裡手寫的 `<img src="./cover.png" />` 不會被處理。
+</Callout>
+
+## 支援的格式
+
+| 類型 | 副檔名 |
+| :-- | :-- |
+| 點陣圖 | `.png`、`.jpg`、`.jpeg`、`.gif`、`.webp`、`.avif` |
+| 向量圖 | `.svg` |
+| 圖示 | `.ico` |
+| 文件 | `.pdf` |
+
+## 連到 PDF 附件
+
+一般連結 `[…](…)` 的相對路徑只有指向 `.md`／`.mdx` 時會被改寫。要連到筆記資料夾裡的 PDF，直接寫成 `/notes-assets/` 開頭的路徑：
+
+```md
+[下載規格書](/notes-assets/specs/v2.pdf)
+```

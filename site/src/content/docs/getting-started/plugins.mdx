@@ -1,0 +1,76 @@
+---
+description: 用 install-plugin 裝官方 Plugin，再用 plugins.json 指定哪些 JSON 資料檔交給它渲染成頁面。
+---
+
+Plugin 是把結構化 JSON 資料檔畫成頁面的渲染器，例如資料庫 schema 畫成 ER 圖、OpenAPI 文件畫成 API 文件。用法分兩步：安裝 Plugin，再寫映射規則指定哪些檔案交給它。
+
+## 看有哪些 Plugin
+
+```bash
+npx notecraftapp install-plugin --list
+```
+
+清單即時從 GitHub 上的官方 store 抓取。目前有兩個官方 Plugin：
+
+| id | 名稱 | 渲染什麼 |
+| :-- | :-- | :-- |
+| `er-diagram-renderer` | ER Diagram | 資料庫 schema JSON：可導覽的 Wiki 與實體關聯圖 |
+| `openapi-renderer` | API 文件 | OpenAPI 3.0／3.1 文件（JSON）：tag 與 operation 導覽、欄位樹、範例與 cURL |
+
+不帶任何參數執行 `install-plugin`，會列出同一份清單讓你輸入編號選擇。
+
+## 安裝官方 Plugin
+
+在專案根目錄執行：
+
+```bash
+npx notecraftapp install-plugin er-diagram-renderer
+```
+
+安裝前會顯示來源、版本與要寫入的檔案，**要你確認一次**。Plugin 會裝到 `.notecraft/plugins/<id>/`。
+
+安裝前做了哪些安全檢查、怎麼裝第三方或本地的 Plugin，見[安裝來源](/docs/guides/plugin-install/)。
+
+## 寫映射規則
+
+安裝只複製檔案，不會改你的設定。接著在 `.notecraft/plugins.json` 加一條規則：
+
+```json title=".notecraft/plugins.json"
+{
+  "plugins": [
+    { "plugin": "er-diagram-renderer", "files": ["**/*.er.json"] },
+    { "plugin": "openapi-renderer", "files": ["**/*.openapi.json"] }
+  ]
+}
+```
+
+- `files` 的路徑相對於**筆記資料夾**，資料檔必須放在筆記資料夾裡
+- 命中的檔案會變成 `/view/<路徑去 .json>` 的頁面，例如 `api/orders.openapi.json` → `/view/api/orders.openapi`
+
+想讓安裝指令順便寫好這條規則，帶 `--apply`：
+
+```bash
+npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
+```
+
+`exclude`、`options`、多條規則的優先順序見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。
+
+<Callout type="warn">
+`plugins.json` 指到尚未安裝的 Plugin、JSON 格式壞掉、或資料不符合 Plugin 的 schema，build 都會失敗。
+</Callout>
+
+## 在工作台確認
+
+`/plugins` 頁列出已安裝的 Plugin、映射規則與每條規則命中的資料檔。在 `view` 模式下可以直接在這裡啟用或停用 Plugin；`serve` 與 `build` 的產物只顯示狀態。
+
+<Plate name="plugins" alt="Plugin 管理頁" caption="Plugin 管理頁：已安裝的外掛、映射規則與命中的資料檔。" />
+
+## 移除
+
+```bash
+npx notecraftapp install-plugin --remove er-diagram-renderer
+```
+
+如果 `plugins.json` 還有規則指向它，會提醒你；不清掉的話下次 build 會失敗。
+
+資料檔頁也能排進系列，或用 `<PluginView src="..." />` 嵌進筆記內文，見[在筆記裡嵌元件](/docs/writing/embed/)。

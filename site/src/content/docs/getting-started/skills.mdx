@@ -1,0 +1,78 @@
+---
+description: 用 init-skill 把 AI 生成與簡報需要的 Skill、Subagent 裝進專案的 .claude/，並處理升級與衝突。
+---
+
+`@ai-visualize` 生成元件與筆記轉簡報，靠的是一組 Claude Code 的 Skill 與 Subagent。`init-skill` 把它們複製到你專案的 `.claude/`，每個專案跑一次即可。
+
+## 安裝
+
+在專案根目錄（你會開 Claude Code 的那個目錄）執行：
+
+```bash
+npx notecraftapp init-skill
+```
+
+完成後，在這個目錄開 Claude Code 對話，就能處理 `@ai-visualize` 標記與生成簡報。
+
+## 裝了什麼
+
+**3 個 Skill**，放在 `.claude/skills/`：
+
+| Skill | 用途 |
+| :-- | :-- |
+| `content-visualize` | 處理 `@ai-visualize` 標記，生成互動元件 |
+| `content-present` | 把一篇筆記轉成簡報 |
+| `trendlink-design` | 前兩者共用的設計系統：色彩、字級、間距 |
+
+**6 個 Subagent**，放在 `.claude/agents/`：
+
+| Subagent | 屬於 | 做什麼 |
+| :-- | :-- | :-- |
+| `note-scanner` | 視覺化 | 掃描筆記，找出 `@ai-visualize` 標記 |
+| `visualize-planner` | 視覺化 | 依 prompt 決定用手寫 SVG、圖表或動畫 |
+| `component-generator` | 視覺化 | 寫出元件到 `.notecraft/components/<id>.tsx` 並驗證 |
+| `mdx-writer` | 視覺化 | 在標記下方插入 import 與元件，更新 `status` |
+| `present-planner` | 簡報 | 讀整篇筆記，規劃每一頁用哪個版型 |
+| `slide-generator` | 簡報 | 寫出 `<slug>.deck.tsx` 並驗證 |
+
+## 檢查版本
+
+```bash
+npx notecraftapp init-skill --check
+```
+
+只比對、不寫檔。會印出套件內附的版本與專案裡已安裝的版本，並告訴你是尚未安裝、有版本落差，還是已是最新。
+
+升級 NoteCraftApp 後，再跑一次 `init-skill` 就能更新 Skill。
+
+## 衝突處理
+
+`init-skill` 會逐檔比對：
+
+- 專案裡沒有的檔案：新增
+- 內容完全相同：略過
+- 內容不同（例如你手改過）：視為衝突
+
+在一般終端機裡，每個衝突檔會問你一次：
+
+| 輸入 | 效果 |
+| :-- | :-- |
+| `o` | 覆寫這一個 |
+| `s` | 略過這一個 |
+| `overwrite-all` | 覆寫這一個與之後所有衝突檔 |
+| `skip-all` | 略過這一個與之後所有衝突檔 |
+| `a` | 中止，不寫入任何檔案 |
+
+<Callout type="warn">
+在非互動環境（例如 CI）遇到衝突，又沒有帶 `--force` 時，`init-skill` 會列出衝突檔後直接結束，exit code 為 1，不寫入任何檔案。
+</Callout>
+
+## 旗標
+
+| 旗標 | 說明 |
+| :-- | :-- |
+| `--check` | 只印安裝狀態與版本比對，不寫檔 |
+| `--force` | 衝突檔直接覆寫，不詢問 |
+| `--dir <path>` | 安裝到指定目錄，預設是目前目錄 |
+
+想改寫內建 Skill 的行為，見[自訂 Skill 與 Subagent](/docs/advanced/skills/)。

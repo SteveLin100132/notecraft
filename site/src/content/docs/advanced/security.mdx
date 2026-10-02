@@ -1,0 +1,54 @@
+---
+description: 寫入 API 只接受本機連線、只能動筆記資料夾內的檔案；安裝 plugin 前會先做靜態檢查。也說明開放到區網時要注意什麼。
+---
+
+NoteCraftApp 會碰到你檔案系統的地方只有兩個：`view` 模式的寫入 API，以及 `install-plugin` 寫進 `.notecraft/plugins/` 的檔案。兩者各有一道防線。
+
+## 寫入 API 只接受本機
+
+寫入 API（新增筆記、改標籤、刪除筆記、切換 plugin）只存在於 `view` 模式。`serve` 與 `build` 的產物沒有寫入 API。
+
+每個 `/api/*` 請求都會檢查連線來源，不是 `127.0.0.1` 或 `::1` 就回 403。筆記資料夾裡的圖片（`/notes-assets/*`）也套用同一條規則。
+
+## 只能動筆記資料夾內的檔案
+
+API 收到的每個路徑都要通過三道檢查才會讀寫：
+
+1. 以 `path.resolve` 轉成絕對路徑，消掉 `..` 之類的相對片段
+2. 確認結果仍以筆記資料夾的路徑開頭
+3. 檔案已存在時，再以 `fs.realpath` 解開 symlink，確認實際位置也在筆記資料夾內
+
+任何一道不過就拒絕。所以從介面送進來的 slug 或圖片路徑，碰不到筆記資料夾以外的檔案。
+
+例外是 plugin 的啟用與停用：它寫的是 `.notecraft/plugins.json`，只動頂層 `disabled` 陣列，plugin id 也要符合小寫英數與 `-` 的格式。
+
+## 開放到區網
+
+`view` 與 `serve` 預設綁 `127.0.0.1`，只有本機連得到。帶 `--host 0.0.0.0` 會讓同一個網路裡的其他裝置都能連進來。
+
+<Callout type="warn">
+`--host 0.0.0.0` 之後，區網裡任何人都能讀到你的整個筆記站。寫入 API 仍然只接受本機，但筆記內容本身不設任何存取控制。只在信任的網路上這樣做。
+</Callout>
+
+從其他裝置連進來時，寫入 API 與 `/notes-assets/*` 都會回 403：頁面看得到，但筆記裡以相對路徑引用的圖片不會顯示。
+
+## 安裝 plugin 前的檢查
+
+plugin 是在你的 build 與瀏覽器裡執行的前端程式碼。`install-plugin` 在寫入任何檔案之前，先對下載到的內容做靜態檢查，有一項不過就拒絕安裝：
+
+| 檢查 | 擋下什麼 |
+| :-- | :-- |
+| 路徑 | 含 `..` 或絕對路徑的檔名 |
+| 檔案類型 | `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png` 以外的檔案，例如 `package.json`、`*.sh`、`*.mjs` |
+| 必要檔案 | 缺 `notecraft-plugin.json` 或 `renderer.tsx` |
+| import | 白名單以外的套件 |
+| `dangerouslySetInnerHTML` | 任何地方出現都擋 |
+| `engines` | manifest 要求的 notecraftapp 版本與你的不符 |
+
+允許 import 的套件和 AI 生成元件共用同一份白名單：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`，加上相對路徑。
+
+檢查通過後，CLI 會列出來源與所有檔案，等你輸入 `y` 才寫入。CI 這類非互動環境要帶 `--yes` 才會安裝，否則直接結束。
+
+`install-plugin` 不會執行任何安裝腳本，也不會為 plugin 跑 `npm install`。
+
+安裝來源與指令見[安裝來源](/docs/guides/plugin-install/)。

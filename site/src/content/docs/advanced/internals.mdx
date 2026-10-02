@@ -1,0 +1,72 @@
+---
+description: notecraftapp 把自己裝在哪、build 快取放在哪、什麼情況下會重新 build，以及怎麼清掉重來。
+---
+
+NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資料夾交給它：`view` 跑 Astro dev server，`build` 與 `serve` 跑 `astro build`。你的筆記資料夾不會被複製，也不會多出 `node_modules`。
+
+## 家目錄裡的兩個位置
+
+| 位置 | 用途 |
+| :-- | :-- |
+| `~/.notecraft/app-<version>/` | 套件的執行位置，每個版本一份 |
+| `~/.notecraft/cache/<hash>/` | 每個筆記資料夾一份 build 快取 |
+
+### 套件執行位置
+
+第一次執行某個版本時，CLI 會把套件複製到 `~/.notecraft/app-<version>/`、在那裡跑一次 `npm install`，之後都從這個位置啟動。這樣不會在 npm 或 npx 的快取目錄裡跑 build，之後啟動也不必再裝一次。
+
+`npm install` 失敗時，半成品目錄會被刪掉，下次執行重新安裝。
+
+### build 快取
+
+`<hash>` 是筆記資料夾絕對路徑的 SHA-1（取前 12 碼），所以同一個資料夾不論從哪裡執行，都共用同一份快取。裡面有：
+
+| 檔案 | 內容 |
+| :-- | :-- |
+| `dist/` | `build` 的產物，`serve` 服務的就是它 |
+| `meta.json` | 上次 build 的時間與檔案計數 |
+| `dist.next/` | rebuild 進行中的暫存輸出，成功後換成 `dist/` |
+
+`build` 結束時終端機會印出 `dist` 的完整路徑，要部署到別處就從那裡複製。
+
+## 什麼時候會重新 build
+
+`build` 與 `serve` 啟動時讀 `meta.json`，以下任一成立就重新 build，否則直接沿用 `dist/`：
+
+| 條件 | 說明 |
+| :-- | :-- |
+| 帶了 `--rebuild` | 忽略快取 |
+| `dist/` 或 `meta.json` 不存在、`meta.json` 壞掉 | 第一次執行或快取不完整 |
+| 快取目錄裡有 `.stale` 檔 | 強制下次 rebuild 的標記 |
+| 任一 `.md`／`.mdx` 比上次 build 新 | 改了筆記 |
+| `.notecraft/` 第一層任一 `.json` 比上次 build 新 | 改了 `series.json`、`plugins.json` |
+| `.md`／`.mdx` 的數量變了 | 新增或刪除筆記 |
+| 資料檔 `.json` 比上次 build 新，或數量變了 | 改了 plugin 渲染的資料 |
+| `.notecraft/plugins/` 裡的檔案比上次 build 新，或數量變了 | 安裝、移除或修改 plugin |
+
+比對時間用的是檔案的 mtime。筆記資料夾底下 `.` 開頭的資料夾不掃。
+
+終端機會印出這次重新 build 的原因，例如 `md/mdx 有變動（最新：guides/setup.mdx）`。
+
+<Callout type="warn">
+快取失效判斷不看 notecraftapp 的版本。升級之後第一次 `build` 或 `serve`，筆記沒變的話會沿用舊版產物，請加 `--rebuild`。
+</Callout>
+
+## 強制重新 build
+
+```bash
+npx notecraftapp build ./notes --rebuild
+npx notecraftapp serve ./notes --rebuild
+```
+
+`view` 不使用這份快取，它每次都是即時編譯。
+
+## 清掉快取
+
+整個刪掉就好，下次執行會重新複製套件並重新 build：
+
+```bash
+rm -rf ~/.notecraft/
+```
+
+只想清某個筆記資料夾的 build，刪 `~/.notecraft/cache/` 底下對應的目錄；不確定是哪一個，`build` 啟動時印的 `cache dir` 就是它。舊版本的 `app-<version>/` 不會自動清除，升級後可以手動刪掉。

@@ -1,0 +1,107 @@
+---
+description: notecraftapp 五個子命令的用法與全部旗標，一張表查完。
+---
+
+```bash
+npx notecraftapp <子命令> [參數] [旗標]
+```
+
+全域安裝（`npm install -g notecraftapp`）之後，把 `npx notecraftapp` 換成 `notecraftapp` 即可。`--help` 會列出每個子命令的旗標，`--version` 印出版本。
+
+| 子命令 | 做什麼 |
+| :-- | :-- |
+| `view [dir]` | 啟動 Astro dev server，即時反映檔案變動，有寫入 UI |
+| `build [dir]` | 把筆記資料夾 build 成靜態站，產物放在快取目錄 |
+| `serve [dir]` | 服務 build 產物，預設檔案一改就背景 rebuild 並自動重新載入 |
+| `init-skill` | 把 Skill 與 Subagent 設定裝到專案的 `.claude/` |
+| `install-plugin [source]` | 安裝、列出或移除 plugin |
+
+`[dir]` 是筆記資料夾，省略時用目前目錄；資料夾不存在會直接結束。
+
+## view
+
+```bash
+npx notecraftapp view ./notes
+```
+
+| 旗標 | 預設 | 說明 |
+| :-- | :-- | :-- |
+| `--port <n>` | `4321` | 伺服器 port |
+| `--host <h>` | `127.0.0.1` | 綁定的 host；`0.0.0.0` 會開放到區網 |
+
+寫入 UI 見[在介面新增與編輯](/docs/guides/editing/)。
+
+## build
+
+```bash
+npx notecraftapp build ./notes
+```
+
+| 旗標 | 預設 | 說明 |
+| :-- | :-- | :-- |
+| `--rebuild` | false | 忽略快取，強制重新 build |
+
+產物在 `~/.notecraft/cache/<hash>/dist/`，結束時會印出完整路徑。build 失敗時以 exit code 1 結束。快取怎麼判斷見[運作原理](/docs/advanced/internals/)。
+
+## serve
+
+```bash
+npx notecraftapp serve ./notes
+```
+
+| 旗標 | 預設 | 說明 |
+| :-- | :-- | :-- |
+| `--port <n>` | `4321` | 伺服器 port |
+| `--host <h>` | `127.0.0.1` | 綁定的 host；`0.0.0.0` 會開放到區網 |
+| `--no-open` | — | 啟動後不自動開瀏覽器 |
+| `--rebuild` | false | 啟動時忽略快取，強制重新 build |
+| `--no-watch` | — | 關閉背景 rebuild 與自動重新載入，只服務現有產物 |
+
+`serve` 沒有寫入 UI。背景 rebuild 的細節見[即時預覽](/docs/guides/live-preview/)。
+
+## init-skill
+
+```bash
+npx notecraftapp init-skill
+```
+
+把 3 個 Skill（`content-visualize`、`content-present`、`trendlink-design`）與 6 個 Subagent 設定複製到 `<dir>/.claude/`。
+
+| 旗標 | 預設 | 說明 |
+| :-- | :-- | :-- |
+| `--check` | false | 只比對已安裝與套件內的版本，不寫檔 |
+| `--force` | false | 本地改過的檔案直接覆寫，不逐一詢問 |
+| `--dir <path>` | 目前目錄 | 安裝目標的根目錄 |
+
+本地檔案與套件版本不同時，會逐檔詢問：`o` 覆寫、`s` 略過、`overwrite-all` 全部覆寫、`skip-all` 全部略過、`a` 中止。在非互動環境（例如 CI）遇到衝突又沒帶 `--force`，會列出衝突檔並以 exit code 1 結束。
+
+## install-plugin
+
+```bash
+npx notecraftapp install-plugin er-diagram-renderer
+```
+
+`source` 可以是：
+
+| 寫法 | 例子 |
+| :-- | :-- |
+| 官方 store 的 id | `er-diagram-renderer` |
+| GitHub repo 或其中的子目錄 | `owner/repo`、`owner/repo/plugins/foo` |
+| 加上版本 | `owner/repo/plugins/foo#v1.2.0` |
+| GitHub 完整網址 | `https://github.com/owner/repo/tree/main/plugins/foo` |
+| 本地路徑 | `./my-plugin` |
+
+不帶 `source` 時列出官方 store，輸入編號選擇要裝哪一個。
+
+| 旗標 | 預設 | 說明 |
+| :-- | :-- | :-- |
+| `--list` | false | 只列出官方 store，不安裝 |
+| `--remove <id>` | — | 移除已安裝的 plugin |
+| `--apply <glob>` | — | 安裝後把映射寫進 `.notecraft/plugins.json` |
+| `--ref <ref>` | 預設分支 | 指定 tag、branch 或 commit |
+| `--as <id>` | manifest 的 id | 改用別的目錄名安裝 |
+| `--dir <path>` | 目前目錄 | 安裝目標的根目錄 |
+| `--force` | false | 目標已存在時直接覆寫，不詢問 |
+| `--yes` | false | 略過安裝確認，給 CI 用 |
+
+plugin 裝在 `<dir>/.notecraft/plugins/<id>/`。`--remove` 只刪這個目錄；`plugins.json` 裡若還有指向它的規則，終端機會提醒你，不刪掉的話下次 build 會失敗。安裝前的檢查見[安全模型](/docs/advanced/security/)，映射寫法見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。

@@ -1,0 +1,63 @@
+---
+description: 用 npx 直接執行或全域安裝 NoteCraftApp，並知道 view、serve、build 三個子命令各自什麼時候用。
+---
+
+NoteCraftApp 以 npm 套件 `notecraftapp` 發佈。在你的筆記所在的專案目錄下執行即可，不需要在專案裡加任何相依套件。
+
+## 用 npx 執行
+
+```bash
+npx notecraftapp view ./docs
+```
+
+`./docs` 換成你的 md／mdx 資料夾。這是最簡單的方式，不用先安裝。
+
+## 全域安裝
+
+```bash
+npm install -g notecraftapp
+notecraftapp view ./docs
+```
+
+全域安裝後指令名稱是 `notecraftapp`，不用再加 `npx`。後面文件的範例兩種寫法都適用。
+
+## 第一次執行
+
+首次執行會把套件複製到 `~/.notecraft/app-<version>/`，並在那裡跑一次 `npm install`，大約 30 秒。之後每次啟動都直接從這個位置執行。
+
+升級到新版本時，新版會複製到另一個 `app-<version>/` 資料夾，首次執行一樣會安裝一次。
+
+| 位置 | 用途 |
+| :-- | :-- |
+| `~/.notecraft/app-<version>/` | 套件的執行位置 |
+| `~/.notecraft/cache/<hash>/` | 每個筆記資料夾一份 build 快取 |
+
+想全部清掉，刪除 `~/.notecraft/` 即可。
+
+## 筆記資料夾參數
+
+`view`、`serve`、`build` 的第一個參數是筆記資料夾，**省略時就是目前所在的目錄**。
+
+```bash
+# 以下兩行等價
+cd docs && npx notecraftapp view
+npx notecraftapp view ./docs
+```
+
+資料夾不存在時會直接結束並印出錯誤。
+
+<Callout>
+`.notecraft/` 設定資料夾（Plugin、生成元件）以你**執行指令時所在的目錄**為準。建議固定在專案根目錄執行、把筆記資料夾當參數傳入，例如 `npx notecraftapp view ./docs`。
+</Callout>
+
+## 三個子命令怎麼選
+
+| 子命令 | 做什麼 | 什麼時候用 |
+| :-- | :-- | :-- |
+| `view` | 啟動開發伺服器，可新增、編輯、刪除筆記，改檔即時反映 | 日常寫筆記、邊寫邊看 |
+| `serve` | 先 build 成靜態網站再服務它，背景監看檔案、變動後自動重建並重新整理瀏覽器；唯讀 | 觀察 Claude Code 生成元件、內部分享、Demo |
+| `build` | 只 build 成靜態 HTML，產物在 `~/.notecraft/cache/<hash>/dist/` | CI、要部署到別的地方 |
+
+寫入 UI（「+ 新增筆記」、標籤編輯、刪除筆記、以 VS Code 編輯）只在 `view` 出現；`serve` 與 `build` 的產物都是唯讀的。
+
+`view` 與 `serve` 預設綁在 `127.0.0.1:4321`。所有旗標見 [CLI](/docs/reference/cli/)。

@@ -1,0 +1,37 @@
+---
+description: 筆記 frontmatter 的五個欄位：型別、用途，以及沒寫時從哪裡補。
+---
+
+每個欄位都可以不寫。沒有 frontmatter 的純 Markdown 檔也能顯示，缺的欄位照下表補上。
+
+## 欄位
+
+| 欄位 | 型別 | 用途 | 沒寫時 |
+| :-- | :-- | :-- | :-- |
+| `title` | 字串 | 頁首標題、列表、頁籤、搜尋結果 | 內文第一個 `# ` 標題；沒有的話用 slug（含資料夾路徑），連字號與底線換成空白、英文單字字首大寫 |
+| `description` | 字串 | 標題下方的導言、列表裡的摘要 | 內文第一段文字的前 220 字 |
+| `tags` | 字串陣列 | 標籤篩選、`/tags` 頁、儀表板的標籤分布 | 空陣列 |
+| `createdAt` | 字串，`YYYY-MM-DD` | 建立日期 | 檔案的建立時間（birthtime），取不到時用修改時間 |
+| `updatedAt` | 字串，`YYYY-MM-DD` | 列表排序、最近更新、更新月曆 | 檔案的修改時間（mtime） |
+
+## 範例
+
+```mdx title="guides/oauth/flow.mdx"
+---
+title: "OAuth 2.0 授權碼流程"
+description: "從授權請求到換取 token 的每一步。"
+tags: ["auth", "oauth"]
+createdAt: "2026-06-12"
+updatedAt: "2026-07-02"
+---
+```
+
+日期請寫成加引號的 `YYYY-MM-DD` 字串，和介面建立的新筆記相同。
+
+## 補值的細節
+
+- `description` 從內文抓段落時，會跳過 import、`@ai-visualize` 標記、元件標籤、程式碼區塊、標題、清單與引言，取第一個剩下的段落
+- 檔案日期在 build 時讀取。把筆記複製、clone 到別處，檔案時間通常會變，日期也跟著變；要固定就寫進 frontmatter
+- 用 [在介面新增與編輯](/docs/guides/editing/) 的功能改標籤時，`updatedAt` 會自動改成當天
+
+各欄位在介面上的作用見 [Frontmatter](/docs/getting-started/frontmatter/)，標籤的寫法見[標籤](/docs/writing/tags/)。

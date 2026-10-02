@@ -1,0 +1,33 @@
+---
+import { getCollection, render } from "astro:content";
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import { CHAPTERS, outlineSlugs, type DocItem } from "../../lib/docs";
+import Callout from "../../components/docs/Callout.astro";
+import Plate from "../../components/docs/Plate.astro";
+import Table from "../../components/docs/Table.astro";
+import A from "../../components/docs/A.astro";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("docs");
+  const known = outlineSlugs();
+  const stray = entries.filter((e) => !known.has(e.id)).map((e) => e.id);
+  if (stray.length) throw new Error(`src/content/docs 有大綱裡沒有的檔案：${stray.join("、")}（請加進 src/lib/docs.ts）`);
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+const find = (items: DocItem[]): string | undefined => {
+  for (const it of items) {
+    if (it.slug === entry.id) return it.title;
+    const t = it.children && find(it.children);
+    if (t) return t;
+  }
+};
+const title = CHAPTERS.map((c) => find(c.items)).find(Boolean) ?? entry.id;
+---
+
+<DocsLayout title={title} description={entry.data.description} slug={entry.id} headings={headings}>
+  <Content components={{ Callout, Plate, table: Table, a: A }} />
+</DocsLayout>

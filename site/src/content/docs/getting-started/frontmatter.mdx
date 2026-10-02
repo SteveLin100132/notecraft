@@ -1,0 +1,51 @@
+---
+description: NoteCraftApp 的 frontmatter 全部選填。這頁說明缺欄位時會怎麼補值，以及一份完整的 frontmatter 長什麼樣子。
+---
+
+不寫任何 frontmatter，筆記也能正常顯示。缺的欄位會在讀取時自動補上。
+
+## 缺欄位時怎麼補
+
+| 欄位 | 沒寫時用什麼 |
+| :-- | :-- |
+| `title` | 內文第一個 `# H1` → 檔名轉 Title Case |
+| `description` | 內文第一段的前 220 字 |
+| `createdAt` | 檔案建立時間 → 修改時間 |
+| `updatedAt` | 檔案修改時間 |
+| `tags` | 空陣列 |
+
+補上的值只用在顯示與排序，**不會寫回你的檔案**。
+
+### description 抓的是哪一段
+
+會略過標題、清單、引言、程式碼區塊、MDX 元件與 `@ai-visualize` 標記，取剩下的第一個段落。`description` 寫成空字串也會走這個補值。
+
+## 純 Markdown 也可以
+
+```md title="my-note.md"
+# 我的筆記
+
+隨手寫的第一段就是 description。
+```
+
+這份檔案的標題是「我的筆記」，摘要是第一段，日期取自檔案時間。
+
+## 完整寫法
+
+```yaml title="my-note.mdx"
+---
+title: "HTTP 快取"
+description: "Cache-Control、ETag 與重新驗證的流程"
+tags: ["http", "cache"]
+createdAt: "2026-06-18"
+updatedAt: "2026-06-18"
+---
+```
+
+日期寫成加引號的 `YYYY-MM-DD` 字串。
+
+<Callout>
+檔案時間會因為複製、git clone 而改變。在意「最近更新」與更新月曆準不準的話，把 `createdAt`、`updatedAt` 寫進 frontmatter。
+</Callout>
+
+在 `view` 模式用寫入 UI 新增筆記時，會自動產生含 `title`、`description`、`tags`、`createdAt`、`updatedAt` 的 frontmatter。欄位的完整定義見 [Frontmatter 欄位](/docs/reference/frontmatter/)。

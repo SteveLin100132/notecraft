@@ -1,0 +1,59 @@
+---
+description: 用一個 series.json 把多篇筆記串成有順序的閱讀路徑，工作台會顯示章節序號、進度條與「繼續閱讀」。
+---
+
+系列是選用的。沒有 `series.json`，`/series` 頁只會顯示引導文字，其他功能照常。
+
+## 檔案放哪裡
+
+放一個 `.notecraft/series.json`。以下兩個位置都會被讀取，近的優先：
+
+1. `<筆記資料夾>/.notecraft/series.json`
+2. `<專案根>/.notecraft/series.json`：例如執行 `notecraftapp view ./docs` 時，放在專案根目錄的那一份
+
+## 範例
+
+```jsonc title=".notecraft/series.json"
+{
+  "series": [
+    {
+      "id": "auth-guide",
+      "title": "驗證機制指南",
+      "eyebrow": "AUTH GUIDE",
+      "description": "從 session 到 OAuth 的完整路徑",
+      "accent": "blue",
+      "icon": "target",
+      "slugs": [
+        "auth/basic",
+        "auth/session-cookie",
+        "auth/jwt",
+        "auth/oauth-flow",
+      ],
+    },
+  ],
+}
+```
+
+## 欄位
+
+| 欄位 | 說明 |
+| :-- | :-- |
+| `id` | 系列的識別碼，出現在網址 `?series=` |
+| `title` | 系列名稱 |
+| `eyebrow` | 系列卡片上方的小字 |
+| `description` | 一句話說明 |
+| `accent` | `"blue"`、`"orange"` 或 `"navy"` |
+| `icon` | `"target"`、`"code"`、`"layers"`、`"bookOpen"` 或 `"bolt"` |
+| `slugs` | 章節清單，順序即章節順序 |
+
+### slugs 怎麼寫
+
+每一項是筆記相對筆記資料夾的路徑、去掉副檔名，例如 `guides/oauth/flow.mdx` 寫成 `guides/oauth/flow`。
+
+<Callout>
+資料檔頁也能當成一章：寫成 `view:<路徑去副檔名>`，例如 `view:api/orders.openapi`。它和筆記一樣有序號、計入進度、可以標記為已完成。
+</Callout>
+
+<Plate name="dashboard-series" width={400} height={316} alt="儀表板的系列卡：每個系列一列，含進度條、下一篇與「開始閱讀」按鈕" caption="儀表板的「系列」卡：每個系列一條進度，「開始閱讀」從下一篇接著讀。" />
+
+系列的閱讀方式見[系列與閱讀進度](/docs/guides/series/)。

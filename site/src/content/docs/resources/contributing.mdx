@@ -1,0 +1,61 @@
+---
+description: 想改 CLI、工作台或官方 plugin 時，怎麼在本機跑起來、提交前要跑哪些檢查。
+---
+
+原始碼在 [SteveLin100132/notecraft](https://github.com/SteveLin100132/notecraft)。專案的架構、目錄結構與開發規則寫在 repo 根目錄的 [CLAUDE.md](https://github.com/SteveLin100132/notecraft/blob/main/CLAUDE.md)，動手前先讀過。
+
+## 環境
+
+需要 Node.js 22。repo 有 `.nvmrc`，用 nvm 的話在專案根目錄執行：
+
+```bash
+nvm use
+```
+
+`npm run check-plugins` 串接的純函式檢查會用 Node 原生的 TypeScript 載入，需要 22.6 以上。
+
+## 跑起來
+
+```bash
+git clone https://github.com/SteveLin100132/notecraft.git
+cd notecraft
+npm install
+```
+
+兩種跑法：
+
+```bash
+# 主專案自己的筆記（src/content/notes/）
+npm run dev
+
+# 走 CLI，指向任一個筆記資料夾
+npm run viewer:view -- <dir>
+```
+
+`viewer:build`、`viewer:serve` 也有對應的 script。
+
+CLI 偵測到套件目錄有 `.git` 時，會跳過複製到 `~/.notecraft/app-<version>/` 這一步，直接從 repo 執行，改完程式碼重跑就生效。設定環境變數 `NOTECRAFTAPP_DEV=1` 有同樣效果。
+
+要在本機測 `init-skill`，先執行 `npm run sync-skill` 產生安裝用的 skill 範本。
+
+## 提交前的檢查
+
+repo 沒有 pre-push hook，每次 commit 前自己跑：
+
+```bash
+npx tsc --noEmit && npx astro build
+```
+
+`tsc --noEmit` 本來就有一些既有錯誤，看的是有沒有新增。
+
+動到 plugin 相關的程式碼（`plugins/` 底下的官方 plugin、plugin 的載入或渲染）時，再跑：
+
+```bash
+npm run check-plugins
+```
+
+它會驗證每個官方 plugin 的 manifest、確認 registry 沒有漂移、讓 `example/` 底下的資料通過 schema 並實際 build 一次，也會跑 `scripts/checks/` 裡的斷言。只想跑某個 plugin 的純函式斷言，用 `npm run check:er` 或 `npm run check:oar`，幾秒就跑完。
+
+<Callout type="warn">
+官方 plugin store 就是 repo 根目錄的 `plugins/`。推上預設分支就等於發佈，`check-plugins` 沒過不要推。
+</Callout>
