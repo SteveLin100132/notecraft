@@ -1217,19 +1217,39 @@
 }
 
 /* ════════ 請求項 ════════ */
+/* 磚牆：一張圖紙被 1px 細線分格（容器畫上／左線，每格畫右／下線） */
 .claims {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 2px solid var(--rule-strong);
-  counter-reset: none;
+  border-left: 1px solid var(--rule);
 }
 .claim {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 16px;
-  padding: 22px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: clamp(20px, 2.4vw, 32px);
+  border-right: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
+}
+.claim.is-wide {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  align-items: center;
+  gap: clamp(20px, 3vw, 40px);
+}
+.claim.is-wide .ca {
+  order: 2;
+}
+.claim-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .claim-n {
   font-family: var(--f-latin);
@@ -1239,35 +1259,53 @@
   line-height: 1;
   color: var(--mark-paper);
 }
+.claim-plain {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.45;
+  font-weight: 800;
+  color: var(--ink);
+  text-wrap: pretty;
+}
 .claim-legal {
   margin: 0;
-  max-width: 46em;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.7;
-  font-weight: 500;
-}
-.claim-plain {
-  margin: 8px 0 0;
-  font-size: 16px;
   color: var(--ink-2);
 }
-.claim-plain::before {
-  content: "白話：";
-  font-weight: 700;
+.claim-legal-label {
+  display: block;
+  margin-bottom: 2px;
+  font: 700 13px var(--f-latin);
+  letter-spacing: 0.04em;
   color: var(--ink);
+}
+.claim .ca-cap {
+  display: none;
+}
+/* 兩欄以下寬格不再跨欄（否則請求項 1 旁會留洞），一律圖在上 */
+@media (max-width: 1020px) {
+  .claims {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .claim.is-wide {
+    grid-column: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .claim.is-wide .ca {
+    order: 0;
+  }
+}
+@media (max-width: 640px) {
+  .claims {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .claims-note {
   margin: 24px 0 0;
   font-size: 14px;
   color: var(--ink-2);
-}
-@media (max-width: 560px) {
-  .claim {
-    grid-template-columns: 3rem minmax(0, 1fr);
-  }
-  .claim-n {
-    font-size: 30px;
-  }
 }
 
 /* ════════ 版本歷程 ════════ */
@@ -2069,4 +2107,63 @@
   .tour-intent-text {
     font-size: 15px;
   }
+}
+
+/* ════════ 請求項示意線稿 ════════ */
+.ca {
+  margin: 0;
+}
+.ca-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ca-l {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+.ca-s,
+.ca-g {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+.ca-g {
+  stroke: var(--rule);
+}
+.ca-m {
+  fill: none;
+  stroke: var(--mark-strong);
+  stroke-width: 2;
+}
+.ca-dash {
+  stroke-dasharray: 4 4;
+}
+.ca-thick {
+  stroke-width: 3;
+}
+.ca-gate {
+  stroke: var(--ink);
+  stroke-width: 4;
+}
+.ca-fill {
+  fill: var(--paper);
+}
+.ca-t {
+  font: 12px var(--f-mono);
+  fill: var(--ink-2);
+}
+.ca-t--b {
+  fill: var(--ink);
+  font-weight: 700;
+}
+.ca-t--s {
+  font-family: var(--f-cjk);
+}
+.ca-cap {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: right;
 }
