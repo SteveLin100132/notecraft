@@ -1,0 +1,38 @@
+{
+  "pkg": "notecraft-site",
+  "globalName": "NoteCraftSite",
+  "shape": "package",
+  "buildCmd": "npm run build:ds",
+  "srcDir": "src/ds",
+  "tsconfig": "tsconfig.ds.json",
+  "cssEntry": "ds-dist/styles.css",
+  "extraFonts": [
+    "node_modules/@fontsource-variable/archivo/wdth.css",
+    "node_modules/@fontsource-variable/noto-sans-tc/index.css",
+    "node_modules/@fontsource-variable/jetbrains-mono/index.css"
+  ],
+  "guidelinesGlob": [
+    "DESIGN.md"
+  ],
+  "componentSrcMap": {
+    "DiagramNode": "src/ds/figures/FlowSteps.tsx",
+    "SpecHeading": "src/ds/document/Spec.tsx",
+    "SpecParagraph": "src/ds/document/Spec.tsx"
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "projectId": "26484ef8-0e26-4839-8eae-137dd8f9c44d",
+  "overrides": {
+    "Figure": {
+      "cardMode": "column"
+    },
+    "Page": {
+      "cardMode": "column"
+    },
+    "PageTitle": {
+      "cardMode": "column"
+    },
+    "Claims": {
+      "cardMode": "column"
+    }
+  }
+}
