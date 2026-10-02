@@ -1,0 +1,66 @@
+---
+description: 在 Claude Code 對話裡叫它處理標記，四個 subagent 依序掃描、規劃、寫元件、寫回筆記；另開一個 serve 就能在瀏覽器即時看到結果。
+---
+
+生成只發生在你的 Claude Code 對話裡。NoteCraftApp 的網頁本身不呼叫任何 AI，`build` 與部署也不會自動生成。
+
+## 事前準備
+
+在專案根目錄安裝 skill 與 subagent 設定，只需要做一次：
+
+```bash
+npx notecraftapp init-skill
+```
+
+它會把 `content-visualize` 等 skill 與 subagent 設定寫進專案的 `.claude/`。細節見[安裝內建 Skill](/docs/getting-started/skills/)。
+
+## 觸發
+
+在專案根目錄開 Claude Code，直接說要處理哪裡：
+
+- 「處理 `guides/oauth/flow.mdx` 的標記」
+- 「處理視覺化」（整個筆記資料夾的待生成標記）
+- 「重新生成 `oauth-flow`」
+
+`view` 模式下有兩個按鈕會把現成的提示詞複製到剪貼簿，貼進對話即可：筆記列表 Drawer 的「複製生成提示」（筆記有待生成標記時才出現），以及筆記頁首「⋯」選單的「重新生成提示」。`build`／`serve` 的產物沒有這兩個按鈕。
+
+## 四個 subagent
+
+| 順序 | subagent | 模型 | 做什麼 |
+| :-- | :-- | :-- | :-- |
+| 1 | note-scanner | haiku | 掃描 `.mdx` 找出標記，依狀態分組回報；也列出孤兒元件。只讀不寫 |
+| 2 | visualize-planner | sonnet | 讀 prompt 與上下文，決定用手寫 SVG、recharts、d3、motion 或組合，產出規劃書。只讀不寫 |
+| 3 | component-generator | sonnet | 依規劃書寫元件、檢查 import、等待驗證，失敗時自動修正 |
+| 4 | mdx-writer | haiku | 在標記正下方寫入 `import` 與元件，更新 `status` |
+
+`status: locked` 的標記一律跳過；`generated` 只在你明確要求時重做；`failed` 預設不重跑，調整 prompt 後明確要求才會再試。
+
+規劃時偏向做成可操作的互動元件，內容本質是靜態的（查表、單張結構圖）才回退成靜態圖。同一篇有幾個彼此相關的標記時，AI 可能提議把它們合併成一個元件，會在對話裡說明合併了哪些。
+
+## 元件放在哪裡
+
+生成的元件在專案根的 `.notecraft/components/<id>.tsx`，一個標記一個檔。筆記透過 `@notes/components/<id>` 引用它。
+
+這些檔案和筆記一樣是你專案的原始碼，跟著 git 一起提交。標記刪掉後元件不會自動刪除，處理方式見[孤兒元件](/docs/guides/ai-orphans/)。
+
+## 驗證與失敗
+
+<Callout type="warn">
+元件驗證沒過，就**不會**寫回筆記。component-generator 最多修 3 次，仍失敗時只把標記改成 `status: failed`、在對話裡附上錯誤節錄，筆記不會引用到壞掉的元件。
+</Callout>
+
+驗證看的是 NoteCraftApp 的 build 結果。開著 `serve` 時就是它的背景 rebuild，錯誤印在 `serve` 的終端機。沒開 `serve` 時可以手動跑一次 `npx notecraftapp build <筆記資料夾>`。
+
+元件只能 import 這些套件：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`，以及相對路徑。需要白名單外的套件時，component-generator 會先停下來、刪掉剛寫的檔，在對話裡問你要不要引入，不會直接用。
+
+## 搭配 serve 即時看
+
+另開一個終端機跑：
+
+```bash
+npx notecraftapp serve ./notes
+```
+
+`serve` 會監看 `.md`／`.mdx`、`.notecraft/components/*.tsx` 與 `.notecraft/*.json`。Claude Code 在另一邊寫檔，`serve` 在背景重新 build，成功後瀏覽器自動重新整理。rebuild 失敗時保留上一版的站；第一次 build 就失敗時，瀏覽器會顯示錯誤頁。修好後都會自動更新。
+
+其他細節見[即時預覽](/docs/guides/live-preview/)。

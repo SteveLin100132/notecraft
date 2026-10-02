@@ -1,0 +1,77 @@
+---
+description: 後面章節反覆出現的五個名詞：筆記資料夾、AI 標記、生成元件、Plugin 與資料檔、系列。讀完這頁，你會知道每一個是什麼、放在哪裡、彼此怎麼牽動。
+---
+
+這五個名詞都對應到你專案裡的實際檔案。設定與產物都是檔案，跟著 git 走；只有閱讀進度、收藏這類個人狀態存在瀏覽器裡。
+
+| 名詞 | 放在哪 | 誰會改它 |
+| :-- | :-- | :-- |
+| 筆記資料夾 | 你指定的資料夾，例如 `./docs` | 你 |
+| `@ai-visualize` 標記 | `.mdx` 筆記內文裡 | 你寫，生成流程更新 `status` |
+| 生成元件 | `.notecraft/components/<id>.tsx` | Claude Code |
+| Plugin 與資料檔 | `.notecraft/plugins/`、`.notecraft/plugins.json`；資料檔在筆記資料夾裡 | `install-plugin` 與你 |
+| 系列 | `.notecraft/series.json` | 你 |
+
+表中的 `.notecraft/` 指你**執行指令時所在目錄**底下的那一個，通常是專案根，不在筆記資料夾裡。
+
+## 筆記資料夾
+
+你傳給 `view`、`serve`、`build` 的那個資料夾。裡面所有 `.md` 與 `.mdx` 檔，包含子資料夾裡的，都是筆記。
+
+- **放在哪**：專案裡任何位置。省略參數時就是目前目錄
+- **怎麼對到網址**：檔案相對筆記資料夾的路徑去掉副檔名，例如 `guides/oauth/flow.mdx` 是 `/notes/guides/oauth/flow`
+- **跟誰有關**：Plugin 的資料檔也必須放在這裡面；frontmatter 全部選填，缺的欄位會自動補值
+
+細節見[巢狀資料夾與網址](/docs/writing/folders/)與 [Frontmatter](/docs/getting-started/frontmatter/)。
+
+## @ai-visualize 標記
+
+寫在 `.mdx` 筆記裡的一段 MDX 註解，用自然語言描述你想在這個位置放什麼圖。它本身不會顯示在內文裡。
+
+```mdx
+{/* @ai-visualize
+id: oauth-flow
+type: diagram
+prompt: |
+  畫一張 OAuth 2.0 + PKCE 的時序圖
+status: pending
+*/}
+```
+
+- **放在哪**：筆記裡你希望圖出現的位置
+- **跟誰有關**：`id` 決定生成元件的檔名；`status` 記錄它待生成、已生成、鎖定或失敗
+- **還沒生成時**：筆記頁上方出現「待生成」卡片，Rail 的 AI 標記佇列與 Sidebar 底部會提示待生成的數量
+
+寫法見[標記語法](/docs/guides/ai-markers/)，欄位見 [@ai-visualize 標記欄位](/docs/reference/markers/)。
+
+## 生成元件
+
+Claude Code 依標記寫出的 React 元件，一個標記一個 `.tsx` 檔。
+
+- **放在哪**：`.notecraft/components/<id>.tsx`
+- **怎麼接到筆記**：生成流程在標記正下方插入 `import` 與元件，外面包一層外框（標題列有複製提示詞與放大檢視）
+- **跟誰有關**：標記刪掉後元件不會自動刪除，留下來的叫孤兒元件；筆記轉成的簡報 `<slug>.deck.tsx` 也放在同一個資料夾，並沿用筆記裡已生成的元件
+
+元件驗證沒過就不會寫回筆記。流程見[生成流程](/docs/guides/ai-pipeline/)，清理見[孤兒元件](/docs/guides/ai-orphans/)。
+
+## Plugin 與資料檔
+
+**資料檔**是放在筆記資料夾裡的結構化 JSON，例如 ER 圖或 OpenAPI 文件。**Plugin** 是把某一種資料檔畫成頁面的渲染器。
+
+- **放在哪**：Plugin 裝在 `.notecraft/plugins/<id>/`；哪些資料檔交給哪個 Plugin，寫在 `.notecraft/plugins.json`
+- **怎麼對到網址**：每個資料檔一頁，`/view/<路徑去掉 .json>`。它們不出現在 `/notes` 筆記列表，而是在 Sidebar 的「Plugin 資料檔」與 `/plugins`
+- **跟誰有關**：資料檔可以嵌進筆記，也可以當成系列的一章
+
+和 `@ai-visualize` 的分界：同一種形狀的資料會反覆出現，用 Plugin；只為這一段文字服務的圖，用標記。
+
+安裝見[安裝與設定內建 Plugin](/docs/getting-started/plugins/)，映射規則見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。
+
+## 系列
+
+把多篇筆記串成有順序的閱讀路徑，工作台會顯示章節序號、進度條與「繼續閱讀」。
+
+- **放在哪**：`.notecraft/series.json`。筆記資料夾裡的 `.notecraft/series.json` 也會被讀取，兩份都在時近的優先
+- **章節怎麼寫**：筆記寫路徑去副檔名，例如 `auth/jwt`；資料檔寫成 `view:<路徑去副檔名>`
+- **跟誰有關**：閱讀進度存在瀏覽器的 localStorage，不寫回檔案；儀表板的系列卡與 Sidebar 的系列區段讀的都是它
+
+設定見[系列設定](/docs/getting-started/series/)，閱讀方式見[系列與閱讀進度](/docs/guides/series/)。

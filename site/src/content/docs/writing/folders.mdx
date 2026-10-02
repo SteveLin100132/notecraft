@@ -1,0 +1,42 @@
+---
+description: 筆記資料夾的階層會原樣對到網址。這頁說明檔案路徑怎麼變成 /notes/ 底下的網址，以及筆記之間怎麼互相連結。
+---
+
+筆記資料夾裡的子資料夾不用攤平。每個 `.md`／`.mdx` 檔案相對筆記資料夾的路徑，去掉副檔名，就是它的網址。
+
+## 路徑與網址對照
+
+| 檔案 | 網址 |
+| :-- | :-- |
+| `hello.mdx` | `/notes/hello` |
+| `guides/setup.mdx` | `/notes/guides/setup` |
+| `guides/oauth/flow.mdx` | `/notes/guides/oauth/flow` |
+| `guides/index.mdx` | `/notes/guides` |
+
+每個檔案的完整路徑本來就不會重複，所以不同資料夾裡同名的筆記不會互相衝突。
+
+### 檔名會被正規化
+
+網址裡的每一段會轉成小寫、空白換成 `-`，大部分標點符號會被移除；中文字照樣保留。
+
+| 檔案 | 網址 |
+| :-- | :-- |
+| `Guides/Setup.mdx` | `/notes/guides/setup` |
+| `my note.mdx` | `/notes/my-note` |
+| `筆記/快取策略.mdx` | `/notes/筆記/快取策略` |
+
+工作台側欄的資料夾樹顯示的是真實的資料夾與檔名，不受正規化影響。
+
+## 筆記之間互相連結
+
+直接用相對路徑連到另一個 `.md`／`.mdx` 檔案：
+
+```md title="guides/setup.md"
+下一步見 [OAuth 流程](./oauth/flow.mdx)。
+```
+
+連結會被改寫成 `/notes/guides/oauth/flow`，和在 GitHub、VS Code 裡點檔案的直覺一致。網址後面的 `?…` 與 `#…` 會保留，所以 `./oauth/flow.mdx#pkce` 會連到該篇的錨點。
+
+<Callout>
+連結的改寫依照檔案路徑原樣產生網址，不會套用上面的正規化。資料夾與檔名用小寫英數與 `-`（或中文）命名，相對連結最不容易出錯。
+</Callout>

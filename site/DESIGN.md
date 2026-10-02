@@ -82,6 +82,42 @@ typography:
     fontSize: "13px"
     fontWeight: 400
     letterSpacing: "0.02em"
+  doc-title:
+    fontFamily: "Archivo Variable, Noto Sans TC Variable, system-ui, sans-serif"
+    fontSize: "clamp(30px, 3vw, 44px)"
+    fontWeight: 800
+    lineHeight: 1.2
+    letterSpacing: "-0.015em"
+  doc-heading:
+    fontFamily: "Noto Sans TC Variable, Archivo Variable, system-ui, sans-serif"
+    fontSize: "24px"
+    fontWeight: 700
+    lineHeight: 1.35
+  doc-subheading:
+    fontFamily: "Noto Sans TC Variable, Archivo Variable, system-ui, sans-serif"
+    fontSize: "18px"
+    fontWeight: 700
+    lineHeight: 1.45
+  spine-chapter:
+    fontFamily: "Archivo Variable, Noto Sans TC Variable, system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+    lineHeight: 1.4
+  spine-section:
+    fontFamily: "Noto Sans TC Variable, Archivo Variable, system-ui, sans-serif"
+    fontSize: "14.5px"
+    fontWeight: 400
+    lineHeight: 1.5
+  nav-small:
+    fontFamily: "Noto Sans TC Variable, Archivo Variable, system-ui, sans-serif"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.5
+  tag:
+    fontFamily: "Noto Sans TC Variable, Archivo Variable, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 500
+    letterSpacing: "0.04em"
   mono:
     fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
     fontSize: "15px"
@@ -314,6 +350,18 @@ components:
 
 ### 版本歷程
 - 右側巨大目前版本號（見 Version numeral）；下方自動填滿的版本格（最小 104px），1px `line-soft` 格線；里程碑版本白色 800，其他 `on-sheet-2` 400，日期 13px。
+
+### 使用文件（/docs，深藍書脊）
+使用文件是說明書的附冊：框架承接官網的世界，閱讀欄保持安靜。殼在 `src/layouts/DocsLayout.astro`，樣式在 `src/styles/docs.css`，章節大綱在 `src/lib/docs.ts`。
+- **書脊（Spine）：** 左側 280px、滿高 sticky 的 `sheet`。頂端 logo、「使用文件」（Archivo 800 24px）加版本號；下面 7 章以 `<details>` 收合，章號 Archivo 窄體 700 24px（展開時轉 `line`），章名 16px 700。節：節號 13px 窄體 `on-sheet-2`、節名 14.5px `line`；分組節點 600 不可點。**所在的節**：白色粗體、節號轉 `mark`、左側 7px `mark` 實心方塊（圖版引線的端點）。**撰寫中**的節 `on-sheet-2`、附 11px 外框小字「撰寫中」、不可點；指向撰寫中節的內文連結自動降成純文字。
+- **白紙側：** 頁眉左「NoteCraftApp 使用文件」、右「第 n 章・章名」（首頁寫「目錄」）。頁標題 `doc-title`，前接 `mark-paper` 窄體節號；導言 18px `ink-2`；頭與內文最寬 68ch。內文 17px／1.75、68ch；`##` 以 2px `rule-strong` 起頭（章節線），`###` 18px。
+- **本頁目錄：** ≥1200px 是 220px sticky 右欄，2px 章節線起頭、節名「本頁目錄」；目前讀到的小節 `ink` 600 加 6px `sheet` 方塊。內文欄與目錄這一組在白紙上置中。<1200px 收進文首，成為 1px `rule` 框的 `<details>`（自繪折角，不用瀏覽器三角形）。
+- **程式碼框：** 沿用 Diff 圖：1.5px `ink` 框、上方 38px 頭（檔名用 mono、語言名用 Archivo 13px `ink-2`）、右側「複製」鈕（hover 反白、成功轉 `sheet`）。高亮只用 `ink`、`sheet`、`ink-2` 三色（Shiki 自訂主題，`astro.config.mjs`）。
+- **表格：** 沿用 DataTable：表頭 2px `ink` 底線、列間 1px `rule`；外包一層橫向捲動，不讓整頁出現水平捲軸。
+- **提示框：** 【提示】（`sheet`）／【注意】（`mark-paper`）方括號節名，上緣 1px `rule-strong`、下緣 1px `rule`。不用色塊、不用粗左線。
+- **圖版：** 同官網圖版的框與圖說；圖說前由計數器補「FIG. n」（依頁內順序）。局部截圖以原尺寸顯示、不放大；裁切圖的 `.json` 註明出自哪張原圖。
+- **上一節／下一節：** 兩格 1.5px `ink` 外框欄（按鈕語彙），窄體 `mark-paper` 節號＋節名，hover 填 `ink`、節號轉 `mark`。
+- **窄螢幕（<960px）：** 書脊收成 52px `sheet` 頂列（外框「章節」鈕＋目前節號與節名），點開是 `min(320px, 86vw)` 抽屜，背後頁面 `inert`、45% 墨色遮罩；抽屜內有外框「關閉」鈕，Esc 也能關，關閉後焦點回到「章節」鈕。
 
 ## Do's and Don'ts
 

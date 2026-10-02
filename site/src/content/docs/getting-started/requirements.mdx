@@ -1,0 +1,40 @@
+---
+description: 執行 NoteCraftApp 需要的 Node.js 版本與作業系統；要用 AI 生成與簡報，另外需要 Claude Code。
+---
+
+只想用工作台讀筆記，裝好 Node.js 就夠了。
+
+## Node.js
+
+需要 **Node.js 22 以上**。
+
+```bash
+node -v
+```
+
+版本低於 22 時請先升級。首次執行會在你的電腦上跑一次 `npm install`，所以 `npm` 也要能用（隨 Node.js 一起安裝）。
+
+## 作業系統
+
+macOS、Linux、Windows 都可以執行。
+
+Windows 11 已驗證以下子命令，包含筆記資料夾與 `~/.notecraft` 位於不同磁碟的情況：
+
+| 子命令 | 用途 |
+| :-- | :-- |
+| `view` | 開發伺服器，可寫入 |
+| `build` | 建置靜態網站 |
+| `serve` | 服務建置結果，背景自動重建 |
+| `init-skill` | 安裝 AI 生成與簡報用的 Skill |
+| `install-plugin` | 安裝 Plugin |
+
+## AI 生成與簡報
+
+`@ai-visualize` 生成互動元件、筆記轉簡報，都是在 Claude Code 對話裡執行的。要用這兩項功能，你需要：
+
+- 安裝好、能在專案目錄開對話的 [Claude Code](https://claude.com/claude-code)
+- 在專案裡跑過一次 `npx notecraftapp init-skill`，見[安裝內建 Skill](/docs/getting-started/skills/)
+
+<Callout type="warn">
+`install-plugin` 列出官方 store 時一律從 GitHub 即時抓清單，離線時無法列出或安裝官方 Plugin。
+</Callout>

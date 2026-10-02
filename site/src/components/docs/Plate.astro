@@ -1,0 +1,13 @@
+---
+// 產品截圖圖版：1.5px 墨框、圖說在下（上緣細線；「FIG. n」由 docs.css 的計數器依頁內順序補上）。圖檔在 public/plates/，各附出處 .json。
+// 整張畫面是 1600×1000（16:10、可縮放）；局部截圖（如單一張卡）帶自己的 width／height，以原尺寸顯示、不放大。
+type Props = { name: string; alt: string; caption?: string; width?: number; height?: number };
+const { name, alt, caption, width = 1600, height = 1000 } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const detail = width < 1600;
+---
+
+<figure class:list={["plate", { "plate--detail": detail }]} style={detail ? `--plate-w: ${width}px` : undefined}>
+  <img src={`${base}plates/${name}.webp`} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>

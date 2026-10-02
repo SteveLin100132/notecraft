@@ -1,0 +1,92 @@
+---
+description: "@ai-visualize 標記的完整語法、每個欄位的必填與否和可選值，以及寫法與 id 命名規則。"
+---
+
+標記怎麼用、生成後長什麼樣，見[標記語法](/docs/guides/ai-markers/)。這頁只列規格。
+
+## 完整語法
+
+```mdx
+{/* @ai-visualize
+id: <kebab-case-id>
+type: diagram | chart | timeline | table | motion | free
+prompt: |
+  <自然語言描述，可以多行>
+caption: <選用，一行說明>
+status: pending | generated | locked | failed
+*/}
+```
+
+## 欄位
+
+| 欄位 | 必填 | 值 | 說明 |
+| :-- | :-- | :-- | :-- |
+| `id` | 是 | kebab-case：小寫英文、數字、`-` | 同一篇內不能重複。也是元件檔名 `.notecraft/components/<id>.tsx`，寫回時轉成 PascalCase 當元件名稱（`oauth-flow` → `OauthFlow`） |
+| `type` | 是 | `diagram`、`chart`、`timeline`、`table`、`motion`、`free` | 想要的視覺化類別，只是提示。也決定外框左上角的類型標籤 |
+| `prompt` | 是 | 多行文字 | 寫法見下方[寫法規則](#寫法規則)。寫回時原文帶進外框，讀者可用「複製提示詞」複製 |
+| `status` | 是 | `pending`、`generated`、`locked`、`failed` | 新標記寫 `pending`，其餘通常由生成流程寫入 |
+| `caption` | 否 | 一行文字 | 寫回時帶進外框底部當說明。省略則外框沒有底部說明 |
+| `merged-into` | 否 | 另一個元件的 `id` | 由 AI 寫入，你不用自己加。見下方[合併的標記](#合併的標記) |
+
+工作台讀標記時，省略 `type` 當作 `free`、省略 `status` 當作 `pending`；沒有 `id` 的標記不會被辨識，也不計入待生成。note-scanner 則會把缺欄位的標記回報為格式錯誤。
+
+`caption` 是在寫回時複製到 `<GeneratedFrame caption="…">` 的。生成之後只改標記裡的 `caption`，外框不會跟著變：要嘛一起改 `GeneratedFrame` 的屬性，要嘛要求重新生成。
+
+## type 的值
+
+| 值 | 外框標籤 | 大致對應 | AI 通常的做法 |
+| :-- | :-- | :-- | :-- |
+| `diagram` | 示意圖 | 流程、時序、狀態機、架構 | 手寫 SVG |
+| `chart` | 圖表 | 有軸的量化資料 | `recharts`；非標準圖表用 `d3` |
+| `timeline` | 時間軸 | 時間軸、Gantt、階段推進 | 手寫 SVG |
+| `table` | 表格 | 欄位多的比較表 | HTML `<table>` |
+| `motion` | 動畫 | 動畫、互動、捲動驅動 | `motion` |
+| `free` | 視覺化 | 不指定 | AI 自己選 |
+
+`type` 不是限制。AI 判斷有明顯更好的做法時會換掉，並在對話裡說明。需求混合時會組合多種做法，例如手寫 SVG 加 `motion` 動畫。拿不定主意就寫 `free`。
+
+## status 的值
+
+| 值 | 意思 |
+| :-- | :-- |
+| `pending` | 待生成 |
+| `generated` | 已生成，元件已寫回筆記 |
+| `locked` | 鎖定，生成流程永遠跳過 |
+| `failed` | 驗證修正 3 次仍失敗，預設不重跑 |
+
+誰會改它、怎麼要求重新生成，見[狀態與重新生成](/docs/guides/ai-status/)。
+
+## 寫法規則
+
+- 開頭固定 `{/* @ai-visualize`，結尾 `*/}`。這是 MDX 註解，不會顯示在內文
+- 標記與寫回的 `import`、元件都是 MDX 語法，只在 `.mdx` 筆記有效；note-scanner 也只掃描 `.mdx`
+- 一行一個欄位，寫成 `欄位: 值`。欄位順序不拘
+- `prompt` 寫成 `prompt: |`，從下一行起每行縮排兩格，可以寫多行
+- 放在你希望元件出現的位置。生成後，`import` 與元件會插在 `*/}` 正下方
+- 可以把標記包在 ```` ```mdx ```` 圍欄裡當草稿，生成成功時圍欄會一併拆掉
+
+### id 命名
+
+- 只用小寫英文、數字與 `-`，例如 `oauth-flow`、`token-bucket-2`。`id` 會變成檔名與元件名稱，不要用中文或空白
+- 同一篇筆記內必須唯一；重複的會被標成錯誤並跳過
+- 不同筆記之間也不要重複，因為元件檔都放在同一個 `.notecraft/components/` 資料夾
+- 用內容命名（`oauth-flow`），比用位置命名（`figure-1`）好維護
+- 生成後改 `id`，舊元件會變成[孤兒元件](/docs/guides/ai-orphans/)
+
+## 合併的標記
+
+一篇筆記裡有幾個彼此相關的標記時，AI 可能提議把它們合併成一個元件，並在對話裡說明合併了哪些。合併後：
+
+- 元件接在第一個標記下方，只有一個外框
+- 被併入的標記也改成 `status: generated`，並多一行 `merged-into: <元件的 id>`，下方不會有自己的元件
+
+```mdx
+{/* @ai-visualize
+id: why-stop-event
+type: diagram
+prompt: |
+  三張並排卡片……
+merged-into: hook-lifecycle-events
+status: generated
+*/}
+```

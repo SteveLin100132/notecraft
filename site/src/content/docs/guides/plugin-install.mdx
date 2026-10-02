@@ -1,0 +1,76 @@
+---
+description: 用 install-plugin 從官方 store、第三方 GitHub repo 或本地資料夾安裝 plugin，安裝前會先做靜態檢查並要你確認。
+---
+
+plugin 是把結構化 JSON 資料檔畫成頁面的渲染器。安裝只是把 plugin 的檔案複製進專案根的 `.notecraft/plugins/<id>/`，要讓資料檔真的變成頁面，還要寫[映射規則](/docs/guides/plugin-mapping/)。
+
+## 三種來源
+
+```bash
+npx notecraftapp install-plugin                          # 列出官方 store，輸入編號選擇
+npx notecraftapp install-plugin er-diagram-renderer      # 官方 plugin，直接給 id
+npx notecraftapp install-plugin owner/repo/plugins/foo   # 第三方 GitHub repo 裡的子資料夾
+npx notecraftapp install-plugin ./my-plugin              # 本地資料夾
+```
+
+| 來源 | 寫法 |
+| :-- | :-- |
+| 官方 store | 只寫 id，例如 `er-diagram-renderer`、`openapi-renderer` |
+| GitHub repo 根目錄 | `owner/repo` |
+| GitHub 子資料夾 | `owner/repo/path`，一個 repo 可以放好幾個 plugin |
+| 指定版本 | 後面加 `#<tag>`，例如 `owner/repo/plugins/foo#v1.2.0`；也可以用 `--ref <tag>` |
+| 完整網址 | `https://github.com/owner/repo/tree/main/plugins/foo` |
+| 本地資料夾 | `./`、`../`、`/` 或 `~` 開頭的路徑，開發自己的 plugin 時用 |
+
+官方 store 就是 NoteCraftApp GitHub repo 的 `plugins/` 資料夾，清單每次都即時從 GitHub 讀取，所以需要網路。只想看清單不安裝，用 `--list`。
+
+## 安裝前的檢查與確認
+
+指令會先下載檔案、列出來源網址、plugin 的 id 與版本、要寫入的檔案清單，再跑靜態檢查。下列任何一項不過就拒絕安裝：
+
+- `.tsx`／`.ts` 裡 import 了白名單外的套件。白名單與 AI 生成元件共用：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`
+- 使用 `dangerouslySetInnerHTML`
+- 不在允許清單內的檔案類型。只收 `.tsx`、`.ts`、`.json`、`.md`、`.css`、`.svg`、`.png`，所以 `package.json`、`*.sh`、`*.mjs` 這類檔案都會被擋
+- 路徑逃脫（含 `..` 的路徑）
+- 缺少 `notecraft-plugin.json` 或 `renderer.tsx`
+- plugin 要求的 NoteCraftApp 版本（manifest 的 `engines`）與你目前的版本不合，會提示你先升級
+
+檢查都通過後，問你一次：
+
+```text
+這會把上述檔案寫進你的專案，並在 build 與瀏覽器中執行。確定安裝？[y/N]
+```
+
+<Callout type="warn">
+安裝 plugin 等於讓別人寫的前端程式碼在你的 build 與瀏覽器裡執行。NoteCraftApp 只做上面的靜態檢查，不做執行期沙箱。來源不熟悉時，確認前先看過檔案清單與原始碼。
+</Callout>
+
+NoteCraftApp **不會執行任何安裝腳本**，也不會跑 `npm install`；plugin 只能用 app 已經內建的套件。
+
+## 裝完之後
+
+安裝目錄裡會多一份 `.installed.json`，記錄來源網址、版本參照與實際的 commit，方便日後追溯。終端機會印出一段可以直接貼進 `.notecraft/plugins.json` 的映射。想一步完成，加 `--apply`：
+
+```bash
+npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
+```
+
+同一個 plugin 已經裝過時會問要不要覆寫；`--force` 直接覆寫。升級 plugin 就是用 `--force` 重裝一次。
+
+## CI 與移除
+
+非互動環境（例如 CI）沒辦法回答確認，指令會直接結束。確定要裝就加 `--yes` 略過確認：
+
+```bash
+npx notecraftapp install-plugin er-diagram-renderer --yes
+```
+
+移除用 `--remove`：
+
+```bash
+npx notecraftapp install-plugin --remove er-diagram-renderer
+```
+
+它會刪掉 `.notecraft/plugins/<id>/`，但不會改你的 `plugins.json`。如果還有規則指向這個 plugin，會出現警告，因為指到沒安裝的 plugin 會讓下次 build 失敗，記得自己刪掉那幾條規則。只想暫時關掉、不移除，見[啟用與停用](/docs/guides/plugin-toggle/)。
+
+其他旗標（`--as`、`--dir`）見 [CLI](/docs/reference/cli/)。

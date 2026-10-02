@@ -1,0 +1,30 @@
+---
+// 內文連結：站內絕對路徑（/docs/…）補上 base；外部連結另開分頁。
+// 指向還在「撰寫中」的節時不輸出連結，只留文字，避免讀者點到 404。
+import { getCollection } from "astro:content";
+
+type Props = { href?: string };
+const { href = "" } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const external = /^https?:\/\//.test(href);
+const url = href.startsWith("/") && !href.startsWith(base + "/") ? base + href : href;
+
+const docSlug = href.match(/^\/docs\/(.+?)\/?(?:#.*)?$/)?.[1];
+const ready = docSlug ? (await getCollection("docs")).some((e) => e.id === docSlug) : true;
+---
+
+{
+  !ready ? (
+    <span class="link-draft">
+      <slot />
+    </span>
+  ) : external ? (
+    <a href={url} rel="noopener" target="_blank">
+      <slot />
+    </a>
+  ) : (
+    <a href={url}>
+      <slot />
+    </a>
+  )
+}

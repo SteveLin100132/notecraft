@@ -25,6 +25,7 @@ const MILESTONES = new Set(["0.1.0", "0.2.0", "0.3.0", "0.5.0", "0.6.0", "1.0.0"
 const GITHUB = "https://github.com/SteveLin100132/notecraft";
 const NPM = "https://www.npmjs.com/package/notecraftapp";
 const DEMO = `${base}demo/`;
+const DOCS = `${base}docs/`;
 
 
 const WIDE_CLAIMS = new Set([2, 3]);
@@ -97,6 +98,7 @@ const legend = [
           <li class="hide-sm"><a href="#embodiment">實施方式</a></li>
           <li class="hide-sm"><a href="#claims">請求項</a></li>
           <li class="hide-sm"><a href="#releases">版本</a></li>
+          <li><a href={DOCS}>文件</a></li>
           <li><a href={DEMO}>Demo</a></li>
           <li><a href={GITHUB} rel="noopener">GitHub</a></li>
         </ul>
@@ -425,7 +427,7 @@ const legend = [
 
         <footer class="foot">
           <span>NoteCraftApp · MIT License</span>
-          <span><a href={`${GITHUB}#readme`} rel="noopener">README</a> · <a href={`${GITHUB}/blob/main/CHANGELOG.md`} rel="noopener">CHANGELOG</a> · <a href="https://stevelin100132.github.io/" rel="noopener">作者</a></span>
+          <span><a href={DOCS}>文件</a> · <a href={`${GITHUB}#readme`} rel="noopener">README</a> · <a href={`${GITHUB}/blob/main/CHANGELOG.md`} rel="noopener">CHANGELOG</a> · <a href="https://stevelin100132.github.io/" rel="noopener">作者</a></span>
         </footer>
       </div>
     </section>

@@ -1,0 +1,93 @@
+---
+description: 在 MDX 筆記裡用一段 @ai-visualize 註解描述想要的圖表或互動元件，Claude Code 會依它生成元件並寫回筆記。
+---
+
+標記是一段 MDX 註解，放在你希望圖出現的位置。它本身不會顯示在內文裡；還沒生成時，筆記頁上方會出現一張「待生成」卡片，提醒這篇還有標記沒處理。
+
+## 寫法
+
+```mdx title="guides/oauth/flow.mdx"
+## 授權流程
+
+{/* @ai-visualize
+id: oauth-flow
+type: diagram
+prompt: |
+  畫一張 OAuth 2.0 + PKCE 的完整時序圖，
+  含前端、後端、AS、Resource Server 四方通訊
+status: pending
+*/}
+
+接下來的段落……
+```
+
+- 開頭固定是 `{/* @ai-visualize`，結尾是 `*/}`
+- 標記要寫在 `.mdx` 筆記裡
+- `prompt` 用 `|` 開頭，下一行起縮排寫多行描述
+
+## 欄位
+
+| 欄位 | 說明 |
+| :-- | :-- |
+| `id` | kebab-case，同一篇筆記內不能重複。也是元件的檔名：`.notecraft/components/<id>.tsx` |
+| `type` | `diagram`、`chart`、`timeline`、`table`、`motion` 或 `free` |
+| `prompt` | 用自然語言描述想要的圖 |
+| `status` | 新標記寫 `pending` |
+| `caption` | 選用。一行說明，生成後顯示在元件外框底部 |
+
+完整欄位與每個值的細節見 [@ai-visualize 標記欄位](/docs/reference/markers/)。
+
+### type 只是提示
+
+`type` 告訴 AI 你大概想要哪一類，不是限制。AI 判斷有明顯更好的做法時會換掉，並在對話裡說明。拿不定主意就寫 `free`。
+
+| type | 大致對應 |
+| :-- | :-- |
+| `diagram` | 流程、時序、狀態機、架構圖 |
+| `chart` | 有軸的量化資料 |
+| `timeline` | 時間軸、階段推進 |
+| `table` | 多欄位的比較表 |
+| `motion` | 動畫、可操作的互動 |
+| `free` | 交給 AI 決定 |
+
+### status 的四個值
+
+| 值 | 意思 |
+| :-- | :-- |
+| `pending` | 待生成 |
+| `generated` | 已生成，元件已寫回筆記 |
+| `locked` | 鎖定，之後怎麼要求都不會覆寫 |
+| `failed` | 生成失敗，預設不重跑 |
+
+`pending` 以外的值通常由生成流程寫入，你只需要在想保護某個元件時手動改成 `locked`。各狀態的處理方式見[狀態與重新生成](/docs/guides/ai-status/)。
+
+## 生成後的樣子
+
+生成成功後，標記的 `status` 改為 `generated`，正下方多出 `import` 與元件：
+
+```mdx
+{/* @ai-visualize
+id: oauth-flow
+type: diagram
+prompt: |
+  畫一張 OAuth 2.0 + PKCE 的完整時序圖，
+  含前端、後端、AS、Resource Server 四方通訊
+status: generated
+*/}
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import OauthFlow from '@notes/components/oauth-flow'
+
+<GeneratedFrame id="oauth-flow" type="diagram" prompt={"畫一張 OAuth 2.0 + PKCE 的完整時序圖，…"}>
+  <OauthFlow client:visible />
+</GeneratedFrame>
+```
+
+標記會留在原處。想換一版時改 `prompt`，再明確要求 AI 重新生成這個標記。`GeneratedFrame` 是元件的外框，標題列有類型、來源檔名、複製提示詞與[放大檢視](/docs/guides/zoom/)按鈕。
+
+如果你把標記包在 ```` ```mdx ```` 圍欄裡當草稿，生成時會一併拆掉圍欄，避免 prompt 以程式碼區塊的形式顯示給讀者。
+
+## 同一篇裡 id 重複
+
+同一篇筆記裡兩個標記用了相同的 `id`，掃描時會把重複的那個標為錯誤並跳過，同一篇的其他標記照常處理。改成不同的 `id` 再處理一次就好。
+
+不同筆記之間的 `id` 也不要重複，因為元件檔都放在同一個 `.notecraft/components/` 資料夾。

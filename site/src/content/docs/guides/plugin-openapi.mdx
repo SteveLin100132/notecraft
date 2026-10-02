@@ -1,0 +1,194 @@
+---
+description: 用 openapi-renderer 把 OpenAPI 3.0／3.1 的 JSON 文件畫成可導覽、可篩選的 API 文件頁，並在筆記裡內嵌單一端點的卡片。
+---
+
+OpenAPI Renderer（id `openapi-renderer`，目前版本 1.0.0）把筆記資料夾裡的 OpenAPI 文件畫成 API 文件：tag 與 operation 導覽、參數與欄位樹、範例與 cURL。需要 NoteCraftApp 1.6.0 以上。
+
+它是讀文件的地方，不會替你送出請求。站台是純靜態的，範例區只提供可複製的 cURL 與 fetch。
+
+## 支援的版本
+
+| 文件宣告 | 行為 |
+| :-- | :-- |
+| `openapi: 3.0.x`、`3.1.x` | 完整支援 |
+| 其他 `3.x`（例如 `3.2.0`） | 以 3.1 的規則盡力渲染，頁首與總覽顯示警示；3.2 的 `query` method 以中性色標記，其他 3.2 專屬欄位略過 |
+| `swagger: "2.0"` | build 不會失敗，但頁面不渲染文件，改顯示轉檔指引；build log 印一次警告 |
+
+不支援的：
+
+- **YAML**：資料檔只吃 JSON，先轉檔
+- **外部 `$ref`**（不是 `#/` 開頭的）：不解析，型別欄位顯示 ref 原字串
+- **試打 API**：不提供
+
+<Callout>
+Swagger 2.0 的文件可以先用 `swagger2openapi` 之類的工具轉成 3.0，再放進筆記資料夾。
+</Callout>
+
+## 安裝與映射
+
+```bash
+npx notecraftapp install-plugin openapi-renderer --apply "**/*.openapi.json"
+```
+
+不帶 `--apply` 的話，自己在 `.notecraft/plugins.json` 加一條：
+
+```json title=".notecraft/plugins.json"
+{
+  "plugins": [
+    { "plugin": "openapi-renderer", "files": ["**/*.openapi.json"] }
+  ]
+}
+```
+
+慣例是檔名以 `.openapi.json` 結尾。網址照一般資料檔的規則**只去掉 `.json`**：
+
+| 資料檔 | 頁面 |
+| :-- | :-- |
+| `api/orders.openapi.json` | `/view/api/orders.openapi` |
+
+安裝流程見[安裝來源](/docs/guides/plugin-install/)，規則寫法見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。
+
+## 資料檔
+
+資料檔就是 OpenAPI 文件本身，不用改寫格式。build 時只檢查外形：
+
+- 要有 `openapi`（`3.` 開頭）或 `swagger` 其中之一
+- 要有 `info`，裡面要有 `title` 與 `version`
+
+不合這兩條 build 會失敗。其他瑕疵，例如 `$ref` 斷掉、`operationId` 重複，不會讓 build 失敗：無法解析的部分略過，重複的 `operationId` 改用 `method/path` 當連結，`view` 模式下在瀏覽器 console 列出警告。
+
+```json title="api/orders.openapi.json"
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "訂單 API",
+    "version": "1.0.0",
+    "description": "訂單系統對外的 REST API。"
+  },
+  "x-notecraft-back-to": "/notes/orders/overview",
+  "servers": [{ "url": "https://api.example.com/v1" }],
+  "tags": [{ "name": "orders", "description": "建立與查詢訂單" }],
+  "paths": {
+    "/orders/{id}": {
+      "get": {
+        "tags": ["orders"],
+        "operationId": "getOrder",
+        "summary": "取得單筆訂單",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "成功" },
+          "404": { "description": "找不到訂單" }
+        }
+      }
+    }
+  }
+}
+```
+
+外形檢查用的 schema 見 repo 裡的 [schema.json](https://github.com/SteveLin100132/notecraft/blob/main/plugins/openapi-renderer/schema.json)。[example/](https://github.com/SteveLin100132/notecraft/tree/main/plugins/openapi-renderer/example) 底下有三份範例：Swagger Petstore（3.2.0）、含循環 `$ref` 與 `oneOf` 等邊界案例的 orders（3.1），以及只有兩支端點、沒有 tag 的 health。
+
+## 標題、描述與回到筆記
+
+OpenAPI 文件沒有 `meta` 欄位，所以這個 plugin 在自己的 manifest 裡改指頁面資訊的來源：
+
+| 頁面資訊 | 取自 |
+| :-- | :-- |
+| 標題 | `info.title` |
+| 描述 | `info.description` |
+| 「回到來源筆記」 | 頂層的 `x-notecraft-back-to` |
+
+- 標題用在頁首、瀏覽器分頁標題、頁籤與指令面板
+- `info.description` 可以用 Markdown。頁首只取第一段的純文字，站內搜尋收全文；各個 operation 的內容不進搜尋索引
+- `x-notecraft-back-to` 只接受 `/` 開頭的站內路徑，例如 `"/notes/orders/overview"`。不符合時忽略並在 build 時警告，不會失敗
+
+## 頁面上能做什麼
+
+### 導覽
+
+左側依序是篩選、總覽、Operations（tag → operation）與 Schemas。
+
+- 篩選框比對 path、summary 與 `operationId`，`/` 可以直接聚焦
+- method 按鈕可以複選，只列出選中的 method
+- 篩選狀態不寫進網址，重新整理就清掉
+- 外殼寬度在窄螢幕時，導覽改成覆蓋式、預設收合
+
+operation 不超過 4 支、也都沒有 tag 的小型文件，不顯示導覽，總覽直接列出所有 operation 與 schema。
+
+### 四種頁面
+
+| 頁面 | 內容 |
+| :-- | :-- |
+| 總覽 | API 標題與版本、operation／tag／schema 數量、`info.description`、各 tag 的大小比例與 method 分布、伺服器清單、驗證方式 |
+| Tag | tag 說明與它底下的 operation 清單 |
+| Operation | method 與 path、summary、`operationId`、需要的驗證；參數（依 path、query、header、cookie 分組）、Request Body、Responses、範例請求 |
+| Schema | 欄位樹、被哪些 operation 使用（直接與經由其他 schema 間接使用）、參照與被參照的 schema |
+
+沒寫 `tags` 的 operation 歸在一個統一的分組裡。標了 `deprecated` 的 operation 與參數會加上「已棄用」。
+
+### Operation 頁的操作
+
+- path 裡的 `{參數}` 可以點，會捲到參數表的那一列
+- Request Body 與 Responses 並列欄位樹與範例（版面窄時上下排）；有多種 content type 時可以切換，有多個範例時可以從下拉選單挑，沒有範例時由 schema 產生
+- Responses 依狀態碼切換
+- 「複製 path」「複製連結」；Schema 頁另有「複製 schema JSON」
+
+### 範例請求
+
+每支 operation 下方有範例請求，可以在 cURL 與 fetch 之間切換。選了哪一種會記在瀏覽器，所有 OpenAPI 頁共用；頁面剛載入時一律先顯示 cURL。文件列了多個 `servers` 時，可以從下拉選單換伺服器。範例裡的 `<…>` 是佔位，要換成實際值。
+
+鍵盤操作見[快捷鍵](/docs/reference/shortcuts/)的「OpenAPI Renderer」。
+
+### 連結到特定位置
+
+`/view/` 頁的位置會同步到網址 hash，可以直接分享或寫進筆記連結：
+
+```text
+/view/api/orders.openapi#tag/orders
+/view/api/orders.openapi#op/getOrder
+/view/api/orders.openapi#op/getOrder/responses/404
+/view/api/orders.openapi#schema/Order
+```
+
+沒有 `operationId` 的 operation 用 `#op/<method>/<path>`。完整的格式見[網址參數](/docs/reference/url-params/)的「OpenAPI 頁」。
+
+## 嵌進筆記
+
+```mdx
+import PluginView from "@/components/PluginView.astro";
+
+{/* 單一 operation 的卡片 */}
+<PluginView src="api/orders.openapi.json" options={{ operation: "getOrder" }} anchor="op/getOrder" />
+
+{/* 不指定 operation：整份 API 的總覽縮影 */}
+<PluginView src="api/orders.openapi.json" />
+```
+
+| | `/view/` 頁 | 內嵌 |
+| :-- | :-- | :-- |
+| 內容 | 完整文件 | 單一 operation 的卡片，或總覽縮影 |
+| 網址 hash | 讀也寫 | 不讀也不寫 |
+| 鍵盤 | `/`、`Esc` 等 | 不處理按鍵 |
+| 外框 | 無 | NoteCraftApp 的外框，含「開啟完整檢視頁」與放大檢視 |
+
+- **operation 卡片**：method 與 path、summary、`operationId`、驗證、參數、Request Body 與主要回應的第一層欄位，以及其他回應的狀態碼
+- **總覽縮影**：API 標題、數量、method 分布與 tag 清單，點 tag 開到文件頁的該 tag。tag 超過 8 個時只列最大的 6 個
+- `options.operation` 填 `operationId`，沒有 `operationId` 的寫 `method/path`，例如 `get/orders/{id}`。對不到時卡片裡顯示錯誤，build 不會失敗
+- `anchor` 不會從 `options.operation` 自動推導，想讓「開啟完整檢視頁」直接跳到那一支，要自己寫上
+
+<Callout type="warn">
+每一處內嵌都會把整份 OpenAPI 文件帶進頁面。大型文件只內嵌少數幾處，否則筆記頁會變得很大。
+</Callout>
+
+## 選項
+
+寫在 `plugins.json` 規則的 `options`，或 `<PluginView>` 的 `options`：
+
+| 鍵 | 預設 | 作用 |
+| :-- | :-- | :-- |
+| `operation` | — | 只用於內嵌：要顯示哪一支 operation |
+| `navSummary` | `"hover"` | 導覽裡 summary 的呈現：`"hover"` 滑過才顯示、`"line"` 固定顯示在第二行。觸控裝置一律第二行 |
+| `server` | `0` | 範例請求預設用 `servers` 的第幾個（從 0 起算） |
+
+型別不對的值改用預設，`view` 模式下在 console 警告。
