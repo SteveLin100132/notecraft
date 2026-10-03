@@ -612,7 +612,9 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - 新 token 一律 `--wb-*`，規則零色碼；每條動畫都要有 reduced-motion 對應
 > - 驗收以 `astro preview` 為準（`astro dev` 下骨架與進度線出現機率高很多）
 
-## v1.20.0 追加功能（§8.1 Phase 4.24）— 檢查更新（notecraftapp v1.9.0）
+## v1.20.0 追加功能（§8.1 Phase 4.24）— 檢查更新（notecraftapp v1.9.0） ✅ 已完成（2026-10-03）
+
+> **已完成（2026-10-03）**：Task 113–116 全部實作於 `feat/update-check`。實測結論回填於規格 §17；各 Task 檔末有「實作記錄」。
 
 規格 [notecraft-workbench-update-check.md](../notecraft-workbench-update-check.md)；設計交付 [design_handoff_update_check](../prototype/design_handoff_update_check/)。
 在瀏覽器端直接查 npm registry，比對目前版本與最新版；有新版時以 Rail 圓點、「關於」頁籤徽章、「版本與更新」區塊、更新內容 Drawer（列出錯過的 CHANGELOG）、一次性 toast 低干擾地提醒，⌘K 多一組「指令」。部署站也提示。

@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.19.0
+文件版本: v1.20.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-10-02
+更新日期: 2026-10-03
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -2687,6 +2687,19 @@ model: haiku
 - **不做**：啟動 splash、標題共享元素轉場、深色模式
 - 對應實作 Task 109–112；完整設計見 [notecraft-workbench-loading-transitions.md](./notecraft-workbench-loading-transitions.md)（5 題定案紀錄在其 §21，實作後回填在 §22）
 
+#### Phase 4.24 — 檢查更新（v1.20.0 追加）
+
+**目標：npm 上有新版時讓使用者知道，並看得到錯過了什麼**
+
+- 瀏覽器端直接查 `registry.npmjs.org/notecraftapp`（允許 CORS），無後端；結果存 `localStorage["nc-update-v1"]`，30 分鐘內不重查，另有手動「檢查更新」。目前版本與快取不同就整份作廢
+- **部署站也提示**（dev-only 原則的刻意例外），**不分 viewer／部署站**，只有一套文案與升級指令（`npx notecraftapp@latest view`、`npm i -g notecraftapp@latest`）
+- 自動檢查失敗零痕跡（不顯示、不寫入、不印錯誤）；只有手動檢查失敗顯示一行字
+- 接觸點由低到高：Rail「設定與關於」圓點、「關於」頁籤落後版數徽章、「關於」最上方的「版本與更新」區塊、更新內容 Drawer、發現新版時的一次性 toast（可「略過這一版」，已棄用的版本不能略過）；⌘K 多一組「指令」
+- 更新內容 Drawer 列出錯過的 CHANGELOG：從 jsDelivr 讀 `notecraftapp@<latest>/CHANGELOG.md`（`CHANGELOG.md` 因此加入 `files`），GitHub raw 為備援；只列 npm 上發佈過的版本、「內部」類別不顯示；目前版本比 npm 新時標「尚未發佈的版本」
+- 版本推導與 CHANGELOG 解析是純函式，`npm run check:upd` 以 repo 的真實 CHANGELOG 斷言（並與官網版本清單對照）
+- **不做**：「稍後提醒」、部署站關閉提醒的 build 選項、深色模式
+- 對應實作 Task 113–116；完整設計見 [notecraft-workbench-update-check.md](./notecraft-workbench-update-check.md)（4 題定案紀錄在其 §16，實作後回填在 §17）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2846,6 +2859,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.20.0] - 2026-10-03
+- **Added**: 新增 Phase 4.24 檢查更新（npm 新版通知、錯過的 CHANGELOG）
 
 ### [1.19.0] - 2026-10-02
 - **Added**: 新增 Workbench Loading 與轉場：換頁轉場、殼預繪、骨架

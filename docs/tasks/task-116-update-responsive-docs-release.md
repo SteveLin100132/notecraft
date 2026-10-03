@@ -84,3 +84,14 @@
 ## 依賴
 
 Task 115。
+
+## 實作記錄（2026-10-03）
+
+- 響應式：1280 與 375 實測（hero 直排、按鈕 40px、指令框 44px 框內橫捲、Drawer 全寬、toast 在底部列上方、`scrollWidth === clientWidth`）；900 未截圖，規則與既有 Drawer 平板寬一致
+- reduced-motion：規則已涵蓋圓點、徽章、版本展開、toast、Drawer、caret、複製鈕、spinner、骨架；沒有開系統設定實測
+- viewer：以 `notecraftapp view <外部資料夾>`（dev）實測，自動檢查 200；本分支版號已是 1.9.0 > npm 1.8.5，正好呈現 Q4「尚未發佈的版本」
+- 清理：`src/` 沒有 `NC_UPD_ENV`／`UPD_SCEN`／`UPD_VERSIONS`（`upd-deploy` 只出現在說明不做的註解）；`.wb-upd-*` 段落 0 個色碼；三個純函式檔只有 `import type`
+- 文件：規格 §17、`notecraft-workbench.md` §4.2–§4.5、CLAUDE.md（目錄與 Workbench 一節）、官網 `guides/workbench.mdx` 新增「檢查更新」、CHANGELOG 1.9.0（含 `<!-- 重點 -->`，官網 `readMilestones()` 取得正確）、PRD 以 `/bump-prd` 的規則補 Phase 4.24 與 v1.20.0（這台機器沒有 python3，腳本跑不動，照腳本的三處改動手寫）
+- 版號：`npm version 1.9.0 --no-git-tag-version`（`package.json`、`package-lock.json`）
+- 總檢：tsc 51（與基準相同）、`npx astro build` 通過、`npm run check-plugins` 全綠（含 `upd-*.mjs` 三支）、`npm pack --dry-run` 含 `CHANGELOG.md` 與新檔
+- 沒跑 axe／VoiceOver；jsDelivr 主要來源要等 1.9.0 發佈後確認

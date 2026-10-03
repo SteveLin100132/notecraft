@@ -4,7 +4,7 @@ Project Name: NoteCraft Workbench — 檢查更新（npm 新版通知）
 文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；icon 用既有 lucide-react；跨 island 狀態用模組單例，不引入 nanostores）
-文件狀態: 定稿待實作 —— §15 的 4 題已於 2026-10-03 逐題確認（紀錄見 §16）
+文件狀態: 已實作（notecraftapp v1.9.0，Task 113–116，2026-10-03）—— §15 的 4 題已逐題確認（紀錄見 §16）；實作後回填見 §17
 文件作者: 建宇
 建立日期: 2026-10-03
 更新日期: 2026-10-03
@@ -473,4 +473,40 @@ Q3 定案 **D**：不判斷目前是本機還是部署站，**只用一套通用
 
 ## 17. 實作後回填
 
-（待實作後填寫）
+### 實測（2026-10-03，`astro preview` 與 `notecraftapp view`）
+
+| 項目 | 結果 |
+| :-- | :-- |
+| registry | 真實查詢 `registry.npmjs.org/notecraftapp` 200，packument 約 93 KB（gzip 14 KB）；寫入 `nc-update-v1` 後換頁不再發請求 |
+| 模擬情境 | 以同源 iframe 攔截 `fetch`：patch／minor／major（7 版）、已是最新、目前版本較新、已棄用＋需要 Node 24、CHANGELOG 404、手動檢查失敗，pills／提示框／設定列／toast 文案逐一符合 |
+| 失敗零痕跡 | `fetch` 被拒 → 無 UI、無錯誤事件、不寫快取 |
+| Rail 圓點 | 預繪出來的圓點換頁不閃、不播 `ncPop`；狀態改變時才播；略過／恢復與「關於」徽章同步 |
+| CHANGELOG 來源 | 目前 1.8.5：jsDelivr `@1.8.5` 404（舊版 tarball 沒有這個檔）→ GitHub raw 200，Drawer 正確列出 v1.8.5 |
+| 跨頁交棒 | 在 `/notes` 從 ⌘K 選「檢查更新」→ 導到 `/settings?tab=about`、`nc-update-next` 被取走、狀態行「剛剛檢查」 |
+| Esc | Drawer 開著時只關 Drawer；toast 顯示中 Esc 關 toast |
+| 寬度 | 1280（Drawer 520）、375（hero 直排、按鈕 40px、指令框 44px 可橫捲、Drawer 全寬、toast 在底部列上方、無整頁橫捲） |
+| viewer | `notecraftapp view <外部資料夾>`（dev）：自動檢查 200；本分支版號 1.9.0 > npm 1.8.5 → 「尚未發佈的版本」（Q4 的真實情境） |
+| tsc | 51 個錯誤，與 Task 113 前的基準相同（含 PR #45 帶進來的 `site/src/lib/changelog.ts` 兩個） |
+
+### 實作中新增的決定
+
+- 共用小元件合併成 `UpdateParts.tsx`；`SetRow` 移到 `ui.tsx`；build 期環境抽成 `src/lib/update-env.ts`（`process.versions` 經 `globalThis` 取，專案沒有 `@types/node`）
+- `initUpdate` 由第一個帶 env 的元件呼叫（`SettingsView` 是 `client:load`，可能比 `UpdateHost` 早）；`useSyncExternalStore` 的 server snapshot 一律「尚未檢查」，hydration 不 mismatch
+- `UpdateHost` 同步 Rail 時讀 `getUpd()`：hydration 那一輪的 hook 值是 SSR 快照，會先藏掉預繪的圓點
+- toast `position:fixed` 掛在 body 層（不 portal 進 `.wb-app`）
+- `.wb-upd-*` 的手機與 reduced-motion 規則放在同段自己的 `@media`，不併進既有 860px 區塊；新增 `--wb-upd-shadow`、`--wb-upd-radius` 別名
+- 行內 token 的粗體與連結可包住 code（實際 CHANGELOG 有 21 行如此）
+- `parseChangelog` 標 `internalOnly`，只剩「內部」的版本顯示「這一版只有內部調整」
+- 全域樣式清掉 `ul` 的項目符號，CHANGELOG 清單補回 `disc`／`circle`
+
+### 與設計稿的最終偏離
+
+- 續行照原換行顯示（`white-space:pre-line`），不是 §4.3 寫的「換行視為空白」：CHANGELOG 的續行多是新的一句，分行較好讀
+- Q4 的 pill 只留「尚未發佈的版本」，npm 版本號在版本列與 Drawer 套件資訊對照，不重複
+- 「關於」徽章在已棄用但沒有落後版數時顯示「!」
+
+### 仍未做的
+
+- 沒跑 axe／VoiceOver；reduced-motion 只檢查了規則，沒有開系統設定實測
+- 平板（900）沒有截圖；`notecraftapp serve`（靜態產物）沒有單獨實測，行為與 `astro preview` 相同
+- jsDelivr 的主要來源要等 1.9.0 發佈後才會命中（發版後以 `curl -sI https://cdn.jsdelivr.net/npm/notecraftapp@1.9.0/CHANGELOG.md` 確認）
