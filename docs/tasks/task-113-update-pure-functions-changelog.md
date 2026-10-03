@@ -126,3 +126,12 @@ export type UpdCache = { cur: string; at: number; res: UpdResult; toasted: strin
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-03）
+
+- 三支斷言共 32 組全綠；把 `CHANGELOG.md` 的 `## [1.8.4] - …` 改成 `## 1.8.4` 時 `upd-changelog.mjs` 失敗並列出那一行
+- 實際 CHANGELOG 有 21 行是「粗體包住行內 code」：`InlineToken` 的 `bold`／`link` 改成帶子 token（`c`），code 先換佔位字元再解析粗體與連結；另加 `tokensText()`
+- `parseChangelog` 多標 `internalOnly`（只剩「內部」的版本），給 Task 115 顯示「這一版只有內部調整」
+- `update-check.ts` 另加 `ymdSlash()`、`repoBlobBaseOf()`（layout 由 `repository.url` 推 GitHub blob 網址）
+- 與官網 `readReleases()` 的對照以動態 import `site/src/lib/changelog.ts` 完成
+- tsc 基準 51 個錯誤（含 PR #45 帶進來的 `site/src/lib/changelog.ts` 兩個 `node:fs`／`node:url`），新檔 0 個
