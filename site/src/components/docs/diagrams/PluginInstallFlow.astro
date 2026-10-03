@@ -1,0 +1,45 @@
+---
+// 4.5.1 install-plugin 的步驟：下載 → 列出 → 靜態檢查 → 確認 → 寫入；寫完還要有映射規則，資料檔才會變成頁面。
+import StepFlow, { type Step } from "./StepFlow.astro";
+
+const steps: Step[] = [
+  {
+    k: "你",
+    t: "<code>install-plugin &lt;來源&gt;</code>",
+    d: "官方 id、<code>owner/repo[/path][#tag]</code>、GitHub 網址或本地資料夾",
+  },
+  { kind: "active", t: "下載並列出", d: "來源網址、plugin 的 id 與版本、要寫入的檔案清單" },
+  {
+    kind: "active",
+    t: "靜態檢查",
+    via: "不過",
+    fail: true,
+    out: {
+      kind: "blocked",
+      t: "拒絕安裝",
+      d: "白名單外的 import、<code>dangerouslySetInnerHTML</code>、不收的檔案類型或檔名（<code>package.json</code>、lockfile…）、路徑逃脫、缺必要檔、<code>engines</code> 不合",
+    },
+    next: "通過",
+  },
+  {
+    t: "確認：確定安裝？[y/N]",
+    d: "CI 這類非互動環境加 <code>--yes</code> 略過",
+    via: "N",
+    fail: true,
+    out: { kind: "blocked", t: "結束，什麼都不寫" },
+    next: "y",
+  },
+  {
+    kind: "active",
+    t: "寫入 <code>.notecraft/plugins/&lt;id&gt;/</code>",
+    d: "附 <code>.installed.json</code> 記下來源；不跑任何腳本、不 <code>npm install</code>",
+    out: { t: "印出映射範例", d: "加 <code>--apply \"&lt;glob&gt;\"</code> 時直接寫進 <code>plugins.json</code>" },
+  },
+  { kind: "done", t: "有映射規則後，下一次 build 產生 <code>/view/</code> 頁面" },
+];
+---
+
+<StepFlow
+  caption="install-plugin 的步驟：先列出要寫入什麼，靜態檢查與你的確認都通過才寫檔。裝完只是把檔案放進專案，還要有映射規則，資料檔才會變成頁面。"
+  steps={steps}
+/>

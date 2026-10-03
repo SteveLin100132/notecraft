@@ -1,0 +1,447 @@
+/* ════════ 文件爆炸圖（目前不顯示，檔案保留） ════════
+   components/fig/DocFig.tsx 的樣式，以及接回頁面時用的右欄（圖、圖說、符號說明）。
+   要接回來時：在 DocsLayout 引入這支 CSS、放上 DocFig island，並在 [...slug].astro 用 checkFig 檢查組裝稿。 */
+
+/* ── 兩欄：左欄節號、標題、導言與內文；右欄固定的爆炸圖 ── */
+.doc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 31vw, 520px);
+  grid-template-areas:
+    "head fig"
+    "body fig";
+  grid-template-rows: auto 1fr;
+  column-gap: clamp(32px, 4vw, 64px);
+}
+.dhead {
+  grid-area: head;
+  min-width: 0;
+  padding: clamp(30px, 4vw, 52px) 0 0;
+}
+.doc {
+  grid-area: body;
+  min-width: 0;
+}
+.dfig {
+  grid-area: fig;
+  min-width: 0;
+}
+.dfig-inner {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(24px, 3vw, 40px) 0 24px;
+  /* 平常看不到捲軸，指標移上去才出現 */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.dfig-inner:hover,
+.dfig-inner:focus-within {
+  scrollbar-color: var(--rule) transparent;
+}
+
+.dhead-no {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--rule-strong);
+}
+.dhead-num {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 66;
+  font-weight: 700;
+  font-size: clamp(64px, 8.4vw, 124px);
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dhead .doc-title {
+  margin: clamp(20px, 2.4vw, 30px) 0 0;
+  font-family: var(--f-latin);
+  font-size: clamp(30px, 3.4vw, 50px);
+  line-height: 1.16;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.dhead .doc-lead {
+  margin: 16px 0 0;
+  max-width: 36em;
+  font-size: 18px;
+  line-height: var(--rule-gap);
+  color: var(--ink-2);
+}
+
+/* 右欄固定、內文捲動，右欄裡的線永遠對不上紙的橫線：所以右欄不畫任何分隔線，只有圖與字 */
+.dfig-figure {
+  position: relative;
+  margin: 0;
+}
+.dfig-figure figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.dfig-figure figcaption b {
+  flex: none;
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* 符號說明（取代本頁目錄）：零件編號由小到大，點一項跳到那一段；讀到的那一段由哪些零件指著就標出 */
+.dfig-toc {
+  margin-top: 22px;
+}
+/* 圖說與符號說明墊一層紙色：右欄固定、紙在底下捲動，不墊的話橫線會滑過字（不加框線） */
+.dfig-figure figcaption,
+.dfig-toc {
+  background: var(--paper);
+}
+.dfig-toc-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.dfig-toc ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dfig-toc a,
+.dfig-toc-row {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0 5px 14px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 14.5px;
+  line-height: 1.5;
+  transition: color 160ms var(--ease-out);
+}
+.dfig-toc .ref {
+  flex: none;
+  min-width: 1.6em;
+  font-size: 16px;
+}
+.dfig-toc a:hover,
+.dfig-toc .is-lit {
+  color: var(--ink);
+}
+.dfig-toc a:hover .dfig-toc-t,
+.dfig-toc .is-lit .dfig-toc-t {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+/* 讀到的那一段：墨色粗體、左側深藍方塊（圖版引線的端點） */
+.dfig-toc a[aria-current="location"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.dfig-toc a[aria-current="location"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  background: var(--sheet);
+}
+.dfig-toc a:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 2px;
+}
+
+/* ── 爆炸圖 ── */
+.fg {
+  position: relative;
+}
+/* 有實機截圖時，「實機畫面」鈕自己佔一列，不壓在圖上 */
+.fg.has-real {
+  padding-top: 48px;
+}
+.fg-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+.fg-intro .fg-svg:not(.is-live) .fg-stage {
+  opacity: 0;
+  animation: fg-failsafe 1ms 2.5s forwards;
+}
+@keyframes fg-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+.fg.is-busy .fg-part {
+  pointer-events: none;
+}
+.fg-face {
+  fill: var(--paper);
+  transition: fill 240ms var(--ease-out);
+}
+.fg-side {
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+.fg-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 240ms var(--ease-out);
+}
+.fg-art * {
+  vector-effect: non-scaling-stroke;
+}
+.fg-hit {
+  fill: transparent;
+}
+.fg-part.has-link {
+  cursor: pointer;
+}
+.fg-lift {
+  transition: transform 320ms var(--ease-out);
+}
+.fg-part.is-lit .fg-lift {
+  transform: translateY(-10px);
+}
+.fg-part.is-lit .fg-face {
+  fill: var(--tint);
+}
+.fg-part.is-lit .fg-side {
+  fill: var(--on-sheet-2);
+}
+.fg-part.is-lit .fg-edge {
+  stroke: var(--sheet);
+  stroke-width: 2.5;
+}
+.fg-part.is-hl .fg-edge {
+  stroke: var(--mark-strong);
+  stroke-width: 2;
+}
+.fg-part image {
+  image-rendering: auto;
+}
+
+/* 零件線稿的筆觸語彙（parts.tsx） */
+.fg .k {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+.fg .k2 {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 0.7;
+}
+.fg .kd {
+  stroke-dasharray: 4 3;
+}
+.fg .kb {
+  stroke-width: 1.8;
+}
+.fg .kg {
+  stroke: var(--rule);
+}
+.fg .km {
+  fill: none;
+  stroke: var(--mark-strong);
+  stroke-width: 1.5;
+}
+.fg .kf {
+  fill: var(--mark-strong);
+  fill-opacity: 0.3;
+  stroke: var(--mark-strong);
+  stroke-width: 1;
+}
+.fg .ki {
+  fill: var(--ink);
+  fill-opacity: 0.14;
+  stroke: none;
+}
+.fg .kt {
+  fill: var(--tint);
+  stroke: var(--sheet);
+  stroke-width: 0.7;
+}
+.fg .ks {
+  fill: var(--sheet);
+  stroke: var(--sheet);
+  stroke-width: 1;
+}
+.fg .kw {
+  fill: var(--paper);
+  stroke: var(--paper);
+  stroke-width: 1.2;
+}
+.fg .kp {
+  fill: var(--paper);
+}
+.fg .t,
+.fg .tm {
+  font-family: var(--f-mono);
+  font-size: 7.5px;
+  fill: var(--ink);
+  stroke: none;
+}
+.fg .tm {
+  fill: var(--mark-paper);
+  font-weight: 700;
+}
+.fg .tb {
+  fill: var(--sheet);
+  font-weight: 700;
+}
+.fg .tw {
+  fill: var(--paper);
+  font-weight: 700;
+}
+/* 鉛筆稿：一律次要墨的細線，抖動由 SVG filter 負責 */
+.fg .fg-pencil * {
+  stroke: var(--ink-2);
+  stroke-width: 0.9;
+  fill: none;
+}
+.fg .fg-pencil text {
+  fill: var(--ink-2);
+  stroke: none;
+}
+
+/* 組裝虛線 */
+.fg-assembly line {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+  opacity: 0.55;
+}
+
+/* 引線與參照編號 */
+.fg-lead-line {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  transition: stroke 200ms var(--ease-out);
+}
+.fg-dot {
+  fill: var(--ink);
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+.fg-num {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 76;
+  font-weight: 700;
+  font-size: 22px;
+  fill: var(--mark-paper);
+  font-variant-numeric: tabular-nums;
+}
+.fg-lead.is-lit .fg-lead-line {
+  stroke: var(--mark-paper);
+  stroke-width: 1.6;
+}
+.fg-lead.is-lit .fg-num {
+  fill: var(--ink);
+  text-decoration: underline;
+}
+
+/* 實機畫面切換 */
+.fg-real {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 14px/1 var(--f-cjk);
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out), opacity 180ms var(--ease-out);
+}
+.fg-real:hover,
+.fg-real[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.fg-real:disabled {
+  opacity: 0.4;
+  cursor: progress;
+}
+.fg-real:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 3px;
+}
+.fg-flat-note {
+  position: absolute;
+  left: 0;
+  bottom: 6px;
+  margin: 0;
+  padding: 4px 8px;
+  background: var(--paper);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+@media (max-width: 1179px) {
+  .doc-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "fig"
+      "body";
+    grid-template-rows: auto;
+  }
+  .dfig-inner {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    max-width: 640px;
+    padding-top: 28px;
+  }
+}
+@media (max-width: 520px) {
+  .dfig-figure figcaption {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fg-real {
+    position: static;
+    margin-bottom: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-lift,
+  .fg-face,
+  .fg-edge,
+  .fg-lead-line,
+  .dfig-toc a {
+    transition: none;
+  }
+}

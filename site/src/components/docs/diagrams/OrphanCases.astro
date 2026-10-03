@@ -1,0 +1,126 @@
+---
+// 4.3.6 孤兒元件怎麼產生：同一個起點（flow.mdx 有標記 old-flow、元件 old-flow.tsx 已生成），四種動作之後兩邊各剩什麼。
+import Diagram from "../Diagram.astro";
+
+type Cell = { text: string; tag?: "orphan" | "gone" | "pending" | "ok" };
+const rows: { act: string; note: Cell[]; comp: Cell[] }[] = [
+  {
+    act: "刪掉標記（連 import 與元件一起）",
+    note: [{ text: "沒有 old-flow 標記" }],
+    comp: [{ text: "old-flow.tsx", tag: "orphan" }],
+  },
+  {
+    act: "把標記的 <code>id</code> 改成 new-flow",
+    note: [{ text: "標記 new-flow", tag: "pending" }],
+    comp: [{ text: "old-flow.tsx", tag: "orphan" }, { text: "new-flow.tsx 還沒生成" }],
+  },
+  {
+    act: "<code>view</code> 的「⋯ → 刪除筆記」",
+    note: [{ text: "flow.mdx", tag: "gone" }],
+    comp: [{ text: "old-flow.tsx", tag: "gone" }, { text: "別篇也有同 id 標記時保留" }],
+  },
+  {
+    act: "在編輯器、檔案總管或用 git 刪掉筆記檔",
+    note: [{ text: "flow.mdx", tag: "gone" }],
+    comp: [{ text: "old-flow.tsx", tag: "orphan" }],
+  },
+];
+const TAG = { orphan: "孤兒", gone: "已刪除", pending: "待生成", ok: "" } as const;
+---
+
+<Diagram
+  caption="同一個起點、四種動作：只有在 view 模式用「刪除筆記」會連元件一起清；其他方式都會留下對不到標記的元件，也就是孤兒。"
+  scroll
+  minWidth={600}
+>
+  <div class="oc">
+    <span class="oc-start">起點：<code>flow.mdx</code> 有標記 <code>old-flow</code>（generated），對到 <code>.notecraft/components/old-flow.tsx</code></span>
+    <span class="oc-head">你做了什麼</span>
+    <span class="oc-head">筆記 <code>flow.mdx</code></span>
+    <span class="oc-head"><code>.notecraft/components/</code></span>
+    {
+      rows.map((r) => (
+        <>
+          <span class="oc-act" set:html={r.act} />
+          {[r.note, r.comp].map((cells) => (
+            <span class="oc-cell">
+              {cells.map((c) =>
+                c.tag ? (
+                  <span class:list={["oc-file", `is-${c.tag}`]}>
+                    <code>{c.text}</code>
+                    <span class="oc-tag">{TAG[c.tag]}</span>
+                  </span>
+                ) : (
+                  <span class="oc-plain">{c.text}</span>
+                ),
+              )}
+            </span>
+          ))}
+        </>
+      ))
+    }
+  </div>
+</Diagram>
+
+<style>
+  .oc {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.1fr);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .oc-start {
+    grid-column: 1 / -1;
+    margin-bottom: 14px;
+    color: var(--ink-2);
+  }
+  .oc-head {
+    padding: 0 12px 8px 0;
+    border-bottom: 2px solid var(--ink);
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .oc-act,
+  .oc-cell {
+    padding: 10px 12px 10px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .oc-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .oc-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border: 1.25px solid var(--ink);
+  }
+  .oc-tag {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .oc-file.is-orphan {
+    border-style: dashed;
+    border-color: var(--mark-paper);
+    color: var(--mark-paper);
+  }
+  .oc-file.is-gone {
+    border-color: var(--del-ink);
+    background: var(--del-bg);
+    color: var(--del-ink);
+  }
+  .oc-file.is-gone code {
+    text-decoration: line-through;
+  }
+  .oc-file.is-pending {
+    border-color: var(--sheet);
+    color: var(--sheet);
+  }
+  .oc-plain {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+</style>

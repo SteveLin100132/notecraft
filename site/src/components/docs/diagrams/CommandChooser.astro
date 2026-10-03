@@ -1,0 +1,27 @@
+---
+// 2.2 三個子命令怎麼選：兩個問題由上往下問，「是」就停在右邊那個子命令，兩個都「否」用 serve。
+import StepFlow, { type Step } from "./StepFlow.astro";
+
+const steps: Step[] = [
+  {
+    t: "要在瀏覽器裡新增筆記、改標籤、刪除筆記？",
+    d: "或想邊寫邊看，改檔即時反映",
+    via: "是",
+    out: { kind: "active", t: "<code>view</code>", d: "開發伺服器；只有它有寫入 UI" },
+    next: "否",
+  },
+  {
+    t: "要部署到別的主機，或在 CI 裡跑？",
+    via: "是",
+    out: { kind: "active", t: "<code>build</code>", d: "只產出靜態網站，在 <code>~/.notecraft/cache/&lt;hash&gt;/dist/</code>" },
+    next: "否",
+  },
+  {
+    kind: "active",
+    t: "<code>serve</code>",
+    d: "先 build 再服務，檔案一改就在背景重建並重新整理瀏覽器；唯讀。適合看 Claude Code 生成的元件、內部分享、Demo",
+  },
+];
+---
+
+<StepFlow caption="三個子命令怎麼選：要在介面寫入就用 view，要部署就用 build，其他時候（看 AI 生成結果、分享、Demo）用 serve。" steps={steps} />

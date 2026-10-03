@@ -1,0 +1,602 @@
+/* ── 「系統架構」爆炸圖（components/ArchExplode.tsx）──
+   與「它做什麼」的 FeatureExplode 同一套畫法：墨線、紙色填面，參照編號是唯一的訊號色。
+   位移由 motion 驅動（這裡不寫 transform 的 transition），這裡只管顏色與線寬。不新增顏色，全用 site.css 的 token。 */
+.ax {
+  margin: 1.6em 0 2em;
+  counter-increment: fig;
+  container: ax / inline-size;
+}
+
+/* ── 上方的控制列 ── */
+.ax-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.ax-modes {
+  display: inline-flex;
+  border: 1.5px solid var(--ink);
+}
+.ax-mode {
+  min-width: 64px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-left: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 14px/1 var(--f-mono);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+.ax-mode:first-child {
+  border-left: 0;
+}
+.ax-mode:hover {
+  background: var(--tint);
+}
+.ax-mode.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.ax-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+.ax-act {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 14px/1 var(--f-cjk);
+  cursor: pointer;
+  transition: border-color 160ms var(--ease-out), background-color 160ms var(--ease-out);
+}
+.ax-act span {
+  font-family: var(--f-latin);
+  font-size: 12px;
+  color: var(--mark-paper);
+}
+.ax-act:hover {
+  border-color: var(--ink);
+}
+.ax-act.is-on,
+.ax-act[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--tint);
+}
+.ax-mode:focus-visible,
+.ax-act:focus-visible,
+.ax-item:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 2px;
+}
+
+/* 版面：寬時三欄（左＝資料流控制與符號說明、中＝圖、右＝旁白與說明）；
+   中寬時圖佔滿一列、左右兩欄排在圖下方；窄時全部單欄、圖在最上面 */
+.ax-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "draw" "left" "right";
+  gap: 16px;
+  margin-top: 12px;
+}
+.ax-left {
+  grid-area: left;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.ax-drawing {
+  grid-area: draw;
+}
+.ax-right {
+  grid-area: right;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.ax-right .ax-panel {
+  margin-top: 0;
+}
+@container ax (min-width: 520px) {
+  .ax-grid {
+    grid-template-columns: minmax(180px, 0.4fr) minmax(0, 1fr);
+    grid-template-areas: "draw draw" "left right";
+    gap: 16px 24px;
+  }
+  .ax-left .ax-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* 三欄：圖收窄、說明欄放寬（說明少換行）；三欄等高（列高取最高的那欄），圖在中欄垂直置中、說明框往下撐滿 */
+@container ax (min-width: 700px) {
+  .ax-grid {
+    grid-template-columns: 148px minmax(0, 1fr) minmax(280px, 42%);
+    grid-template-areas: "left draw right";
+    gap: 20px;
+    align-items: stretch;
+  }
+  .ax-left,
+  .ax-right {
+    display: flex;
+    flex-direction: column;
+  }
+  .ax-left {
+    gap: 18px;
+  }
+  .ax-right {
+    gap: 12px;
+  }
+  .ax-right .ax-panel {
+    flex: 1;
+  }
+  .ax-drawing {
+    display: flex;
+    align-items: center;
+  }
+  .ax-drawing .ax-svg {
+    max-height: none;
+  }
+  .ax-right .ax-panel-body {
+    padding: 16px 18px 6px;
+  }
+  .doc-body .ax-right .ax-title {
+    font-size: 20px;
+  }
+  .ax-right .ax-title .ref {
+    font-size: 28px;
+  }
+  .doc-body .ax-right .ax-lede,
+  .doc-body .ax-right .ax-flow-text {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .doc-body .ax-right .ax-points {
+    font-size: 14.5px;
+    line-height: 1.65;
+  }
+}
+
+/* ── 圖 ── */
+.ax-drawing {
+  position: relative;
+}
+/* 高度封頂：整張圖、控制列與說明的開頭要能同時在一個視窗裡看到；寬有餘時圖置中 */
+.ax-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(58vh, 560px);
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+.ax-part {
+  cursor: pointer;
+}
+.ax-face {
+  fill: var(--paper);
+  transition: fill 240ms var(--ease-out);
+}
+.ax-side {
+  stroke: var(--ink);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+.ax-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  transition: stroke 240ms var(--ease-out), opacity 240ms var(--ease-out);
+}
+.ax-part.is-hl .ax-edge {
+  stroke: var(--mark-strong);
+}
+.ax-plane {
+  transition: opacity 240ms var(--ease-out);
+}
+.ax-plane * {
+  vector-effect: non-scaling-stroke;
+}
+.ax-ink {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  transition: stroke 240ms var(--ease-out);
+}
+.ax-thick {
+  stroke-width: 2.4;
+}
+.ax-mark {
+  fill: none;
+  stroke: var(--mark-strong);
+  stroke-width: 1.5;
+}
+.ax-fill {
+  fill: var(--mark-strong);
+  fill-opacity: 0.28;
+}
+.ax-dash {
+  stroke-dasharray: 4 4;
+}
+/* 平面上的小字：躺在等角平面上斜著印 */
+.ax-ptext {
+  font: 500 11px/1 var(--f-mono);
+  fill: var(--ink-2);
+  stroke: none;
+}
+.ax-ptext-b {
+  font-weight: 700;
+  fill: var(--ink);
+}
+.ax-ptext-s {
+  font-size: 10px;
+}
+
+.ax-part.is-dim .ax-plane {
+  opacity: 0.5;
+}
+.ax-part.is-dim .ax-edge {
+  opacity: 0.7;
+}
+
+/* 選中：淡藍底、墨線換深藍（浮起與讓位由 motion 做） */
+.ax-part.is-active .ax-face {
+  fill: var(--tint);
+}
+.ax-part.is-active .ax-side {
+  fill: var(--rule);
+}
+.ax-part.is-active .ax-edge {
+  stroke: var(--sheet);
+  stroke-width: 2.5;
+}
+.ax-part.is-active .ax-ink {
+  stroke: var(--sheet);
+  stroke-width: 1.4;
+}
+.ax-part.is-active .ax-ptext {
+  fill: var(--sheet);
+}
+.ax-part.is-lit:not(.is-active) .ax-edge {
+  stroke-width: 2.2;
+}
+
+/* 引線與編號 */
+.ax-leader-line {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  transition: stroke 200ms var(--ease-out);
+}
+.ax-leader-dot {
+  fill: var(--ink);
+}
+.ax-hit {
+  fill: transparent;
+}
+.ax-num {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 76;
+  font-weight: 700;
+  font-size: 32px;
+  fill: var(--mark-paper);
+}
+.ax-part.is-lit .ax-leader-line {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.ax-part.is-active .ax-leader-line {
+  stroke: var(--mark-strong);
+  stroke-width: 2;
+}
+.ax-part.is-active .ax-leader-dot {
+  fill: var(--mark-strong);
+}
+.ax-part.is-active .ax-num {
+  fill: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+@container ax (max-width: 479px) {
+  .ax-num {
+    font-size: 42px;
+  }
+  .ax-note {
+    font-size: 17px;
+  }
+}
+
+/* 跨層連線：Claude Code 寫檔、view 的 dev API 寫回 */
+.ax-link {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 5;
+}
+.ax-link-wb {
+  stroke: var(--sheet);
+}
+.ax-ah {
+  fill: var(--ink-2);
+}
+.ax-note {
+  font: 500 13px/1 var(--f-cjk);
+  fill: var(--ink-2);
+}
+.ax-note-v {
+  writing-mode: vertical-rl;
+  fill: var(--sheet);
+}
+
+/* 資料流的封包 */
+.ax-packet {
+  pointer-events: none;
+}
+.ax-packet-doc {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.ax-packet-fold {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.ax-packet-ring {
+  fill: none;
+  stroke: var(--mark-strong);
+  stroke-width: 2;
+}
+
+/* ── 符號說明 ── */
+.ax-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+.ax-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 0 6px;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-2);
+  font: 14px/1.35 var(--f-cjk);
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+  transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+.ax-item .ref {
+  min-width: 1.3em;
+  font-size: 18px;
+}
+.ax-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ax-item:hover {
+  color: var(--ink);
+}
+.ax-item.is-active {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 5px;
+}
+
+/* ── 說明 ── */
+.ax-panel {
+  margin-top: 16px;
+  scroll-margin-bottom: 16px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  overflow: hidden;
+}
+/* 控制列下方的旁白條：高度固定兩行，播放時換成淡藍底 */
+.ax-flow {
+  padding: 10px 14px 12px;
+  border: 1px solid var(--rule);
+  transition: background-color 240ms var(--ease-out), border-color 240ms var(--ease-out);
+}
+.ax-flow.is-on {
+  background: var(--tint);
+  border-color: var(--sheet);
+}
+.ax-flow:not(.is-on) .ax-flow-head {
+  color: var(--ink-2);
+}
+.ax-flow-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  font: 700 12px/1 var(--f-latin);
+  letter-spacing: 0.04em;
+  color: var(--sheet);
+}
+.ax-flow-dots {
+  display: inline-flex;
+  flex: 1;
+  gap: 4px;
+}
+.ax-flow-dots i {
+  flex: 1;
+  height: 3px;
+  background: var(--rule);
+  transition: background-color 240ms var(--ease-out);
+}
+.ax-flow-dots i.is-on {
+  background: var(--mark-strong);
+}
+.doc-body .ax-flow-text {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.ax-panel-body {
+  padding: 18px 20px 6px;
+}
+.doc-body .ax-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+}
+.ax-title .ref {
+  font-size: 30px;
+  line-height: 1;
+}
+.ax-where {
+  padding: 3px 7px;
+  border: 1px solid var(--rule);
+  font: 500 11px/1 var(--f-cjk);
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+.doc-body .ax-lede {
+  margin: 10px 0 12px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.ax-lede code,
+.ax-points code,
+.ax-flow-text code {
+  overflow-wrap: anywhere;
+}
+.ax-nw {
+  white-space: nowrap;
+}
+.doc-body .ax-points {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.doc-body .ax-points li {
+  margin: 0.35em 0;
+}
+.doc-body .ax-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 14px 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.ax-links a::after {
+  content: " →";
+}
+/* ── 圖上的資料流控制（左下角，基板左角外的空白處）── */
+.ax-player {
+  display: grid;
+  gap: 6px;
+}
+.ax-player-label {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font: 600 12px/1 var(--f-cjk);
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+.ax-player-label b {
+  font: 700 15px/1 var(--f-latin);
+  font-variation-settings: "wdth" 76;
+  color: var(--mark-paper);
+}
+.ax-player-btns {
+  display: flex;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.ax-player-btns button {
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  min-width: 0;
+  height: 38px;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 18px/1 var(--f-latin);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+.ax-player-btns button:first-child {
+  border-left: 0;
+}
+.ax-player-btns button:hover:not(:disabled) {
+  background: var(--tint);
+}
+.ax-player-btns button:disabled {
+  color: var(--rule);
+  cursor: default;
+}
+.ax-player-btns .ax-player-play {
+  font-size: 13px;
+  color: var(--mark-paper);
+}
+.ax-player-btns .ax-player-play.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.ax-player-btns .ax-player-x {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ax-player-btns button:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: -2px;
+}
+/* 窄圖：左下角放不下，改排在圖下方置中 */
+
+/* 圖說：與圖版同一個 FIG. 計數器 */
+.ax-caption {
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.ax-caption::before {
+  content: "FIG. " counter(fig);
+  margin-right: 0.7em;
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-face,
+  .ax-edge,
+  .ax-plane,
+  .ax-ink,
+  .ax-flow-dots i {
+    transition: none;
+  }
+}

@@ -1,0 +1,121 @@
+---
+// 4.3.5 放大檢視的紙寬：同一把 0–1600px 的尺上，比內文欄、放大檢視的紙與匯出 PNG 的寬度。
+import Diagram from "../Diagram.astro";
+
+const MAX = 1600;
+const pct = (v: number) => `${(v / MAX) * 100}%`;
+const ticks = [0, 400, 800, 1200, 1600];
+---
+
+<Diagram caption="同一個元件的三種寬度：內文欄約 720px；放大檢視的紙依視窗寬在 880–1600px 之間，會依容器寬度重排的元件能攤開；匯出 PNG 固定 1600px，跟目前的縮放無關。">
+  <div class="zw">
+    <span class="zw-name">筆記內文欄</span>
+    <span class="zw-track"><span class="zw-bar" style={`width: ${pct(720)}`}></span><span class="zw-v" style={`left: ${pct(720)}`}>約 720px</span></span>
+
+    <span class="zw-name">放大檢視的紙</span>
+    <span class="zw-track">
+      <span class="zw-bar is-active" style={`width: ${pct(880)}`}></span>
+      <span class="zw-range" style={`left: ${pct(880)}; width: ${pct(1600 - 880)}`}></span>
+      <span class="zw-v zw-v--in" style={`left: ${pct(880)}`}>880–1600px<span class="zw-long">，依視窗寬</span></span>
+    </span>
+
+    <span class="zw-name">匯出 PNG</span>
+    <span class="zw-track"><span class="zw-bar is-active" style="width: 100%"></span><span class="zw-v zw-v--on" style="left: 0">固定 1600px<span class="zw-long">（白底、2 倍解析度）</span></span></span>
+
+    <span></span>
+    <span class="zw-ruler" aria-hidden="true">
+      {ticks.map((t) => <span class="zw-tick" style={`left: ${pct(t)}`}>{t}</span>)}
+    </span>
+  </div>
+</Diagram>
+
+<style>
+  .zw {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 14px 16px;
+  }
+  .zw-name {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .zw-track {
+    position: relative;
+    height: 28px;
+    border-left: 1.25px solid var(--ink);
+  }
+  .zw-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border: 1.25px solid var(--ink);
+    background: var(--tint);
+  }
+  .zw-bar.is-active {
+    border-color: var(--sheet);
+    background: var(--sheet);
+  }
+  .zw-range {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border: 1.25px dashed var(--sheet);
+    border-left: 0;
+    background: var(--tint);
+  }
+  .zw-v {
+    position: absolute;
+    top: 50%;
+    translate: 8px -50%;
+    font-size: 13px;
+    white-space: nowrap;
+    color: var(--ink-2);
+  }
+  .zw-v--in {
+    color: var(--sheet);
+    font-weight: 700;
+  }
+  .zw-v--on {
+    color: var(--line);
+    font-weight: 700;
+  }
+  .zw-ruler {
+    position: relative;
+    height: 20px;
+    border-top: 1.25px solid var(--ink-2);
+  }
+  .zw-tick {
+    position: absolute;
+    top: 0;
+    padding-top: 4px;
+    translate: -50% 0;
+    font-family: var(--f-latin);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .zw-tick::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    height: 4px;
+    border-left: 1px solid var(--ink-2);
+  }
+  .zw-tick:first-child {
+    translate: 0 0;
+  }
+  .zw-tick:last-child {
+    translate: -100% 0;
+  }
+  @container (max-width: 559px) {
+    .zw-long {
+      display: none;
+    }
+    .zw {
+      gap: 14px 10px;
+    }
+  }
+</style>

@@ -17,6 +17,8 @@ description: 標記的 status 有四個值。這頁說明每個值的意思、�
 - `failed` 的標記下方不會有 `import` 與元件，筆記不會引用到壞掉的元件。`prompt` 原樣保留，錯誤節錄附在對話裡
 - 標記包在 ```` ```mdx ```` 圍欄裡時，`generated` 會一併拆掉圍欄，`failed` 則保留圍欄
 
+<StatusMachine />
+
 ## 在工作台上看
 
 | 位置 | 顯示 |
@@ -27,6 +29,8 @@ description: 標記的 status 有四個值。這頁說明每個值的意思、�
 | Rail 的「AI 標記佇列」、Sidebar 底部「查看佇列」 | 開 `/notes?pending=1`，只列有待生成標記的筆記 |
 | 儀表板「AI 待生成」卡 | 待生成標記總數，以及分布在幾篇筆記 |
 | 儀表板「AI 佇列」分頁 | 依筆記分組列出每個待生成標記，見[儀表板](/docs/guides/dashboard/) |
+
+<Plate name="tutorial-pending" notes={[{ label: "Rail 的 AI 標記佇列", at: [62, 207], x: 74, align: "start" }, { label: "筆記頁首：待生成 1", at: [812, 117] }, { label: "標題下方的卡片", at: [1470, 588], side: "bottom", align: "end" }, { label: "Sidebar 底部提示", at: [87, 910], side: "bottom", x: 74, align: "start" }]} alt="筆記頁上方一張虛線框的待生成卡片，列出 id、type 與 prompt；Rail 的 AI 圖示帶橘點，Sidebar 底部顯示待生成標記" caption="一篇有 1 個 pending 標記的筆記：標題下方是它的卡片，頁首寫「待生成 1」，Rail 與 Sidebar 底部也提示有標記待生成。" />
 
 `view` 與 `build`／`serve` 的產物都會顯示這些。
 

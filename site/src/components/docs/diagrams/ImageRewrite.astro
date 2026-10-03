@@ -1,0 +1,19 @@
+---
+// 4.8 筆記圖片進產物：hello.md 裡的相對路徑改寫成 /notes-assets/…，設了 NOTECRAFT_BASE 再加前綴；落在筆記資料夾外的不處理。
+import Chain from "./Chain.astro";
+
+const c = (s: string) => `<code>${s}</code>`;
+const rows = [
+  [c("![](./cover.png)"), c("/<mark>notes-assets</mark>/cover.png"), c("<mark>/my-notes</mark>/notes-assets/cover.png")],
+  [c("![](sub/inner.png)"), c("/<mark>notes-assets</mark>/sub/inner.png"), c("<mark>/my-notes</mark>/notes-assets/sub/inner.png")],
+  [c("![](../outside.png)"), `${c("../outside.png")}<em class="cx-no">落在筆記資料夾外，照原樣保留</em>`, `<em class="cx-no">不會進產物</em>`],
+];
+---
+
+<Chain
+  caption="hello.md 在筆記資料夾最上層：相對路徑改寫成 /notes-assets/…，引用到的檔案複製進 dist/notes-assets/；設了 NOTECRAFT_BASE 時網址再加上前綴。落在筆記資料夾外的路徑不處理。"
+  cols={["hello.md 裡寫的", "<code>dist/notes/hello/index.html</code> 的 src","設 <code>NOTECRAFT_BASE=/my-notes</code> 時"]}
+  rows={rows}
+  note="產物裡多出 <code>dist/notes-assets/cover.png</code> 與 <code>dist/notes-assets/sub/inner.png</code>；筆記資料夾裡沒被引用的圖片不會進產物。"
+  minWidth={660}
+/>

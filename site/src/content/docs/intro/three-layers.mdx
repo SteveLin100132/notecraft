@@ -4,11 +4,7 @@ description: NoteCraftApp 的功能分成靜態層、AI 生成層與簡報層。
 
 三層是疊加的：靜態層只需要 Node，AI 生成層與簡報層再加上 Claude Code 與內建 Skill。你可以停在任何一層。
 
-| 層 | 需要 | 得到 |
-| :-- | :-- | :-- |
-| 靜態層 | Node.js ≥ 22 | 工作台、儀表板、系列、標籤、搜尋、頁籤、寫入 UI |
-| AI 生成層 | 靜態層＋Claude Code＋`init-skill` | `@ai-visualize` 標記生成互動元件 |
-| 簡報層 | 同 AI 生成層 | 筆記轉成可全螢幕播放的簡報 |
+<LayerSteps />
 
 ## 靜態層
 

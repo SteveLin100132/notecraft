@@ -1,0 +1,180 @@
+---
+// 4.5.2 規則怎麼比對：一組兩條規則、五個資料檔，逐檔看它被哪條命中、最後交給誰、變成哪一頁。
+// 刻意放一個兩條都命中的檔（specs/pay.openapi.json），示範「第一條勝」與 build 警告。
+// 是比對表，所以用 <table>（決策樹：欄位多的比較表不做成 SVG）。窄時在框內橫向捲動。
+import Diagram from "../Diagram.astro";
+
+type Hit = "hit" | "taken" | "excluded" | "none";
+const rules = [
+  { n: 1, plugin: "er-diagram-renderer", files: "specs/**/*.json", exclude: "**/draft-*.json" },
+  { n: 2, plugin: "openapi-renderer", files: "**/*.openapi.json" },
+];
+const rows: { file: string; hits: Hit[]; page?: string; by?: string; warn?: boolean }[] = [
+  { file: "specs/orders.json", hits: ["hit", "none"], page: "/view/specs/orders", by: "er-diagram-renderer" },
+  { file: "specs/draft-v2.json", hits: ["excluded", "none"] },
+  { file: "specs/pay.openapi.json", hits: ["hit", "taken"], page: "/view/specs/pay.openapi", by: "er-diagram-renderer", warn: true },
+  { file: "api/orders.openapi.json", hits: ["none", "hit"], page: "/view/api/orders.openapi", by: "openapi-renderer" },
+  { file: "misc/todo.json", hits: ["none", "none"] },
+];
+const HIT_LABEL: Record<Hit, string> = { hit: "命中", taken: "命中，已被規則 1 接走", excluded: "被 exclude 排除", none: "不符" };
+---
+
+<Diagram
+  caption="規則由上往下比對，第一條命中的勝：specs/pay.openapi.json 兩條都命中，交給了規則 1，build 時印出警告。沒被任何規則接手的檔案不產生頁面。"
+  scroll
+  minWidth={700}
+>
+  <table class="mm">
+    <thead>
+      <tr>
+        <th scope="col" class="mm-file">資料檔</th>
+        {
+          rules.map((r) => (
+            <th scope="col" class="mm-rule">
+              <span class="mm-rule-n">規則 {r.n}</span>
+              <span class="mm-rule-p">{r.plugin}</span>
+              <code class="mm-glob">{r.files}</code>
+              {r.exclude && <code class="mm-glob mm-glob--ex">排除 {r.exclude}</code>}
+            </th>
+          ))
+        }
+        <th scope="col" class="mm-out">結果</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr>
+            <th scope="row" class="mm-file">
+              <code>{row.file}</code>
+            </th>
+            {row.hits.map((h) => (
+              <td class={`mm-hit mm-hit--${h}`}>
+                {h !== "none" && <span class="mm-mark" aria-hidden="true" />}
+                <span class:list={[{ "mm-none": h === "none" }]}>{HIT_LABEL[h]}</span>
+              </td>
+            ))}
+            <td class="mm-out">
+              {row.page ? (
+                <>
+                  <code class="mm-page">{row.page}</code>
+                  <span class="mm-by">交給 {row.by}</span>
+                  {row.warn && <span class="mm-warn">【build 警告】多條命中</span>}
+                </>
+              ) : (
+                <span class="mm-skip">忽略，不產生頁面</span>
+              )}
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+  <div class="mm-tip">
+    想讓 <code>specs/pay.openapi.json</code> 交給 openapi-renderer：把規則 2 移到規則 1 前面，或把它加進規則 1 的 <code>exclude</code>。
+  </div>
+</Diagram>
+
+<style>
+  .mm {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .mm th,
+  .mm td {
+    padding: 9px 12px 9px 0;
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    vertical-align: top;
+  }
+  .mm thead th {
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink);
+    font-weight: 400;
+    vertical-align: bottom;
+  }
+  .mm-file {
+    font-weight: 400;
+    white-space: nowrap;
+  }
+  thead .mm-file,
+  thead .mm-out {
+    font-weight: 700;
+  }
+  .mm-rule span,
+  .mm-rule code {
+    display: block;
+  }
+  .mm-rule-n {
+    font-family: var(--f-latin);
+    font-variation-settings: "wdth" 72;
+    font-weight: 700;
+  }
+  .mm-rule-p {
+    font-weight: 700;
+  }
+  .mm-glob {
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .mm-hit {
+    white-space: nowrap;
+  }
+  .mm-mark {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 7px;
+    box-sizing: border-box;
+    vertical-align: -1px;
+  }
+  .mm-hit--hit .mm-mark {
+    background: var(--sheet);
+  }
+  .mm-hit--hit {
+    font-weight: 700;
+    color: var(--sheet);
+  }
+  .mm-hit--taken .mm-mark {
+    border: 1.25px solid var(--ink-2);
+  }
+  .mm-hit--taken {
+    color: var(--ink-2);
+  }
+  .mm-hit--excluded .mm-mark {
+    border: 1.25px dashed var(--mark-paper);
+  }
+  .mm-hit--excluded {
+    color: var(--mark-paper);
+  }
+  .mm-none {
+    color: var(--ink-2);
+  }
+  .mm-out span,
+  .mm-out code {
+    display: block;
+  }
+  .mm-page {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .mm-by {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .mm-warn {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mark-paper);
+  }
+  .mm-skip {
+    color: var(--ink-2);
+  }
+  .mm-tip {
+    margin-top: 12px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+  }
+</style>

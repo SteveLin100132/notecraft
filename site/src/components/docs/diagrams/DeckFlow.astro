@@ -1,0 +1,33 @@
+---
+// 4.4.1 生成簡報：兩個 subagent 接手，產物是一個 .deck.tsx，有了它筆記頁首的按鈕就變成「簡報」。
+import StepFlow, { type Step } from "./StepFlow.astro";
+
+const steps: Step[] = [
+  { k: "你", t: "在 Claude Code 說「把這篇轉成簡報」", d: "或貼上「生成簡報」按鈕複製的提示詞" },
+  {
+    kind: "active",
+    k: "1 · 只讀",
+    t: "present-planner",
+    d: "讀整篇筆記與它既有的互動元件",
+    out: { t: "簡報大綱", d: "頁數（通常 8–14 頁）、每頁的版型與原子、要沿用哪些既有元件" },
+  },
+  {
+    kind: "active",
+    k: "2",
+    t: "slide-generator",
+    d: "依大綱寫出簡報檔",
+    loop: "build 驗證沒過：修正後再驗，最多 3 次",
+    out: { kind: "gen", t: "<code>.notecraft/components/&lt;slug&gt;.deck.tsx</code>", d: "一篇筆記一份；重新生成會直接覆寫" },
+  },
+  {
+    kind: "done",
+    t: "<code>/present/&lt;slug&gt;</code>",
+    d: "筆記頁首與 Drawer 的按鈕變成「簡報」；檢視與全螢幕播放",
+  },
+];
+---
+
+<StepFlow
+  caption="生成簡報：present-planner 先切出大綱，slide-generator 再寫成 .deck.tsx；通過 build 驗證後，/present/<slug> 就能檢視與播放。"
+  steps={steps}
+/>

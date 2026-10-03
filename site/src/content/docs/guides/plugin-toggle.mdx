@@ -63,12 +63,7 @@ description: 用 plugins.json 頂層的 disabled 陣列暫時關掉一個 plugin
 
 ## 停用與移除的差別
 
-| | 停用 | `install-plugin --remove` |
-| :-- | :-- | :-- |
-| `.notecraft/plugins/<id>/` | 保留 | 刪除 |
-| `plugins.json` 的規則 | 保留，只是略過 | 不動，要自己刪 |
-| renderer 程式碼 | 仍會被打包進瀏覽器端的程式 | 不再打包 |
-| 恢復方式 | 從 `disabled` 拿掉 id | 重新安裝 |
+<ToggleCompare />
 
 停用不會把 renderer 移出打包，它只是不再被用到。想讓它完全離開產物，用移除：
 

@@ -1,0 +1,88 @@
+---
+// 1.4 三層是疊加的階梯：每往上一階多裝一點東西、多得到一些功能，可以停在任何一階。
+import Diagram from "../Diagram.astro";
+
+const layers = [
+  { name: "靜態層", need: "Node.js ≥ 22", cmd: "npx notecraftapp view ./docs", get: ["工作台、儀表板、系列、標籤", "搜尋、頁籤、寫入 UI", "標記先顯示成「待生成」卡片"] },
+  { name: "AI 生成層", need: "＋ Claude Code ＋ <code>init-skill</code>", cmd: "在對話裡說「處理視覺化」", get: ["<code>@ai-visualize</code> 標記生成互動元件", "元件寫進 <code>.notecraft/components/</code>"] },
+  { name: "簡報層", need: "同一次 <code>init-skill</code>，不用另外裝", cmd: "在對話裡說「轉成簡報」", get: ["16:9 簡報與全螢幕播放", "既有互動元件原樣嵌入"] },
+];
+---
+
+<Diagram caption="三層是疊加的：靜態層只要 Node，往上兩層再加 Claude Code 與 init-skill。可以停在任何一階；AI 與簡報都在你本機的對話裡執行，build 與部署時不呼叫 AI。">
+  <ol class="ls">
+    {
+      layers.map((l, i) => (
+        <li class="ls-step" style={`--i: ${i}`}>
+          <span class="ls-need" set:html={l.need} />
+          <div class:list={["dg-node", "ls-block", { "is-active": i > 0 }]}>
+            <span class="dg-k">
+              <span class="dg-n">{i + 1}</span>　{l.cmd}
+            </span>
+            <span class="dg-t">{l.name}</span>
+            <ul class="ls-get">
+              {l.get.map((g) => <li set:html={g} />)}
+            </ul>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</Diagram>
+
+<style>
+  .ls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 0 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ls-step {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    line-height: 1.5;
+  }
+  .ls-need {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  /* 每往上一階，方塊高一截 */
+  .ls-block {
+    min-height: calc(150px + var(--i) * 56px);
+  }
+  .ls-block .dg-k {
+    font-family: var(--f-mono);
+    font-size: 12px;
+  }
+  .ls-get {
+    margin: 8px 0 0 !important;
+    padding-left: 1.1em !important;
+    font-size: 13.5px;
+  }
+  .ls-get li {
+    margin: 0 0 2px !important;
+    line-height: 1.5 !important;
+  }
+  .is-active .ls-get li::marker {
+    color: var(--on-sheet-2);
+  }
+  @container (max-width: 559px) {
+    .ls {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+    .ls-step {
+      flex-direction: column;
+    }
+    .ls-block {
+      min-height: 0;
+    }
+  }
+</style>

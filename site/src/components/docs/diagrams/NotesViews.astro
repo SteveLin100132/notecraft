@@ -1,0 +1,136 @@
+---
+// 4.2.2 /notes 的四種檢視：頁籤切換四張主區截圖（從整張工作台截圖裁出，出處見各 .webp.json）。
+// 純 CSS 頁籤：一組 radio，方向鍵就能切換，不用 JS；選中的頁籤沿用功能清單的「選中即填 sheet」。
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const uid = `nv${Math.random().toString(36).slice(2, 8)}`;
+const views = [
+  { id: "list", name: "List", desc: "一篇一列，可分組、可收合群組。日常瀏覽，預設檢視", alt: "List 檢視：依資料夾分組的筆記列表，每列有標題、檔名、標籤、AI 標記與更新日" },
+  { id: "board", name: "Board", desc: "依閱讀狀態分三欄：未開始、閱讀中、已完成。拖曳卡片就改了閱讀狀態", alt: "Board 檢視：未開始、閱讀中、已完成三欄卡片" },
+  { id: "table", name: "Table", desc: "標題、資料夾、系列、標籤、AI 標記、更新日六欄，一次比對多個欄位", alt: "Table 檢視：六欄表格" },
+  { id: "timeline", name: "Timeline", desc: "依更新月份分段，新的在上。照時間回顧", alt: "Timeline 檢視：依月份分段的筆記時間軸" },
+];
+---
+
+<figure class="plate nv">
+  {views.map((v, i) => <input class="nv-r" type="radio" name={uid} id={`${uid}-${v.id}`} checked={i === 0} />)}
+  <div class="nv-tabs">
+    {
+      views.map((v) => (
+        <label for={`${uid}-${v.id}`}>
+          <code>?view={v.id}</code>
+          {v.name}
+        </label>
+      ))
+    }
+  </div>
+  <div class="nv-panels">
+    {
+      views.map((v) => (
+        <div class="nv-p">
+          <img src={`${base}plates/notes-${v.id}-main.webp`} alt={v.alt} width="1276" height="640" loading="lazy" decoding="async" />
+          <span class="nv-desc">
+            <strong>{v.name}</strong>　{v.desc}
+          </span>
+        </div>
+      ))
+    }
+  </div>
+  <figcaption>/notes 的四種檢視（只截主區）：切換寫進網址的 ?view=，手機只有 List。</figcaption>
+</figure>
+
+<style>
+  .nv {
+    position: relative;
+    container-type: inline-size;
+  }
+  @container (max-width: 559px) {
+    .nv-tabs label code {
+      display: none;
+    }
+  }
+  .nv-r {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .nv-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 12px;
+    border-top: 2px solid var(--rule-strong);
+  }
+  .nv-tabs label {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.35;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease-out);
+  }
+  .nv-tabs label code {
+    padding: 0 !important;
+    background: none !important;
+    font-size: 11.5px !important;
+    color: var(--ink-2);
+  }
+  .nv-tabs label:hover {
+    background: var(--tint);
+  }
+  .nv-p {
+    display: none;
+  }
+  .nv-p img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1276 / 640 !important;
+  }
+  .nv-desc {
+    display: block;
+    margin-top: 10px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .nv-desc strong {
+    color: var(--ink);
+  }
+  /* 第 k 個 radio 選中 → 第 k 個頁籤反白、第 k 張圖出現 */
+  .nv-r:nth-of-type(1):checked ~ .nv-panels > :nth-child(1),
+  .nv-r:nth-of-type(2):checked ~ .nv-panels > :nth-child(2),
+  .nv-r:nth-of-type(3):checked ~ .nv-panels > :nth-child(3),
+  .nv-r:nth-of-type(4):checked ~ .nv-panels > :nth-child(4) {
+    display: block;
+  }
+  .nv-r:nth-of-type(1):checked ~ .nv-tabs > :nth-child(1),
+  .nv-r:nth-of-type(2):checked ~ .nv-tabs > :nth-child(2),
+  .nv-r:nth-of-type(3):checked ~ .nv-tabs > :nth-child(3),
+  .nv-r:nth-of-type(4):checked ~ .nv-tabs > :nth-child(4) {
+    background: var(--sheet);
+    color: var(--line);
+    font-weight: 700;
+  }
+  .nv-r:nth-of-type(1):checked ~ .nv-tabs > :nth-child(1) code,
+  .nv-r:nth-of-type(2):checked ~ .nv-tabs > :nth-child(2) code,
+  .nv-r:nth-of-type(3):checked ~ .nv-tabs > :nth-child(3) code,
+  .nv-r:nth-of-type(4):checked ~ .nv-tabs > :nth-child(4) code {
+    color: var(--mark);
+  }
+  .nv-r:nth-of-type(1):focus-visible ~ .nv-tabs > :nth-child(1),
+  .nv-r:nth-of-type(2):focus-visible ~ .nv-tabs > :nth-child(2),
+  .nv-r:nth-of-type(3):focus-visible ~ .nv-tabs > :nth-child(3),
+  .nv-r:nth-of-type(4):focus-visible ~ .nv-tabs > :nth-child(4) {
+    outline: 2px solid var(--sheet);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nv-tabs label {
+      transition: none;
+    }
+  }
+</style>

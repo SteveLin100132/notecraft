@@ -8,6 +8,14 @@ import Table from "../../components/docs/Table.astro";
 import A from "../../components/docs/A.astro";
 import MdDemo from "../../components/docs/MdDemo.astro";
 import FeatureMap from "../../components/docs/FeatureMap.astro";
+import ArchitectureMap from "../../components/docs/ArchitectureMap.astro";
+
+// 內文示意圖：diagrams/ 底下每個 .astro 以檔名當標籤名給 MDX 用（StepFlow、Chain 是給其他圖用的底層，不直接放進文件）
+const DIAGRAMS = Object.fromEntries(
+  Object.entries(import.meta.glob<{ default: unknown }>("../../components/docs/diagrams/*.astro", { eager: true }))
+    .map(([path, mod]) => [path.split("/").pop()!.replace(".astro", ""), mod.default])
+    .filter(([name]) => name !== "StepFlow" && name !== "Chain"),
+);
 
 export async function getStaticPaths() {
   const entries = await getCollection("docs");
@@ -28,8 +36,10 @@ const find = (items: DocItem[]): string | undefined => {
   }
 };
 const title = CHAPTERS.map((c) => find(c.items)).find(Boolean) ?? entry.id;
+// 每節的爆炸圖目前不顯示（組裝稿留在 src/lib/figs/，要接回來時用 checkFig 檢查、傳給 layout；
+// 單獨驗組裝稿：node --experimental-strip-types scripts/check-figs.mjs）
 ---
 
 <DocsLayout title={title} description={entry.data.description} slug={entry.id} headings={headings}>
-  <Content components={{ Callout, Plate, MdDemo, FeatureMap, table: Table, a: A }} />
+  <Content components={{ Callout, Plate, MdDemo, FeatureMap, ArchitectureMap, ...DIAGRAMS, table: Table, a: A }} />
 </DocsLayout>

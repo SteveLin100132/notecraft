@@ -1,0 +1,11 @@
+---
+// 「系統架構」的互動爆炸圖。內容在 components/ArchExplode.tsx（motion 驅動）；這裡只補上 base 讓說明裡的連結指對地方。
+import "../../styles/arch-explode.css";
+import ArchExplode from "../ArchExplode.tsx";
+
+type Props = { initial?: number };
+const { initial } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<ArchExplode client:visible base={base} initial={initial} />

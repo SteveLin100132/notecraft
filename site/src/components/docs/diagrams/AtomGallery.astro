@@ -1,0 +1,306 @@
+---
+// 4.4.2 簡報原子圖鑑：每個原子一張 16:9 線框縮圖，畫的是它在投影片上的構圖（依 src/components/deck/blocks/ 各檔開頭的構圖說明），
+// 不是實際截圖。線框只用墨、灰、深藍與淡藍：深藍是該原子會強調的那一格，灰條是文字。
+// set="page" 是 15 個整頁級（附「內容長這樣時用它」）、set="combo" 是 14 個組合級。
+import Diagram from "../Diagram.astro";
+
+type Props = { set: "page" | "combo" };
+const { set } = Astro.props;
+
+// ── 線框零件：160×90 的投影片座標 ──
+const r = (c: string, x: number, y: number, w: number, h: number, extra = "") => `<rect class="${c}" x="${x}" y="${y}" width="${w}" height="${h}"${extra}/>`;
+const L = (x: number, y: number, w: number, h = 3, c = "l") => r(c, x, y, w, h);
+const B = (x: number, y: number, w: number, h: number, c = "o") => r(c, x, y, w, h);
+const line = (x1: number, y1: number, x2: number, y2: number, c = "ln") => `<line class="${c}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+const dot = (cx: number, cy: number, rr: number, c = "k") => `<circle class="${c}" cx="${cx}" cy="${cy}" r="${rr}"/>`;
+const title = L(10, 8, 46, 4, "k");
+const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+
+const WF: Record<string, string> = {
+  Summary:
+    L(10, 22, 74, 5, "k") + L(10, 31, 80, 5, "k") + L(10, 40, 58, 5, "k") + L(10, 49, 40, 3, "a") +
+    [23, 31, 39].map((y) => B(98, y, 3, 3, "k") + L(104, y, 44)).join("") +
+    range(4).map((i) => B(10 + i * 36, 60, 32, 22) + L(14 + i * 36, 64, 18, 6, "k") + L(14 + i * 36, 74, 22, 2.5)).join(""),
+  Triad:
+    L(30, 20, 100, 5, "k") + L(45, 29, 70, 5, "k") + L(58, 36, 44, 1.5, "a") +
+    range(3).map((i) => { const x = 10 + i * 48; return B(x, 46, 44, 36) + B(x + 5, 51, 7, 7, "a") + L(x + 5, 62, 22, 3.5, "k") + L(x + 5, 69, 32, 2.5) + L(x + 5, 74, 26, 2.5); }).join(""),
+  Decision:
+    L(10, 19, 90, 3) +
+    range(3).map((i) => { const x = 10 + i * 38; const sel = i === 2; return B(x, 27, 34, 22, sel ? "sel" : "od") + L(x + 4, 31, 20, 3, sel ? "k" : "l") + L(x + 4, 37, 26, 2.5) + L(x + 4, 42, 20, 2.5); }).join("") +
+    B(126, 29, 24, 8, "a") +
+    B(10, 55, 140, 11, "t") + L(14, 59, 70, 3, "k") +
+    L(10, 72, 64, 2.5) + L(10, 77, 52, 2.5) + L(86, 72, 60, 2.5) + L(86, 77, 44, 2.5),
+  Cross:
+    L(10, 20, 60, 3) + L(10, 26, 52, 3) +
+    B(10, 36, 20, 16) + line(32, 41, 38, 47, "lk") + line(38, 41, 32, 47, "lk") + B(40, 36, 20, 16) +
+    line(62, 42, 68, 42, "lk") + line(62, 46, 68, 46, "lk") + B(70, 36, 20, 16, "a") +
+    L(10, 60, 72, 3) + L(10, 66, 56, 3) + L(10, 72, 64, 3) +
+    [20, 42, 64].map((y) => B(98, y, 52, 18) + L(102, y + 4, 24, 3, "k") + L(102, y + 10, 40, 2.5)).join(""),
+  Quadrant:
+    L(10, 20, 40, 4, "k") + L(10, 28, 44, 2.5) + L(10, 33, 38, 2.5) + L(10, 42, 40, 2.5) + L(10, 47, 30, 2.5) +
+    B(62, 18, 44, 32) + B(106, 18, 44, 32, "sel-t") + B(62, 50, 44, 32) + B(106, 50, 44, 32) +
+    L(66, 22, 18, 3, "k") + L(110, 22, 18, 3, "k") + L(66, 54, 18, 3, "k") + L(110, 54, 18, 3, "k") +
+    dot(80, 38, 2, "m") + dot(124, 34, 2.5, "a") + dot(138, 42, 2.5, "a") + dot(88, 70, 2, "m") + dot(126, 66, 2, "m"),
+  Spectrum:
+    L(10, 20, 70, 3) +
+    line(20, 54, 140, 54, "lk") + line(20, 50, 20, 58, "lk") + line(140, 50, 140, 58, "lk") +
+    L(10, 64, 24, 3, "k") + L(126, 64, 24, 3, "k") +
+    [[38, 0], [70, 1], [104, 0], [128, 0]].map(([x, hi]) => line(x, 40, x, 50) + dot(x, 54, hi ? 4 : 3, hi ? "a" : "k") + L(x - 12, 34, 24, 3, hi ? "k" : "l")).join(""),
+  Heatmap:
+    range(5).map((c) => L(38 + c * 23, 17, 12, 2.5, "k")).join("") +
+    range(4).map((rw) => L(10, 26 + rw * 15, 18, 3, "k")).join("") +
+    [[0.9, 0.5, 0.2, 0.1, 0.6], [0.3, 0.8, 0.4, 0.2, 0.1], [0.1, 0.2, 0.7, 0.9, 0.3], [0.5, 0.1, 0.3, 0.4, 0.8]]
+      .map((row, rw) => row.map((v, c) => r("a", 34 + c * 23, 22 + rw * 15, 22, 14, ` fill-opacity="${v}"`)).join("")).join(""),
+  Layers:
+    line(16, 80, 16, 24, "lk") + `<path class="kf" d="M12.5 26 L16 20 L19.5 26 Z"/>` +
+    [22, 37, 52, 67].map((y, i) => B(26, y, 124, 12, i === 2 ? "sel-t" : "o") + B(30, y + 3, 10, 6, "k") + L(44, y + 4.5, 40, 3)).join(""),
+  Roster:
+    [[18, 20], [112, 20], [10, 60], [120, 60], [65, 74]].map(([x, y]) => line(80, 47, x + 15, y + 5) ).join("") +
+    [[18, 20], [112, 20], [10, 60], [120, 60], [65, 74]].map(([x, y]) => B(x, y, 30, 10) + L(x + 4, y + 3.5, 18, 3, "k")).join("") +
+    B(64, 39, 32, 16, "a"),
+  Contents:
+    L(10, 19, 70, 4, "k") +
+    range(8).map((i) => { const x = 10 + (i % 4) * 36; const y = 30 + Math.floor(i / 4) * 27; const cur = i === 5; return B(x, y, 32, 24, cur ? "a" : "o") + L(x + 3, y + 4, 8, 4, cur ? "p" : "k") + L(x + 3, y + 13, 22, 2.5, cur ? "p2" : "l"); }).join(""),
+  Waterfall:
+    line(12, 80, 148, 80, "lk") +
+    B(16, 56, 16, 24, "m") + B(38, 42, 16, 14, "m") + B(60, 32, 16, 10, "m") + B(82, 32, 16, 6, "od") + B(104, 26, 16, 12, "m") + B(128, 26, 18, 54, "a") +
+    line(32, 56, 38, 56, "dl") + line(54, 42, 60, 42, "dl") + line(76, 32, 82, 32, "dl") + line(98, 38, 104, 38, "dl") + line(120, 26, 128, 26, "dl"),
+  Share:
+    L(10, 26, 60, 3) +
+    (() => { let x = 10; return [[34, "m"], [28, "m2"], [40, "a"], [22, "m"], [16, "m2"]].map(([w, c]) => { const s = B(x, 40, w as number, 14, c as string) + L(x + 2, 60, Math.min((w as number) - 4, 20), 3, c === "a" ? "k" : "l") + L(x + 2, 66, 12, 2.5); x += w as number; return s; }).join(""); })(),
+  Ranking:
+    [80, 66, 54, 44, 34, 26].map((len, i) => { const y = 20 + i * 10.5; return L(10, y + 1, 6, 5, "k") + L(20, y + 2, 28, 3) + L(52, y + 1, len, 5, i === 0 ? "a" : "m") + L(52 + len + 3, y + 2, 10, 3, "k"); }).join(""),
+  BeforeAfter:
+    L(40, 20, 24, 3, "k") + L(92, 20, 24, 3, "k") +
+    [30, 46, 62].map((y) => L(10, y + 3, 22, 3) + L(40, y, 28, 9, "m") + line(72, y + 4.5, 84, y + 4.5, "lk") + `<path class="kf" d="M84 ${y + 2} L88 ${y + 4.5} L84 ${y + 7} Z"/>` + L(92, y, 28, 9, "k") + B(126, y, 24, 9, "t") + L(130, y + 3, 14, 3, "a")).join(""),
+  Risk:
+    [20, 42, 64].map((y, i) => B(10, y, 140, 18) + B(14, y + 5, 14, 8, ["a", "m", "o"][i]) + line(70, y + 3, 70, y + 15) + line(110, y + 3, 110, y + 15) +
+      L(34, y + 5, 30, 3, "k") + L(34, y + 11, 26, 2.5) + L(74, y + 5, 30, 3) + L(74, y + 11, 24, 2.5) + L(114, y + 5, 30, 3) + L(114, y + 11, 22, 2.5)).join(""),
+
+  Rows:
+    range(4).map((i) => { const y = 20 + i * 16; return B(10, y, 2.5, 13, "a") + L(16, y + 2, 22, 3.5, "k") + L(42, y + 2.5, 56, 3) + L(16, y + 8.5, 44, 2.5) + line(104, y + 1, 104, y + 12) + L(110, y + 2, 14, 3, "k") + L(110, y + 8, 36, 2.5) + (i < 3 ? line(10, y + 15, 150, y + 15, "rl") : ""); }).join(""),
+  Cards:
+    range(3).map((i) => { const x = 10 + i * 48; return B(x, 20, 44, 62, i === 1 ? "sel" : "o") + L(x + 4, 24, 8, 4, "a") + L(x + 4, 32, 26, 3.5, "k") + [40, 46, 52].map((y) => B(x + 4, y, 2.5, 2.5, "k") + L(x + 9, y, 28, 2.5)).join("") + B(x + 4, 72, 20, 6, "t"); }).join(""),
+  Stages:
+    [10, 60, 110].map((x, i) => L(x, 28, 24, 3, "k") + B(x, 36, 40, 22, ["o", "a", "od"][i]) + L(x + 4, 45, 24, 3.5, i === 1 ? "p" : "k") + L(x, 64, 36, 2.5) + L(x, 69, 28, 2.5)).join("") +
+    [50, 100].map((x) => line(x + 1, 47, x + 7, 47, "lk") + `<path class="kf" d="M${x + 7} 44.5 L${x + 10} 47 L${x + 7} 49.5 Z"/>`).join(""),
+  Kpi:
+    B(10, 22, 56, 58) + L(16, 32, 40, 16, "a") + L(16, 54, 30, 3, "k") + L(16, 60, 24, 2.5) +
+    [72, 99, 126].map((x) => B(x, 22, 24, 58) + L(x + 4, 32, 14, 8, "k") + L(x + 4, 46, 16, 2.5)).join(""),
+  Table:
+    [10, 50, 90, 120].map((x) => L(x + 2, 22, 20, 3.5, "k")).join("") + r("k", 10, 29, 140, 1.4) +
+    range(5).map((i) => { const y = 31 + i * 10; return [10, 50, 90, 120].map((x, c) => L(x + 2, y + 3.5, c === 0 ? 24 : 18, 2.5, c === 0 ? "k" : "l")).join("") + line(10, y + 10, 150, y + 10, "rl"); }).join("") +
+    B(89, 51, 30, 10, "sel"),
+  Compare:
+    B(10, 20, 62, 12, "t") + L(14, 24.5, 30, 3, "k") + B(88, 20, 62, 12, "sel") + L(92, 24.5, 30, 3, "k") + B(128, 23, 18, 6, "a") +
+    [40, 50, 60, 70].map((y) => L(14, y, 50, 2.5) + L(92, y, 50, 2.5)).join("") +
+    dot(80, 54, 7, "o") + `<text class="tx" x="80" y="56.4" text-anchor="middle">VS</text>`,
+  Code:
+    B(10, 18, 140, 64) + line(10, 27, 150, 27, "rl") + L(14, 21, 40, 2.5, "k") + B(11, 45, 138, 9, "t") +
+    range(6).map((i) => { const y = 31 + i * 8.5; return L(14, y, 5, 2.5) + L(24, y, [52, 70, 44, 60, 36, 48][i], 2.5, i === 2 ? "a" : "k") + (i % 2 === 0 ? L(112, y, 32, 2.5) : ""); }).join(""),
+  Terminal:
+    B(10, 18, 140, 64, "k") + dot(16, 23, 1.6, "p2") + dot(21, 23, 1.6, "p2") + dot(26, 23, 1.6, "p2") +
+    L(16, 32, 4, 3, "p") + L(23, 32, 64, 3, "p") + L(16, 40, 90, 2.5, "p2") + L(16, 46, 70, 2.5, "p2") + L(16, 54, 4, 3, "p") + L(23, 54, 50, 3, "p") + L(16, 62, 80, 2.5, "p2"),
+  Frame:
+    B(10, 18, 140, 64) + r("tf", 10.5, 18.5, 139, 9) + dot(16, 23, 1.6, "m") + dot(21, 23, 1.6, "m") + dot(26, 23, 1.6, "m") + B(34, 20.5, 92, 5) +
+    B(18, 34, 50, 40, "t") + L(76, 36, 64, 3, "k") + L(76, 43, 56, 2.5) + L(76, 49, 60, 2.5) + B(76, 58, 30, 8, "a"),
+  Annotate:
+    B(44, 20, 72, 60, "t") + L(52, 28, 40, 3) + B(52, 38, 56, 18) + L(52, 62, 30, 3) +
+    line(34, 32, 60, 32) + line(126, 50, 96, 50) + line(34, 68, 70, 68) +
+    L(10, 30, 24, 3, "k") + L(126, 48, 24, 3, "k") + L(10, 66, 24, 3, "k") +
+    dot(60, 32, 3.2, "a") + dot(96, 50, 3.2, "a") + dot(70, 68, 3.2, "a"),
+  Chart:
+    line(18, 20, 18, 76, "lk") + line(18, 76, 150, 76, "lk") +
+    [[28, 30, 22], [60, 40, 30], [92, 20, 34], [124, 46, 26]].map(([x, a, b]) => B(x, 76 - a, 9, a, "a") + B(x + 10, 76 - b, 9, b, "m") + L(x, 76 - a - 6, 9, 2.5, "k")).join(""),
+  TagCloud:
+    [[[18, 22, 30, 5, "l"], [52, 20, 44, 9, "k"], [100, 23, 22, 4, "l"], [126, 22, 20, 5, "l"]],
+     [[12, 38, 22, 4, "l"], [38, 35, 36, 7, "k"], [78, 36, 26, 6, "l"], [108, 34, 40, 10, "k"]],
+     [[20, 54, 40, 8, "k"], [64, 56, 18, 4, "l"], [86, 54, 32, 7, "l"], [122, 56, 22, 4, "l"]],
+     [[30, 70, 24, 4, "l"], [58, 68, 30, 6, "l"], [92, 68, 38, 8, "k"]]]
+      .flat().map(([x, y, w, h, c]) => L(x as number, y as number, w as number, h as number, c as string)).join(""),
+  LogoRow:
+    B(30, 26, 36, 36) + dot(48, 44, 9, "m") + B(94, 26, 36, 36) + r("m", 102, 36, 20, 16) +
+    line(76, 44, 84, 44, "lk") + line(80, 40, 80, 48, "lk") +
+    L(36, 68, 24, 3, "k") + L(100, 68, 24, 3, "k"),
+  Mark:
+    L(10, 24, 130, 3.5) + L(10, 34, 40, 3.5) + B(51, 31.5, 48, 8.5, "hl") + L(53, 34, 44, 3.5, "k") + L(102, 34, 38, 3.5) +
+    L(10, 44, 112, 3.5) + L(10, 54, 26, 3.5) + B(37, 51.5, 34, 8.5, "hl") + L(39, 54, 30, 3.5, "k") + L(74, 54, 46, 3.5) + L(10, 64, 70, 3.5),
+};
+
+const PAGE = [
+  ["開場濃縮", "Summary", "全篇論點濃縮，配佐證數字"],
+  ["主張三支柱", "Triad", "一個主張加三個支撐點"],
+  ["決策記錄", "Decision", "做了什麼決定、否決了哪些選項"],
+  ["交叉推論", "Cross", "兩個角度疊起來推出新看法"],
+  ["定位矩陣", "Quadrant", "很多項目擺到兩個維度上"],
+  ["取捨光譜", "Spectrum", "幾個項目落在一條軸的兩極之間"],
+  ["強度矩陣", "Heatmap", "列 × 欄的強度分布，例如支援度、成熟度"],
+  ["分層堆疊", "Layers", "上下依賴的層級"],
+  ["角色關係", "Roster", "一個中心加一圈沒有先後的角色"],
+  ["章節導覽", "Contents", "簡報中途回頭標示「走到哪了」"],
+  ["累計拆解", "Waterfall", "總數一段一段累積出來"],
+  ["佔比條", "Share", "一個整體被分掉的比例"],
+  ["排序榜", "Ranking", "有名次的排序"],
+  ["前後對比", "BeforeAfter", "同一組指標的兩個時點"],
+  ["風險研判", "Risk", "風險、影響與緩解"],
+];
+const COMBO = [
+  ["清單", "Rows", "一列一項，右欄可加註記"],
+  ["卡片", "Cards", "2–6 張並列的卡，可標出建議的那張"],
+  ["流程階段", "Stages", "先後順序；可排成直線、上下交錯或環形"],
+  ["頭條數字", "Kpi", "一個大數字加幾個副指標"],
+  ["表格", "Table", "多欄多列的對照，可框出重點格"],
+  ["兩案對決", "Compare", "左右兩個方案，中間 VS"],
+  ["程式碼", "Code", "行尾註解、左側標籤、逐步高亮"],
+  ["終端機", "Terminal", "指令與輸出"],
+  ["視窗外框", "Frame", "瀏覽器、視窗或對話框的外框"],
+  ["標註", "Annotate", "在截圖或任何內容上加編號與引線"],
+  ["圖表", "Chart", "長條、折線、面積、圓環；最多 3 個系列"],
+  ["詞雲", "TagCloud", "一堆並列的詞，字級代表權重"],
+  ["技術組合", "LogoRow", "「A ＋ B」的技術選型"],
+  ["行內螢光筆", "Mark", "在句子裡標出關鍵詞"],
+];
+const items = set === "page" ? PAGE : COMBO;
+const caption =
+  set === "page"
+    ? "15 個整頁級原子的構圖（線框示意，不是實際截圖）：深藍是該原子會強調的那一格，灰條是文字。"
+    : "14 個組合級原子的構圖（線框示意）：可以獨佔一頁，也能兩三個並排在同一頁。";
+---
+
+<Diagram caption={caption}>
+  <ul class="ag">
+    {
+      items.map(([name, comp, use]) => (
+        <li class="ag-item">
+          <svg class="ag-slide" viewBox="0 0 160 90" aria-hidden="true" set:html={(set === "page" || comp !== "Mark" ? title : "") + WF[comp]} />
+          <span class="ag-name">{name}</span>
+          <code class="ag-comp">&lt;{comp}&gt;</code>
+          <span class="ag-use">{use}</span>
+        </li>
+      ))
+    }
+  </ul>
+</Diagram>
+
+<style>
+  .ag {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    gap: 22px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ag-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin: 0;
+    line-height: 1.45;
+  }
+  .ag-slide {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    margin-bottom: 8px;
+    border: 1.25px solid var(--ink);
+    background: var(--paper);
+  }
+  .ag-name {
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+  .ag-comp {
+    font-size: 12.5px !important;
+    color: var(--ink-2);
+  }
+  .ag-use {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  /* 線框的墨色：k 墨、l 文字灰條、m／m2 中性色塊、a 強調深藍、t 淡藍底、o 白底墨框、od 虛線框、sel 深藍粗框 */
+  .ag-slide :global(.k),
+  .ag-slide :global(.kf) {
+    fill: var(--ink);
+  }
+  .ag-slide :global(.l) {
+    fill: var(--ink-2);
+    fill-opacity: 0.38;
+  }
+  .ag-slide :global(.m) {
+    fill: var(--ink-2);
+    fill-opacity: 0.3;
+  }
+  .ag-slide :global(.m2) {
+    fill: var(--ink-2);
+    fill-opacity: 0.16;
+  }
+  .ag-slide :global(.a) {
+    fill: var(--sheet);
+  }
+  .ag-slide :global(.t) {
+    fill: var(--tint);
+  }
+  .ag-slide :global(.tf) {
+    fill: var(--tint);
+  }
+  .ag-slide :global(.p) {
+    fill: var(--paper);
+  }
+  .ag-slide :global(.p2) {
+    fill: var(--paper);
+    fill-opacity: 0.55;
+  }
+  .ag-slide :global(.hl) {
+    fill: var(--sheet);
+    fill-opacity: 0.2;
+  }
+  .ag-slide :global(.o),
+  .ag-slide :global(.od),
+  .ag-slide :global(.sel),
+  .ag-slide :global(.sel-t) {
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+  .ag-slide :global(.od) {
+    stroke: var(--ink-2);
+    stroke-dasharray: 3 2;
+  }
+  .ag-slide :global(.sel) {
+    stroke: var(--sheet);
+    stroke-width: 2px;
+  }
+  .ag-slide :global(.sel-t) {
+    fill: var(--tint);
+    stroke: var(--sheet);
+    stroke-width: 2px;
+  }
+  .ag-slide :global(.ln),
+  .ag-slide :global(.lk),
+  .ag-slide :global(.dl),
+  .ag-slide :global(.rl) {
+    fill: none;
+    stroke: var(--ink-2);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+  .ag-slide :global(.lk) {
+    stroke: var(--ink);
+  }
+  .ag-slide :global(.dl) {
+    stroke-dasharray: 2 2;
+  }
+  .ag-slide :global(.rl) {
+    stroke: var(--rule);
+  }
+  .ag-slide :global(.tx) {
+    font-family: var(--f-latin);
+    font-size: 6.5px;
+    font-weight: 700;
+    fill: var(--ink);
+  }
+</style>

@@ -1,0 +1,155 @@
+---
+// 由上而下的步驟流程：左欄是步驟，右欄是每一步留下的東西（或失敗出口）。
+// 寬版三欄（步驟｜箭頭｜產物），容器窄於 560px 收成一欄，產物縮排在步驟下方。
+// 文字欄位是 HTML 字串（允許 <code>），由呼叫端寫死，不收外部輸入。
+import Diagram from "../Diagram.astro";
+
+export type Kind = "" | "active" | "done" | "blocked" | "gen";
+export type Box = { k?: string; t: string; d?: string; kind?: Kind };
+export type Step = Box & {
+  /** 步驟框裡的一行「沒過就重來」說明，前面帶循環箭頭 */
+  loop?: string;
+  /** 右欄 */
+  out?: Box;
+  /** 右欄是失敗出口：箭頭轉成 mark-paper */
+  fail?: boolean;
+  /** 往右那支箭頭上的小字（決策用：「是」） */
+  via?: string;
+  /** 這一步之後往下那支箭頭旁的小字；null 表示最後一步不畫箭頭 */
+  next?: string | null;
+};
+type Legend = { kind: Kind; label: string };
+type Props = { caption: string; steps: Step[]; legend?: Legend[] };
+const { caption, steps, legend } = Astro.props;
+const cls = (kind: Kind | undefined) => (kind ? `is-${kind}` : "");
+---
+
+<Diagram caption={caption}>
+  {
+    legend && (
+      <ul class="dg-legend" aria-hidden="true">
+        {legend.map((l) => (
+          <li>
+            <span class:list={["dg-swatch", cls(l.kind)]} />
+            {l.label}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  <div class="sf">
+    {
+      steps.map((s, i) => (
+        <>
+          <div class:list={["dg-node", "sf-step", cls(s.kind)]}>
+            {s.k && <span class="dg-k" set:html={s.k} />}
+            <span class="dg-t" set:html={s.t} />
+            {s.d && <span class="dg-d" set:html={s.d} />}
+            {s.loop && (
+              <span class="sf-loop">
+                <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.4" />
+                  <path d="M13.4 1.6v3.6H9.8" fill="none" stroke="currentColor" stroke-width="1.4" />
+                </svg>
+                <span set:html={s.loop} />
+              </span>
+            )}
+          </div>
+          {s.out && (
+            <>
+              <div class:list={["dg-right", "sf-arrow", { "sf-arrow--fail": s.fail }]}>
+                {s.via && <span class="dg-lab sf-via">{s.via}</span>}
+              </div>
+              <div class:list={["sf-out", { "dg-node": s.out.kind !== undefined }, cls(s.out.kind)]} data-via={s.via}>
+                {s.out.k && <span class="dg-k" set:html={s.out.k} />}
+                <span class="dg-t" set:html={s.out.t} />
+                {s.out.d && <span class="dg-d" set:html={s.out.d} />}
+              </div>
+            </>
+          )}
+          {i < steps.length - 1 && s.next !== null && (
+            <div class="dg-down sf-link">{s.next && <span class="dg-lab sf-next" set:html={s.next} />}</div>
+          )}
+        </>
+      ))
+    }
+  </div>
+</Diagram>
+
+<style>
+  .sf {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+    align-items: center;
+  }
+  .sf-step,
+  .sf-link {
+    grid-column: 1;
+  }
+  .sf-out {
+    grid-column: 3;
+  }
+  .sf-out:not(.dg-node) {
+    padding: 0 2px;
+  }
+  .sf-arrow {
+    grid-column: 2;
+    align-self: stretch;
+    --ay: 50%;
+  }
+  .sf-arrow--fail {
+    color: var(--mark-paper);
+  }
+  .sf-via {
+    position: absolute;
+    left: 50%;
+    bottom: calc(50% + 2px);
+    translate: -60% 0;
+    white-space: nowrap;
+  }
+  .sf-link {
+    --ax: 28px;
+  }
+  .sf-next {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    translate: 0 -50%;
+    white-space: nowrap;
+  }
+  .sf-loop {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+  }
+  .sf-loop svg {
+    flex: none;
+  }
+
+  @container (max-width: 559px) {
+    .sf {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .sf-arrow {
+      display: none;
+    }
+    .sf-out {
+      grid-column: 1;
+      margin: 8px 0 0 28px;
+    }
+    .sf-out:not(.dg-node) {
+      padding-left: 12px;
+      border-left: 1.25px solid var(--rule);
+    }
+    /* 箭頭收起來了，「是」改寫在產物框的開頭 */
+    .sf-out[data-via]::before {
+      content: attr(data-via) " →";
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+  }
+</style>

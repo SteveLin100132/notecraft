@@ -20,6 +20,8 @@ API 收到的每個路徑都要通過三道檢查才會讀寫：
 
 任何一道不過就拒絕。所以從介面送進來的 slug 或圖片路徑，碰不到筆記資料夾以外的檔案。
 
+<PathGuard />
+
 例外是 plugin 的啟用與停用：它寫的是 `.notecraft/plugins.json`，只動頂層 `disabled` 陣列，plugin id 也要符合小寫英數與 `-` 的格式。
 
 ## 開放到區網

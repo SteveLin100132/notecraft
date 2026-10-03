@@ -1,0 +1,95 @@
+---
+// 3.4 資料夾階層原樣對到網址：左邊是筆記資料夾的樹，右邊是每個檔案的網址；正規化改到的字打底色。
+import Diagram from "../Diagram.astro";
+
+type Row = { tree: string; url?: string; note?: string };
+const rows: Row[] = [
+  { tree: "notes/" },
+  { tree: "├── hello.mdx", url: "/notes/hello" },
+  { tree: "├── my note.mdx", url: "/notes/my<mark>-</mark>note", note: "空白換成 -" },
+  { tree: "├── guides/" },
+  { tree: "│   ├── index.mdx", url: "/notes/guides", note: "index 對到資料夾本身" },
+  { tree: "│   ├── Setup.mdx", url: "/notes/guides/<mark>s</mark>etup", note: "轉小寫" },
+  { tree: "│   └── oauth/" },
+  { tree: "│       └── flow.mdx", url: "/notes/guides/oauth/flow" },
+  { tree: "└── 筆記/" },
+  { tree: "    └── 快取策略.mdx", url: "/notes/筆記/快取策略", note: "中文照樣保留" },
+];
+---
+
+<Diagram caption="資料夾階層原樣對到網址：檔案相對筆記資料夾的路徑去掉副檔名，就是 /notes/ 後面那一段；打底色的是正規化改到的字。" scroll minWidth={560}>
+  <div class="fu">
+    <span class="fu-head">筆記資料夾</span>
+    <span></span>
+    <span class="fu-head">網址</span>
+    {
+      rows.map((r) => (
+        <>
+          <code class:list={["fu-tree", { "is-dir": !r.url }]}>{r.tree}</code>
+          {r.url ? <span class="dg-right fu-arrow" aria-hidden="true" /> : <span />}
+          {r.url ? (
+            <span class="fu-url">
+              <code set:html={r.url} />
+              {r.note && <span class="fu-note">{r.note}</span>}
+            </span>
+          ) : (
+            <span />
+          )}
+        </>
+      ))
+    }
+  </div>
+</Diagram>
+
+<style>
+  .fu {
+    display: grid;
+    grid-template-columns: max-content 56px minmax(0, 1fr);
+    align-items: center;
+  }
+  .fu-head {
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--ink);
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .fu > span:nth-child(2) {
+    margin-bottom: 6px;
+    border-bottom: 2px solid var(--ink);
+    align-self: stretch;
+  }
+  .fu-tree {
+    padding-right: 12px;
+    font-size: 14px !important;
+    line-height: 32px !important;
+    white-space: pre;
+  }
+  .fu-tree.is-dir {
+    color: var(--ink-2);
+  }
+  .fu-arrow {
+    height: 32px;
+    --ay: 16px;
+    margin: 0 8px;
+  }
+  .fu-url {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 12px;
+  }
+  .fu-url code {
+    font-size: 14px !important;
+    font-weight: 700;
+  }
+  .fu-url :global(mark) {
+    padding: 0 1px;
+    background: var(--tint);
+    color: var(--sheet);
+  }
+  .fu-note {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+</style>

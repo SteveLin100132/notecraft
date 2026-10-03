@@ -1,0 +1,31 @@
+---
+// 4.8 部署：build 的產物在快取裡，先複製出來再上主機。快取目錄下一次 build 會整個換掉，不能直接拿去部署。
+import StepFlow, { type Step } from "./StepFlow.astro";
+
+const steps: Step[] = [
+  {
+    kind: "active",
+    k: "1",
+    t: "<code>npx notecraftapp build ./notes</code>",
+    d: "站不在網域根目錄時，先設 <code>NOTECRAFT_BASE</code>",
+    out: { t: "<code>~/.notecraft/cache/&lt;hash&gt;/dist/</code>", d: "build 最後一行印出完整路徑；筆記引用的圖片已複製進 <code>notes-assets/</code>" },
+  },
+  {
+    kind: "active",
+    k: "2",
+    t: "複製到專案裡的資料夾",
+    d: "<code>cp -R &lt;dist&gt;/. site-out/</code>",
+    fail: true,
+    out: { kind: "blocked", k: "不要這樣做", t: "直接部署快取目錄", d: "下一次 <code>build</code> 或 <code>serve</code> 的背景 rebuild 會整個換掉它" },
+  },
+  {
+    kind: "active",
+    k: "3",
+    t: "上傳 <code>site-out/</code>",
+    d: "GitHub Pages、Netlify 或任何靜態主機",
+  },
+  { kind: "done", t: "唯讀的靜態站", d: "沒有寫入 UI；有全文搜尋（<code>pagefind/</code> 跟著產物走）" },
+];
+---
+
+<StepFlow caption="部署三步：build、把產物從快取複製出來、上傳。快取裡的 dist 會被下一次 build 換掉，不要直接拿它部署。" steps={steps} />

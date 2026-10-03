@@ -1,0 +1,55 @@
+---
+// 4.3.2 生成流程：四個 subagent 由上而下接手，右欄是每一步留下的東西。
+// component-generator 寫完要過 build 驗證：沒過就修，修 3 次仍沒過只改 status，不寫回筆記。
+import StepFlow, { type Step } from "./StepFlow.astro";
+
+const steps: Step[] = [
+  { k: "你", t: "在 Claude Code 說「處理視覺化」", d: "或指名一篇筆記、一個 <code>id</code>" },
+  {
+    kind: "active",
+    k: "1 · haiku · 只讀",
+    t: "note-scanner",
+    d: "掃描 <code>.mdx</code>，找出標記",
+    out: { t: "待處理清單", d: "<code>locked</code> 一律跳過；同篇裡 <code>id</code> 重複的那個跳過" },
+  },
+  {
+    kind: "active",
+    k: "2 · sonnet · 只讀",
+    t: "visualize-planner",
+    d: "讀 prompt 與上下文，決定做法",
+    out: { t: "規劃書", d: "手寫 SVG、recharts、d3、motion 或組合；相關的標記可能合併" },
+  },
+  {
+    kind: "active",
+    k: "3 · sonnet",
+    t: "component-generator",
+    d: "依規劃書寫元件、檢查 import",
+    out: { kind: "gen", t: "<code>.notecraft/components/&lt;id&gt;.tsx</code>", d: "一個標記一個檔" },
+  },
+  {
+    t: "build 驗證",
+    loop: "沒過：修正後再驗，最多 3 次",
+    fail: true,
+    out: { kind: "blocked", k: "3 次仍沒過", t: "<code>status: failed</code>", d: "不寫回筆記，錯誤節錄附在對話裡" },
+    next: "通過",
+  },
+  {
+    kind: "active",
+    k: "4 · haiku",
+    t: "mdx-writer",
+    d: "在標記正下方寫入 import 與元件",
+    out: { kind: "", t: "筆記 <code>.mdx</code>", d: "標記改成 <code>status: generated</code>" },
+  },
+  { kind: "done", k: "開著 <code>serve</code> 時", t: "背景 rebuild，瀏覽器自動重新整理" },
+];
+---
+
+<StepFlow
+  caption="生成流程：四個 subagent 依序接手，右欄是每一步留下的東西。元件 build 驗證沒過就修，修 3 次仍沒過只把標記改成 failed，筆記不會引用它。"
+  steps={steps}
+  legend={[
+    { kind: "active", label: "subagent" },
+    { kind: "gen", label: "AI 生成的元件" },
+    { kind: "blocked", label: "失敗：不寫回筆記" },
+  ]}
+/>

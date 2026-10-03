@@ -1,0 +1,226 @@
+/* 文件內文的示意圖（流程、狀態、時間軸、比對表、原子圖鑑）。
+   外框沿用圖版：figure.plate 給墨框以外的一切（上下距、墊紙、FIG. n 計數與圖說）；圖本身不加外框，
+   節點是 DESIGN.md 的 diagram-node：直角、1.25px 墨框、白底；作用中填 sheet、已完成填 tint、被擋下是 mark-paper 虛線框。
+   字一律 HTML（不畫進 SVG），窄螢幕才不會縮成看不清的小字；排不下的圖在自己的框裡橫向捲動，不讓整頁出現水平捲軸。 */
+
+.doc-body .dg {
+  container-type: inline-size;
+}
+.dg-stage {
+  padding: 20px 0 6px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+}
+/* 太寬的圖：在框內捲，不撐開整頁 */
+.dg-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+.dg-scroll > * {
+  min-width: var(--dg-min, 640px);
+}
+
+/* 圖裡的 code 不要內文那塊淡藍底：圖本身已經有框 */
+.doc-body .dg code {
+  padding: 0;
+  background: none;
+  font-family: var(--f-mono);
+  font-size: 0.86em;
+  line-height: inherit;
+}
+
+/* ── 節點 ── */
+.dg-node {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1.25px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+}
+.dg-node.is-active {
+  border-color: var(--sheet);
+  background: var(--sheet);
+  color: var(--line);
+}
+.dg-node.is-done {
+  background: var(--tint);
+}
+.dg-node.is-blocked {
+  border-style: dashed;
+  border-color: var(--mark-paper);
+  color: var(--mark-paper);
+}
+/* 「這就是生成出來的那一塊」：星芒橙描邊＋淡填色（只給 AI 生成元件） */
+.dg-node.is-gen {
+  border: 2px solid var(--mark-strong);
+  background: color-mix(in srgb, var(--mark-strong) 16%, var(--paper));
+}
+.dg-k {
+  display: block;
+  font-family: var(--f-latin);
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.dg-t {
+  display: block;
+  font-weight: 700;
+}
+.dg-d {
+  display: block;
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.is-active > .dg-k,
+.is-active > .dg-d {
+  color: var(--on-sheet-2);
+}
+.is-blocked > .dg-k,
+.is-blocked > .dg-d {
+  color: var(--mark-paper);
+}
+/* 節點左上的步驟序號：窄體數字 */
+.dg-n {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 72;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 箭頭：一條 1.25px 線＋實心箭頭，長度跟著格子走 ── */
+.dg-down,
+.dg-up,
+.dg-right {
+  position: relative;
+  color: var(--ink);
+}
+.dg-down,
+.dg-up {
+  min-height: 30px;
+}
+.dg-down::before,
+.dg-up::before {
+  content: "";
+  position: absolute;
+  left: var(--ax, 24px);
+  top: 0;
+  bottom: 0;
+  border-left: 1.25px solid currentColor;
+}
+.dg-down::before {
+  bottom: 7px;
+}
+.dg-up::before {
+  top: 7px;
+}
+.dg-down::after,
+.dg-up::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--ax, 24px) - 4.4px);
+  width: 10px;
+  height: 8px;
+  background: currentColor;
+}
+.dg-down::after {
+  bottom: 0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.dg-up::after {
+  top: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.dg-right {
+  min-width: 28px;
+}
+.dg-right::before {
+  content: "";
+  position: absolute;
+  top: var(--ay, 24px);
+  left: 0;
+  right: 7px;
+  border-top: 1.25px solid currentColor;
+}
+.dg-right::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--ay, 24px) - 4.4px);
+  right: 0;
+  width: 8px;
+  height: 10px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+/* 箭頭旁的小字 */
+.dg-lab {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.dg-sheet {
+  color: var(--sheet);
+}
+
+/* 誰改的：AI（實心深藍）／你（墨框）。顏色以外還有字，不讓顏色單獨承載 */
+.dg-who {
+  display: inline-block;
+  margin-right: 0.4em;
+  padding: 0 5px;
+  border: 1.25px solid var(--ink);
+  font-family: var(--f-latin);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  vertical-align: 1px;
+}
+.dg-who.is-ai {
+  border-color: var(--sheet);
+  background: var(--sheet);
+  color: var(--line);
+}
+
+/* 圖例列：圖的最上方一行，說明符號 */
+.dg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.dg-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dg-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 12px;
+  border: 1.25px solid var(--ink);
+  background: var(--paper);
+}
+.dg-swatch.is-active {
+  border-color: var(--sheet);
+  background: var(--sheet);
+}
+.dg-swatch.is-done {
+  background: var(--tint);
+}
+.dg-swatch.is-blocked {
+  border-style: dashed;
+  border-color: var(--mark-paper);
+}
+.dg-swatch.is-gen {
+  border: 2px solid var(--mark-strong);
+  background: color-mix(in srgb, var(--mark-strong) 16%, var(--paper));
+}

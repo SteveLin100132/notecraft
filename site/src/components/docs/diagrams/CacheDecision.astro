@@ -1,0 +1,122 @@
+---
+// 5.1 build／serve 啟動時要不要重新 build：上表的 11 個條件歸成 4 個問題，由上往下問，
+// 任一個「是」就接到右邊的「重新 build」；全部「否」才沿用快取。
+// 寬版三欄（問題｜是→｜結果），容器窄於 560px 收成一欄，每個問題下面直接寫「是 → 重新 build」。
+import Diagram from "../Diagram.astro";
+
+const checks = [
+  { q: "指定要重建？", d: "帶了 --rebuild，或快取目錄裡有 .stale" },
+  { q: "快取不完整？", d: "dist/ 或 meta.json 不存在、meta.json 壞掉" },
+  { q: "執行環境變了？", d: "notecraftapp 版本、NOTECRAFT_BASE、執行的資料夾跟上次不同" },
+  { q: "檔案變了？", d: ".md／.mdx、.notecraft/ 第一層 .json、資料檔、.notecraft/plugins/ 有比上次 build 新的，或數量變了" },
+];
+---
+
+<Diagram caption="build 與 serve 啟動時讀上次的 meta.json，依序問這四件事：任一個是就重新 build，全部否才沿用快取。view 不用這份快取。">
+  <div class="cd" style={`--n: ${checks.length}`}>
+    <div class="dg-node cd-start">
+      <span class="dg-t">build／serve 啟動</span>
+      <span class="dg-d">讀快取裡的 <code>meta.json</code></span>
+    </div>
+    <div class="dg-down cd-link" style="grid-row: 2"></div>
+    {
+      checks.map((c, i) => (
+        <>
+          <div class="dg-node cd-q" style={`grid-row: ${3 + i * 2}`}>
+            <span class="dg-t">{c.q}</span>
+            <span class="dg-d">{c.d}</span>
+            <span class="cd-yes-inline">是 → 重新 build</span>
+          </div>
+          <div class="dg-right cd-yes" style={`grid-row: ${3 + i * 2}`}>
+            <span class="dg-lab">是</span>
+          </div>
+          <div class="dg-down cd-link" style={`grid-row: ${4 + i * 2}`}>
+            <span class="dg-lab cd-no">否</span>
+          </div>
+        </>
+      ))
+    }
+    <div class="dg-node is-active cd-rebuild" style={`grid-row: 3 / ${3 + checks.length * 2 - 1}`}>
+      <span class="dg-t">重新 build</span>
+      <span class="dg-d">輸出到 <code>dist.next/</code>，成功後換成 <code>dist/</code>；終端機印出這次的原因</span>
+    </div>
+    <div class="dg-node is-done cd-reuse" style={`grid-row: ${3 + checks.length * 2}`}>
+      <span class="dg-t">沿用 <code>dist/</code></span>
+      <span class="dg-d">不重新 build</span>
+    </div>
+    <div class="dg-right cd-pf-arrow" style={`grid-row: ${3 + checks.length * 2}`} aria-hidden="true"></div>
+    <div class="dg-node cd-pf" style={`grid-row: ${3 + checks.length * 2}`}>
+      <span class="dg-t">沒有 <code>pagefind/</code> 時</span>
+      <span class="dg-d">只補建全文索引</span>
+    </div>
+  </div>
+</Diagram>
+
+<style>
+  .cd {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) 52px minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .cd-start,
+  .cd-q,
+  .cd-link,
+  .cd-reuse {
+    grid-column: 1;
+  }
+  .cd-link {
+    --ax: 28px;
+  }
+  .cd-no {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    translate: 0 -50%;
+  }
+  .cd-yes,
+  .cd-pf-arrow {
+    grid-column: 2;
+    --ay: 50%;
+  }
+  .cd-yes .dg-lab {
+    position: absolute;
+    left: 50%;
+    bottom: calc(50% + 2px);
+    translate: -60% 0;
+  }
+  .cd-rebuild,
+  .cd-pf {
+    grid-column: 3;
+  }
+  .cd-rebuild {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cd-yes-inline {
+    display: none;
+  }
+
+  @container (max-width: 559px) {
+    .cd {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cd-yes,
+    .cd-pf-arrow,
+    .cd-rebuild {
+      display: none;
+    }
+    .cd-yes-inline {
+      display: block;
+      margin-top: 6px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--sheet);
+    }
+    .cd-pf {
+      grid-column: 1;
+      grid-row: auto !important;
+      margin-top: 8px;
+    }
+  }
+</style>

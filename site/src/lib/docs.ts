@@ -24,6 +24,7 @@ export const CHAPTERS: DocChapter[] = [
       { title: "NoteCraftApp 是什麼", slug: "intro/what-is" },
       { title: "三層體驗", slug: "intro/three-layers" },
       { title: "核心概念", slug: "intro/concepts" },
+      { title: "系統架構", slug: "intro/architecture" },
       { title: "與其他工具的差異", slug: "intro/comparison" },
     ],
   },

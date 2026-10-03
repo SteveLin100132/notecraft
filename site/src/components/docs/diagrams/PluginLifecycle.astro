@@ -1,0 +1,113 @@
+---
+// 5.2 plugin 走過的三關：安裝、build、瀏覽器。每一關做什麼、在這一關會被擋下的錯誤（對應「常見錯誤」表）。
+import Diagram from "../Diagram.astro";
+
+const stages = [
+  {
+    n: 1,
+    t: "安裝",
+    cmd: "<code>install-plugin</code>",
+    does: ["靜態檢查後複製進 <code>.notecraft/plugins/&lt;id&gt;/</code>", "產生 <code>_types.d.ts</code>", "<code>--apply</code> 寫入映射規則"],
+    stops: ["import 了白名單外的套件", "用了 <code>dangerouslySetInnerHTML</code>"],
+    stopsAs: "拒絕安裝",
+  },
+  {
+    n: 2,
+    t: "build",
+    cmd: "<code>build</code>、<code>serve</code>",
+    does: ["依 <code>plugins.json</code> 找出資料檔，解析並驗 schema", "renderer 先渲染一次 HTML，資料整份寫進頁面"],
+    stops: ["資料檔不是合法 JSON、不符合 schema", "render 期間碰了 <code>window</code>"],
+    stopsAs: "build 失敗",
+  },
+  {
+    n: 3,
+    t: "瀏覽器",
+    cmd: "打開頁面",
+    does: ["renderer 再執行一次，接上互動", "<code>useEffect</code> 裡才讀 <code>window</code>、<code>localStorage</code>"],
+    stops: ["renderer 執行時 throw"],
+    stopsAs: "只有該區塊換成錯誤卡片",
+  },
+];
+---
+
+<Diagram caption="plugin 的三關：安裝時擋套件與危險寫法，build 時擋資料與只能在瀏覽器跑的程式，到了瀏覽器才出錯只影響那一塊。改了原始資料夾要用 install-plugin --force 重裝，下一次 build 會自動重建。">
+  <ol class="plc">
+    {
+      stages.map((s, i) => (
+        <li class="plc-stage">
+          <div class="dg-node is-active plc-head">
+            <span class="dg-k">
+              <span class="dg-n">{s.n}</span> · <span set:html={s.cmd} />
+            </span>
+            <span class="dg-t">{s.t}</span>
+          </div>
+          {i < stages.length - 1 && <span class="dg-right plc-arrow" aria-hidden="true" />}
+          <ul class="plc-does">
+            {s.does.map((d) => <li set:html={d} />)}
+          </ul>
+          <div class="dg-node is-blocked plc-stop">
+            <span class="dg-k">在這一關擋下 → {s.stopsAs}</span>
+            {s.stops.map((d) => <span class="dg-d" set:html={d} />)}
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</Diagram>
+
+<style>
+  .plc {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 36px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .plc-stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    line-height: 1.5;
+  }
+  .plc-stop .dg-d {
+    line-height: 1.5;
+  }
+  .plc-arrow {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    width: 36px;
+    height: 58px;
+    --ay: 29px;
+    padding: 0 4px;
+    box-sizing: border-box;
+  }
+  .plc-head {
+    min-height: 58px;
+  }
+  .plc-does {
+    flex: 1;
+    margin: 12px 0 !important;
+    padding-left: 1.1em !important;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .plc-does li {
+    margin: 0 0 4px !important;
+    line-height: 1.55 !important;
+  }
+  .plc-stop .dg-d::before {
+    content: "・";
+  }
+  @container (max-width: 559px) {
+    .plc {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 22px;
+    }
+    .plc-arrow {
+      display: none;
+    }
+  }
+</style>

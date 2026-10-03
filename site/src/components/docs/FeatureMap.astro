@@ -1,11 +1,12 @@
 ---
-// 「它做什麼」的互動爆炸圖。內容與幾何都在 components/FeatureExplode.tsx；這裡只補上 base 讓說明裡的連結指對地方。
-import "../../styles/feature-explode.css";
-import FeatureExplode from "../FeatureExplode.tsx";
+// 「它做什麼」：功能清單＋實機截圖切換。內容在 components/FeatureTour.tsx（文字沿用 FeatureExplode 的 FEATURES）；
+// 這裡只補上 base 讓截圖與說明裡的連結指對地方。原本的互動爆炸圖 FeatureExplode 保留未用。
+import "../../styles/feature-tour.css";
+import FeatureTour from "../FeatureTour.tsx";
 
 type Props = { initial?: number };
 const { initial } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
-<FeatureExplode client:visible base={base} initial={initial} />
+<FeatureTour client:visible base={base} initial={initial} />

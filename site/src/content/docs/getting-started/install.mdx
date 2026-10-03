@@ -58,6 +58,8 @@ npx notecraftapp view ./docs
 | `serve` | 先 build 成靜態網站再服務它，背景監看檔案、變動後自動重建並重新整理瀏覽器；唯讀 | 觀察 Claude Code 生成元件、內部分享、Demo |
 | `build` | 只 build 成靜態 HTML，產物在 `~/.notecraft/cache/<hash>/dist/` | CI、要部署到別的地方（筆記引用的圖片會一起複製進產物，見[部署](/docs/guides/deploy/)） |
 
+<CommandChooser />
+
 寫入 UI（「+ 新增筆記」、標籤編輯、刪除筆記、以 VS Code 編輯）只在 `view` 出現；`serve` 與 `build` 的產物都是唯讀的。
 
 `view` 與 `serve` 預設綁在 `127.0.0.1:4321`。所有旗標見 [CLI](/docs/reference/cli/)。
