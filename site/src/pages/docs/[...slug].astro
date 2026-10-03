@@ -9,6 +9,7 @@ import A from "../../components/docs/A.astro";
 import MdDemo from "../../components/docs/MdDemo.astro";
 import FeatureMap from "../../components/docs/FeatureMap.astro";
 import ArchitectureMap from "../../components/docs/ArchitectureMap.astro";
+import Milestones from "../../components/docs/Milestones.astro";
 
 // 內文示意圖：diagrams/ 底下每個 .astro 以檔名當標籤名給 MDX 用（StepFlow、Chain 是給其他圖用的底層，不直接放進文件）
 const DIAGRAMS = Object.fromEntries(
@@ -41,5 +42,5 @@ const title = CHAPTERS.map((c) => find(c.items)).find(Boolean) ?? entry.id;
 ---
 
 <DocsLayout title={title} description={entry.data.description} slug={entry.id} headings={headings}>
-  <Content components={{ Callout, Plate, MdDemo, FeatureMap, ArchitectureMap, ...DIAGRAMS, table: Table, a: A }} />
+  <Content components={{ Callout, Plate, MdDemo, FeatureMap, ArchitectureMap, Milestones, ...DIAGRAMS, table: Table, a: A }} />
 </DocsLayout>

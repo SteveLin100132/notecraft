@@ -1,0 +1,26 @@
+---
+// 「版本歷程」的主要里程碑表：build 時從 repo 根目錄的 CHANGELOG.md 讀，不手寫。
+// 標記與 Markdown 表格輸出的一致（.tbl 外層、左對齊），樣式照舊。
+import { readMilestones } from "../../lib/changelog";
+
+const rows = readMilestones();
+const left = "text-align:left";
+const fixed = "text-align:left;white-space:nowrap";
+---
+
+<div class="tbl" tabindex="0">
+  <table>
+    <thead>
+      <tr><th style={left}>版本</th><th style={left}>日期</th><th style={left}>重點</th></tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <td style={fixed}>{r.version}</td>
+          <td style={fixed}>{r.date}</td>
+          <td style={left}>{r.summary.map((s, i) => (i % 2 ? <code>{s}</code> : s))}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
