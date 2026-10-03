@@ -1,0 +1,210 @@
+---
+// 4.2.5 閱讀狀態與「下一篇」：上半是三種狀態怎麼切換，下半用一個 6 章的系列示範下一篇怎麼挑、進度怎麼算。
+import Diagram from "../Diagram.astro";
+
+type S = "done" | "reading" | "todo";
+const chapters: S[] = ["done", "done", "todo", "reading", "todo", "todo"];
+const NAME: Record<S, string> = { done: "已完成", reading: "閱讀中", todo: "未開始" };
+const next = chapters.indexOf("reading") >= 0 ? chapters.indexOf("reading") : chapters.indexOf("todo");
+const doneN = chapters.filter((c) => c === "done").length;
+const pct = Math.round((doneN / chapters.length) * 100);
+---
+
+<Diagram caption="上：三種閱讀狀態，只有「打開一篇未開始的筆記」會自動切換，其餘都是你按的。下：一個 6 章的系列，下一篇是第一個閱讀中的章節（沒有才挑第一個未開始的）；進度只算已完成。">
+  <div class="rs">
+    <div class="rs-cycle">
+      <div class="dg-node rs-state">未開始</div>
+      <div class="dg-right rs-arrow"><span class="dg-lab"><span class="dg-who is-ai">自動</span>打開這篇</span></div>
+      <div class="dg-node is-active rs-state">閱讀中</div>
+      <div class="dg-right rs-arrow"><span class="dg-lab"><span class="dg-who">你</span>文末「讀完這篇了嗎？」</span></div>
+      <div class="dg-node is-done rs-state">已完成</div>
+      <div class="rs-back" aria-hidden="true"></div>
+      <span class="dg-lab rs-back-lab"><span class="dg-who">你</span>系列頁的「重設」、「重設進度」</span>
+    </div>
+    <ul class="rs-how dg-lab">
+      <li><span class="dg-who is-ai">自動</span>未開始 → 閱讀中：打開這篇</li>
+      <li><span class="dg-who">你</span>閱讀中 → 已完成：文末「讀完這篇了嗎？」</li>
+      <li><span class="dg-who">你</span>已完成 → 未開始：系列頁的「重設」、「重設進度」</li>
+    </ul>
+    <div class="rs-any dg-lab">筆記頁首的三段切換、Board 拖曳卡片：三種狀態之間任意切換。自動切換不會把已完成降回閱讀中。</div>
+
+    <div class="rs-series">
+      <span class="rs-title">系列（6 章）</span>
+      <ol class="rs-chs">
+        {
+          chapters.map((c, i) => (
+            <li class:list={["rs-ch", `is-${c}`, { "is-next": i === next }]}>
+              {i === next && <span class="rs-next">下一篇</span>}
+              <span class="rs-n">第 {i + 1} 章</span>
+              <span class="rs-s">{NAME[c]}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <div class="rs-bar" role="img" aria-label={`進度 ${doneN}／${chapters.length}，${pct}%`}>
+        <span style={`width: ${pct}%`}></span>
+      </div>
+      <span class="dg-lab">進度 {doneN}／{chapters.length}＝{pct}%：分母是章節總數，閱讀中不算完成</span>
+    </div>
+  </div>
+</Diagram>
+
+<style>
+  .rs-cycle {
+    position: relative;
+    display: grid;
+    --w: 96px;
+    grid-template-columns: var(--w) minmax(0, 1fr) var(--w) minmax(0, 1fr) var(--w);
+    align-items: center;
+    padding-bottom: 54px;
+  }
+  .rs-state {
+    text-align: center;
+    font-weight: 700;
+    line-height: 26px;
+  }
+  .rs-arrow {
+    align-self: stretch;
+    --ay: 50%;
+    margin: 0 8px;
+  }
+  .rs-arrow .dg-lab {
+    position: absolute;
+    left: 0;
+    right: 8px;
+    bottom: calc(50% + 4px);
+    text-align: center;
+    text-wrap: balance;
+  }
+  /* 已完成 → 未開始：從右邊節點底下繞回左邊，直角折線 */
+  .rs-back {
+    position: absolute;
+    left: calc(var(--w) / 2);
+    right: calc(var(--w) / 2);
+    bottom: 10px;
+    height: 34px;
+    border: 1.25px solid var(--ink);
+    border-top: 0;
+  }
+  .rs-back::after {
+    content: "";
+    position: absolute;
+    left: -5.6px;
+    top: -1px;
+    width: 10px;
+    height: 8px;
+    background: var(--ink);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+  .rs-back-lab {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
+    padding: 0 8px;
+    background: var(--paper);
+    white-space: nowrap;
+  }
+  .rs-any {
+    margin-top: 10px;
+  }
+  .rs-series {
+    margin-top: 26px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  .rs-title {
+    display: block;
+    margin-bottom: 30px;
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .rs-chs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+  }
+  .rs-ch {
+    position: relative;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1.25px solid var(--ink);
+    line-height: 1.4;
+  }
+  .rs-ch.is-done {
+    background: var(--tint);
+  }
+  .rs-ch.is-reading {
+    border-color: var(--sheet);
+    background: var(--sheet);
+    color: var(--line);
+  }
+  .rs-n {
+    display: block;
+    font-size: 12.5px;
+  }
+  .rs-s {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .rs-next {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    translate: -50% 0;
+    padding-bottom: 2px;
+    border-bottom: 2px solid var(--ink);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .rs-bar {
+    height: 8px;
+    margin-bottom: 6px;
+    background: var(--tint);
+  }
+  .rs-bar span {
+    display: block;
+    height: 100%;
+    background: var(--sheet);
+  }
+  .rs-how {
+    display: none;
+  }
+  @container (max-width: 559px) {
+    /* 箭頭上放不下字：改列在圖下 */
+    .rs-arrow .dg-lab,
+    .rs-back-lab {
+      display: none;
+    }
+    .rs-cycle {
+      padding-bottom: 46px;
+    }
+    .rs-how {
+      display: grid;
+      gap: 4px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .rs-how li {
+      margin: 0;
+      line-height: 1.5;
+    }
+    .rs-chs {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      row-gap: 34px;
+    }
+    .rs-cycle {
+      --w: 70px;
+    }
+    .rs-state {
+      padding: 10px 4px;
+    }
+  }
+</style>

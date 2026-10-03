@@ -26,6 +26,8 @@ npx notecraftapp install-plugin ./my-plugin              # 本地資料夾
 
 ## 安裝前的檢查與確認
 
+<PluginInstallFlow />
+
 指令會先下載檔案、列出來源網址、plugin 的 id 與版本、要寫入的檔案清單，再跑靜態檢查。下列任何一項不過就拒絕安裝：
 
 - `.tsx`／`.ts` 裡 import 了白名單外的套件。白名單與 AI 生成元件共用：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`

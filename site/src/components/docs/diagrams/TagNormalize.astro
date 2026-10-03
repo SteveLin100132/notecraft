@@ -1,0 +1,22 @@
+---
+// 3.6 標籤正規化：介面寫入時依序做三步，每一步改到的打底色、拿掉的劃掉。
+import Chain from "./Chain.astro";
+
+const tag = (s: string, cls = "") => `<span class="cx-tag${cls ? ` ${cls}` : ""}">"${s}"</span>`;
+const rows = [
+  [
+    tag("React") + tag(" react ") + tag("") + tag("Hooks"),
+    tag("React") + `<mark>${tag("react")}</mark>` + tag("") + tag("Hooks"),
+    tag("React") + tag("react") + tag("", "is-gone") + tag("Hooks"),
+    tag("React") + tag("react", "is-gone") + tag("Hooks"),
+  ],
+  [tag(" API 設計 "), `<mark>${tag("API 設計")}</mark>`, tag("API 設計"), tag("API 設計")],
+];
+---
+
+<Chain
+  caption="介面寫入標籤時依序整理三步：去掉前後空白、去掉空字串、同一篇內不分大小寫去重並保留第一次出現的寫法。編輯器裡手寫的 frontmatter 不會被整理。"
+  cols={["寫入前", "1　去掉前後空白", "2　去掉空字串", "3　不分大小寫去重"]}
+  rows={rows}
+  minWidth={680}
+/>

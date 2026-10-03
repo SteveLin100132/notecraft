@@ -25,16 +25,15 @@ cp -R ~/.notecraft/cache/<hash>/dist/. site-out/
 
 升級 notecraftapp 或改了下面提到的 `NOTECRAFT_BASE` 之後，下一次 `build` 會自動重建，不必加 `--rebuild`（1.8.1 起；更早的版本要加）。快取規則見[運作原理](/docs/advanced/internals/)。
 
+<DeployFlow />
+
 ## 筆記裡的圖片
 
 筆記用相對路徑引用的圖片，會被改寫成 `/notes-assets/<相對於筆記資料夾的路徑>`（見[圖片與附件](/docs/writing/images/)）。`build` 結束時會把產物**實際引用到的**檔案照同樣的相對路徑複製進 `dist/notes-assets/`，不必另外處理，直接部署就看得到。
 
 以一篇引用 `./cover.png` 與 `sub/inner.png` 的 `hello.md` 為例：
 
-| 檢查 | 結果 |
-| :-- | :-- |
-| `dist/notes/hello/index.html` 的 `<img>` | `src="/notes-assets/cover.png"`、`src="/notes-assets/sub/inner.png"` |
-| `dist/notes-assets/` | `cover.png`、`sub/inner.png` |
+<ImageRewrite />
 
 幾個規則：
 

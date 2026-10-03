@@ -1,7 +1,10 @@
 ---
-// 使用文件的殼：左側深藍書脊（全部章節）、右側白紙（頁眉、頁標題、內文、本頁目錄、上一節／下一節）。
+// 使用文件的殼：左側深藍書脊（全部章節）、右側橫線筆記紙（頁眉、頁標題、內文、本頁目錄、上一節／下一節）。
+// 每節的爆炸圖（components/fig、lib/figs）目前不顯示，檔案保留。
 import "../styles/site.css";
 import "../styles/docs.css";
+import "../styles/doc-paper.css";
+import { ClientRouter } from "astro:transitions";
 import { getCollection } from "astro:content";
 import type { MarkdownHeading } from "astro";
 import { buildNav, flatPages, type NavNode } from "../lib/docs";
@@ -56,6 +59,8 @@ for (const h of toc) {
     <meta property="og:title" content={page ? `${title} — NoteCraftApp 使用文件` : "NoteCraftApp 使用文件"} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
+    <!-- 站內換節走 ClientRouter：書脊跨頁保留（不閃、捲動位置不重來），內文逐段進場 -->
+    <ClientRouter fallback="swap" />
   </head>
   <body class="docs-body">
     <a class="skip" href="#doc-main">跳到內文</a>
@@ -69,10 +74,10 @@ for (const h of toc) {
         <span class="dtop-where">{page ? <><b>{page.no}</b> {title}</> : "使用文件"}</span>
       </div>
 
-      <aside class="spine" id="spine" aria-label="文件章節">
+      <aside class="spine" id="spine" aria-label="文件章節" transition:persist="spine">
         <div class="spine-head">
           <button type="button" class="spine-close">關閉</button>
-          <a href={base} class="brand" aria-label="NoteCraftApp 官網首頁">
+          <a href={base} class="brand" aria-label="NoteCraftApp 官網首頁" data-astro-reload>
             <svg viewBox="0 0 48 48" width="26" height="26" aria-hidden="true">
               <rect x="1" y="1" width="46" height="46" rx="9" fill="none" stroke="currentColor" stroke-width="2"></rect>
               <path d="M14 30h20M14 36h13" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"></path>
@@ -145,8 +150,8 @@ for (const h of toc) {
         </nav>
 
         <div class="spine-foot">
-          <a href={base}>官網</a>
-          <a href={`${base}demo/`}>Demo</a>
+          <a href={base} data-astro-reload>官網</a>
+          <a href={`${base}demo/`} data-astro-reload>Demo</a>
           <a href={GITHUB} rel="noopener">GitHub</a>
         </div>
       </aside>
@@ -160,11 +165,17 @@ for (const h of toc) {
 
         <div class:list={["doc-grid", { "has-toc": toc.length > 0 }]}>
           <article class="doc">
+            <!-- 頁首照說明書的「操作說明」頁：超大窄體節號＋章名、2px 章節線，下面是粗黑標題與灰色導言 -->
             <header class="doc-head">
-              <h1 class="doc-title">
-                {page && <span class="doc-no">{page.no}</span>}
-                <span>{title}</span>
-              </h1>
+              {
+                page && (
+                  <p class="doc-plate-no">
+                    <span class="doc-plate-num">{page.no}</span>
+                    <span class="doc-plate-ch">{page.chapter.title}</span>
+                  </p>
+                )
+              }
+              <h1 class="doc-title">{title}</h1>
               <p class="doc-lead">{description}</p>
             </header>
 

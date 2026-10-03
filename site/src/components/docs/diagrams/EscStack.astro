@@ -1,0 +1,71 @@
+---
+// 6.6 Esc 的順序：三層由上往下，每按一次只關最上面還開著的那一層。
+import Diagram from "../Diagram.astro";
+
+const layers = [
+  { t: "放大檢視", d: "裡面是 ER 圖、圖上有聚焦或提示時，先取消那些，再按一次才關放大檢視", active: true },
+  { t: "工作台的浮層", d: "指令面板、Drawer、頁籤選單、手機的 Sidebar 抽屜…疊成一疊，先關最後打開的那一個" },
+  { t: "OpenAPI 頁的逐層退", d: "前面有人處理過這次 Esc 就不動。例如篩選中開 ⌘K 再按 Esc，只關面板，篩選字保留" },
+];
+---
+
+<Diagram caption="一次 Esc 只關一層，從最上面開始：放大檢視、工作台的浮層（後開的先關）、最後才輪到 OpenAPI 頁自己的逐層退。">
+  <div class="es">
+    <div class="es-key" aria-hidden="true">
+      <kbd>Esc</kbd>
+      <span class="dg-down es-arrow"></span>
+    </div>
+    <ol class="es-stack">
+      {
+        layers.map((l, i) => (
+          <li class:list={["dg-node", { "is-active": l.active }]} style={`--i: ${i}`}>
+            <span class="dg-k">
+              第 <span class="dg-n">{i + 1}</span> 個處理
+            </span>
+            <span class="dg-t">{l.t}</span>
+            <span class="dg-d">{l.d}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</Diagram>
+
+<style>
+  .es {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 0 14px;
+  }
+  .es-key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .es-key kbd {
+    display: inline-block;
+    padding: 6px 10px;
+    border: 1.5px solid var(--ink);
+    font-family: var(--f-latin);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .es-arrow {
+    flex: 1;
+    width: 12px;
+    margin-top: 6px;
+    --ax: 6px;
+  }
+  .es-stack {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .es-stack li {
+    margin: 0 0 0 calc(var(--i) * 18px);
+    line-height: 1.5;
+  }
+</style>

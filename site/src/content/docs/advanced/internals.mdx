@@ -47,6 +47,8 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 | 資料檔 `.json` 比上次 build 新，或數量變了 | 改了 plugin 渲染的資料 |
 | `.notecraft/plugins/` 裡的檔案比上次 build 新，或數量變了 | 安裝、移除或修改 plugin |
 
+<CacheDecision />
+
 比對時間用的是檔案的 mtime。筆記資料夾底下 `.` 開頭的資料夾不掃。
 
 終端機會印出這次重新 build 的原因，例如 `md/mdx 有變動（最新：guides/setup.mdx）`。

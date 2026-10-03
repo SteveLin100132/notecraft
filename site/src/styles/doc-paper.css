@@ -1,0 +1,191 @@
+/* ════════ 使用文件：橫線筆記紙 ════════
+   不新增顏色：橫線用 tint、邊界線用 on-sheet-2。內文每行一格、寫在線上；結構線（章節線、表格列線、頁眉線）壓在橫線上。
+   docs.ts 的 snapGrid 算橫線起點（--rule-y）、補齊區塊下緣與頁首的內距。動畫一律 --ease-out，都有 reduced-motion 的對應。 */
+
+/* ── 橫線筆記紙 ──
+   一格 32px，橫線畫在每一格的最上緣。用「一格一張」的 linear-gradient 平鋪（background-size 32px），
+   不用 repeating-linear-gradient：後者在小數像素的偏移下，每條線會被反鋸齒成不同粗細、看起來間距不一。
+   起點 --rule-y 由 docs.ts 算成整數像素，對齊內文欄的第一格。 */
+.doc-paper {
+  --rule-gap: 32px;
+  /* 文字在一格裡往下挪的量：基線離下一條線約 6px，像寫在線上 */
+  --rule-sit: 6px;
+  --margin-x: calc(var(--gutter) * 0.5);
+  position: relative;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(to right, transparent calc(var(--margin-x) - 1px), var(--on-sheet-2) calc(var(--margin-x) - 1px), var(--on-sheet-2) var(--margin-x), transparent var(--margin-x)),
+    linear-gradient(to bottom, var(--tint) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% var(--rule-gap);
+  background-repeat: no-repeat, repeat;
+  background-position:
+    0 0,
+    0 var(--rule-y, 0px);
+}
+
+/* ── 內文寫在橫線上 ──
+   每個區塊的上緣都在一條線上，高度是一格的整數倍：
+   段落、清單、標題用 CSS 算好（文字往下挪 --rule-sit，下距少同樣的量），
+   高度不定的區塊（程式碼框、表格、圖版、示範元件）由 docs.ts 把下緣補到下一條線。
+   內文欄是直向 flex，margin 不摺疊、可以加總。 */
+.doc-body {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+}
+.doc-body > * {
+  min-width: 0;
+}
+.doc-body > :first-child {
+  margin-top: 0;
+}
+/* 上一個區塊已經留了空白，程式碼框、表格、圖版、提示框自己不再加上距 */
+.doc-body > :not(p, ul, ol, h2, h3, blockquote) {
+  margin-top: 0;
+}
+.doc-body p,
+.doc-body li,
+.doc-body blockquote {
+  line-height: var(--rule-gap);
+}
+/* 行內 code、kbd 的內距不撐高行框，行距才固定是一格 */
+.doc-body :not(pre) > code,
+.doc-body kbd {
+  line-height: 1;
+}
+.doc-body > p,
+.doc-body > ul,
+.doc-body > ol,
+.doc-body > blockquote {
+  margin: 0 0 calc(var(--rule-gap) - var(--rule-sit));
+  padding-top: var(--rule-sit);
+}
+.doc-body li {
+  margin: 0;
+}
+.doc-body li > ul,
+.doc-body li > ol,
+.doc-body li > p {
+  margin-bottom: 0;
+}
+/* ## 佔兩格：章節線壓在一條橫線上，標題寫在下一條線上 */
+.doc-body h2 {
+  margin: var(--rule-gap) 0 0;
+  padding-top: calc(var(--rule-gap) - 2px);
+  line-height: var(--rule-gap);
+}
+/* ### 佔一格：文字挪下 --rule-sit，再用負下距還回去，下一段緊接在下一條線 */
+.doc-body h3 {
+  margin: 0 0 calc(var(--rule-sit) * -1);
+  padding-top: var(--rule-sit);
+  line-height: var(--rule-gap);
+}
+/* 表格：每列一格的整數倍；列線畫在每列的上緣（落在橫線上），用背景而不用 border，才不會多出 1px；表頭下是 2px 墨線 */
+.doc-body .tbl th,
+.doc-body .tbl td {
+  padding-top: 0;
+  padding-bottom: 0;
+  border: 0;
+  line-height: var(--rule-gap);
+  vertical-align: top;
+}
+.doc-body .tbl td {
+  background: linear-gradient(to bottom, var(--rule) 1px, transparent 1px) no-repeat;
+}
+.doc-body .tbl tbody tr:first-child td {
+  background-image: linear-gradient(to bottom, var(--ink) 2px, transparent 2px);
+}
+/* 白底的元件蓋在橫線上，不讓線穿過字 */
+.doc-body figure.code,
+.doc-body .tbl,
+.doc-body .tbl table,
+.doc-body .plate,
+.doc-body .callout,
+.doc-body .fx,
+.pager-link {
+  background-color: var(--paper);
+}
+
+/* ── 頁首：說明書「操作說明」頁的樣式 ──
+   超大窄體節號＋章名（基線對齊）、下面一條 2px 章節線；接著 Archivo 800 的大標題與灰色導言（每行一格）。
+   頁首下緣那條 1px 線由 docs.ts 對到橫線上。 */
+.doc-plate-no {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--rule-strong);
+}
+.doc-plate-num {
+  font-family: var(--f-latin);
+  font-variation-settings: "wdth" 66;
+  font-weight: 700;
+  font-size: clamp(64px, 8vw, 116px);
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.doc-plate-ch {
+  font-family: var(--f-cjk);
+  font-weight: 700;
+  font-size: clamp(17px, 1.6vw, 22px);
+  color: var(--ink);
+}
+.doc-head .doc-title {
+  margin-top: clamp(20px, 2.4vw, 30px);
+  font-size: clamp(32px, 3.6vw, 52px);
+  line-height: 1.16;
+}
+.doc-lead {
+  max-width: 36em;
+  line-height: var(--rule-gap);
+}
+/* 本頁目錄墊紙色：目錄固定、紙在底下捲動，不墊的話橫線會滑過字 */
+.toc,
+.toc-inline {
+  background-color: var(--paper);
+}
+.toc-inline {
+  margin-bottom: 16px;
+}
+
+.doc-body h2,
+.doc-body h3 {
+  scroll-margin-top: 24px;
+}
+@media (max-width: 959px) {
+  .doc-body h2,
+  .doc-body h3 {
+    scroll-margin-top: 72px;
+  }
+}
+
+/* ── 換節：內文逐段進場（從已經看得見的終態淡入、上移 8px） ── */
+.doc-paper.is-arriving :is(.doc-title, .doc-lead, .toc, .doc-body > *:nth-child(-n + 6)) {
+  animation: doc-in 520ms var(--ease-out) both;
+}
+.doc-paper.is-arriving .doc-lead {
+  animation-delay: 60ms;
+}
+.doc-paper.is-arriving .toc {
+  animation-delay: 120ms;
+}
+.doc-paper.is-arriving .doc-body > :nth-child(-n + 6) {
+  animation-delay: 160ms;
+}
+@keyframes doc-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .doc-paper.is-arriving * {
+    animation: none !important;
+  }
+}

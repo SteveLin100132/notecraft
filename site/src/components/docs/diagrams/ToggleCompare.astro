@@ -1,0 +1,118 @@
+---
+// 4.5.3 啟用、停用、移除三種狀態下，plugin 的各個部分還在不在、還有沒有作用。
+import Diagram from "../Diagram.astro";
+
+type Tone = "ok" | "off" | "bad" | "gone";
+const cols = ["啟用中", "停用", "移除"];
+const sub = ["", "<code>disabled</code> 加上 id", "<code>install-plugin --remove</code>"];
+const rows: { name: string; cells: [Tone, string][] }[] = [
+  { name: "<code>.notecraft/plugins/&lt;id&gt;/</code>", cells: [["ok", "在"], ["ok", "保留"], ["gone", "刪除"]] },
+  { name: "<code>plugins.json</code> 的規則", cells: [["ok", "生效"], ["off", "保留，比對前就略過"], ["off", "不動，要自己刪"]] },
+  { name: "renderer 打包進瀏覽器端", cells: [["ok", "是"], ["off", "仍會打包"], ["gone", "不再打包"]] },
+  { name: "命中的資料檔頁 <code>/view/…</code>", cells: [["ok", "產生"], ["off", "不產生，舊網址 404"], ["bad", "規則還在就 build 失敗"]] },
+  { name: "筆記裡的 <code>&lt;PluginView&gt;</code>", cells: [["ok", "照常"], ["bad", "build 失敗"], ["bad", "build 失敗"]] },
+  { name: "恢復", cells: [["ok", "—"], ["ok", "從 <code>disabled</code> 拿掉 id"], ["ok", "重新安裝"]] },
+];
+---
+
+<Diagram
+  caption="停用只是讓規則失效，檔案與打包都還在，恢復只要拿掉 id；移除會刪掉 plugin 資料夾，但不會替你改 plugins.json。兩種做法下，筆記裡還在用的 PluginView 都會讓 build 失敗。"
+  scroll
+  minWidth={620}
+>
+  <table class="tg">
+    <thead>
+      <tr>
+        <th scope="col"></th>
+        {cols.map((c, i) => (
+          <th scope="col">
+            <span class="tg-col">{c}</span>
+            {sub[i] && <span class="tg-sub" set:html={sub[i]} />}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((r) => (
+          <tr>
+            <th scope="row" set:html={r.name} />
+            {r.cells.map(([tone, text]) => (
+              <td class={`is-${tone}`}>
+                <span set:html={text} />
+              </td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+  <ul class="dg-legend tg-key" aria-hidden="true">
+    <li><span class="dg-swatch"></span>照常</li>
+    <li><span class="dg-swatch is-done"></span>還在但不作用</li>
+    <li><span class="dg-swatch tg-gone"></span>不在了</li>
+    <li><span class="dg-swatch is-blocked"></span>build 失敗</li>
+  </ul>
+</Diagram>
+
+<style>
+  .tg {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 6px;
+    margin: -6px;
+    width: calc(100% + 12px);
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  .tg th,
+  .tg td {
+    text-align: left;
+    vertical-align: middle;
+  }
+  .tg thead th {
+    padding: 0 0 6px;
+    border-bottom: 2px solid var(--ink);
+    font-weight: 700;
+  }
+  .tg-col {
+    display: block;
+    font-size: 14.5px;
+  }
+  .tg-sub {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+  .tg tbody th {
+    padding-right: 6px;
+    font-weight: 400;
+  }
+  .tg td {
+    padding: 7px 10px;
+    border: 1.25px solid var(--ink);
+  }
+  .tg td.is-off {
+    background: var(--tint);
+    color: var(--ink-2);
+  }
+  .tg td.is-gone {
+    border-color: var(--del-ink);
+    background: var(--del-bg);
+    color: var(--del-ink);
+  }
+  .tg td.is-bad {
+    border-style: dashed;
+    border-color: var(--mark-paper);
+    color: var(--mark-paper);
+    font-weight: 700;
+  }
+  .tg-key {
+    margin: 14px 0 0;
+  }
+  .tg-gone {
+    border-color: var(--del-ink);
+    background: var(--del-bg);
+  }
+</style>

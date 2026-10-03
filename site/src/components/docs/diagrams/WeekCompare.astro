@@ -1,0 +1,128 @@
+---
+// 4.1.2 兩種「本週」：同一段日期上，總覽的滾動 7 天（今天與前 6 天）與月曆的日曆週（週日到週六）框到的範圍不同。
+// 例子：今天是週四 10/1，9/25、9/30、10/1 各更新一篇 → 滾動 7 天 3 篇、日曆週 2 篇。
+import Diagram from "../Diagram.astro";
+
+const WD = ["日", "一", "二", "三", "四", "五", "六"];
+// 2026-09-24（週四）起 10 天
+const days = Array.from({ length: 10 }, (_, i) => {
+  const d = new Date(Date.UTC(2026, 8, 24 + i));
+  return { label: `${d.getUTCMonth() + 1}/${d.getUTCDate()}`, wd: WD[d.getUTCDay()], i };
+});
+const TODAY = 7; // 10/1
+const updated = new Set([1, 6, 7]); // 9/25、9/30、10/1
+const rolling = [TODAY - 6, TODAY]; // 9/25–10/1
+const calendar = [3, 9]; // 9/27（日）–10/3（六）
+const count = ([a, b]: number[]) => [...updated].filter((i) => i >= a && i <= b).length;
+const col = ([a, b]: number[]) => `grid-column: ${a + 1} / ${b + 2}`;
+---
+
+<Diagram caption="同一段日期、兩種「本週」：今天是週四 10/1，9/25、9/30、10/1 各更新一篇。總覽的滾動 7 天算到 3 篇，月曆的日曆週只算到 2 篇。" scroll minWidth={560}>
+  <div class="wk">
+    <span class="wk-br wk-br--top" style={`${col(rolling)}; grid-row: 1`}>
+      <span><strong>滾動 7 天</strong>　總覽「本週更新」、更新日誌：{count(rolling)} 篇</span>
+    </span>
+    {
+      days.map((d) => (
+        <span class:list={["wk-day", { "is-today": d.i === TODAY }]} style="grid-row: 2">
+          <span class="wk-date">{d.label}</span>
+          <span class="wk-wd">{d.i === TODAY ? "今天" : `週${d.wd}`}</span>
+          {updated.has(d.i) ? <span class="wk-dot" title="這天更新了一篇" /> : <span class="wk-dot is-empty" />}
+        </span>
+      ))
+    }
+    <span class="wk-br wk-br--bottom" style={`${col(calendar)}; grid-row: 3`}>
+      <span><strong>日曆週（日→六）</strong>　更新月曆：{count(calendar)} 篇</span>
+    </span>
+  </div>
+  <div class="wk-key dg-lab"><span class="wk-dot"></span>這天更新了一篇筆記</div>
+</Diagram>
+
+<style>
+  .wk {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    column-gap: 4px;
+  }
+  .wk-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 0 10px;
+    border: 1.25px solid var(--rule);
+    background: var(--paper);
+  }
+  .wk-day.is-today {
+    border: 2px solid var(--ink);
+  }
+  .wk-date {
+    font-family: var(--f-latin);
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .wk-wd {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .is-today .wk-wd {
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .wk-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-top: 4px;
+    background: var(--ink);
+  }
+  .wk-dot.is-empty {
+    visibility: hidden;
+  }
+  /* 括號：一條橫線加兩端短豎線，標籤寫在線的外側 */
+  .wk-br {
+    position: relative;
+    display: flex;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .wk-br strong {
+    color: inherit;
+  }
+  .wk-br::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    border: 1.5px solid currentColor;
+  }
+  .wk-br--top {
+    align-items: flex-end;
+    margin-bottom: 6px;
+    padding: 0 6px 14px;
+    color: var(--sheet);
+  }
+  .wk-br--top::before {
+    bottom: 0;
+    border-top: 0;
+  }
+  .wk-br--bottom {
+    margin-top: 6px;
+    padding: 14px 6px 0;
+  }
+  .wk-br--bottom::before {
+    top: 0;
+    border-bottom: 0;
+  }
+  .wk-key {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .wk-key .wk-dot {
+    margin: 0;
+  }
+</style>

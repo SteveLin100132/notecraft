@@ -1,0 +1,124 @@
+---
+// 1.3 五個名詞放在哪、彼此怎麼牽動：一棵專案樹，每個名詞以參照編號指認，下面列出編號之間的關係。
+// 參照編號沿用說明書語彙（偶數、白底用 mark-paper）。
+import Diagram from "../Diagram.astro";
+
+type Row = { tree: string; ref?: number; name?: string; muted?: boolean };
+const rows: Row[] = [
+  { tree: "my-project/", name: "專案根：在這裡執行指令", muted: true },
+  { tree: "├── .notecraft/", muted: true },
+  { tree: "│   ├── components/" , muted: true },
+  { tree: "│   │   └── oauth-flow.tsx", ref: 14, name: "生成元件" },
+  { tree: "│   ├── plugins/er-diagram-renderer/", ref: 18, name: "Plugin" },
+  { tree: "│   ├── plugins.json", ref: 20, name: "映射規則" },
+  { tree: "│   └── series.json", ref: 24, name: "系列" },
+  { tree: "└── docs/", ref: 10, name: "筆記資料夾" },
+  { tree: "    ├── guides/flow.mdx", ref: 12, name: "筆記（內含 @ai-visualize 標記 16）" },
+  { tree: "    └── planning/schema.json", ref: 22, name: "資料檔" },
+];
+const links = [
+  { from: "16", text: "標記的 <code>id</code> 決定 14 的檔名；14 通過驗證後，<code>import</code> 寫回 12 的標記正下方" },
+  { from: "20", text: "把 22 交給 18 渲染，產生 <code>/view/planning/schema</code> 一頁" },
+  { from: "24", text: "把 12 與 22（寫成 <code>view:planning/schema</code>）串成有順序的章節" },
+  { from: "10", text: "12、22 都必須在這裡面；網址是相對它的路徑去掉副檔名" },
+];
+// 文字裡的兩位數就是參照編號，換成窄體橙字
+const refs = (s: string) => s.replace(/(\d\d)(?![\d/])/g, '<span class="cm-ref">$1</span>');
+---
+
+<Diagram caption="五個名詞都是專案裡的檔案：設定與產物在執行指令那一層的 .notecraft/，筆記與資料檔在筆記資料夾裡。閱讀進度、收藏只存在瀏覽器，不在這棵樹上。">
+  <div class="cm">
+    {
+      rows.map((r) => (
+        <>
+          <code class:list={["cm-tree", { "is-muted": r.muted }]}>{r.tree}</code>
+          <span class="cm-lead" aria-hidden="true" />
+          <span class="cm-name">
+            {r.ref && <span class="cm-ref">{r.ref}</span>}
+            {r.name && <span class:list={[{ "cm-muted": r.muted }]} set:html={refs(r.name)} />}
+          </span>
+        </>
+      ))
+    }
+  </div>
+  <ul class="cm-links">
+    {
+      links.map((l) => (
+        <li>
+          <span class="cm-ref">{l.from}</span>
+          <span set:html={refs(l.text)} />
+        </li>
+      ))
+    }
+  </ul>
+</Diagram>
+
+<style>
+  .cm {
+    display: grid;
+    grid-template-columns: max-content minmax(24px, 1fr) max-content;
+    align-items: center;
+  }
+  .cm-tree {
+    font-size: 14px !important;
+    line-height: 30px !important;
+    white-space: pre;
+  }
+  .cm-tree.is-muted,
+  .cm-muted {
+    color: var(--ink-2);
+  }
+  .cm-lead {
+    margin: 0 10px;
+    border-top: 1px dotted var(--rule);
+  }
+  .cm-name {
+    font-size: 14px;
+  }
+  .cm-ref {
+    margin-right: 0.35em;
+    font-family: var(--f-latin);
+    font-variation-settings: "wdth" 76;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--mark-paper);
+  }
+  .cm-name .cm-ref:not(:first-child),
+  .cm-links li > span:last-child .cm-ref {
+    margin: 0 0.15em;
+  }
+  .cm-links {
+    display: grid;
+    gap: 6px;
+    margin: 18px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--rule);
+    list-style: none;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .cm-links li {
+    display: grid;
+    grid-template-columns: 2.2em minmax(0, 1fr);
+    margin: 0;
+    line-height: 1.6;
+  }
+  @container (max-width: 559px) {
+    .cm {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cm-lead {
+      display: none;
+    }
+    .cm-tree {
+      overflow-x: auto;
+    }
+    .cm-name {
+      margin: -6px 0 6px 2ch;
+      font-size: 13px;
+    }
+    .cm-name:empty {
+      display: none;
+    }
+  }
+</style>

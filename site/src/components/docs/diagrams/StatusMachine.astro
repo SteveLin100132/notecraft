@@ -1,0 +1,158 @@
+---
+// 4.3.3 status 的四個值與轉移：誰改（AI＝生成流程的 mdx-writer、你＝手動改標記），以及工作台把它算成什麼。
+// 2×2 擺法：上排 pending → generated，下排 failed、locked；箭頭在節點之間的格子裡，各自帶「誰」與「何時」。
+// 太窄時在框內橫向捲動（狀態圖拆成一欄就讀不出轉移了）。
+import Diagram from "../Diagram.astro";
+---
+
+<Diagram
+  caption="標記的四種狀態與轉移：深藍箭頭是生成流程寫入的，墨線箭頭要你手動改標記。工作台把 generated 以外的三種都算成「待生成」。"
+  scroll
+  minWidth={600}
+>
+  <div>
+    <ul class="dg-legend" aria-hidden="true">
+      <li><span class="dg-who is-ai">AI</span>生成流程（mdx-writer）寫入</li>
+      <li><span class="dg-who">你</span>手動改標記的 <code>status</code></li>
+    </ul>
+    <div class="sm">
+      <div class="sm-entry dg-down"><span class="dg-lab sm-entry-lab"><span class="dg-who">你</span>寫新標記（省略 <code>status</code> 也算）</span></div>
+
+      <div class="dg-node sm-state sm-pending">
+        <code class="sm-name">pending</code>
+        <span class="dg-d">還沒生成</span>
+        <span class="sm-count">工作台：待生成</span>
+      </div>
+      <div class="sm-h">
+        <span class="dg-lab"><span class="dg-who is-ai">AI</span>驗證通過，寫回筆記</span>
+        <div class="dg-right dg-sheet sm-h-arrow"></div>
+      </div>
+      <div class="dg-node is-done sm-state sm-generated">
+        <code class="sm-name">generated</code>
+        <span class="dg-d">已寫回筆記</span>
+        <span class="sm-loop"><span class="dg-who">你</span>要求「重新生成」：AI 覆寫元件，仍是 generated</span>
+        <span class="sm-count">工作台：已生成</span>
+      </div>
+
+      <div class="sm-v sm-v-left">
+        <div class="sm-vl"><div class="dg-down dg-sheet sm-line"></div><span class="dg-lab"><span class="dg-who is-ai">AI</span>修 3 次仍沒過</span></div>
+        <div class="sm-vl"><div class="dg-up sm-line"></div><span class="dg-lab"><span class="dg-who">你</span>改了 prompt，改回 pending</span></div>
+      </div>
+      <div class="sm-v sm-v-right">
+        <div class="sm-vl"><div class="dg-down sm-line"></div><span class="dg-lab"><span class="dg-who">你</span>滿意或手調過，鎖起來</span></div>
+        <div class="sm-vl"><div class="dg-up sm-line"></div><span class="dg-lab"><span class="dg-who">你</span>改回 generated 或 pending</span></div>
+      </div>
+
+      <div class="dg-node is-blocked sm-state sm-failed">
+        <code class="sm-name">failed</code>
+        <span class="dg-d">筆記不引用元件；預設不重跑</span>
+        <span class="sm-count">工作台：待生成</span>
+      </div>
+      <div class="dg-node sm-state sm-locked">
+        <code class="sm-name">locked</code>
+        <span class="dg-d">元件照常顯示；生成流程一律跳過</span>
+        <span class="sm-count">工作台：待生成</span>
+      </div>
+    </div>
+  </div>
+</Diagram>
+
+<style>
+  .sm {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(140px, 0.7fr) minmax(0, 1.15fr);
+    grid-template-areas:
+      "entry . ."
+      "pending h generated"
+      "vl . vr"
+      "failed . locked";
+  }
+  .sm-entry {
+    grid-area: entry;
+    min-height: 40px;
+    --ax: 28px;
+  }
+  .sm-entry-lab {
+    position: absolute;
+    left: 42px;
+    top: 50%;
+    translate: 0 -50%;
+    white-space: nowrap;
+  }
+  .sm-pending {
+    grid-area: pending;
+  }
+  .sm-generated {
+    grid-area: generated;
+  }
+  .sm-failed {
+    grid-area: failed;
+  }
+  .sm-locked {
+    grid-area: locked;
+  }
+  .sm-state {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sm-name {
+    font-size: 16px !important;
+    font-weight: 700;
+  }
+  .sm-count {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--rule);
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .is-blocked .sm-count {
+    border-top-color: color-mix(in srgb, var(--mark-paper) 35%, transparent);
+    color: var(--mark-paper);
+  }
+  .sm-loop {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .sm-h {
+    grid-area: h;
+    align-self: center;
+    padding: 0 10px;
+    text-align: center;
+  }
+  .sm-h-arrow {
+    height: 12px;
+    margin-top: 4px;
+    --ay: 6px;
+  }
+  .sm-v {
+    display: flex;
+    gap: 6px;
+    min-height: 92px;
+  }
+  .sm-v-left {
+    grid-area: vl;
+  }
+  .sm-v-right {
+    grid-area: vr;
+  }
+  .sm-vl {
+    flex: 1 1 0;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+  }
+  .sm-line {
+    flex: none;
+    width: 12px;
+    --ax: 6px;
+  }
+  .sm-vl .dg-lab {
+    align-self: center;
+    padding: 6px 0;
+    text-wrap: balance;
+  }
+</style>

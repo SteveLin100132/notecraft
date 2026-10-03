@@ -1,0 +1,149 @@
+---
+// 4.7 serve 的背景 rebuild 時間軸：三條泳道（檔案、serve、瀏覽器）共用一條時間軸，
+// 一次畫出三件事：連續存檔合併成一次、建置中又改會在這輪結束後再跑、失敗時保留舊站。
+// 時間是示意的相對刻度（36 格），不是實際毫秒。窄時在框內橫向捲動。
+import Diagram from "../Diagram.astro";
+
+const UNITS = 36;
+const col = (from: number, to: number) => `grid-column: ${from + 1} / ${to + 1}`;
+const saves = [1, 2, 3, 10, 26];
+const saveLabels = [
+  { at: 4, to: 10, text: "連續存檔 3 次" },
+  { at: 11, to: 18, text: "建置中又存檔" },
+  { at: 27, to: 34, text: "存了寫錯的檔" },
+];
+const bars = [
+  { from: 3, to: 6, kind: "wait", text: "300ms" },
+  { from: 6, to: 15, kind: "build", text: "build → dist.next" },
+  { from: 15, to: 23, kind: "build", text: "再跑一輪" },
+  { from: 26, to: 29, kind: "wait", text: "300ms" },
+  { from: 29, to: 36, kind: "fail", text: "build 失敗" },
+];
+const loads = [
+  { at: 15, to: 23, text: "換成 dist，重新載入" },
+  { at: 23, to: 29, text: "重新載入" },
+];
+---
+
+<Diagram
+  caption="serve 的背景 rebuild（時間是示意）：連續存檔等 300ms 合併成一次；建置中又有變動，這輪結束後再跑一輪；建置失敗時舊的 dist 繼續服務，瀏覽器不重新載入。"
+  scroll
+  minWidth={680}
+>
+  <div class="rt" style={`--units: ${UNITS}`}>
+    <span class="rt-lane-name" style="grid-row: 1">檔案</span>
+    <span class="rt-lane-name" style="grid-row: 2">serve</span>
+    <span class="rt-lane-name" style="grid-row: 3">瀏覽器</span>
+    <span class="rt-rule" style="grid-row: 1" aria-hidden="true"></span>
+    <span class="rt-rule" style="grid-row: 2" aria-hidden="true"></span>
+    <span class="rt-rule" style="grid-row: 3" aria-hidden="true"></span>
+
+    {saves.map((s) => <span class="rt-save" style={`${col(s, s + 1)}; grid-row: 1`} aria-hidden="true"></span>)}
+    {saveLabels.map((l) => <span class="rt-note" style={`${col(l.at, l.to)}; grid-row: 1`}>{l.text}</span>)}
+
+    {bars.map((b) => <span class:list={["rt-bar", `rt-bar--${b.kind}`]} style={`${col(b.from, b.to)}; grid-row: 2`}>{b.text}</span>)}
+
+    {loads.map((l) => <span class="rt-load" style={`${col(l.at, l.to)}; grid-row: 3`}>{l.text}</span>)}
+    <span class="rt-load rt-load--keep" style={`${col(29, UNITS)}; grid-row: 3`}>不重載，舊站照常</span>
+
+    <span class="rt-axis dg-right" style={`grid-column: 2 / ${UNITS + 2}; grid-row: 4`} aria-hidden="true"></span>
+    <span class="rt-axis-lab" style={`grid-column: ${UNITS - 5} / ${UNITS + 2}; grid-row: 5`}>時間</span>
+  </div>
+</Diagram>
+
+<style>
+  .rt {
+    display: grid;
+    grid-template-columns: 64px repeat(var(--units), minmax(0, 1fr));
+    grid-template-rows: 44px 52px 44px 14px auto;
+    align-items: center;
+  }
+  .rt-lane-name {
+    grid-column: 1;
+    font-family: var(--f-latin);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .rt-rule {
+    grid-column: 2 / -1;
+    align-self: stretch;
+    border-top: 1px solid var(--rule);
+  }
+  .rt-save {
+    justify-self: center;
+    width: 10px;
+    height: 10px;
+    background: var(--ink);
+  }
+  .rt-note {
+    padding-left: 4px;
+    font-size: 13px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .rt-bar {
+    box-sizing: border-box;
+    height: 36px;
+    padding: 0 8px;
+    overflow: hidden;
+    border: 1.25px solid var(--ink);
+    font-size: 13px;
+    line-height: 34px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .rt-bar--wait {
+    padding: 0 2px;
+    font-size: 12.5px;
+    text-align: center;
+    text-overflow: clip;
+    background: var(--paper);
+    color: var(--ink-2);
+  }
+  .rt-bar--build {
+    border-color: var(--sheet);
+    background: var(--sheet);
+    color: var(--line);
+  }
+  .rt-bar--build + .rt-bar--build {
+    border-left-color: var(--line);
+  }
+  .rt-bar--fail {
+    border-style: dashed;
+    border-color: var(--mark-paper);
+    background: var(--paper);
+    color: var(--mark-paper);
+  }
+  /* 瀏覽器那一格：從 serve 長條的結尾拉一條線下來 */
+  .rt-load {
+    position: relative;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    border-left: 1.25px solid var(--ink);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .rt-load--keep {
+    justify-content: flex-end;
+    padding: 0 8px 0 0;
+    border-left: 0;
+    border-right: 1.25px dashed var(--mark-paper);
+    font-weight: 400;
+    color: var(--mark-paper);
+  }
+  .rt-axis {
+    align-self: center;
+    height: 10px;
+    --ay: 5px;
+    color: var(--ink-2);
+  }
+  .rt-axis-lab {
+    justify-self: end;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+</style>

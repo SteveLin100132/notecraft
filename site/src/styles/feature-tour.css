@@ -1,0 +1,166 @@
+/* ── 「它做什麼」功能清單＋實機截圖（components/FeatureTour.tsx）──
+   左邊清單、右邊截圖與說明。沿用說明書語彙：選中填深藍、參照編號窄體、圖版 1.5px 墨框、直角。不新增顏色。 */
+.ft {
+  container: ft / inline-size;
+  margin: 0 0 16px;
+  background: var(--paper);
+}
+.ft-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+  border-top: 2px solid var(--rule-strong);
+}
+.ft-tab {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 15px/1.4 var(--f-cjk);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+.ft-tab .ref {
+  flex: none;
+  min-width: 1.6em;
+  font-size: 17px;
+}
+.ft-tab:hover {
+  background: var(--tint);
+}
+.ft-tab[aria-selected="true"] {
+  background: var(--sheet);
+  color: var(--line);
+  font-weight: 700;
+}
+.ft-tab[aria-selected="true"] .ref {
+  color: var(--mark);
+}
+.ft-tab:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.ft-panel {
+  min-width: 0;
+  margin-top: 20px;
+}
+.ft-shot {
+  margin: 0;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+.ft-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  animation: ft-in 260ms var(--ease-out);
+}
+.ft-body {
+  animation: ft-in 260ms var(--ease-out);
+}
+@keyframes ft-in {
+  from {
+    opacity: 0;
+  }
+}
+.ft-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 18px 0 0;
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+.ft-title .ref {
+  font-size: 22px;
+}
+.ft-lede {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.ft-points {
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  font-size: 15.5px;
+  line-height: 1.75;
+}
+/* 元件自己的節奏，不跟內文的 32px 格線（.doc-body li）走 */
+.ft .ft-points li {
+  margin: 4px 0;
+  line-height: 1.75;
+}
+.ft-points li::marker {
+  color: var(--ink-2);
+}
+.ft-points code {
+  padding: 0.08em 0.35em;
+  background: var(--tint);
+  font-family: var(--f-mono);
+  font-size: 0.86em;
+  line-height: 1;
+}
+.ft-nw {
+  white-space: nowrap;
+}
+.ft-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+.ft-links a {
+  color: var(--sheet);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.ft-links a::after {
+  content: " →";
+}
+.ft-links a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* 夠寬時：清單在左、截圖與說明在右（container query 只能排容器裡的元素，所以由 .ft-grid 排） */
+@container ft (min-width: 680px) {
+  .ft-grid {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .ft-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ft-panel {
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-shot img,
+  .ft-body {
+    animation: none;
+  }
+  .ft-tab {
+    transition: none;
+  }
+}

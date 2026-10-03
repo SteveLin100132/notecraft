@@ -1,0 +1,38 @@
+---
+// 5.4 寫入 API 的防線：先看連線來源，再把路徑解成絕對路徑、確認在筆記資料夾底下，已存在的檔再解開 symlink 確認一次。
+import StepFlow, { type Step } from "./StepFlow.astro";
+
+const steps: Step[] = [
+  { k: "<code>view</code> 模式", t: "收到 <code>/api/*</code> 請求", d: "帶著 slug 或檔案路徑" },
+  {
+    t: "連線來自本機？",
+    d: "<code>127.0.0.1</code> 或 <code>::1</code>",
+    via: "否",
+    fail: true,
+    out: { kind: "blocked", t: "403", d: "區網其他裝置一律擋下；<code>/notes-assets/*</code> 同一條規則" },
+    next: "是",
+  },
+  { kind: "active", t: "<code>path.resolve</code> 轉成絕對路徑", d: "消掉 <code>..</code> 之類的相對片段" },
+  {
+    t: "仍以筆記資料夾的路徑開頭？",
+    via: "否",
+    fail: true,
+    out: { kind: "blocked", t: "拒絕" },
+    next: "是",
+  },
+  {
+    t: "檔案已存在時：<code>fs.realpath</code> 解開 symlink",
+    d: "實際位置也在筆記資料夾內？",
+    via: "否",
+    fail: true,
+    out: { kind: "blocked", t: "拒絕" },
+    next: "是",
+  },
+  { kind: "done", t: "讀寫筆記資料夾裡的檔案", d: "寫入後更新受影響筆記的 <code>updatedAt</code>" },
+];
+---
+
+<StepFlow
+  caption="寫入 API 的防線：連線不是本機就回 403；路徑解成絕對路徑後要在筆記資料夾底下，已存在的檔解開 symlink 後也要在裡面，任何一關不過就拒絕。"
+  steps={steps}
+/>

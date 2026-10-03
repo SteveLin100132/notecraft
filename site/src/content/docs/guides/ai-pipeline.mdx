@@ -33,6 +33,8 @@ npx notecraftapp init-skill
 | 3 | component-generator | sonnet | 依規劃書寫元件、檢查 import、等待驗證，失敗時自動修正 |
 | 4 | mdx-writer | haiku | 在標記正下方寫入 `import` 與元件，更新 `status` |
 
+<PipelineFlow />
+
 `status: locked` 的標記一律跳過；`generated` 只在你明確要求時重做；`failed` 預設不重跑，調整 prompt 後明確要求才會再試。
 
 規劃時偏向做成可操作的互動元件，內容本質是靜態的（查表、單張結構圖）才回退成靜態圖。同一篇有幾個彼此相關的標記時，AI 可能提議把它們合併成一個元件，會在對話裡說明合併了哪些。

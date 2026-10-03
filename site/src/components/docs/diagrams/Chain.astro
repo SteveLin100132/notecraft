@@ -1,0 +1,102 @@
+---
+// 轉換鏈：每一列是同一個東西經過幾步轉換的樣子（路徑 → 網址、標籤正規化、圖片改寫），欄與欄之間一支箭頭。
+// 格子內容是 HTML 字串（呼叫端寫死）：<mark> 標出這一步改到的地方，<s> 是這一步拿掉的，<em class="cx-no"> 是「不處理／不輸出」。
+// 窄時在框內橫向捲動（拆成直排就看不出同一列的前後對應）。
+import Diagram from "../Diagram.astro";
+
+type Props = { caption: string; cols: string[]; rows: string[][]; note?: string; minWidth?: number };
+const { caption, cols, rows, note, minWidth = 600 } = Astro.props;
+const n = cols.length;
+---
+
+<Diagram caption={caption} scroll minWidth={minWidth}>
+  <div>
+    <div class="cx" style={`grid-template-columns: repeat(${n - 1}, minmax(0, 1fr) 40px) minmax(0, 1fr)`}>
+      {
+        cols.map((c, i) => (
+          <>
+            <span class="cx-head" set:html={c} />
+            {i < n - 1 && <span />}
+          </>
+        ))
+      }
+      {
+        rows.map((row) =>
+          row.map((cell, i) => (
+            <>
+              <span class="cx-cell" set:html={cell} />
+              {i < n - 1 && <span class="dg-right cx-arrow" aria-hidden="true" />}
+            </>
+          )),
+        )
+      }
+    </div>
+    {note && <div class="cx-note" set:html={note} />}
+  </div>
+</Diagram>
+
+<style>
+  .cx {
+    display: grid;
+    align-items: stretch;
+    row-gap: 10px;
+  }
+  .cx-head {
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .cx-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border: 1.25px solid var(--ink);
+    background: var(--paper);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .cx-arrow {
+    --ay: 50%;
+    margin: 0 6px;
+  }
+  .cx :global(mark) {
+    padding: 0 2px;
+    background: var(--tint);
+    color: var(--sheet);
+    font-weight: 700;
+  }
+  .cx :global(s) {
+    padding: 0 2px;
+    background: var(--del-bg);
+    color: var(--del-ink);
+  }
+  .cx :global(.cx-no) {
+    font-style: normal;
+    color: var(--mark-paper);
+  }
+  .cx :global(.cx-tag) {
+    padding: 0 6px;
+    border: 1px solid var(--rule);
+    font-family: var(--f-mono);
+    font-size: 13px;
+    white-space: pre;
+  }
+  .cx :global(.cx-tag.is-gone) {
+    border-style: dashed;
+    border-color: var(--del-ink);
+    background: var(--del-bg);
+    color: var(--del-ink);
+    text-decoration: line-through;
+  }
+  .cx-note {
+    margin-top: 12px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+  }
+</style>

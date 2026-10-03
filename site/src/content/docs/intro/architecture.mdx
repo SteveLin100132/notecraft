@@ -1,0 +1,55 @@
+---
+description: NoteCraftApp 由哪幾層組成、一篇筆記從資料夾走到瀏覽器經過哪裡，以及 view、build、serve 三種執行方式各動到哪幾層。
+---
+
+NoteCraftApp 本身是一個 Astro 專案。CLI 把你的筆記資料夾交給它編譯，結果在瀏覽器裡以工作台呈現。下面的爆炸圖由下而上拆開這條路徑：最下層是你的專案，最上層是讀者看到的工作台。左上角的 Claude Code 不在這條路徑上，它只在你本機對話時寫檔。
+
+切換圖上方的 `view`／`build`／`serve` 看輸出層怎麼變；用圖旁「資料流」的 ‹ ▶ › 一站一站看一篇筆記怎麼往上走。
+
+<ArchitectureMap />
+
+## 由下而上的六層
+
+| 層 | 在哪裡 | 做什麼 |
+| :-- | :-- | :-- |
+| 你的專案 | 你的專案資料夾 | 筆記、`.notecraft/` 設定與產物、`.claude/` 的 Skill |
+| CLI | `~/.notecraft/app-<version>/` | 把筆記資料夾交給 Astro，決定即時編譯或 build |
+| Astro 建置管線 | 同上，build 期 | 讀筆記、跑 remark 外掛、編譯 MDX、算好工作台索引 |
+| 生成元件、Plugin 渲染器 | `.notecraft/components/`、`.notecraft/plugins/` | 筆記 import 的互動元件；把 JSON 資料檔畫成頁面 |
+| 輸出 | dev server，或 `~/.notecraft/cache/<hash>/dist/` | 依執行方式不同，見下一節 |
+| 工作台 | 瀏覽器 | 三欄的殼，互動部分是各自 hydrate 的 React island |
+
+你的專案裡只有你的檔案。NoteCraftApp 的程式碼、相依套件與 build 產物都在家目錄的 `~/.notecraft/` 底下，細節見[運作原理](/docs/advanced/internals/)。
+
+## 三種執行方式
+
+三個指令都走同一條管線，差別在輸出層：
+
+| | `view` | `build` | `serve` |
+| :-- | :-- | :-- | :-- |
+| 編譯 | `astro dev` 即時編譯 | `astro build` | 同 `build`，沿用快取 |
+| 寫出檔案 | 不寫 | `dist/` 與 pagefind 索引 | 同 `build` |
+| 改了筆記之後 | 存檔即更新 | 下次執行時重新 build | 背景重新 build，頁面自動重新整理 |
+| 寫入 UI | 有，經 dev-only API 寫回檔案 | 沒有 | 沒有 |
+| 全文搜尋 | 沒有 | 有 | 有 |
+
+寫筆記時用 `view`，要讓 Claude Code 一邊寫檔一邊看結果用 `serve`（見[即時預覽](/docs/guides/live-preview/)），要部署用 `build`（見[部署](/docs/guides/deploy/)）。
+
+## AI 不在執行路徑上
+
+Claude Code 在你本機的對話裡讀筆記、寫出 `.notecraft/components/<id>.tsx` 或 `<slug>.deck.tsx`，再把 `import` 寫回筆記。之後的 build 把這些檔案當一般的 React 元件編譯。
+
+所以 build、serve 與部署都不呼叫 AI，也不需要 API 金鑰。生成的元件和筆記一樣進版本控制，任何人 clone 下來都 build 得出同一個站。流程見[生成流程](/docs/guides/ai-pipeline/)。
+
+## 狀態存在哪裡
+
+NoteCraftApp 沒有資料庫，也沒有執行期 API：
+
+- **檔案**：筆記、`.notecraft/` 與 `.claude/` 都在你的專案裡，跟著 git 走
+- **build 期算好的資料**：標籤、系列統計與 `/wb-index.json` 寫在產物裡，不會在讀者開頁時才算
+- **瀏覽器的 localStorage**：閱讀進度、開著的頁籤、收藏與偏好，只存在這台電腦的這個瀏覽器
+- **瀏覽器當下計算**：「本週更新」這類相對今天的數字，以讀者的當地時區計算
+
+<Callout>
+清掉瀏覽器資料只會失去閱讀進度與頁籤這類個人狀態，筆記與設定都不受影響。
+</Callout>

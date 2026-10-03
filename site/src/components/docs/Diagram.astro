@@ -1,0 +1,15 @@
+---
+// 內文示意圖的外框：沿用圖版（上下距、墊紙、圖說在下、「FIG. n」與截圖共用同一個計數器），圖本身不加墨框。
+// scroll：窄到排不下時在框內橫向捲動（minWidth 是圖的最小寬度），不撐開整頁。
+import "../../styles/doc-diagram.css";
+
+type Props = { caption: string; scroll?: boolean; minWidth?: number };
+const { caption, scroll = false, minWidth } = Astro.props;
+---
+
+<figure class="plate dg">
+  <div class:list={["dg-stage", { "dg-scroll": scroll }]} style={minWidth ? `--dg-min: ${minWidth}px` : undefined}>
+    <slot />
+  </div>
+  <figcaption>{caption}</figcaption>
+</figure>

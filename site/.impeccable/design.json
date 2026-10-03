@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-01T08:38:02+00:00",
+  "generatedAt": "2026-10-03T11:30:00+00:00",
   "title": "Design System: NoteCraftApp 官網",
   "scope": "site/ 官方網站專用；不適用於 repo 根目錄的主程式（src/、--wb-*、trendlink-design）與 /demo。",
   "extensions": {
@@ -129,7 +129,8 @@
           "oklch(65% 0.035 258)",
           "oklch(80% 0.035 258)",
           "oklch(95% 0.035 258)"
-        ]
+        ],
+        "note": "圖頁次要字；筆記紙左側邊界線"
       },
       "paper": {
         "role": "neutral",
@@ -220,7 +221,7 @@
           "oklch(80% 0.02 258)",
           "oklch(95% 0.02 258)"
         ],
-        "note": "白紙上的已完成／新增"
+        "note": "白紙上的已完成／新增、零件點亮；筆記紙 32px 橫線色"
       },
       "del-bg": {
         "role": "neutral",
@@ -303,6 +304,38 @@
       "mono": {
         "displayName": "Mono",
         "purpose": "指令列、標記原文、diff、資料夾樹、檔名。"
+      },
+      "doc-title": {
+        "displayName": "Doc title",
+        "purpose": "使用文件頁標題，Archivo 800，clamp(30px, 3vw, 44px)／1.2；節號以 mark-paper 窄體寫在同一行最前面。"
+      },
+      "doc-lead": {
+        "displayName": "Doc lead",
+        "purpose": "使用文件導言，ink-2，行高一格 32px，標題下 14px；640px 以下 17px。"
+      },
+      "doc-body": {
+        "displayName": "Doc body",
+        "purpose": "寫在橫線筆記紙上的內文，行高一格 32px。"
+      },
+      "doc-heading": {
+        "displayName": "Doc heading",
+        "purpose": "## 小節標題，2px 章節線起頭、佔兩格。"
+      },
+      "doc-subheading": {
+        "displayName": "Doc subheading",
+        "purpose": "### 小節標題，佔一格。"
+      },
+      "feature-tab": {
+        "displayName": "Feature tab",
+        "purpose": "「它做什麼」功能清單的列名；選中時 700。"
+      },
+      "feature-title": {
+        "displayName": "Feature title",
+        "purpose": "功能清單說明區標題，前接 22px 參照編號。"
+      },
+      "nav-small": {
+        "displayName": "Nav small",
+        "purpose": "書脊頁尾連結與本頁目錄項目（14px／1.5；### 項 13.5px）。"
       }
     },
     "shadows": [],
@@ -343,9 +376,24 @@
         "purpose": "FIG. 2 type 切換不做轉場。"
       },
       {
+        "name": "doc-arrive",
+        "value": "520ms，自 opacity 0／translateY(8px)；標題 0、導言 60ms、本頁目錄 120ms、內文前六塊 160ms",
+        "purpose": "站內換節（ClientRouter）後頁首、本頁目錄與內文前六塊進場；reduced-motion 不做。"
+      },
+      {
+        "name": "feature-fade",
+        "value": "260ms opacity 0→1（--ease-out）；清單列底色 160ms",
+        "purpose": "功能清單切換時截圖與說明淡入。"
+      },
+      {
+        "name": "docs-drawer",
+        "value": "transform 280ms（--ease-out）",
+        "purpose": "<960px 書脊抽屜滑入／滑出。"
+      },
+      {
         "name": "reduced-motion",
         "value": "@media (prefers-reduced-motion: reduce)",
-        "purpose": "直接終態、浮起無過渡、scroll-behavior: auto。"
+        "purpose": "直接終態、浮起無過渡、scroll-behavior: auto；換節進場、功能清單淡入、抽屜滑入、折角箭頭都關掉。"
       }
     ],
     "breakpoints": [
@@ -384,12 +432,36 @@
       {
         "name": "f2-frame-container",
         "value": "520px (container query)"
+      },
+      {
+        "name": "docs-spine-drawer",
+        "value": "960px（max-width: 959px）"
+      },
+      {
+        "name": "docs-toc-column",
+        "value": "1200px（min-width：右側 240px 本頁目錄；以下改文首 <details>）"
+      },
+      {
+        "name": "docs-pager-single",
+        "value": "640px（max-width：上一節／下一節單欄、導言 17px）"
+      },
+      {
+        "name": "feature-tour-container",
+        "value": "680px (container query：清單 200px 左欄；以下兩欄按鈕格、截圖在下)"
       }
     ],
     "layout": {
       "maxWidth": "1360px",
       "gutter": "clamp(16px, 4vw, 56px)",
-      "specGrid": "5.5em | minmax(0, 68ch), gap 20px"
+      "specGrid": "5.5em | minmax(0, 68ch), gap 20px",
+      "docs": {
+        "shell": "280px | minmax(0, 1fr)",
+        "paper": "頁眉 → 頁首（.doc-head：上內距 clamp(36px, 5vw, 64px)、下 26px、1px rule 下緣）→ 內文 → 上一節／下一節 → GitHub 修改連結；內文欄吃滿紙寬",
+        "toc": "≥1200px 且有 ##／###：minmax(0, 1fr) | 240px，欄距 clamp(40px, 4vw, 72px)；sticky top 0、max-height 100vh、內部捲動、墊 paper；<1200px 文首 <details>",
+        "ruledPaper": "32px 一格，1px tint 線在每格上緣，linear-gradient 以 background-size 100% 32px 平鋪；--rule-y 由 docs.ts 取整數像素；on-sheet-2 邊界線在 gutter × 0.5",
+        "ruleSit": "文字區塊下移 6px，下距減去同量；非文字區塊下緣補到下一條線，最少 16px；頁眉底線與頁首下緣線由 snapGrid 調 .doc-head 上內距與下外距落到紙線上",
+        "featureTour": "container query：≥680px 為 200px | minmax(0, 1fr)、gap 28px；以下清單兩欄（gap 12px）、截圖在下 20px"
+      }
     },
     "borders": [
       {
@@ -416,12 +488,38 @@
         "name": "numeral-underline",
         "value": "3px",
         "purpose": "版本大數字底線"
+      },
+      {
+        "name": "lit-edge",
+        "value": "2.5px",
+        "purpose": "爆炸圖部件選中時的外框（FIG. 1；休眠中的文件爆炸圖為 sheet）"
       }
     ],
     "fontSources": [
       "@fontsource-variable/archivo/wdth.css",
       "@fontsource-variable/noto-sans-tc",
       "@fontsource-variable/jetbrains-mono"
+    ],
+    "dormant": [
+      {
+        "name": "文件爆炸圖",
+        "files": [
+          "src/components/fig/DocFig.tsx",
+          "src/components/fig/parts.tsx",
+          "src/components/fig/PARTS.md",
+          "src/lib/figs/*.ts",
+          "src/styles/doc-fig.css"
+        ],
+        "note": "檔案保留、沒有頁面 import；曾作為右側固定圖欄兼目錄，已撤下。不是現行語彙。"
+      },
+      {
+        "name": "FeatureExplode",
+        "files": [
+          "src/components/FeatureExplode.tsx",
+          "src/styles/feature-explode.css"
+        ],
+        "note": "原「它做什麼」互動爆炸圖，已由 FeatureTour 取代；只提供 FEATURES 文字。"
+      }
     ]
   },
   "components": [
@@ -496,22 +594,47 @@
       "description": "FIG. 1 的一層：hover／選中時平面填白、墨線轉藍、浮起 12px；引線與編號轉橙。",
       "html": "<div class=\"ds-fig\"><svg viewBox=\"0 0 320 200\" width=\"320\" height=\"200\"><g class=\"ds-layer\"><g class=\"ds-lift\"><polygon points=\"60,120 160,70 260,120 160,170\" class=\"ds-face\"/><line x1=\"110\" y1=\"120\" x2=\"200\" y2=\"95\" class=\"ds-ink\"/><line x1=\"120\" y1=\"135\" x2=\"210\" y2=\"110\" class=\"ds-ink\"/></g><path d=\"M260 120 Q 285 120 290 95\" class=\"ds-leader\"/><text x=\"282\" y=\"88\" class=\"ds-num\">12</text></g></svg></div>",
       "css": ".ds-fig{background:var(--sheet, #1b4f9c);padding:24px} .ds-face{fill:var(--sheet, #1b4f9c);stroke:var(--line, #ffffff);stroke-width:1.5;stroke-linejoin:round;transition:fill 260ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-ink{stroke:var(--line, #ffffff);stroke-width:1.1;transition:stroke 260ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-lift{transition:transform 320ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-leader{fill:none;stroke:var(--line, #ffffff);stroke-width:1;opacity:.7} .ds-num{font-family:\"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:'wdth' 76;font-weight:700;font-size:30px;fill:var(--mark, #f7bd63)} .ds-layer{cursor:pointer} .ds-layer:hover .ds-lift{transform:translateY(-12px)} .ds-layer:hover .ds-face{fill:var(--line, #ffffff);stroke-width:2.5} .ds-layer:hover .ds-ink{stroke:var(--sheet, #1b4f9c);stroke-width:1.6} .ds-layer:hover .ds-leader{stroke:var(--mark, #f7bd63);stroke-width:1.8;opacity:1} .ds-layer:hover .ds-num{fill:var(--line, #ffffff);text-decoration:underline} @media (prefers-reduced-motion: reduce){.ds-lift{transition:none}}"
+    },
+    {
+      "name": "橫線筆記紙",
+      "kind": "custom",
+      "refersTo": "ruled-paper",
+      "description": "使用文件的紙：32px 一格的 tint 橫線、on-sheet-2 邊界線；內文基線坐在線上，## 的章節線落在紙線上。",
+      "html": "<div class=\"ds-ruled\"><h2 class=\"ds-ruled-h2\">安裝</h2><p class=\"ds-ruled-p\">在專案根目錄執行一次指令，筆記資料夾就會被當成一份可瀏覽的工作台。</p><p class=\"ds-ruled-p\">之後每次存檔都會即時更新。</p></div>",
+      "css": ".ds-ruled{--rule-gap:32px;--rule-sit:6px;--margin-x:24px;padding:0 24px 0 48px;background-color:var(--paper, #ffffff);background-image:linear-gradient(to right, transparent calc(var(--margin-x) - 1px), var(--on-sheet-2, #c9d8ee) calc(var(--margin-x) - 1px), var(--on-sheet-2, #c9d8ee) var(--margin-x), transparent var(--margin-x)),linear-gradient(to bottom, var(--tint, #e9f0fa) 1px, transparent 1px);background-size:100% 100%,100% var(--rule-gap);background-repeat:no-repeat,repeat;color:var(--ink, #111418);font:17px/32px \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;display:flex;flex-direction:column} .ds-ruled-h2{margin:var(--rule-gap) 0 0;padding-top:calc(var(--rule-gap) - 2px);border-top:2px solid var(--rule-strong, #111418);font-size:24px;line-height:var(--rule-gap);font-weight:700} .ds-ruled-p{margin:0 0 calc(var(--rule-gap) - var(--rule-sit));padding-top:var(--rule-sit);line-height:var(--rule-gap)}"
+    },
+    {
+      "name": "本頁目錄",
+      "kind": "nav",
+      "refersTo": "toc-link",
+      "description": "使用文件右側 240px sticky 目錄：每個 ## 一組，只展開讀到的那組；讀到的項 ink 600 加 6px sheet 方塊。",
+      "html": "<nav class=\"ds-toc\"><p class=\"ds-toc-t\">本頁目錄</p><ol><li><a href=\"#a\">安裝</a></li><li class=\"is-open\"><a href=\"#b\">設定筆記資料夾</a><ol><li class=\"sub\"><a href=\"#b1\" aria-current=\"location\">指定路徑</a></li><li class=\"sub\"><a href=\"#b2\">忽略的檔案</a></li></ol></li><li><a href=\"#c\">下一步</a></li></ol></nav>",
+      "css": ".ds-toc{width:240px;padding:24px 0 24px 14px;background:var(--paper, #ffffff);color:var(--ink, #111418)} .ds-toc-t{margin:0 0 8px;padding-top:10px;border-top:2px solid var(--rule-strong, #111418);font:700 15px \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;letter-spacing:.08em} .ds-toc ol{list-style:none;margin:0;padding:0} .ds-toc a{position:relative;display:block;padding:4px 0;font:14px/1.5 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;color:var(--ink-2, #5a5f68);text-decoration:none} .ds-toc .sub a{padding-left:14px;font-size:13.5px} .ds-toc .is-open > a{color:var(--ink, #111418)} .ds-toc a:hover{color:var(--ink, #111418);text-decoration:underline;text-decoration-thickness:1px} .ds-toc a[aria-current=\"location\"]{color:var(--ink, #111418);font-weight:600} .ds-toc a[aria-current=\"location\"]::before{content:\"\";position:absolute;left:0;top:calc(4px + .75em - 3px);width:6px;height:6px;background:var(--sheet, #1b4f9c)} .ds-toc a:focus-visible{outline:2px solid var(--sheet, #1b4f9c);outline-offset:2px}"
+    },
+    {
+      "name": "功能清單＋實機截圖",
+      "kind": "custom",
+      "refersTo": "feature-tab",
+      "description": "1.1「它做什麼」：tablist 功能清單（選中填 sheet、編號轉 mark）配 16:10 真實截圖與說明；容器 ≥680px 並排。",
+      "html": "<section class=\"ds-ft\"><div class=\"ds-ft-grid\"><div class=\"ds-ft-list\" role=\"tablist\"><button class=\"ds-ft-tab\" role=\"tab\" aria-selected=\"true\"><span class=\"ds-ref\">10</span>筆記列表</button><button class=\"ds-ft-tab\" role=\"tab\" aria-selected=\"false\"><span class=\"ds-ref\">12</span>系列</button><button class=\"ds-ft-tab\" role=\"tab\" aria-selected=\"false\"><span class=\"ds-ref\">14</span>儀表板</button></div><div class=\"ds-ft-panel\"><figure class=\"ds-ft-shot\"></figure><h3 class=\"ds-ft-title\"><span class=\"ds-ref\">10</span>筆記列表</h3><p class=\"ds-ft-lede\">資料夾就是分組，不另建分類。</p></div></div></section>",
+      "css": ".ds-ft{container:ft / inline-size;padding:24px;background:var(--paper, #ffffff);color:var(--ink, #111418)} .ds-ft-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;border-top:2px solid var(--rule-strong, #111418)} .ds-ft-tab{display:flex;align-items:baseline;gap:10px;width:100%;min-height:44px;padding:10px 12px;border:0;border-bottom:1px solid var(--rule, #d5d9df);border-radius:0;background:var(--paper, #ffffff);color:var(--ink, #111418);font:500 15px/1.4 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;text-align:left;cursor:pointer;transition:background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),color 160ms cubic-bezier(0.16, 1, 0.3, 1)} .ds-ref{flex:none;min-width:1.6em;font-family:\"Archivo Variable\", \"Noto Sans TC Variable\", system-ui, sans-serif;font-variation-settings:\"wdth\" 78;font-weight:700;font-variant-numeric:tabular-nums;color:var(--mark-paper, #9a5400)} .ds-ft-tab .ds-ref{font-size:17px} .ds-ft-tab:hover{background:var(--tint, #e9f0fa)} .ds-ft-tab[aria-selected=\"true\"]{background:var(--sheet, #1b4f9c);color:var(--line, #ffffff);font-weight:700} .ds-ft-tab[aria-selected=\"true\"] .ds-ref{color:var(--mark, #f7bd63)} .ds-ft-tab:focus-visible{outline:2px solid var(--sheet, #1b4f9c);outline-offset:2px;position:relative} .ds-ft-panel{margin-top:20px;min-width:0} .ds-ft-shot{margin:0;aspect-ratio:16/10;border:1.5px solid var(--ink, #111418);background:var(--tint, #e9f0fa)} .ds-ft-title{display:flex;align-items:baseline;gap:10px;margin:18px 0 0;font:700 20px/1.4 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif} .ds-ft-title .ds-ref{font-size:22px} .ds-ft-lede{margin:6px 0 0;font:16px/1.75 \"Noto Sans TC Variable\", \"Archivo Variable\", system-ui, sans-serif;color:var(--ink-2, #5a5f68)} @container ft (min-width: 680px){.ds-ft-grid{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px;align-items:start} .ds-ft-list{grid-template-columns:minmax(0,1fr)} .ds-ft-panel{margin-top:0}} @media (prefers-reduced-motion: reduce){.ds-ft-tab{transition:none}}"
     }
   ],
   "narrative": {
     "northStar": "NoteCraftApp 說明書",
-    "overview": "**Creative North Star: \"NoteCraftApp 說明書\"**\n\n整個官網是一份專利說明書形式的產品規格：FIG. 圖號、引線與參照編號、【0001】段落編號、符號說明、請求項。文字與圖是同一份文件，彼此用參照編號互相指認，就像 `@ai-visualize` 讓筆記與元件共用同一份原始碼。版面不是「行銷頁加插圖」，而是「說明頁與圖頁輪流裝訂」。\n\n物質感只有兩種紙：深藍滿版的圖頁（白色細線稿）與白底黑字的說明頁。深度不靠陰影，而是畫在圖裡：等角爆炸圖的側面、選中部件浮起 12px。分隔一律是規格書的細線與圖框，角全部是直角。密度偏高、行文偏長，以耐讀的黑體撐住長段落，以窄體數字撐住編號系統。\n\n版面借用專利說明書的形式，但絕不冒充專利：頁面上沒有專利號、沒有官方機關標誌，請求項之後明寫「並未申請專利」。",
+    "overview": "**Creative North Star: \"NoteCraftApp 說明書\"**\n\n整個官網是一份專利說明書形式的產品規格：FIG. 圖號、引線與參照編號、【0001】段落編號、符號說明、請求項。文字與圖是同一份文件，彼此用參照編號互相指認，就像 `@ai-visualize` 讓筆記與元件共用同一份原始碼。版面不是「行銷頁加插圖」，而是「說明頁與圖頁輪流裝訂」。\n\n物質感只有兩種紙：深藍滿版的圖頁（白色細線稿）與白底黑字的說明頁。深度不靠陰影，而是畫在圖裡：等角爆炸圖的側面、選中部件浮起 12px。分隔一律是規格書的細線與圖框，角全部是直角。密度偏高、行文偏長，以耐讀的黑體撐住長段落，以窄體數字撐住編號系統。\n\n使用文件（`/docs`）是同一份說明書的操作手冊附冊：左側深藍書脊裝訂全部章節，右側是橫線筆記紙，內文每行寫在一格裡；紙的右側一欄安靜的本頁目錄，標出正在讀的小節。\n\n版面借用專利說明書的形式，但絕不冒充專利：頁面上沒有專利號、沒有官方機關標誌，請求項之後明寫「並未申請專利」。",
     "keyCharacteristics": [
       "圖頁（深藍）與說明頁（白）交替，每頁頂端是頁眉：左側文件名「NoteCraftApp 說明書」，右側「圖頁 n／4」或「第 n 頁」。",
       "參照編號（橙）是全站唯一的訊號色；所有被指認的東西都經由編號回到符號說明。",
       "編號類文字（FIG.、參照編號、請求項序號、版本號）一律 Archivo 窄寬度粗體。",
-      "無圓角、無陰影、無漸層、無玻璃；分隔用 1px 細線、1.5px 圖框、2px 章節線。",
-      "圖可以操作：點參照編號，線稿部件轉為實體並浮起。"
+      "無圓角、無陰影、無漸層色面、無玻璃；分隔用 1px 細線、1.5px 圖框、2px 章節線。",
+      "圖可以操作：點參照編號，線稿部件轉為實體並浮起。",
+      "使用文件寫在 32px 橫線筆記紙上：每個區塊從一條線開始，章節線、表格列線、頁眉線、頁首下緣線都壓在紙的橫線上；導覽只靠書脊與右側本頁目錄。"
     ],
     "rules": [
       {
         "name": "兩種紙規則（The Two Papers Rule）",
-        "body": "區塊底色只有 `sheet` 與 `paper` 兩種，依頁序交替。`tint`、`del-bg` 只出現在行或節點的狀態上，不能當區塊底。",
+        "body": "區塊底色只有 `sheet` 與 `paper` 兩種，依頁序交替（使用文件是書脊 `sheet`＋筆記紙 `paper` 並排）。`tint`、`del-bg` 只出現在行、節點或零件的狀態上，以及筆記紙的 1px 橫線，不能當區塊底。",
         "section": "colors"
       },
       {
@@ -535,6 +658,11 @@
         "section": "typography"
       },
       {
+        "name": "寫在線上規則（The On-the-Rule Rule）",
+        "body": "使用文件的紙是 32px 一格（`rule-gap`）的橫線筆記紙，線畫在每一格的最上緣，起點 `--rule-y` 由腳本算成整數像素、對齊內文欄頂端。每個區塊都從一條線開始：段落、清單、引文、`###` 的文字往下挪 6px（`rule-sit`），基線坐在下一條線上方；`##` 佔兩格，2px 章節線落在一條紙線上；表格每列 32px、列線落在紙線上；頁眉底線與頁首下緣的 1px `rule` 線，由腳本調整頁首的上內距與下外距補到紙線上。高度不定的區塊（程式碼框、表格、圖版、示範元件、提示框）下緣補到下一條線，與下一塊至少留 16px（`block-min-gap`），不會空出兩三條線。蓋在線上的白底元件（程式碼框、表格、圖版、提示框、示範元件、功能清單、上一節／下一節）墊 `paper`，線不穿過字；本頁目錄固定不動、紙在底下捲，也墊 `paper`。",
+        "section": "layout"
+      },
+      {
         "name": "圖說在下規則（The Caption-Below Rule）",
         "body": "每張圖下方是圖說：上緣一條細線、12px 間距、「FIG. n」在前、說明在後，同一行基線對齊。圖說以外不另設圖標題。",
         "section": "layout"
@@ -551,7 +679,7 @@
       },
       {
         "name": "線稿轉實體規則（The Solidify-on-Select Rule）",
-        "body": "部件被選中時：平面填成白色、墨線改成深藍、側面填 `on-sheet-2`、外框加粗到 2.5px、整層上移 12px（320ms）；其他層降到 62% 不透明度。對應的引線與端點轉橙、編號轉白並加底線。",
+        "body": "部件被選中時：平面填成白色、墨線改成深藍、側面填 `on-sheet-2`、外框加粗到 2.5px、整層上移 12px（320ms）；其他層降到 62% 不透明度。對應的引線與端點轉橙、編號轉白並加底線。白紙上的版本（休眠中的文件爆炸圖，重新掛上時沿用）換紙換色：平面填 `tint`、側面填 `on-sheet-2`、外框 `sheet` 2.5px、整層上移 10px（320ms）；引線轉 `mark-paper` 1.6px、編號轉 `ink` 並加底線；其他層不降不透明度。",
         "section": "elevation"
       }
     ],
@@ -560,12 +688,15 @@
       "**Do** 每加一個被指認的部件，就給它一個偶數參照編號，並加進符號說明。",
       "**Do** 藍底用 `mark`、白底用 `mark-paper`；`mark-strong` 只給填色、粗線與大字。",
       "**Do** 圖下方放「FIG. n」圖說，上緣一條細線。",
+      "**Do** 使用文件的每個區塊都從一條 32px 紙線開始；新元件的線要落在紙線上，白底元件墊 `paper`（寫在線上規則）。",
+      "**Do** 使用文件的節內導覽交給本頁目錄（≥1200px 右側 240px 欄、以下文首 `<details>`）；固定不動、蓋在紙上的欄墊 `paper`。",
       "**Do** 新的可操作元件沿用「線稿轉實體」與「選中即填 `sheet`」兩種狀態語彙。",
       "**Do** 動畫只用 `cubic-bezier(0.16, 1, 0.3, 1)`；hover 160–180ms、狀態 260–320ms；進場只演一次，並尊重 `prefers-reduced-motion`。",
       "**Do** 每張出貨的點陣圖附同名 `.json` 出處紀錄。"
     ],
     "donts": [
-      "**Don't** 使用 `box-shadow`、漸層、毛玻璃或圓角卡片；深度畫在線稿裡。",
+      "**Don't** 使用 `box-shadow`、漸層色面、毛玻璃或圓角卡片；深度畫在線稿裡（用硬邊色標的 `linear-gradient` 畫 1px 紙線、列線不在此限）。",
+      "**Don't** 在使用文件裡加終端機或第二套導覽；導覽只有書脊與本頁目錄。",
       "**Don't** 把橙色用在參照編號、序號、生成元件與互動回饋以外的地方。",
       "**Don't** 在頁面放專利號、官方機關標誌或「已獲專利」字樣；請求項之後保留「並未申請專利」聲明。",
       "**Don't** 把參照編號壓在截圖內容上；編號放框外，只有引線進畫面。",

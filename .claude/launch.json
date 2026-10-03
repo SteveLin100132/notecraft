@@ -157,6 +157,34 @@
       ],
       "port": 4360,
       "autoPort": true
+    },
+    {
+      "name": "site-dev-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "site/node_modules/astro/astro.js",
+        "dev",
+        "--root",
+        "site",
+        "--port",
+        "4370"
+      ],
+      "port": 4370,
+      "autoPort": true
+    },
+    {
+      "name": "site-preview-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "site/node_modules/astro/astro.js",
+        "preview",
+        "--root",
+        "site",
+        "--port",
+        "4372"
+      ],
+      "port": 4372,
+      "autoPort": false
     }
   ]
 }

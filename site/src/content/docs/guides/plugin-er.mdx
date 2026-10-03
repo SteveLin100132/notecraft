@@ -130,6 +130,8 @@ npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
 
 ## 頁面上能做什麼
 
+<Plate name="plugin-er" notes={[{ label: "Wiki／Diagram 分頁", at: [430, 182] }, { label: "回到來源筆記", at: [1250, 88] }, { label: "導覽樹：篩選、分群、資料表", at: [460, 500], side: "bottom" }, { label: "總覽：統計與分群卡片", at: [1100, 530], side: "bottom", x: 1150 }]} alt="ER 資料庫頁：左側是篩選框與依分群收合的資料表樹，上方有 Wiki 與 Diagram 兩個分頁，右側總覽列出表、欄位、外鍵數與各分群的資料表卡片" caption="er-diagram-renderer 的資料檔頁（Wiki 分頁的總覽）：左邊導覽樹，上方切換 Wiki 與 Diagram，頁首有「回到來源筆記」。" />
+
 ### 導覽樹
 
 Schema → 分群 → 資料表三層，可以收合。上方的篩選框比對表名、表的 `label` 與欄位名，並顯示「命中／總數」。沒有寫 `schemas` 時省略 Schema 那一層。

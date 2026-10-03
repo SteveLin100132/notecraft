@@ -18,11 +18,15 @@ npx notecraftapp view ./notes
 | `/tags` 頁 | 重新命名標籤、刪除標籤（作用於所有筆記） |
 | `/plugins` 頁的開關 | 啟用或停用 plugin，見[啟用與停用](/docs/guides/plugin-toggle/) |
 
+<Plate name="note-detail" notes={[{ label: "「⋯」選單", at: [1452, 88], x: 1330, align: "end" }, { label: "+ 新增筆記", at: [1527, 88], x: 1590, align: "end" }, { label: "標籤列：✕ 移除、輸入新增", at: [560, 175], side: "bottom" }]} alt="view 模式的筆記頁：標題下方的標籤 chip 各帶 ✕，後面是「新增標籤」輸入框；頁首右側有生成簡報、收藏、「⋯」選單與「新增筆記」" caption="view 模式的筆記頁：標籤 chip 帶 ✕、後面接「新增標籤」；頁首右側是「⋯」選單與「+ 新增筆記」。serve／build 的產物沒有這些。" />
+
 在 `serve`／`build` 產物裡，標籤仍會顯示成 chip，只是不能編輯；`/plugins` 只留狀態標示、沒有開關。
 
 ## 新增筆記
 
 按頁首的「+ 新增筆記」，填標題與標籤後送出：
+
+<Plate name="new-note" notes={[{ label: "標題產生檔名", at: [800, 389] }, { label: "點選既有標籤", at: [600, 538], side: "bottom", x: 560, align: "end" }, { label: "資料夾選項目前不生效", at: [800, 669], side: "bottom", x: 860, align: "start" }]} alt="新增筆記對話框：標題輸入框、標籤搜尋框與既有標籤清單、分類／資料夾下拉選單，以及取消與建立筆記按鈕" caption="新增筆記對話框：標題、標籤（可點選全站既有標籤）、資料夾；資料夾選項目前不會生效，新檔一律放在筆記資料夾最上層。" />
 
 - 檔名由標題產生：轉小寫、空白換成 `-`，只保留英數、底線、中文與 `-`，最長 50 字。表單會即時顯示產生的 slug
 - 同名的檔案已存在時會拒絕建立，不會覆寫
