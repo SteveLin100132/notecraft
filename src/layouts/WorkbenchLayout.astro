@@ -28,8 +28,7 @@ import { prepaintHtml, prepaintTabs } from "@/lib/wb-tabs-prepaint";
 import { seriesDone } from "@/lib/series-progress-pure";
 import UpdateHost from "@/components/wb/update/UpdateHost.tsx";
 import { railHint } from "@/lib/update-prepaint";
-import { repoBlobBaseOf } from "@/lib/update-check";
-import pkg from "../../package.json";
+import { updEnv } from "@/lib/update-env";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChevronDown, FileText, Pin, X } from "lucide-react";
@@ -100,11 +99,7 @@ const prepaint = {
 const selfKey = tab ? `${tab.kind}:${tab.id}` : null;
 const seriesDoneSrc = seriesDone.toString();
 // 檢查更新（docs/notecraft-workbench-update-check.md §7、§8）：版號、build／dev 期的 Node、GitHub blob 網址都是 build 期字串
-const upd = {
-  cur: index.appVersion,
-  userNode: process.versions.node,
-  repoBlobBase: repoBlobBaseOf((pkg as { repository?: { url?: string } }).repository?.url),
-};
+const upd = updEnv(index.appVersion);
 const railHintSrc = railHint.toString();
 ---
 <!doctype html>

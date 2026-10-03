@@ -7,12 +7,23 @@ import { pushEscape } from "@/lib/wb-escape";
 export default function DrawerShell({
   crumb = "",
   labelledBy,
+  ariaLabel,
+  className = "",
+  closeLabel = "關閉",
+  footer,
   onClose = () => {},
   children,
 }: {
   /** 頂列文字 */
   crumb?: string;
   labelledBy?: string;
+  /** 沒有可指的標題元素時用（更新內容 Drawer） */
+  ariaLabel?: string;
+  /** 加在 <aside> 上（例：更新內容 Drawer 的寬度 .wb-upd-dw） */
+  className?: string;
+  closeLabel?: string;
+  /** 固定底列：在 .wb-dw-body 之外、不捲動 */
+  footer?: ReactNode;
   onClose?: () => void;
   children?: ReactNode;
 }) {
@@ -51,16 +62,25 @@ export default function DrawerShell({
   return (
     <>
       <button type="button" className="wb-scrim" onClick={onClose} aria-label="關閉預覽" tabIndex={-1} />
-      <aside className="wb-drawer" role="dialog" aria-modal="true" aria-labelledby={labelledBy} ref={panelRef} onKeyDown={onTrapTab}>
+      <aside
+        className={"wb-drawer" + (className ? " " + className : "")}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : ariaLabel}
+        ref={panelRef}
+        onKeyDown={onTrapTab}
+      >
         <div className="wb-dw-h">
           <span className="wb-crumb" title={crumb}>
             {crumb}
           </span>
-          <button type="button" className="wb-dw-x" onClick={onClose} aria-label="關閉" ref={closeRef}>
+          <button type="button" className="wb-dw-x" onClick={onClose} aria-label={closeLabel} ref={closeRef}>
             <X size={14} strokeWidth={1.7} aria-hidden="true" />
           </button>
         </div>
         <div className="wb-dw-body">{children}</div>
+        {footer}
       </aside>
     </>
   );

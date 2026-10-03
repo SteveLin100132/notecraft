@@ -1098,9 +1098,9 @@ html[data-wb-filtering] .wb-main .wb-body::before{content:"";position:absolute;l
 .wb-upd-cat{padding-top:10px}
 .wb-upd-cat-h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--wb-ink-3);margin-bottom:2px}
 .wb-upd-cat-h i{width:6px;height:6px;border-radius:50%;background:var(--c)}
-.wb-upd-cat ul{margin:0;padding:0 0 0 18px;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2)}
+.wb-upd-cat ul{margin:0;padding:0 0 0 18px;list-style:disc;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2)}
 .wb-upd-cat li{margin:3px 0;text-wrap:pretty;white-space:pre-line}
-.wb-upd-cat li ul{padding-left:16px}
+.wb-upd-cat li ul{padding-left:16px;list-style:circle}
 .wb-upd-cat.sec{margin-top:10px;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--wb-upd-security) 6%,var(--wb-panel));border:1px solid color-mix(in srgb,var(--wb-upd-security) 22%,var(--wb-panel))}
 .wb-upd-cat.sec .wb-upd-cat-h{color:var(--wb-upd-security)}
 .wb-upd-cat.sec ul{color:var(--wb-ink)}

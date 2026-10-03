@@ -96,3 +96,14 @@
 ## 依賴
 
 Task 114。
+
+## 實作記錄（2026-10-03）
+
+- 小元件（pills、提示框、升級指令、行內 Markdown）合併成一個 `UpdateParts.tsx`，不拆四檔；`SetRow` 從 `SettingsView` 移到 `ui.tsx` 共用
+- build 期環境（版號、Node、GitHub blob 網址）抽成 `src/lib/update-env.ts`，layout 與 `settings.astro` 共用；專案沒有 `@types/node`，`process.versions` 經 `globalThis` 取，tsc 錯誤數維持 51
+- 三個 island（`UpdateHost`、`SettingsView`、`Palette`）共用同一個 `useUpd` chunk（store 單例），build 產物已確認
+- `DrawerShell` 加 `className`、`footer`、`closeLabel`、`ariaLabel`；`UpdateChangelog` 以 `cl.key + status` 為 key 重掛，CHANGELOG 載入後第一版才會預設展開
+- Q4（目前版本較新）：版本列「目前 vX ・ npm 最新 vY」、pill 只留「尚未發佈的版本」（npm 版本不重複出現）
+- 續行在畫面上照原換行顯示（`white-space:pre-line`），沒有照規格 §4.3 視為空白：CHANGELOG 的續行多是新的一句，分行比較好讀
+- 全域樣式清掉了 `ul` 的項目符號，`.wb-upd-cat ul` 補 `list-style:disc`、巢狀 `circle`
+- 實測（`astro preview` 1280×800，iframe 攔截 `fetch`）：major（7 版、假 CHANGELOG 含導言／安全／內部／巢狀／相對連結）、已是最新、目前版本較新、已棄用＋需要 Node 24、CHANGELOG 404、手動檢查失敗；Drawer 焦點在「關閉（Esc）」、Esc 只關 Drawer；略過／恢復與 Rail、徽章同步；Palette「指令」兩項、在 `/notes` 選「檢查更新」→ 導到 `/settings?tab=about` 並立即檢查；真實網路下 jsDelivr `@1.8.5` 404 → GitHub raw 200

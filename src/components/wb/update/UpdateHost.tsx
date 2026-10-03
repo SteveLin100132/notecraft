@@ -2,6 +2,8 @@
 // layout 每頁以 client:idle 掛一個：開頁自動檢查、接上一頁交棒的手動檢查、同步 Rail 圓點、渲染 toast 與 Drawer。
 // SSR 不輸出任何東西。
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import UpdateDrawer from "./UpdateDrawer";
 import { railHintOf } from "@/lib/update-check";
 import { boot, check, dismissToast, getUpd, openDrawer, skip, takeHandoff, type UpdEnv } from "@/lib/update-store";
 import { useUpd } from "./useUpd";
@@ -45,6 +47,11 @@ export default function UpdateHost({ cur = "", userNode = "", repoBlobBase = "" 
     syncRail(railHintOf(s.res, s.skipped));
   }, [u.res, u.skipped]);
 
-  if (!u.toast) return null;
-  return <UpdateToast r={u.toast} onOpen={openDrawer} onSkip={() => skip(u.toast!.latest)} onClose={dismissToast} />;
+  const main = typeof document !== "undefined" ? document.getElementById("nc-main") : null;
+  return (
+    <>
+      {u.toast ? <UpdateToast r={u.toast} onOpen={openDrawer} onSkip={() => skip(u.toast!.latest)} onClose={dismissToast} /> : null}
+      {u.drawer && u.res && main ? createPortal(<UpdateDrawer u={u} />, main) : null}
+    </>
+  );
 }
