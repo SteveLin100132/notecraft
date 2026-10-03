@@ -611,3 +611,37 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - `view-transition-name` 同一份文件內唯一（尤其 `nc-tab-ind`）
 > - 新 token 一律 `--wb-*`，規則零色碼；每條動畫都要有 reduced-motion 對應
 > - 驗收以 `astro preview` 為準（`astro dev` 下骨架與進度線出現機率高很多）
+
+## v1.20.0 追加功能（§8.1 Phase 4.24）— 檢查更新（notecraftapp v1.9.0）
+
+規格 [notecraft-workbench-update-check.md](../notecraft-workbench-update-check.md)；設計交付 [design_handoff_update_check](../prototype/design_handoff_update_check/)。
+在瀏覽器端直接查 npm registry，比對目前版本與最新版；有新版時以 Rail 圓點、「關於」頁籤徽章、「版本與更新」區塊、更新內容 Drawer（列出錯過的 CHANGELOG）、一次性 toast 低干擾地提醒，⌘K 多一組「指令」。部署站也提示。
+
+> **規格與設計稿不一致時，一律以規格為準。** 主要偏離：CHANGELOG 只列 npm 上發佈過的版本（Q1 = B）、「內部」類別不顯示（Q2）、
+> **不分 viewer／部署站，只用一套文案**（Q3 = D，不移植 `mode` 與 `.upd-deploy`）、目前版本比 npm 新時標「尚未發佈的版本」（Q4）；
+> CHANGELOG 解析認中文類別、續行、巢狀清單、粗體、導言與 `<!-- 重點 -->` 註解；Escape 走 `wb-escape` 堆疊；token 全改 `--wb-*`、localStorage 只用一個 `nc-update-v1`。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 113](task-113-update-pure-functions-changelog.md) | 地基：版本推導、CHANGELOG 解析、Rail 預繪函式、斷言、`files` 加 CHANGELOG | §4.1–§4.4、§7、§12 | `lib/update-check.ts`、`lib/changelog-parse.ts`、`lib/update-prepaint.ts`、`scripts/checks/upd-*.mjs`、`package.json`（`files`、`check:upd`） |
+| [Task 114](task-114-update-store-host-rail-toast.md) | 檢查流程：store、`UpdateHost`、Rail 圓點預繪、發現新版 toast | §3、§4.5、§5、§6.1、§6.5、§7、§9 | `lib/update-store.ts`、`wb/update/UpdateHost.tsx`／`UpdateToast.tsx`、`WorkbenchLayout.astro`、`Rail.astro`、`workbench.css`（token） |
+| [Task 115](task-115-update-about-drawer-palette.md) | 介面：版本與更新區塊、頁籤徽章、更新內容 Drawer、Palette 指令 | §4.3、§6.2–§6.4、§6.6、§8、§10 | `wb/update/UpdateBlock.tsx`／`UpdateDrawer.tsx`／`UpdateChangelog.tsx` 等、`WbHeader.tsx`、`SettingsView.tsx`、`DrawerShell.tsx`、`Palette.tsx` |
+| [Task 116](task-116-update-responsive-docs-release.md) | 響應式、reduced motion、無障礙、viewer／部署實測、文件回填、發版 | §10–§14、§17 | `workbench.css`、CLAUDE.md／workbench.md／PRD／CHANGELOG、v1.9.0 |
+
+**順序**：一條直線。
+
+```
+113 ─ 114 ─ 115 ─ 116
+```
+
+> **交付節奏**：全程在 `feat/update-check` 單一分支上，依 Task 逐步 commit，**Task 116 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `update-check.ts`／`changelog-parse.ts`／`update-prepaint.ts` 或 `CHANGELOG.md` 的再跑 `npm run check:upd`。
+>
+> **幾條貫穿整批的規則**：
+> - **自動檢查失敗零痕跡**：不顯示 UI、不寫 `at`、不在 console 印應用程式錯誤；只有手動檢查失敗會出現一行字
+> - **`nc-update-v1` 的 `cur` 與目前版本不同就整份作廢**；寫入前先重讀
+> - **`railHint` 以 `toString()` 內嵌進 inline script，必須自足**；只能 `import type`、無 JSX、不碰 `window`
+> - inline script 只改 Rail（非 island）的 DOM，不碰任何 island
+> - 行內 Markdown 一律切 token 組 React 節點，**不用 `dangerouslySetInnerHTML`**；連結只放行 `http(s)` 與相對路徑
+> - 新 token 一律 `--wb-*`，規則零色碼；每條動畫都要有 reduced-motion 對應
+> - 驗收以 `astro preview` 為準；registry／CHANGELOG 的情境用 Network overrides 或暫時包 `fetch`，驗完移除

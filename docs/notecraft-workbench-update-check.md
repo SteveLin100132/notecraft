@@ -39,7 +39,7 @@ Handoff 是工作台 prototype 的延伸，更新相關原始碼在 `pt-update-d
 | 落差 | 說明 |
 | :-- | :-- |
 | **CHANGELOG 的類別名稱** | handoff 以 `### Added／Changed／…` 切類別。實際 `CHANGELOG.md` 全是中文：`新增`、`變更`、`修正`、`移除`、`安全`，另有 handoff 沒列的 **`內部`**（6 次） |
-| **CHANGELOG 的格式細節** | 項目有縮排 2 格的續行（同一項的第二段）、7 處巢狀清單、66 行含 `**粗體**`、站內相對連結 `./docs/…`；還有一個區間標題 `## [0.1.1] – [0.1.3] - 2026-07-09`。handoff 的 `updInline()` 只處理 `` `code` `` 與 `[text](url)` |
+| **CHANGELOG 的格式細節** | 項目有縮排 2 格的續行（同一項的第二段）、7 處巢狀清單、66 行含 `**粗體**`、站內相對連結 `./docs/…`；還有一個區間標題 `## [0.1.1] – [0.1.3] - 2026-07-09`。部分版本在第一個 `###` 之前有導言段落（例如 1.0.0），minor 版標題下有 `<!-- 重點：… -->` 註解（官網 `site/src/lib/changelog.ts` 的 `readMilestones()` 用，PR #45）。handoff 的 `updInline()` 只處理 `` `code` `` 與 `[text](url)` |
 | **CHANGELOG 與 npm 版本不一致** | npm 上有 28 版，CHANGELOG 有 31 段。`1.0.1`、`1.1.1`、`1.8.1`、`1.8.2`、`1.8.4` 有寫 CHANGELOG 卻**沒發佈到 npm**（直接跳到下一版發佈；1.8.3 兩邊都沒有）。handoff 用 npm 版本清單算 `missed` 再拿去切 CHANGELOG：使用者從 1.8.0 升到 1.8.5 時，只會看到 1.8.5 那一段，漏掉 1.8.1、1.8.2、1.8.4 三段。**已定案照 handoff（Q1 = B）**，接受這個落差 |
 | **GitHub 網址** | handoff 寫 `github.com/notecraftapp/notecraftapp`，實際是 `github.com/SteveLin100132/notecraft`（`package.json` 的 `homepage`） |
 | **CHANGELOG 目前抓不到** | 實測 `cdn.jsdelivr.net/npm/notecraftapp@latest/CHANGELOG.md` 回 404：這個檔不在 `files` 裡 |
@@ -173,7 +173,7 @@ export interface UpdResult {
 export type ClCat = "security" | "removed" | "changed" | "deprecated" | "added" | "fixed" | "other";
 export interface ClItem { text: string; children: string[] }      // children = 巢狀清單項目
 export interface ClSection { cat: ClCat; title: string; items: ClItem[] }
-export interface ClVersion { v: string; vFrom: string | null; date: string | null; sections: ClSection[] }
+export interface ClVersion { v: string; vFrom: string | null; date: string | null; lead: string | null; sections: ClSection[] }
 ```
 
 `ClVersion.v` 是比較用的版號；區間標題 `[0.1.1] – [0.1.3]` 取上界 `0.1.3` 當 `v`，`vFrom = "0.1.1"`，顯示成「v0.1.1 – v0.1.3」。
@@ -214,7 +214,11 @@ GitHub 網址由 `package.json` 的 `repository.url` 在 build 期推出，以 p
 | `- …` | 新項目 |
 | 縮排 ≥2 格且以 `- ` 開頭 | 上一項的巢狀項目（`children`） |
 | 縮排 ≥2 格的其他文字 | 接在上一項（或上一個巢狀項目）後面，以換行分隔；渲染時換行視為空白 |
+| `<!-- … -->`（含 `<!-- 重點：… -->`） | 略過（「重點」是官網里程碑用的，不在 Drawer 顯示） |
+| 版本標題之後、第一個 `###` 之前的文字 | 該版的 `lead`（多行以換行接起）。展開時顯示在類別之前，一段 12.5px/1.75 `--wb-ink-2`，行內規則同項目 |
 | 空行、第一個 `##` 之前的內容 | 略過 |
+
+版本標題的 regex 與官網 `site/src/lib/changelog.ts` 的 `readReleases()` 相同。兩者不共用模組（site 是獨立的 Astro 專案、build 期用 `node:fs` 讀檔），由 `upd-changelog.mjs` 斷言兩邊對真實 `CHANGELOG.md` 解析出的版號清單一致。
 
 **切片**（`sliceChangelog(versions, missed, cur)`，Q1 = B）：依 `missed` 的順序（新到舊）逐一找對應段落；區間標題 `[a] – [b]` 涵蓋 `a ≤ v ≤ b` 的版本，同一段只列一次。已是最新時改取 `v === cur` 那一段。只存在於 CHANGELOG、不在 npm 的版本不列。`missed` 裡某版在 CHANGELOG 找不到段落時，仍列版本列，展開後一行 `--wb-ink-3`「這一版沒有 CHANGELOG 紀錄」——版本數與「落後 N 個版本」保持一致。
 
@@ -225,7 +229,7 @@ GitHub 網址由 `package.json` 的 `repository.url` 在 build 期推出，以 p
 | 檔案 | 斷言 |
 | :-- | :-- |
 | `scripts/checks/upd-derive.mjs` | semver 比較（含 prerelease 排除、`1.10.0 > 1.9.0`）；patch／minor／major；`cur > latest`；`cur` 不在 versions；`behind` 不含 prerelease；engines 的四種寫法與推不出的寫法；`needsNode`；`deprecated`；packument 缺欄位時 throw；`updTone()` 四種結果；「略過」時 Rail 顯示條件（已棄用不能略過） |
-| `scripts/checks/upd-changelog.mjs` | **讀 repo 的真實 `CHANGELOG.md`**：版本數與首末版號、區間標題、所有類別都對到 key、`內部` 被丟棄、續行與巢狀清單、`**粗體**`、相對連結轉址、`javascript:` 連結變純文字；切片：1.8.0 → 1.8.5 只得到 1.8.5 一段（1.8.1、1.8.2、1.8.4 不列）、`missed` 含 0.1.2 時對到區間段落且不重複、`missed` 裡沒有段落的版本得到空段、已是最新只剩一段、`main` 上比 latest 新的段落被濾掉。另斷言 `package.json` 的 `files` 含 `CHANGELOG.md` |
+| `scripts/checks/upd-changelog.mjs` | **讀 repo 的真實 `CHANGELOG.md`**：版本數與首末版號、區間標題、所有類別都對到 key、`內部` 被丟棄、`<!-- 重點 -->` 被略過、1.0.0 有 `lead`、版號清單與官網 `readReleases()` 一致（展開區間後比對）、續行與巢狀清單、`**粗體**`、相對連結轉址、`javascript:` 連結變純文字；切片：1.8.0 → 1.8.5 只得到 1.8.5 一段（1.8.1、1.8.2、1.8.4 不列）、`missed` 含 0.1.2 時對到區間段落且不重複、`missed` 裡沒有段落的版本得到空段、已是最新只剩一段、`main` 上比 latest 新的段落被濾掉。另斷言 `package.json` 的 `files` 含 `CHANGELOG.md` |
 | `scripts/checks/upd-prepaint.mjs` | 以 `new Function` 載入 `toString()` 後的預繪函式（與 inline script 同一條路），驗證快取 `cur` 不符時不顯示、略過時不顯示、已棄用時即使略過也顯示、JSON 壞掉時不 throw |
 
 這些 `.ts` 只能 `import type`、無 JSX（CLAUDE.md「scripts/checks」限制）。
