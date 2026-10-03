@@ -8,6 +8,7 @@ import { withBase } from "@/lib/base";
 export type WbCrumb = { label: string; href?: string };
 export type WbHeaderPill = { label: string; tone?: PillTone; href?: string; className?: string };
 export type WbTab<T extends string> = { key: T; label: string };
+export type WbTabBadge = { n: number; tone: "info" | "major" | "danger"; label: string };
 
 export function openNewNote(): void {
   window.dispatchEvent(new CustomEvent("nc-open-new-note"));
@@ -22,6 +23,7 @@ export default function WbHeader<T extends string>({
   activeTab,
   onTab,
   actions,
+  tabBadges,
   isDev = false,
 }: {
   title?: string;
@@ -32,6 +34,8 @@ export default function WbHeader<T extends string>({
   activeTab?: T;
   onTab?: (key: T) => void;
   actions?: ReactNode;
+  /** 頁籤旁的數字徽章（「關於」的落後版數；docs/notecraft-workbench-update-check.md §6.2） */
+  tabBadges?: Partial<Record<T, WbTabBadge>>;
   isDev?: boolean;
 }) {
   return (
@@ -82,11 +86,14 @@ export default function WbHeader<T extends string>({
       </div>
       {tabs.length > 1 ? (
         <div className="wb-tabs" role="tablist" aria-label="檢視">
-          {tabs.map((t) => (
+          {tabs.map((t) => {
+            const badge = tabBadges?.[t.key];
+            return (
             <button
               key={t.key}
               type="button"
               role="tab"
+              aria-label={badge ? `${t.label}，${badge.label}` : undefined}
               aria-selected={t.key === activeTab}
               className={"wb-tab" + (t.key === activeTab ? " on" : "")}
               tabIndex={t.key === activeTab ? 0 : -1}
@@ -101,8 +108,14 @@ export default function WbHeader<T extends string>({
               }}
             >
               {t.label}
+              {badge ? (
+                <span className="wb-upd-tab-badge" data-tone={badge.tone} aria-hidden="true">
+                  {badge.n > 0 ? badge.n : "!"}
+                </span>
+              ) : null}
             </button>
-          ))}
+            );
+          })}
         </div>
       ) : null}
     </header>

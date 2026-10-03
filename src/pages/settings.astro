@@ -4,6 +4,7 @@ import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import SettingsView from "@/components/wb/SettingsView.tsx";
 import type { AboutData } from "@/components/wb/SettingsView.tsx";
 import { getWorkbenchIndex } from "@/lib/workbench";
+import { updEnv } from "@/lib/update-env";
 
 const isDev = import.meta.env.DEV;
 const index = await getWorkbenchIndex();
@@ -19,5 +20,5 @@ const about: AboutData = {
 };
 ---
 <WorkbenchLayout title="設定與關於" rail="settings" description="NoteCraft 工作台的設定與關於" bare>
-  <SettingsView client:load about={about} isDev={isDev} />
+  <SettingsView client:load about={about} isDev={isDev} upd={updEnv(index.appVersion)} />
 </WorkbenchLayout>

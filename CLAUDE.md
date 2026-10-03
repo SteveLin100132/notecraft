@@ -22,6 +22,7 @@ src/
 ├── components/wb/               Workbench 工作台的殼與各頁 island（Rail／Sidebar／Header／NotesWorkbench／Drawer／Palette…）
 ├── components/wb/dashboard/     Dashboard「總覽」的七張卡＋「更新月曆」的 Calendar／CalCell／CalDot／CalNote（不是獨立 island，由 DashboardWorkbench 渲染）
 ├── components/wb/tabs/          筆記頁籤：TabBar（island 入口，layout 每頁掛）＋TabStrip／TabMenu／TabAll／TabSheet／TabPop
+├── components/wb/update/        檢查更新：UpdateHost（island 入口，layout 每頁掛）＋UpdateBlock／UpdateDrawer／UpdateChangelog／UpdateToast／UpdateParts
 ├── components/islands/          其他 React island（TagEditor、Toc、PluginHost、SeriesNav…）
 ├── layouts/WorkbenchLayout.astro  三欄工作台的殼，所有頁面共用（簡報頁例外）
 ├── lib/workbench.ts             工作台索引（build 期、模組層快取）；client-safe 型別在 lib/wb-types.ts
@@ -30,6 +31,8 @@ src/
 ├── lib/wb-tabs.ts               頁籤清單的純函式（ensure／close／固定／移動／LRU／鄰居／重開）；只能 import type、不碰 window，scripts/checks/wb-tabs.mjs 斷言
 ├── lib/wb-tabs-store.ts         頁籤的 localStorage 讀寫（每次寫入先重讀、storage 事件同步）；lib/toast.ts 是 ToastHost 掛載前的提示佇列
 ├── lib/wb-nav.ts                換頁轉場分類（peer／drill／section）；lib/wb-tabs-prepaint.ts、lib/series-progress-pure.ts 是殼的預繪。三者都以 toString() 內嵌進 inline script：函式必須自足、只能 import type，check:wb 斷言
+├── lib/update-check.ts          檢查更新的純函式（semver／落後版數／Node 需求／快取／toast 條件）；lib/changelog-parse.ts 解析 CHANGELOG。兩者只能 import type，scripts/checks/upd-*.mjs 斷言（npm run check:upd）
+├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
 ├── pages/
@@ -127,6 +130,11 @@ status: pending | generated | locked | failed
   **`@view-transition` 必須在 head 的 inline `<style>`**（只放外部 CSS 時，快速就緒的頁面會被 Chrome 中止轉場），與 `workbench.css` 的同名規則由 `check:wb` 對照；head 固定 `rel=expect` 主區開頭的 `#nc-pane-start`（否則新頁快照沒有主區）。
   頁籤列與 Sidebar 系列進度由 inline script 在第一次繪製前預繪，頁籤畫在**島外**的 `#nt-pre`（**不可改 island 自己的 DOM**，React 18 會 hydration mismatch），TabBar 清單含目前頁面時移除；`.nt-ind` 的 `view-transition-name` 同一份文件只能有一個。
   捲動還原在主區結尾的 inline script（`data-nc-restored`）；`.nc-main-pane` 不設 position（Drawer 以 `.wb-main` 為定位基準）。骨架外層不用 `.wb-host` class（`Toc.tsx` 以它量寬度）。新 token 一律 `--wb-*`，每條動畫要有 reduced-motion 對應
+- **檢查更新**（v1.9.0，[docs/notecraft-workbench-update-check.md](docs/notecraft-workbench-update-check.md)）：瀏覽器端直接查 `registry.npmjs.org/notecraftapp`，**部署站也提示**（dev-only 原則的刻意例外），**不分 viewer／部署站、只有一套文案**。
+  結果存 `nc-update-v1`（**`cur` 與目前版本不同就整份作廢**）、30 分鐘節流；自動檢查失敗零痕跡（不顯示、不寫 `at`、不印錯誤），只有手動失敗顯示一行字。
+  layout 每頁掛 `wb/update/UpdateHost client:idle`（toast、Drawer portal 進 `#nc-main`）；Rail「設定與關於」的圓點由 Rail 之後的 inline script 以 `lib/update-prepaint.ts` 的 `railHint` 預繪（`toString()` 內嵌，必須自足）。
+  store 是 `lib/update-store.ts` 模組單例，`UpdateHost`／`SettingsView`／`Palette` 共用。CHANGELOG 由 jsDelivr `notecraftapp@<latest>/CHANGELOG.md` 取、GitHub raw 備援，所以 **`CHANGELOG.md` 必須留在 `package.json` 的 `files`**；
+  只列 npm 上發佈過的版本（沒單獨發佈的段落不列）、「內部」類別不顯示；版本標題必須是 `## [x.y.z] - YYYY-MM-DD`，`npm run check:upd` 以真實 CHANGELOG 斷言（含與官網 `readReleases()` 對照）
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）

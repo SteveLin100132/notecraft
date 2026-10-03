@@ -176,8 +176,10 @@ v1.8.0 起換頁走瀏覽器原生的跨文件 View Transitions：只有主區�
     </div>
   </div>
 </div>
-<Palette client:idle />  <ToastHost client:idle />  {isDev && <NewNoteModal client:idle />}
+<Palette client:idle />  <ToastHost client:idle />  <UpdateHost client:idle />  {isDev && <NewNoteModal client:idle />}
 ```
+
+`UpdateHost`（v1.9.0）：檢查更新的 host，開頁自動查 npm、渲染發現新版的 toast 與更新內容 Drawer；Rail「設定與關於」上的更新圓點由 Rail 之後的 inline script 預繪。見 [notecraft-workbench-update-check.md](notecraft-workbench-update-check.md)。
 
 `id="nc-scroll"` **刻意保留**在新的捲動容器上：`Toc.tsx` 與 `notes/[...slug].astro` 的 inline script 共 4 處靠它找捲動容器，保留 id 就不必改它們。
 
@@ -194,6 +196,7 @@ v1.8.0 起換頁走瀏覽器原生的跨文件 View Transitions：只有主區�
 | `/notes`、Dashboard、`/plugins` 的 Header Tab + Toolbar + Body + Drawer | **同一個 island** | Tab 切換、篩選、選取是同一份 state；拆開就要跨 island 同步 |
 | Palette | island，`client:idle` | 每頁都要有；資料延遲載入（§5.3） |
 | 頁籤列（v1.7.0） | island，`client:load` | 清單在 localStorage；SSR 只輸出 34px 空列。見 [notecraft-workbench-note-tabs.md](notecraft-workbench-note-tabs.md) |
+| 檢查更新（v1.9.0） | island `UpdateHost`，`client:idle`；Rail 圓點是 inline script 預繪 | 結果在 localStorage、查詢在瀏覽器端；見 [notecraft-workbench-update-check.md](notecraft-workbench-update-check.md) |
 
 因此 `/notes` 這類頁面的 Header 會由 island 自己渲染（island 內含一份 React 版 `WbHeader`），`.astro` 版與 React 版共用同一份 CSS class，視覺一致由 `workbench.css` 保證。
 
@@ -209,6 +212,7 @@ v1.8.0 起換頁走瀏覽器原生的跨文件 View Transitions：只有主區�
 | Drawer 選取 | island state，不進 URL | 換頁即關 |
 | 閱讀進度、收藏 | 既有 key 不動 | `nc-reading-progress-v1`、`nc:favorites` |
 | 已開啟的頁籤（v1.7.0） | `localStorage["nc-tabs-v1:<workspaceLabel>"]` | 依工作區分開；含標題快照與每個頁籤的捲動位置（note-tabs §4） |
+| 檢查更新的結果（v1.9.0） | `localStorage["nc-update-v1"]` | 30 分鐘內不重查；目前版本不同就整份作廢；含已跳過 toast 與略過的版本（update-check §4.5） |
 
 ### 4.5 z-index 階梯
 
@@ -219,11 +223,12 @@ v1.8.0 起換頁走瀏覽器原生的跨文件 View Transitions：只有主區�
 | Sidebar 抽屜（平板／手機）與其 scrim | 500 / 490 |
 | Drawer 與其 scrim | 600 / 590 |
 | 手機底部 Tab bar | 650 |
+| 發現新版 toast（v1.9.0，`--wb-z-upd-toast`） | 700 |
 | `VizZoom` 放大檢視（既有） | 900 |
 | Palette、`NewNoteModal`、`ConfirmDialog`、Toast（既有 1000 級） | 1000 |
 | 頁籤右鍵選單、全部頁籤下拉、手機頁籤抽屜（v1.7.0） | 1000 |
 
-`Escape` 的關閉順序由上而下：Palette → Modal → Drawer → Sidebar 抽屜。頁籤的選單、下拉與手機抽屜（v1.7.0）也走同一個堆疊，後開的先關。
+`Escape` 的關閉順序由上而下：Palette → Modal → Drawer → Sidebar 抽屜。頁籤的選單、下拉與手機抽屜（v1.7.0）也走同一個堆疊，後開的先關。發現新版的 toast 與更新內容 Drawer（v1.9.0）同樣登記在堆疊上：Drawer 開著時 Esc 只關 Drawer。
 
 ---
 

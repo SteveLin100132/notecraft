@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>檢查更新：狀態 frame</title>
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/base.css">
+<link rel="stylesheet" href="wb/pt.css">
+<link rel="stylesheet" href="wb/pt-update.css">
+<style>
+:root{--radius-xs:2px;--radius-sm:3px;--radius-md:5px;--radius-lg:8px;--radius-xl:11px;--radius-2xl:14px}
+@keyframes ncPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes ncRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+html,body{height:auto;background:var(--wb-panel)}
+#root{height:auto}
+.fr-dw{position:relative;height:var(--h,760px);overflow:hidden}
+.fr-dw .wb-drawer{position:absolute;inset:0;width:auto;border-left:none;box-shadow:none;animation:none}
+.fr-toast{padding:16px;background:var(--wb-bg);display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.fr-rail{display:flex;gap:24px;align-items:flex-start;padding:16px;background:var(--wb-bg)}
+.fr-rail .wb-rail{height:auto;padding-bottom:12px;border-radius:8px}
+.fr-rail .wb-rail-group{flex:none}
+.fr-rail-cap{font-size:11px;color:var(--wb-ink-3);text-align:center;margin-top:6px}
+.fr-tab{display:flex;justify-content:space-around;align-items:center;height:54px;background:var(--wb-rail);border-radius:8px;width:340px}
+.fr-tab .wb-rail-btn{width:44px;height:44px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="wb/pt-shell.jsx"></script>
+<script type="text/babel">
+function PtSetRow({ k, d, children }) {
+  return <div className="wb-set"><div className="wb-set-l"><div className="wb-set-k">{k}</div>{d ? <div className="wb-set-d">{d}</div> : null}</div><div className="wb-set-c">{children}</div></div>;
+}
+window.PtSetRow = PtSetRow;
+</script>
+<script type="text/babel" src="wb/pt-update-data.jsx"></script>
+<script type="text/babel" src="wb/pt-update.jsx"></script>
+<script type="text/babel">
+const P = new URLSearchParams(location.search);
+const s = P.get("s") || "minor", view = P.get("view") || "block", mode = P.get("mode") || "viewer", cl = P.get("cl") || "ok";
+const env = { scen: s, net: "online", cl, mode };
+const at = Date.now() - 3 * 60000;
+function stateFor(k) {
+  if (k === "idle") return { status: "idle", res: null };
+  if (k === "checking") return { status: "checking", res: null };
+  if (k === "error") return { status: "idle", res: null, err: "目前無法連線到 npm，稍後再試" };
+  if (k === "error-known") return { status: "done", res: updResult("minor"), checkedAt: Date.now() - 42 * 60000, err: "目前無法連線到 npm，稍後再試" };
+  if (k === "recheck") return { status: "checking", res: updResult("minor"), checkedAt: Date.now() - 42 * 60000 };
+  if (k === "skipped") return { status: "done", res: updResult("minor"), checkedAt: at, skipped: "1.9.2" };
+  return { status: "done", res: updResult(k), checkedAt: at };
+}
+const u = stateFor(s);
+const noop = () => {};
+function RailBtns({ tone }) {
+  const items = [["home"], ["search"], ["sparkle"], ["plug"], ["gear", true]];
+  return items.map(([ic, me], i) => (
+    <button key={i} className={"wb-rail-btn" + (me ? " on" : "")}><Ic n={ic} s={17} />{me && tone ? <span className={"upd-rail-dot " + tone} /> : null}</button>
+  ));
+}
+function Frame() {
+  if (view === "drawer") return <div className="fr-dw" style={{ "--h": (P.get("h") || 760) + "px" }}><aside className="wb-drawer upd-dw"><UpdDrawerPanel u={u} env={env} onClose={noop} clForce={cl} /></aside></div>;
+  if (view === "toast") return (
+    <div className="fr-toast">
+      {["minor", "major", "deprecated"].map((k) => <UpdToastView key={k} r={updResult(k)} mode="viewer" isStatic onOpen={noop} onSkip={noop} onClose={noop} />)}
+      <UpdToastView r={updResult("minor")} mode="deploy" isStatic onOpen={noop} onSkip={noop} onClose={noop} />
+    </div>
+  );
+  if (view === "rail") return (
+    <div className="fr-rail">
+      {[[null, "無更新"], ["info", "patch／minor"], ["major", "major"], ["danger", "已棄用"]].map(([t, l]) => (
+        <div key={l}><div className="wb-rail"><div className="wb-rail-group"><RailBtns tone={t} /></div></div><div className="fr-rail-cap">{l}</div></div>
+      ))}
+      <div><div className="fr-tab"><RailBtns tone="major" /></div><div className="fr-rail-cap">手機底部列（≤860px）</div></div>
+    </div>
+  );
+  return <PtUpdBlock u={u} env={env} />;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Frame />);
+</script>
+</body>
+</html>

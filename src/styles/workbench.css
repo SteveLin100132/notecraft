@@ -13,6 +13,10 @@
   --wb-line: var(--neutral-200); --wb-line-2: var(--neutral-100);
   --wb-ink: var(--neutral-900); --wb-ink-3: var(--neutral-500); --wb-rail: var(--neutral-900);
   --wb-ok: var(--success-500);  --wb-warn: var(--warning-500);  --wb-danger: var(--danger-500);
+  /* 檢查更新（docs/notecraft-workbench-update-check.md §9）：皆為既有 token 的語意別名 */
+  --wb-upd-info: var(--wb-blue-l);  --wb-upd-major: var(--wb-warn);  --wb-upd-danger: var(--wb-danger);
+  --wb-upd-security: var(--wb-danger);  --wb-upd-toast-bg: var(--wb-ink);
+  --wb-upd-shadow: var(--shadow-lg);    --wb-upd-radius: var(--radius-lg,8px);
   --wb-on: var(--text-on-brand);          /* 實心按鈕、Rail 選取態上的字 */
   --wb-muted-ink: var(--neutral-600);     /* muted pill 文字：--wb-ink-3 對淺底只有 4.1:1，改用 DS 的 600 階達 4.5:1（Task 74） */
 
@@ -56,6 +60,8 @@
   --wb-a-ok-14: rgba(46,158,107,.14);    --wb-a-warn-16: rgba(227,160,8,.16);
   --wb-a-danger-12: rgba(210,74,67,.12);
   --wb-a-white-07: rgba(255,255,255,.07); --wb-a-white-12: rgba(255,255,255,.12);
+  --wb-a-white-08: rgba(255,255,255,.08); --wb-a-white-60: rgba(255,255,255,.6);   /* 更新 toast（update-check §9） */
+  --wb-a-white-72: rgba(255,255,255,.72); --wb-a-white-78: rgba(255,255,255,.78);
   --wb-a-ink-08: rgba(22,28,40,.08);     --wb-a-ink-18: rgba(22,28,40,.18);
   --wb-a-ink-28: rgba(22,28,40,.28);     --wb-a-ink-32: rgba(22,28,40,.32);
   --wb-a-shade-16: rgba(20,28,42,.16);   --wb-a-shade-18: rgba(20,28,42,.18);
@@ -66,6 +72,7 @@
   --wb-z-sidebar-scrim: 490; --wb-z-sidebar: 500;
   --wb-z-drawer-scrim: 590;  --wb-z-drawer: 600;
   --wb-z-tabbar: 650;        --wb-z-overlay: 1000;
+  --wb-z-upd-toast: 700;     /* 更新 toast：高於頁籤列與 Drawer、低於全螢幕浮層與 ToastHost（950） */
   --wb-z-tip: 50;            /* 標籤 tooltip：在 .wb-main 內、低於所有浮層 */
 
   /* ── Loading 與轉場（規格 docs/notecraft-workbench-loading-transitions.md §12.1；照 handoff 原值，--nc-* 改名 --wb-*）── */
@@ -1007,4 +1014,142 @@ html[data-wb-filtering] .wb-main .wb-body::before{content:"";position:absolute;l
   .nc-sk{animation:none;background-image:none}
   .nc-sk-root,html[data-wb-filtering] .wb-main .wb-body::before{transition-duration:0s}
   .nc-swap-in{animation:none}
+}
+
+/* ── 檢查更新（docs/notecraft-workbench-update-check.md；像素規格 design_handoff_update_check/prototype/wb/pt-update.css）──
+   class 由 handoff 的 .upd-* 改名 .wb-upd-*；token 改 --wb-upd-*（§9）。不做 .upd-deploy（Q3 = D） */
+.wb-upd-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Rail 圓點：與 AI 佇列的 .wb-rail-dot 是不同元件。預繪出來的不播動畫，狀態改變時 UpdateHost 加 .pop */
+.wb-upd-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--wb-upd-info);box-shadow:0 0 0 2px var(--wb-rail);pointer-events:none}
+.wb-upd-dot[hidden]{display:none}
+.wb-upd-dot[data-tone="major"]{background:var(--wb-upd-major)}
+.wb-upd-dot[data-tone="danger"]{background:var(--wb-upd-danger)}
+.wb-upd-dot.pop{animation:ncPop var(--wb-dur-in) var(--wb-ease)}
+/* 「關於」頁籤徽章：落後版數，與 Rail 圓點同步 */
+.wb-upd-tab-badge{min-width:18px;height:18px;margin-left:6px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-size:11px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--wb-on);background:var(--wb-upd-info);animation:ncPop var(--wb-dur-in) var(--wb-ease)}
+.wb-upd-tab-badge[data-tone="major"]{background:var(--wb-upd-major);color:var(--wb-ink)}
+.wb-upd-tab-badge[data-tone="danger"]{background:var(--wb-upd-danger)}
+/* 版本與更新區塊 */
+.wb-upd{border-bottom:1px solid var(--wb-line)}
+.wb-upd .wb-gh{border-top:none;cursor:default}
+.wb-upd-hero{display:flex;align-items:center;gap:20px;padding:16px 18px;flex-wrap:wrap;border-bottom:1px solid var(--wb-line-2)}
+.wb-upd-hero.major{background:color-mix(in srgb,var(--wb-upd-major) 7%,var(--wb-panel))}
+.wb-upd-hero.danger{background:color-mix(in srgb,var(--wb-upd-danger) 5%,var(--wb-panel))}
+.wb-upd-ver{flex:1;min-width:220px}
+.wb-upd-ver-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.wb-upd-ver-row>svg{align-self:center;color:var(--wb-ink-3)}
+.wb-upd-v-k{font-size:11px;color:var(--wb-ink-3)}
+.wb-upd-v{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--wb-ink);letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-right:4px}
+.wb-upd-v.old{font-weight:500;color:var(--wb-ink-2)}
+.wb-upd-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;min-height:20px}
+.wb-upd-strong{font-weight:700}
+.wb-upd-line{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--wb-ink-3)}
+.wb-upd-act{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.wb-upd-act-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.wb-upd-act .wb-btn-ghost[aria-disabled="true"]{opacity:.7;cursor:default}
+.wb-upd-status{font-size:11.5px;color:var(--wb-ink-3);min-height:17px;text-align:right}
+.wb-upd-err{color:var(--wb-ink-2)}
+.wb-upd-spin{display:inline-block;width:12px;height:12px;flex:0 0 12px;box-sizing:border-box;border:1.6px solid currentColor;border-right-color:transparent;border-radius:50%;animation:ncSpin .8s linear infinite;opacity:.8}
+.wb-upd-notes{display:flex;flex-direction:column;gap:8px;padding:12px 18px;border-bottom:1px solid var(--wb-line-2)}
+.wb-dw-body .wb-upd-notes{padding:12px 0 0;border:none}
+.wb-upd-note{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2);background:color-mix(in srgb,var(--wb-upd-major) 10%,var(--wb-panel));border:1px solid color-mix(in srgb,var(--wb-upd-major) 32%,var(--wb-panel));text-wrap:pretty}
+.wb-upd-note>svg{flex:none;margin-top:3px;color:var(--wb-upd-major)}
+.wb-upd-note.danger{background:color-mix(in srgb,var(--wb-upd-danger) 7%,var(--wb-panel));border-color:color-mix(in srgb,var(--wb-upd-danger) 30%,var(--wb-panel))}
+.wb-upd-note.danger>svg{color:var(--wb-upd-danger)}
+.wb-upd-note-t{font-weight:700;color:var(--wb-ink)}
+.wb-upd-note a{margin-left:6px;font-weight:700}
+/* 升級指令 */
+.wb-upd-cmds{display:flex;flex-direction:column;gap:6px;width:460px;max-width:100%}
+.wb-upd-cmd{display:flex;align-items:center;gap:10px;height:34px;padding:0 3px 0 12px;border:1px solid var(--wb-line);border-radius:6px;background:var(--wb-bg);min-width:0}
+.wb-upd-cmd-l{font-size:11px;color:var(--wb-ink-3);width:62px;flex:none}
+.wb-upd-cmd code{flex:1;min-width:0;font-family:var(--font-mono);font-size:12px;color:var(--wb-ink);white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+.wb-upd-cmd code::-webkit-scrollbar{display:none}
+.wb-upd-copy{height:26px;flex:none;display:inline-flex;align-items:center;gap:4px;padding:0 9px;border:none;border-radius:5px;background:none;color:var(--wb-blue-l);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;transition:background 160ms var(--wb-ease),color 160ms var(--wb-ease)}
+.wb-upd-copy:hover{background:var(--wb-panel)}
+.wb-upd-copy.done{color:var(--wb-ok)}
+.wb-upd-copy.fail{color:var(--wb-ink-2)}
+.wb-upd-code{font-family:var(--font-mono);font-size:.9em;padding:1px 5px;border-radius:4px;background:var(--wb-bg);border:1px solid var(--wb-line-2);color:var(--wb-ink);overflow-wrap:anywhere}
+/* 更新內容 Drawer */
+.wb-drawer.wb-upd-dw{width:520px}
+.wb-upd-dw-t{font-family:var(--font-mono);letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wb-upd-dw-t>svg{color:var(--wb-ink-3)}
+.wb-upd-dw-f{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid var(--wb-line);background:var(--wb-panel);flex-wrap:wrap}
+.wb-upd-gh{font-size:12.5px;font-weight:700}
+.wb-upd-sum{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.wb-upd-chip-sec{color:var(--wb-upd-security);border-color:color-mix(in srgb,var(--wb-upd-security) 35%,var(--wb-panel))}
+.wb-upd-chip-sec b,.wb-upd-chip-sec.on b{color:var(--wb-upd-security)}
+.wb-upd-chip-sec.on{color:var(--wb-upd-security);border-color:var(--wb-upd-security);background:color-mix(in srgb,var(--wb-upd-security) 8%,var(--wb-panel))}
+.wb-upd-linkbtn{margin-left:auto;border:none;background:none;padding:4px 2px;font:inherit;font-size:11.5px;font-weight:700;color:var(--wb-blue-l);cursor:pointer}
+.wb-upd-vlist{border:1px solid var(--wb-line);border-radius:8px;overflow:hidden}
+.wb-upd-vi{border-bottom:1px solid var(--wb-line-2)}
+.wb-upd-vi:last-child{border-bottom:none}
+.wb-upd-vh{width:100%;min-height:40px;display:flex;align-items:center;gap:8px;padding:8px 12px;border:none;background:var(--wb-panel);font:inherit;text-align:left;color:var(--wb-ink-2);cursor:pointer;flex-wrap:wrap}
+.wb-upd-vh:hover{background:var(--wb-bg)}
+.wb-upd-caret{display:flex;color:var(--wb-ink-3);transition:transform var(--wb-dur-in) var(--wb-ease)}
+.wb-upd-caret.open{transform:rotate(90deg)}
+.wb-upd-vh-v{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--wb-ink)}
+.wb-upd-vh-d{font-size:11.5px;color:var(--wb-ink-3)}
+.wb-upd-vh-r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.wb-upd-secpill{height:20px;display:inline-flex;align-items:center;gap:3px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;color:var(--wb-upd-security);background:color-mix(in srgb,var(--wb-upd-security) 10%,var(--wb-panel))}
+.wb-upd-vb{padding:0 14px 14px 31px;animation:wbUpdOpen var(--wb-dur-in) var(--wb-ease)}
+@keyframes wbUpdOpen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.wb-upd-lead{margin:10px 0 0;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2);white-space:pre-line;text-wrap:pretty}
+.wb-upd-none{margin:10px 0 0;font-size:12px;color:var(--wb-ink-3)}
+.wb-upd-cat{padding-top:10px}
+.wb-upd-cat-h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--wb-ink-3);margin-bottom:2px}
+.wb-upd-cat-h i{width:6px;height:6px;border-radius:50%;background:var(--c)}
+.wb-upd-cat ul{margin:0;padding:0 0 0 18px;list-style:disc;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2)}
+.wb-upd-cat li{margin:3px 0;text-wrap:pretty;white-space:pre-line}
+.wb-upd-cat li ul{padding-left:16px;list-style:circle}
+.wb-upd-cat.sec{margin-top:10px;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--wb-upd-security) 6%,var(--wb-panel));border:1px solid color-mix(in srgb,var(--wb-upd-security) 22%,var(--wb-panel))}
+.wb-upd-cat.sec .wb-upd-cat-h{color:var(--wb-upd-security)}
+.wb-upd-cat.sec ul{color:var(--wb-ink)}
+.wb-upd-more{width:100%;min-height:40px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border:none;background:var(--wb-bg);color:var(--wb-blue-l);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.wb-upd-more:hover{background:var(--wb-line-2)}
+.wb-upd-skel-h{display:flex;align-items:center;gap:7px;padding:10px 12px;font-size:12px;color:var(--wb-ink-3);border-bottom:1px solid var(--wb-line-2)}
+.wb-upd-skel-row{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px 0 31px;border-bottom:1px solid var(--wb-line-2)}
+.wb-upd-skel-row:last-child{border-bottom:none}
+.wb-upd-skel{display:block;height:10px;border-radius:4px;background:var(--wb-sk);background-image:linear-gradient(90deg,transparent,var(--wb-sk-hi),transparent);background-size:200% 100%;background-repeat:no-repeat;animation:wbUpdShim 1.3s linear infinite}
+@keyframes wbUpdShim{from{background-position:150% 0}to{background-position:-50% 0}}
+.wb-upd-clerr{display:flex;gap:10px;align-items:flex-start;padding:14px;font-size:12.5px;line-height:1.75;color:var(--wb-ink-2)}
+.wb-upd-clerr>svg{flex:none;margin-top:3px;color:var(--wb-ink-3)}
+.wb-upd-clerr a{font-weight:700}
+/* 發現新版 toast：掛在 .wb-app 之外，自己帶字級 */
+.wb-upd-toast-wrap{position:fixed;right:20px;bottom:20px;z-index:var(--wb-z-upd-toast);font-size:13px}
+.wb-upd-toast{display:flex;align-items:flex-start;gap:10px;width:356px;max-width:100%;box-sizing:border-box;padding:12px 10px 10px 14px;border-radius:var(--wb-upd-radius);background:var(--wb-upd-toast-bg);color:var(--wb-on);box-shadow:var(--wb-upd-shadow);animation:ncRise 280ms var(--wb-ease)}
+.wb-upd-toast-ic{display:flex;margin-top:1px;color:var(--wb-gold)}
+.wb-upd-toast.danger .wb-upd-toast-ic{color:var(--wb-upd-danger)}
+.wb-upd-toast-b{flex:1;min-width:0}
+.wb-upd-toast-t{font-size:13.5px;font-weight:700;line-height:1.45}
+.wb-upd-toast-s{font-size:12px;color:var(--wb-a-white-72);margin-top:2px;line-height:1.5}
+.wb-upd-toast-a{display:flex;gap:4px;margin:8px 0 0 -8px}
+.wb-upd-toast-a button{height:28px;padding:0 8px;border:none;border-radius:5px;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--wb-a-white-78);cursor:pointer}
+.wb-upd-toast-a button:hover{background:var(--wb-a-white-08);color:var(--wb-on)}
+.wb-upd-toast-a button.pri{color:var(--wb-gold);font-weight:700}
+.wb-upd-toast-x{width:24px;height:24px;flex:none;display:flex;align-items:center;justify-content:center;border:none;border-radius:5px;background:none;color:var(--wb-a-white-60);cursor:pointer}
+.wb-upd-toast-x:hover{background:var(--wb-a-white-08);color:var(--wb-on)}
+@media(min-width:861px) and (max-width:1100px){.wb-drawer.wb-upd-dw{width:420px}}
+@media(max-width:860px){
+  .wb-upd-hero{flex-direction:column;align-items:stretch;gap:14px;padding:14px}
+  .wb-upd-act{align-items:stretch}
+  .wb-upd-act-btns{justify-content:flex-start}
+  .wb-upd-act-btns>button{flex:1;justify-content:center;height:40px}
+  .wb-upd-status{text-align:left}
+  .wb-upd-notes{padding:12px 14px}
+  .wb-upd-cmds{width:100%}
+  .wb-upd-cmd{height:44px}
+  .wb-upd-copy{height:36px}
+  .wb-drawer.wb-upd-dw{width:100%}
+  .wb-upd-vh{min-height:46px}
+  .wb-upd-vb{padding-left:14px}
+  .wb-upd-toast-wrap{left:12px;right:12px;bottom:66px}
+  .wb-upd-toast{width:100%}
+  .wb-upd-toast-a button{height:36px}
+}
+/* reduced motion：保留狀態變化、拿掉位移與旋轉 */
+@media(prefers-reduced-motion:reduce){
+  .wb-upd-dot.pop,.wb-upd-tab-badge,.wb-upd-vb,.wb-upd-toast,.wb-drawer.wb-upd-dw{animation:none}
+  .wb-upd-caret,.wb-upd-copy{transition:none}
+  .wb-upd-spin{animation:none;border-right-color:currentColor;opacity:.45}
+  .wb-upd-skel{animation:none;background-image:none}
 }

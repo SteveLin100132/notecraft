@@ -29,8 +29,10 @@ const { active = "", pending = 0 } = Astro.props;
     <a class:list={["wb-rail-btn", { on: active === "plugins" }]} href={ROUTES.plugins} title="Plugin 外掛" aria-label="Plugin 外掛" data-rail="plugins" aria-current={active === "plugins" ? "page" : undefined}>
       <Icon name="plug" size={17} stroke={1.7} />
     </a>
-    <a class:list={["wb-rail-btn", { on: active === "settings" }]} href={ROUTES.settings} title="設定與關於" aria-label="設定與關於" data-rail="settings" aria-current={active === "settings" ? "page" : undefined}>
+    {/* 更新圓點：SSR 一律 hidden，由 WorkbenchLayout 的預繪 script 與 UpdateHost 設定（docs/notecraft-workbench-update-check.md §6.1、§7） */}
+    <a class:list={["wb-rail-btn", { on: active === "settings" }]} href={ROUTES.settings} id="wb-rail-settings" title="設定與關於" aria-label="設定與關於" data-rail="settings" aria-current={active === "settings" ? "page" : undefined}>
       <Icon name="settings" size={17} stroke={1.7} />
+      <span class="wb-upd-dot" hidden aria-hidden="true"></span>
     </a>
   </div>
 </nav>

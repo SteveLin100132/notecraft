@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteCraftApp 檢查更新 — 設計規格</title>
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/colors.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/typography.css">
+<link rel="stylesheet" href="_ds/trendlink-design-system-b2a0d687-c93c-4b98-ad01-c5e232b3a5ef/tokens/spacing.css">
+<link rel="stylesheet" href="wb/pt.css">
+<link rel="stylesheet" href="wb/pt-update.css">
+<style>
+html,body{height:auto;background:var(--wb-bg)}
+body{font-size:14px;line-height:1.75;color:var(--wb-ink-2)}
+a{color:var(--wb-blue-l)}a:hover{color:var(--wb-blue-d)}
+.sp{max-width:1320px;margin:0 auto;padding:40px 28px 80px}
+.sp-h{font-size:28px;font-weight:800;color:var(--wb-blue);margin:0;line-height:1.3}
+.sp-lead{max-width:72ch;margin:10px 0 0;color:var(--wb-ink-2);text-wrap:pretty}
+.sp-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.sp-nav{display:flex;gap:4px;flex-wrap:wrap;margin:24px 0 0;padding:8px 0;border-top:1px solid var(--wb-line);border-bottom:1px solid var(--wb-line)}
+.sp-nav a{font-size:12.5px;padding:4px 10px;border-radius:999px;color:var(--wb-ink-2)}
+.sp-nav a:hover{background:var(--wb-panel);color:var(--wb-blue-l)}
+.sp-sec{margin-top:52px}
+.sp-eb{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--wb-ink-3)}
+.sp-h2{font-size:20px;font-weight:700;color:var(--wb-ink);margin:4px 0 6px;line-height:1.35}
+.sp-p{max-width:76ch;margin:0 0 16px;text-wrap:pretty}
+.sp-card{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;overflow:hidden}
+.sp-place{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.sp-place .sp-card{padding:14px 16px}
+.sp-place h3{margin:0 0 4px;font-size:14px;color:var(--wb-ink);display:flex;align-items:center;gap:8px}
+.sp-place p{margin:0;font-size:12.5px;line-height:1.75;text-wrap:pretty}
+.sp-n{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--wb-blue-l)}
+.sp-st{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-start;padding:20px 0;border-top:1px solid var(--wb-line)}.sp-st>div:first-child{flex:1 1 100%;display:flex;gap:4px 16px;align-items:baseline;flex-wrap:wrap}.sp-st>div:first-child p{margin:0}
+.sp-fr.desk{flex:0 1 870px;max-width:100%;overflow-x:auto}.sp-fr.desk iframe{width:870px}.sp-fr.mob{flex:0 0 375px;max-width:100%}
+.sp-st h3{margin:0;font-size:14.5px;color:var(--wb-ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sp-st p{margin:6px 0 0;font-size:12.5px;line-height:1.75;text-wrap:pretty}
+.sp-fr{background:var(--wb-panel);border:1px solid var(--wb-line);border-radius:8px;overflow:hidden;min-width:0}
+.sp-fr-cap{font-size:10.5px;letter-spacing:.08em;font-weight:700;color:var(--wb-ink-3);padding:6px 10px;border-bottom:1px solid var(--wb-line-2);background:var(--wb-bg);display:flex;justify-content:space-between}
+.sp-fr iframe{display:block;width:100%;border:0;height:200px}
+.sp-dws{display:grid;grid-template-columns:repeat(auto-fit,minmax(375px,1fr));gap:16px}
+.sp-dws h3{margin:0 0 8px;font-size:14px;color:var(--wb-ink)}
+.sp-dws p{margin:0 0 10px;font-size:12.5px}
+.sp-tbl{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--wb-panel)}
+.sp-tbl th{font-size:10.5px;letter-spacing:.08em;color:var(--wb-ink-3);text-align:left;font-weight:700;padding:9px 14px;border-bottom:1px solid var(--wb-line);background:var(--wb-bg)}
+.sp-tbl td{padding:10px 14px;border-bottom:1px solid var(--wb-line-2);vertical-align:top;line-height:1.7;text-wrap:pretty}
+.sp-tbl tr:last-child td{border-bottom:none}
+.sp-tbl td:first-child{white-space:nowrap;font-weight:500;color:var(--wb-ink)}
+.sp-tbl code,.sp-p code,.sp-place code{font-family:var(--font-mono);font-size:.9em;padding:1px 5px;border-radius:4px;background:var(--wb-bg);border:1px solid var(--wb-line-2);color:var(--wb-ink)}
+.sp-sw{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:6px}
+.sp-wrapx{overflow-x:auto}
+@media(max-width:760px){.sp{padding:28px 16px 60px}.sp-dws{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="sp">
+<div class="sp-eb">NOTECRAFTAPP 工作台 ・ 設計規格</div>
+<h1 class="sp-h">檢查更新</h1>
+<p class="sp-lead">在瀏覽器端查詢 npm registry 的 <code class="upd-code">notecraftapp</code>，有新版時用低干擾的方式提醒，並列出使用者錯過的 CHANGELOG。viewer 模式與部署站共用同一套 UI，只在文案上區分。互動版本已併入 <a href="NoteCraft 工作台 Prototype.html">NoteCraft 工作台 Prototype</a>，可在 Tweaks 的「檢查更新」切換情境。</p>
+<div class="sp-meta"><span class="wb-pill muted">目前版本 v1.8.5</span><span class="wb-pill muted">桌面 + 手機（≤860px）</span><span class="wb-pill muted">沿用 wb-* token</span></div>
+<nav class="sp-nav"><a href="#place">放置方案</a><a href="#states">狀態</a><a href="#drawer">更新詳情</a><a href="#toast">Toast 與 Rail</a><a href="#parts">元件拆分</a><a href="#interact">互動說明</a><a href="#tokens">Token 與動畫</a></nav>
+
+<section class="sp-sec" id="place">
+<div class="sp-eb">01</div><h2 class="sp-h2">放置方案</h2>
+<p class="sp-p">五個接觸點依干擾程度由低到高排列。版本資訊只有一個完整的家（「關於」分頁），其餘都是指向它或指向 Drawer 的入口。</p>
+<div class="sp-place">
+<div class="sp-card"><h3><span class="sp-n">A</span>Rail 圓點 ＋「關於」頁籤徽章</h3><p>「設定與關於」右上 8px 圓點，外圈 2px rail 色描邊。patch／minor 藍、major 黃、已棄用紅。點進去後，「關於」頁籤旁用同色數字徽章顯示落後版數，讓使用者知道提示在哪個分頁。手機時跟著底部列出現。被略過的版本不顯示圓點與徽章，但已棄用一律顯示。</p></div>
+<div class="sp-card"><h3><span class="sp-n">B</span>「關於」分頁：版本與更新</h3><p>放在「關於」最上方。目前／最新版本、強度、落後版數、發佈時間、最後檢查時間、「檢查更新」按鈕、升級指令、Node 需求、套件大小。手動檢查失敗只在按鈕下方顯示一行字。</p></div>
+<div class="sp-card"><h3><span class="sp-n">C</span>更新詳情 Drawer</h3><p>沿用 <code>.wb-drawer</code>，從右側滑出，寬 520px，手機全寬。已是最新版時列出目前版本的 CHANGELOG；有新版時只列 v1.8.5 之後到最新版的 CHANGELOG，可依類別篩選、逐版摺疊，超過 5 版時把較早的版本收成一列。</p></div>
+<div class="sp-card"><h3><span class="sp-n">D</span>Command Palette</h3><p>新增「指令」分組：「檢查更新」（跳到「關於」並立即檢查，不受 30 分鐘限制）；有檢查結果時多一列「查看更新內容」直接開 Drawer。</p></div>
+<div class="sp-card"><h3><span class="sp-n">E</span>發現新版 toast</h3><p>只在自動檢查發現新版時出現，同一版只出現一次（localStorage 記版號）。右下角、10 秒後自動收起，滑過或聚焦時暫停。手動檢查不跳 toast，因為使用者已經在看結果。</p></div>
+<div class="sp-card"><h3><span class="sp-n">F</span>略過這一版／稍後提醒</h3><p><b>建議做「略過這一版」，不做「稍後提醒」。</b>toast 本來就只出現一次、自動檢查 30 分鐘才一次，「稍後提醒」只會讓通知變多。略過後不再跳 toast、Rail 無圓點；「關於」仍顯示新版並可恢復。出現更新的版本時自動恢復。已棄用的版本不能略過。</p></div>
+</div>
+</section>
+
+<section class="sp-sec" id="states">
+<div class="sp-eb">02</div><h2 class="sp-h2">狀態：「關於」分頁的版本與更新區塊</h2>
+<p class="sp-p">左欄是狀態說明，中間是桌面主區寬度，右側是 375px 手機寬。自動檢查失敗不在此列：畫面維持上一次結果或「尚未檢查」，不出現任何錯誤。</p>
+<div id="stateRows"></div>
+</section>
+
+<section class="sp-sec" id="drawer">
+<div class="sp-eb">03</div><h2 class="sp-h2">更新詳情 Drawer</h2>
+<p class="sp-p">類別依重要性排序：安全、移除、變更、棄用、新增、修正（與 Keep a Changelog 的順序不同，讓風險先被看到）。「安全」用盾牌圖示、紅色字與淡紅底框，在版本列標題、類別 chip 與摺疊列上都會出現，即使版本被摺起來也看得到。</p>
+<div class="sp-dws" id="drawerRows"></div>
+</section>
+
+<section class="sp-sec" id="toast">
+<div class="sp-eb">04</div><h2 class="sp-h2">Toast 與 Rail 圓點</h2>
+<p class="sp-p">toast 沿用現有 toast 的深色底，但因為帶動作按鈕，改成 8px 圓角的卡片。已棄用時改用警示圖示、不提供「略過」。部署站的標題改成「此站使用的 NoteCraftApp 有新版」。</p>
+<div class="sp-dws" id="toastRows"></div>
+</section>
+
+<section class="sp-sec" id="parts">
+<div class="sp-eb">05</div><h2 class="sp-h2">元件拆分</h2>
+<div class="sp-card sp-wrapx"><table class="sp-tbl">
+<tr><th>元件</th><th>位置</th><th>內容與規則</th></tr>
+<tr><td>updStore / useUpd()</td><td>pt-update-data.jsx</td><td>單一 store：<code>status</code>（idle／checking／done）、<code>res</code>、<code>checkedAt</code>、<code>err</code>（只有手動失敗才寫入）、<code>drawer</code>、<code>toast</code>、<code>skipped</code>。localStorage：<code>nc-upd-last</code>、<code>nc-upd-toasted</code>、<code>nc-upd-skipped</code>。</td></tr>
+<tr><td>updCheck(manual)</td><td>同上</td><td>自動：上次檢查在 30 分鐘內就沿用結果。手動：一律立即查詢。查詢 <code>registry.npmjs.org/notecraftapp</code>，從 <code>dist-tags.latest</code>、<code>time</code>、<code>versions[v].engines</code>、<code>versions[v].deprecated</code>、<code>dist.unpackedSize</code>、<code>dist.fileCount</code> 組出結果。</td></tr>
+<tr><td>useUpdRail()</td><td>PtRail</td><td>回傳 <code>{tone, label}</code> 或 null。tone 優先序：danger（已棄用）＞ major ＞ info。同時寫入按鈕的 title 與 aria-label。</td></tr>
+<tr><td>PtUpdBlock</td><td>PtSettings「關於」</td><td>.wb-gh 標頭 → hero（版本號、強度 pill、動作、狀態行）→ UpdNotes → 升級指令／Node 需求／套件／已略過，四列都用既有 PtSetRow。</td></tr>
+<tr><td>UpdLevelPills</td><td>Block、Drawer</td><td>patch <code>.wb-pill.muted</code>、minor <code>.wb-pill</code>、major <code>.wb-pill.warn</code> 加粗、已棄用 <code>.wb-pill.danger</code> 加粗；再接「落後 N 個版本」「最新版 N 天前發佈」。</td></tr>
+<tr><td>UpdNotes</td><td>Block、Drawer</td><td>最多三則：已棄用（紅，顯示 npm 棄用原因）、需要先升級 Node（黃，viewer 比對本機 Node，部署站比對建置用 Node 並提示 <code>NODE_VERSION</code>）、主版本破壞性變更（黃，統計移除與變更項數）。</td></tr>
+<tr><td>UpdCmd / UpdCmds</td><td>Block、Drawer</td><td>標籤 + 等寬指令 + 複製鈕。指令過長時在框內水平捲動，不換行。</td></tr>
+<tr><td>UpdDrawerPanel</td><td>PtUpdDrawer</td><td>.wb-dw-h → 標題、pills、notes、升級指令 → 你錯過的更新（UpdChangelog）→ 套件資訊（.wb-dw-meta）→ 固定底列（GitHub 連結、略過這一版）。</td></tr>
+<tr><td>UpdChangelog / UpdVersion</td><td>Drawer</td><td>類別 chip 列（可篩選）＋版本清單。預設只展開最新一版；超過 5 版時只顯示最新 4 版，其餘收成「顯示較早的 N 個版本」，附上被收起的安全項數。</td></tr>
+<tr><td>UpdToastView / PtUpdToast</td><td>.wb-app 內</td><td>標題、次行、「查看更新內容」「略過這一版」、關閉。桌面右下 20px；手機左右 12px、底部列上方 12px。</td></tr>
+</table></div>
+</section>
+
+<section class="sp-sec" id="interact">
+<div class="sp-eb">06</div><h2 class="sp-h2">互動說明</h2>
+<div class="sp-card sp-wrapx"><table class="sp-tbl">
+<tr><th>操作</th><th>結果</th></tr>
+<tr><td>開頁</td><td>上次檢查超過 30 分鐘就在背景查詢。查詢中「關於」顯示「正在向 npm registry 查詢…」，其他地方沒有變化。失敗時不顯示任何東西。</td></tr>
+<tr><td>按「檢查更新」</td><td>按鈕變成 disabled 的「檢查中…」與 spinner，約 1 秒內回到結果。成功時狀態行更新為「剛剛檢查」；失敗時狀態行改成「目前無法連線到 npm，稍後再試」，保留上一次的版本資訊，不跳 toast。</td></tr>
+<tr><td>Rail 圓點</td><td>點按鈕進入「設定與關於」。圓點本身不可點，只作提示；進入後「關於」頁籤顯示同色的落後版數徽章（例如「關於 4」），引導到版本區塊。</td></tr>
+<tr><td>Toast「查看更新內容」</td><td>關閉 toast、開啟 Drawer。不切換頁面，讀者留在原本的筆記。</td></tr>
+<tr><td>Toast「略過這一版」</td><td>記下版號，toast 關閉，Rail 圓點消失。「關於」出現「已略過 v1.9.2 的提醒」列與「恢復提醒」。</td></tr>
+<tr><td>Toast 關閉／Esc</td><td>關閉 toast。同一版不會再出現，Rail 圓點保留。10 秒自動收起，滑鼠停留或鍵盤聚焦時暫停計時。</td></tr>
+<tr><td>Drawer 開啟</td><td>「查看更新內容」按鈕（只要有檢查結果就顯示，包含已是最新版）、toast、Command Palette。有新版時列「你錯過的更新」；已是最新版時列「目前版本的更新內容」，只有目前版本一版、預設展開、標「目前」，不顯示升級指令與略過。CHANGELOG 另外抓取：載入中顯示 3 列骨架；失敗時顯示一行說明與 GitHub 連結，版本資訊與升級指令照常顯示。</td></tr>
+<tr><td>Drawer 關閉</td><td>右上 ×、點遮罩、Esc。Esc 在 capture 階段攔截，不會同時關掉底下的 toast 或其他浮層。</td></tr>
+<tr><td>版本列</td><td>點整列展開或收合（aria-expanded）。「全部展開／全部收合」作用在目前可見的版本。</td></tr>
+<tr><td>類別 chip</td><td>單選篩選。選了「安全」只列出含安全項目的版本，全部展開且只顯示該類別；再點一次或按「清除篩選」回復。</td></tr>
+<tr><td>顯示較早的 N 個版本</td><td>一次展開剩下的版本（只顯示標題列，內容仍需逐版點開）。</td></tr>
+<tr><td>複製指令</td><td>寫入剪貼簿，按鈕變成綠色「已複製」1.6 秒，並由 aria-live 讀出。</td></tr>
+<tr><td>⌘K →「檢查更新」</td><td>關閉 palette、切到「設定與關於 › 關於」、立即手動檢查。「查看更新內容」在有檢查結果時就出現。</td></tr>
+</table></div>
+</section>
+
+<section class="sp-sec" id="tokens">
+<div class="sp-eb">07</div><h2 class="sp-h2">新增 token 與動畫</h2>
+<p class="sp-p">沒有新色碼。新增的都是既有 token 的語意別名，讓「更新」這個功能在需要調整強度時只改一處。</p>
+<div class="sp-card sp-wrapx"><table class="sp-tbl">
+<tr><th>Token</th><th>值</th><th>用途</th></tr>
+<tr><td><span class="sp-sw" style="background:var(--upd-info)"></span>--upd-info</td><td><code>var(--wb-blue-l)</code></td><td>patch／minor 的 Rail 圓點</td></tr>
+<tr><td><span class="sp-sw" style="background:var(--upd-major)"></span>--upd-major</td><td><code>var(--wb-warn)</code></td><td>major 圓點、hero 淡底、Node 與破壞性變更提示、「移除」「棄用」類別點</td></tr>
+<tr><td><span class="sp-sw" style="background:var(--upd-danger)"></span>--upd-danger</td><td><code>var(--wb-danger)</code></td><td>已棄用的圓點、hero 淡底、提示框</td></tr>
+<tr><td><span class="sp-sw" style="background:var(--upd-security)"></span>--upd-security</td><td><code>var(--wb-danger)</code></td><td>CHANGELOG「安全」類別、chip、版本列上的安全 pill。與 danger 分開命名，日後可獨立調整</td></tr>
+<tr><td><span class="sp-sw" style="background:var(--upd-toast-bg)"></span>--upd-toast-bg</td><td><code>var(--neutral-900)</code></td><td>toast 底色，與現有 ToastHost 相同</td></tr>
+<tr><td>--upd-dur</td><td><code>240ms</code></td><td>圓點出現、版本列展開、caret 旋轉</td></tr>
+<tr><td>--upd-ease</td><td><code>cubic-bezier(.22,.7,.3,1)</code></td><td>與現有 .wb-drawer 滑入相同的 ease-out</td></tr>
+</table></div>
+<div class="sp-card sp-wrapx" style="margin-top:12px"><table class="sp-tbl">
+<tr><th>動畫</th><th>一般</th><th>prefers-reduced-motion</th></tr>
+<tr><td>Drawer 滑入</td><td>沿用 wbSlide 200ms</td><td>直接出現</td></tr>
+<tr><td>Toast 出現</td><td>ncRise 280ms，上移 10px 並淡入</td><td>直接出現</td></tr>
+<tr><td>Rail 圓點</td><td>ncPop 240ms，縮放淡入</td><td>直接出現</td></tr>
+<tr><td>版本展開</td><td>內容淡入並下移 4px，240ms；caret 旋轉 90°</td><td>無位移、caret 直接換向</td></tr>
+<tr><td>Spinner</td><td>0.8s 旋轉</td><td>改為靜態淡色圓環，搭配「檢查中…」文字</td></tr>
+<tr><td>骨架</td><td>1.3s 掃光</td><td>靜態灰條</td></tr>
+</table></div>
+</section>
+</div>
+
+<script>
+const STATES = [
+  ["idle", "從未檢查", "首次開啟、或自動檢查失敗後。只顯示目前版本與「檢查更新」。", ""],
+  ["checking", "檢查中", "自動與手動共用。按鈕 disabled，hero 顯示查詢中。", ""],
+  ["recheck", "檢查中（已有上次結果）", "保留上一次的版本資訊，只有按鈕進入檢查中。", ""],
+  ["latest", "已是最新版", "綠色 pill。不顯示升級指令與 Rail 圓點；仍提供「查看更新內容」，開啟目前版本的 CHANGELOG。", "ok"],
+  ["patch", "有新版：patch", "最低強度：灰 pill、藍色圓點、無提示框。", ""],
+  ["minor", "有新版：minor", "藍 pill、藍色圓點。", ""],
+  ["major", "有新版：major", "hero 淡黃底、粗體黃 pill、黃色圓點，加上破壞性變更提示。", "warn"],
+  ["deprecated", "目前版本已棄用", "最高強度：hero 淡紅底、紅色提示框附 npm 棄用原因、紅色圓點，不可略過。", "danger"],
+  ["node", "新版需要較新的 Node", "Node 提示框取代 major 提示，需求列的「你目前」改成黃 pill。", "warn"],
+  ["error", "手動檢查失敗（無上次結果）", "狀態行一行字，不用紅色、不用卡片。", ""],
+  ["error-known", "手動檢查失敗（有上次結果）", "保留 42 分鐘前的結果，狀態行換成失敗說明。", ""],
+  ["skipped", "已略過這一版", "版本資訊照常顯示，多一列「恢復提醒」。", ""],
+];
+const fr = (q, cap, cls) => `<div class="sp-fr ${cls || ""}"><div class="sp-fr-cap"><span>${cap}</span></div><iframe loading="lazy" src="Update States Frame.html?${q}" title="${cap}"></iframe></div>`;
+document.getElementById("stateRows").innerHTML = STATES.map(([k, t, d, c]) =>
+  `<div class="sp-st"><div><h3>${t}${c ? `<span class="wb-pill ${c}">${k}</span>` : `<span class="wb-pill muted">${k}</span>`}</h3><p>${d}</p></div>${fr("s=" + k, "桌面", "desk")}${fr("s=" + k, "手機 375", "mob")}</div>`).join("") +
+  `<div class="sp-st"><div><h3>部署站<span class="wb-pill muted">deploy</span></h3><p>同一區塊，多一行說明由站台維護者升級；Node 提示改為比對建置用 Node 與 NODE_VERSION。</p></div>${fr("s=node&mode=deploy", "桌面", "desk")}${fr("s=node&mode=deploy", "手機 375", "mob")}</div>`;
+const DW = [
+  ["s=latest&view=drawer", "已是最新版：只列目前版本 v1.8.5，無升級指令與略過", 640],
+  ["s=minor&view=drawer", "minor：4 個版本，最新一版預設展開", 760],
+  ["s=major&view=drawer", "major：12 個版本，較早的 8 版收成一列", 900],
+  ["s=deprecated&view=drawer", "已棄用：紅色提示在最上方，底列無「略過」", 760],
+  ["s=minor&view=drawer&cl=loading", "CHANGELOG 載入中", 640],
+  ["s=minor&view=drawer&cl=error", "CHANGELOG 載入失敗：退回 GitHub 連結", 640],
+];
+document.getElementById("drawerRows").innerHTML = DW.map(([q, t, h]) =>
+  `<div><h3>${t}</h3><div class="sp-fr"><div class="sp-fr-cap"><span>Drawer ・ 375–520px</span></div><iframe loading="lazy" style="height:${h}px" src="Update States Frame.html?${q}&h=${h}" title="${t}"></iframe></div></div>`).join("");
+document.getElementById("toastRows").innerHTML =
+  `<div><h3>Toast：minor、major、已棄用、部署站</h3>${fr("view=toast", "Toast")}</div><div><h3>Rail 圓點</h3>${fr("view=rail", "Rail")}</div>`;
+function fit(f) {
+  if (f.dataset.fixed) return;
+  try { const h = f.contentDocument.documentElement.scrollHeight; if (h > 40) f.style.height = h + "px"; } catch (e) {}
+}
+document.querySelectorAll("iframe").forEach((f) => {
+  if (f.style.height) f.dataset.fixed = "1";
+  f.addEventListener("load", () => { [300, 900, 1800, 3200].forEach((t) => setTimeout(() => fit(f), t)); });
+});
+</script>
+</body>
+</html>

@@ -83,6 +83,19 @@ export function TagChips({ tags = [], max = 2, style }: { tags?: string[]; max?:
   );
 }
 
+/** 設定列（/settings；「版本與更新」區塊共用） */
+export function SetRow({ k, d, children }: { k: string; d?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="wb-set">
+      <div className="wb-set-l">
+        <div className="wb-set-k">{k}</div>
+        {d ? <div className="wb-set-d">{d}</div> : null}
+      </div>
+      <div className="wb-set-c">{children}</div>
+    </div>
+  );
+}
+
 /**
  * 群組標頭。有 onToggle 時是可收合的按鈕（帶 caret）；沒有時是純標頭（caret 位置留白）。
  * `gc` 是 workbench.css 裡的色彩 class（wb-gc-gold、wb-acc-orange、root…）。
