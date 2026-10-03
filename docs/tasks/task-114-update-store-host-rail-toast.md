@@ -90,3 +90,12 @@
 ## 依賴
 
 Task 113。
+
+## 實作記錄（2026-10-03）
+
+- `update-store.ts`：`initUpdate` 由第一個帶 env 的元件呼叫（`useUpd(env)`），render 前就把快取放進狀態；`useSyncExternalStore` 的 server snapshot 一律是「尚未檢查」，hydration 不 mismatch。CHANGELOG 的抓取（`loadChangelog`、`changelogLinks`）一併放在 store，Task 115 直接用
+- `UpdateHost` 同步 Rail 時讀 `getUpd()` 而不是 hook 的值：hydration 那一輪拿到的是 SSR 快照，會先藏掉預繪的圓點再跳出來
+- toast 掛在 body 層、`position:fixed`（不 portal 進 `.wb-app`）；`.wb-app` 沒有 position，效果相同
+- 樣式：`.wb-upd-*` 全部一次加在 `workbench.css` 結尾（含 Task 115 的部分），手機與 reduced-motion 規則放在同段自己的 `@media` 區塊，不併進既有 860px 區塊；新增 `--wb-upd-shadow`、`--wb-upd-radius` 兩個別名，讓規則只引用 `--wb-*`
+- 實測（`astro preview`，1280×800）：真實 registry 查一次、寫入 `nc-update-v1`（npm 最新即 1.8.5，無圓點）；以同源 iframe 攔截 `fetch` 模擬 2.0.0 → major toast＋黃色圓點＋`aria-label`「設定與關於 ・ 有新版 v2.0.0，落後 2 個版本」；換頁不發請求、不再跳 toast、圓點由預繪畫出且無 `.pop`；`fetch` 失敗 → 無 UI、無錯誤、不寫快取
+- iframe 內 `client:idle` 的 island 在這個瀏覽器窗格不會 hydrate（`requestIdleCallback` 不觸發），測試時以 `setTimeout` 代替；正式頁面不受影響
