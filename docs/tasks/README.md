@@ -647,3 +647,35 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - 行內 Markdown 一律切 token 組 React 節點，**不用 `dangerouslySetInnerHTML`**；連結只放行 `http(s)` 與相對路徑
 > - 新 token 一律 `--wb-*`，規則零色碼；每條動畫都要有 reduced-motion 對應
 > - 驗收以 `astro preview` 為準；registry／CHANGELOG 的情境用 Network overrides 或暫時包 `fetch`，驗完移除
+
+## v1.21.0 追加功能（§8.1 Phase 4.25）— 排除檔案 `.notecraft/ignore.json`（notecraftapp v1.10.0）
+
+規格 [notecraft-ignore-config.md](../notecraft-ignore-config.md)。
+作者在 `.notecraft/ignore.json` 寫類 `.gitignore` 的規則（`drafts/`、`**/*.test.mdx`、`!archive/keep.mdx`），被命中的檔案與資料夾 NoteCraft 一律不讀：不成為筆記、不被 plugin 認領、不進資料夾樹與新增筆記下拉、不複製進產物、改了也不觸發 rebuild。
+
+> **七題已全數確認（規格 §12）**：比對引擎用 `ignore` 套件（Q1）、檔案形狀 `{ "ignore": [...] }`（Q2）、範圍是所有檔案（Q3）、格式錯誤 build fail（Q4）、
+> 內建排除（`.` 開頭、`node_modules/`、`dist/`）不能用 `!` 解除（Q5）、與 `plugins.json` 同一個 `.notecraft/`、只讀一處（Q6）、第一版不做 UI（Q7）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 117](task-117-ignore-matcher-foundation.md) | 地基：比對模組、`walkNotes()`、`resolveNotecraftDir()`、斷言、JSON Schema | §3、§4、§7、§9.1 | `lib/notes-ignore.mjs`＋`.d.ts`、`schemas/ignore.schema.json`、`scripts/checks/notes-ignore.mjs`、`package.json`（`ignore`、`check:ignore`、`files`） |
+| [Task 118](task-118-ignore-build-integration.md) | build 期接點：Content Collection、plugin 資料檔、連結／圖片／系列、產物斷言 | §3.4、§5.1、§5.2、§5.5、§6、§7 | `content/config.ts`、`lib/ignoring-loader.ts`、`lib/notes-ignore-state.ts`、`lib/plugins.ts`、`lib/series.ts`、`remark-notecraft-notes-assets.ts`、`lib/ignore-guard-integration.mjs`、`scripts/fixtures/ignore-sample/` |
+| [Task 119](task-119-ignore-dev-api-cli.md) | dev 與 CLI：dev-only API、dev server 重啟、快取失效、`serve` watcher、新增筆記 | §5.3、§5.4、§7 | `dev-api/handlers.mjs`、`lib/notes-ignore-integration.mjs`、`bin/notecraftapp.mjs`、`scripts/new-note.mjs` |
+| [Task 120](task-120-ignore-subagent-docs-release.md) | note-scanner、文件回填、發版 | §5.6、§9.3、§10 | 兩份 `note-scanner.md`、README／CLAUDE.md／plugin-system／npx-viewer-v2／PRD／CHANGELOG、v1.10.0 |
+
+**順序**：一條直線。
+
+```
+117 ─ 118 ─ 119 ─ 120
+```
+
+> **交付節奏**：全程在 `feat/ignore-config` 單一分支上，依 Task 逐步 commit，**Task 120 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `notes-ignore.mjs` 的再跑 `npm run check:ignore`，動到 `plugins.ts` 的再跑 `npm run check-plugins`。
+>
+> **幾條貫穿整批的規則**：
+> - **走訪 notesDir 一律經 `walkNotes()`／`walkNotesAsync()`**，不再自寫 `readdir` 遞迴；`notecraftDir` 只由 `resolveNotecraftDir()` 決定
+> - **內建排除加在使用者規則之後**，`!` 解除不了
+> - Content Collection 的 `glob()` pattern 維持單一字串，**不放負向 pattern**（Astro dev watcher 會失效），排除改由 `ignoringLoader` 攔 `store.set`
+> - 被排除 = 不出現在任何產物：`ignore-guard-integration` 在 build 後兜底，違反直接 throw
+> - 所有 `[ignore]` 訊息與 API 回應只用相對路徑，不得出現本機絕對路徑
+> - 工作區裡 `skill-template/` 有作者尚未提交的修改，**每次 commit 只 add 本 Task 的檔案**
