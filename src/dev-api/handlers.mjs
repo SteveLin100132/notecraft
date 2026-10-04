@@ -9,6 +9,7 @@ import matter from "gray-matter";
 import { slug as githubSlug } from "github-slugger";
 import {
   createNotesIgnore,
+  IGNORED_LOCATION_MESSAGE,
   loadNotesIgnore,
   resolveNotecraftDir as resolveNotecraftDirFromEnv,
   toNotesRel,
@@ -65,7 +66,6 @@ function isIgnored(ig, notesRoot, abs, isDir = false) {
   }
 }
 
-export const IGNORED_LOCATION_MESSAGE = "這個位置被 .notecraft/ignore.json 排除，建立後不會出現在 NoteCraft";
 
 export async function assertSafePath(candidate, notesRoot) {
   const abs = path.resolve(candidate);

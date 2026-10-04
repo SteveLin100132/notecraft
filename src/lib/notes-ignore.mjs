@@ -12,6 +12,9 @@ import ignore from "ignore";
 
 export const IGNORE_FILE = "ignore.json";
 
+/** POST /api/notes 與 npm run new-note 共用：目標位置被排除時的訊息。 */
+export const IGNORED_LOCATION_MESSAGE = "這個位置被 .notecraft/ignore.json 排除，建立後不會出現在 NoteCraft";
+
 /**
  * 內建排除（規格 §3.4）：不必寫、不能用 `!` 解除（Q5）。
  * 加在使用者規則**之後**，`ignore` 的「後寫的勝」讓 `!node_modules/` 之類覆蓋不到。

@@ -11,68 +11,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { root, writeTree as writeSampleTree } from "./ignore-sample-tree.mjs";
 
-const root = path.resolve(import.meta.dirname, "..", "..");
 const notesDir = path.join(root, "tmp", "ignore-sample");
 const outDir = path.join(root, "tmp", "ignore-sample-out");
-
-// 1×1 透明 PNG
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  "base64",
-);
-
-const fm = (title) => `---\ntitle: "${title}"\ncreatedAt: "2026-10-04"\nupdatedAt: "2026-10-04"\n---\n\n`;
-
-const IGNORE = {
-  $schema: "https://cdn.jsdelivr.net/npm/notecraftapp/schemas/ignore.schema.json",
-  ignore: [
-    "# 範例：草稿與私人檔",
-    "drafts/",
-    "**/*.private.md",
-    "fixtures/**/*.json",
-    "private/",
-    "archive/*",
-    "!archive/keep.mdx",
-    "!dist/",
-  ],
-};
-
-const FILES = {
-  ".notecraft/ignore.json": JSON.stringify(IGNORE, null, 2),
-  ".notecraft/plugins.json": JSON.stringify({ plugins: [{ plugin: "er-diagram-renderer", files: ["fixtures/**/*.json"] }] }, null, 2),
-  ".notecraft/series.json": JSON.stringify({
-    series: [
-      { id: "s", title: "S", eyebrow: "S", description: "", accent: "blue", icon: "target", slugs: ["a", "drafts/b"] },
-    ],
-  }),
-  "a.mdx":
-    fm("A") +
-    "連到 [草稿](./drafts/b.mdx)、[保留](./archive/keep.mdx)。\n\n![私人圖](./private/x.png)\n\n![公開圖](./img/ok.png)\n",
-  "drafts/b.mdx": fm("B") + "IGNORED_SENTINEL_B\n",
-  // 壞掉的 frontmatter：被排除的檔不會被 parse，build 不應因它失敗
-  "drafts/broken.md": "---\ntitle: [unclosed\n---\n\nIGNORED_SENTINEL_BROKEN\n",
-  "c.private.md": fm("C") + "IGNORED_SENTINEL_C\n",
-  "archive/old.md": fm("Old") + "IGNORED_SENTINEL_OLD\n",
-  "archive/keep.mdx": fm("Keep") + "KEEP_SENTINEL\n",
-  "node_modules/pkg/README.md": fm("NM") + "IGNORED_SENTINEL_NM\n",
-  "dist/x.md": fm("Dist") + "IGNORED_SENTINEL_DIST\n",
-  "fixtures/x.json": JSON.stringify({ meta: { title: "X" } }),
-};
-
-function writeTree() {
-  fs.rmSync(notesDir, { recursive: true, force: true });
-  for (const [rel, content] of Object.entries(FILES)) {
-    const abs = path.join(notesDir, ...rel.split("/"));
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, content);
-  }
-  for (const rel of ["private/x.png", "img/ok.png"]) {
-    const abs = path.join(notesDir, ...rel.split("/"));
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, PNG);
-  }
-}
+const writeTree = () => writeSampleTree(notesDir);
 
 function build() {
   fs.rmSync(outDir, { recursive: true, force: true });

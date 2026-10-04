@@ -61,3 +61,4 @@ export function walkNotesAsync(
   onDir?: (e: WalkDir) => void | Promise<void>,
 ): Promise<WalkResult>;
 export function deadNegations(ig: { rules: readonly string[] }, prunedDirs: readonly string[]): string[];
+export const IGNORED_LOCATION_MESSAGE: string;

@@ -4,6 +4,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import {
+  IGNORED_LOCATION_MESSAGE,
+  loadNotesIgnore,
+  resolveNotecraftDir,
+  resolveNotesDir,
+  toNotesRel,
+} from "../src/lib/notes-ignore.mjs";
 
 const args = new Map();
 for (let i = 2; i < process.argv.length; i++) {
@@ -63,6 +70,13 @@ prompt: |
 `;
 
 const abs = path.resolve(process.cwd(), folder, `${slug}.mdx`);
+// 與 POST /api/notes 同一條規則：建在被 .notecraft/ignore.json 排除的位置，建了也不會出現
+const notesDir = resolveNotesDir(process.env, process.cwd());
+const rel = toNotesRel(notesDir, abs);
+if (rel && loadNotesIgnore(resolveNotecraftDir(process.env, process.cwd())).ignores(rel)) {
+  console.error(`error: ${IGNORED_LOCATION_MESSAGE}（${rel}）`);
+  process.exit(1);
+}
 await fs.mkdir(path.dirname(abs), { recursive: true });
 try {
   await fs.access(abs);

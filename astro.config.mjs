@@ -14,6 +14,7 @@ import notesAssets from "./src/lib/notes-assets-integration.ts";
 import noLocalPath from "./src/lib/no-local-path-integration.mjs";
 import crossDriveContent from "./src/lib/vite-cross-drive-content.ts";
 import ignoreGuard from "./src/lib/ignore-guard-integration.mjs";
+import notesIgnoreWatch from "./src/lib/notes-ignore-integration.mjs";
 import { resolveNotecraftDir } from "./src/lib/notes-ignore.mjs";
 
 // v2 Q3 + Bug fix: `.notecraft/` 資料夾**放在 userCwd**（使用者專案根、與 .claude/ 同層），
@@ -58,6 +59,8 @@ export default defineConfig({
     noLocalPath(),
     // 護欄：被 .notecraft/ignore.json 排除的檔出現在產物就 build fail（排在 notesAssets 之後）
     ignoreGuard(),
+    // dev：.notecraft/ignore.json 變動時重新啟動 dev server
+    notesIgnoreWatch(),
   ],
   vite: {
     // Windows：viewer app 與筆記在不同磁碟時修正 content entry 與 @notes glob 的路徑（見檔頭說明）
