@@ -378,7 +378,16 @@ async function countMdx(notesDir, userCwd) {
   return (await scanNotes(notesDir, cliIgnore(notesDir, userCwd), MDX_RE)).count;
 }
 
+// outDir 必須在 cwd（app 根）底下。Astro 5 的 static build 遇到 cwd 外的 outDir 時，SSR 中間產物改寫到
+// <cwd>/.astro/，最後整包 cp 進 outDir 再刪掉（core/build/common.js 的 getOutDirWithinCwd）；
+// 但 <cwd>/.astro/ 同時是 content layer 的 dotAstroDir，data-store.json（每篇筆記的原文與本機路徑）、
+// content-assets.mjs、content-modules.mjs、collections/ 會跟著進產物（1.10.1 修正）。
+// 所以先 build 到 buildStageDir()，再由 moveDir() 搬到快取。
 async function runAstroBuild(cwd, notesDir, outDir, userCwd) {
+  const rel = path.relative(cwd, outDir);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error(`outDir 必須在 app 根（${cwd}）底下，否則 Astro 會把 .astro/ 的內部檔帶進產物：${outDir}`);
+  }
   return new Promise((resolve, reject) => {
     const astroBin = path.join(cwd, "node_modules", "astro", "astro.js");
     const proc = spawn(process.execPath, [astroBin, "build", "--outDir", outDir], {
@@ -559,17 +568,42 @@ function sseSend(res, payload) {
 }
 
 // ── v2: 原子 rebuild（build 到 dist.next → rename 交換） ─────────────
+// 實際的 astro build 輸出在 app 根底下的 staging 目錄（見 runAstroBuild 上方說明），
+// 放 node_modules/ 裡：git、npm pack、tsc、tailwind 都不會掃到。以快取 hash 命名，不同筆記資料夾可並行。
+function buildStageDir(cwd, cacheDir) {
+  return path.join(cwd, "node_modules", ".notecraft-build", path.basename(cacheDir));
+}
+
+// 同磁碟 rename；app 與快取在不同磁碟（dev 源碼在 D:、家目錄在 C:）時 rename 會 EXDEV，退回複製後刪除
+async function moveDir(src, dest) {
+  try {
+    await fs.rename(src, dest);
+  } catch (err) {
+    if (err?.code !== "EXDEV") throw err;
+    await fs.cp(src, dest, { recursive: true });
+    await fs.rm(src, { recursive: true, force: true });
+  }
+}
+
 async function atomicRebuild(cwd, notesDir, cacheDir, userCwd) {
   const distDir = path.join(cacheDir, "dist");
   const nextDir = path.join(cacheDir, "dist.next");
   const prevDir = path.join(cacheDir, "dist.prev");
+  const stageDir = buildStageDir(cwd, cacheDir);
 
-  // 清 next 與 prev 殘留
+  // 清 staging、next 與 prev 殘留
+  await fs.rm(stageDir, { recursive: true, force: true });
   await fs.rm(nextDir, { recursive: true, force: true });
   await fs.rm(prevDir, { recursive: true, force: true });
 
-  // build 到 dist.next；失敗直接 throw，caller 保留舊 dist
-  await runAstroBuild(cwd, notesDir, nextDir, userCwd);
+  // build 到 staging 再搬成 dist.next；失敗直接 throw，caller 保留舊 dist
+  try {
+    await runAstroBuild(cwd, notesDir, stageDir, userCwd);
+  } catch (err) {
+    await fs.rm(stageDir, { recursive: true, force: true }).catch(() => {});
+    throw err;
+  }
+  await moveDir(stageDir, nextDir);
 
   // 原子交換：舊 dist → prev，next → dist。rename 在同一 filesystem 內原子
   if (existsSync(distDir)) {
