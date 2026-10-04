@@ -112,6 +112,7 @@ npx notecraftapp@1.7.0 serve ./notes
 
 | 版本 | 注意事項 |
 | :-- | :-- |
+| 1.10.0 | 新增 [`ignore.json`](/docs/getting-started/ignore/)。筆記資料夾裡 `node_modules/`、`dist/` 底下的 `.md`／`.mdx` 不再被當成筆記；第一次 `build`／`serve` 若因此筆記數不同，會自動重建一次 |
 | 1.8.5 | 從本機資料夾安裝的 plugin，來源改為只顯示 `local:<資料夾名>`（舊安裝不必重裝）。`build` 會檢查產物，含本機絕對路徑就失敗並列出檔案 |
 | 1.8.1 | `build`／`serve` 的快取改為自動失效：版本、`NOTECRAFT_BASE`、執行的資料夾任一跟上次不同就重建，不再需要 `--rebuild` |
 | 1.5.0 | 儀表板「本週」Tab 改為「更新月曆」，原本的近 7 日筆記列表移除（資訊仍在總覽的「更新日誌」）。舊的 `?tab=week` 網址會開到月曆 |

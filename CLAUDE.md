@@ -33,6 +33,7 @@ src/
 ├── lib/wb-nav.ts                換頁轉場分類（peer／drill／section）；lib/wb-tabs-prepaint.ts、lib/series-progress-pure.ts 是殼的預繪。三者都以 toString() 內嵌進 inline script：函式必須自足、只能 import type，check:wb 斷言
 ├── lib/update-check.ts          檢查更新的純函式（semver／落後版數／Node 需求／快取／toast 條件）；lib/changelog-parse.ts 解析 CHANGELOG。兩者只能 import type，scripts/checks/upd-*.mjs 斷言（npm run check:upd）
 ├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
+├── lib/notes-ignore.mjs          .notecraft/ignore.json 的比對、走訪（walkNotes）與 .notecraft 位置解析（resolveNotecraftDir）；.mjs 是因為 Astro、dev-api、CLI 三種環境共用，scripts/checks/notes-ignore.mjs 斷言（npm run check:ignore）；build／dev 期單例在 lib/notes-ignore-state.mjs
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
 ├── pages/
@@ -146,6 +147,7 @@ status: pending | generated | locked | failed
 
 ```
 <專案根>/.notecraft/
+├── ignore.json                     排除檔案（類 .gitignore，見下方「排除檔案」）
 ├── plugins.json                    映射：哪些檔案交給哪個 plugin
 └── plugins/
     ├── _types.d.ts                 安裝時產生，供 renderer 取 PluginRendererProps
@@ -207,6 +209,18 @@ repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就�
 - CSS 變數是 `--oar-*`（不是 handoff 的 `--wb-oa-*`，`--wb-*` 是 app 的命名空間）；斷點一律 container query
 - 與 ER **不共用模組**（各自安裝）：`markdown-text.ts` 各持一份，由 `oar-markdown.mjs` 對照兩邊輸出；骨架樣式以相同數值對齊
 
+## 排除檔案 `.notecraft/ignore.json`（v1.10.0）
+
+[docs/notecraft-ignore-config.md](docs/notecraft-ignore-config.md)。`{ "ignore": [...] }`，語法同 `.gitignore`（`ignore` 套件），基準是 notesDir；被排除的檔**一律不讀**（筆記、plugin 資料檔、附件都算）。
+
+- **走訪 notesDir 一律經 `walkNotes()`／`walkNotesAsync()`**（`lib/notes-ignore.mjs`），不要再自寫 `readdir` 遞迴；`.notecraft/` 的位置只由 `resolveNotecraftDir()` 決定（plugins.json、ignore.json、`@notes` alias 同一處，只讀一份）
+- **內建排除**（`.` 開頭、`node_modules/`、`dist/`）加在使用者規則之後，`!` 解除不了
+- 筆記 collection 用 `lib/ignoring-loader.ts` 包 `glob()`：**`glob()` 的 pattern 不可放使用者的負向 pattern**（Astro dev watcher 以 `picomatch.isMatch(陣列)` 判斷，負向 pattern 會讓被排除的筆記冒出來、甚至把 .json 當筆記）。初次載入用 `walkNotes()` 算出的字面負向 pattern，dev watcher 與 `store.set` 另外過濾
+- `ignore.json` 格式錯誤一律 build fail；dev 期間它一變動就重啟 dev server（`lib/notes-ignore-integration.mjs`），`serve` 換新比對器並 rebuild
+- 被排除 = 不出現在任何產物：`lib/ignore-guard-integration.mjs` 在 build 後掃 `notes-assets/` 與 `/wb-index.json`，違反直接 throw
+- 刪筆記判斷孤兒元件時**連被排除的筆記一起看**（它們還在硬碟上）
+- 整合驗證：`node scripts/fixtures/ignore-sample.mjs`（build）、`node scripts/fixtures/ignore-dev.mjs`（dev API、dev 重啟、CLI 快取與 serve watcher），各要幾分鐘，不在 `check-plugins` 裡
+
 ## dev-only API（僅 `astro dev` 期間存在，build 時不輸出）
 
 - `POST /api/notes` — 新增筆記（建檔 + 預設 frontmatter + AI 標記範本）
@@ -219,6 +233,7 @@ repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就�
 - `PUT /api/plugins/:id` body `{ enabled }` — 增刪 `.notecraft/plugins.json` 頂層 `disabled` 陣列的元素；只動這個鍵、保留作者排版
 
 **所有 endpoint 僅綁定 `localhost`**。寫入後受影響 MDX 的 `updatedAt` 都要更新。
+被 `.notecraft/ignore.json` 排除的檔對所有 endpoint 都不存在（標籤統計／改名／刪除不碰、slug 查找 404、資料夾不列、`/notes-assets/*` 404、新增到被排除的位置 400）。
 
 ### 標籤字串規範
 

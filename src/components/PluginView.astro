@@ -9,7 +9,9 @@
 //
 // src 的基準與 plugins.json 的 files 一致（notesDir）。找不到對應資料檔、
 // 或該檔未被任何 plugin 認領 → build fail，與規格 §7.7 的其餘失敗模式一致。
+import fs from "node:fs";
 import path from "node:path";
+import { getNotesDir, isIgnoredAbs } from "@/lib/notes-ignore-state.mjs";
 import GeneratedFrame from "@/components/GeneratedFrame.astro";
 import PluginHost from "@/components/islands/PluginHost.tsx";
 import { getDataFiles, getPlugins } from "@/lib/plugins";
@@ -32,10 +34,14 @@ const file =
   getDataFiles().find((f) => f.routePath === wanted.replace(/\.json$/i, ""));
 
 if (!file) {
+  const abs = path.join(getNotesDir(), ...wanted.split("/"));
+  const ignored = !wanted.split("/").includes("..") && fs.existsSync(abs) && isIgnoredAbs(abs);
   throw new Error(
     `[PluginView] 找不到資料檔 "${src}"。\n` +
-      `  基準為筆記資料夾（與 plugins.json 的 files 相同）。\n` +
-      `  請確認該檔存在、且 .notecraft/plugins.json 有規則涵蓋它。`,
+      (ignored
+        ? `  該檔被 .notecraft/ignore.json 排除，NoteCraft 不會讀它；請調整 ignore.json 或拿掉這個 <PluginView>。`
+        : `  基準為筆記資料夾（與 plugins.json 的 files 相同）。\n` +
+          `  請確認該檔存在、且 .notecraft/plugins.json 有規則涵蓋它。`),
   );
 }
 

@@ -49,6 +49,7 @@ export const WRITING: Record<string, Fig> = {
       { id: "files", kind: "tree", ref: 12, name: "真實檔名", to: "檔名會被正規化", side: "l", box: [16, 16, 170, 204], p: { items: ["docs/", "  hello.mdx", "  Guides/", "    my note.mdx", "    oauth/", "      flow.mdx"], on: 5 } },
       { id: "note", kind: "file", ref: 14, name: "相對連結", to: "筆記之間互相連結", box: [160, 30, 300, 170], p: { text: "setup.md", variant: "h" } },
       { id: "app", kind: "browser", ref: 16, name: "/notes/ 網址", to: "路徑與網址對照", box: [110, 60, 310, 180], p: { text: "/notes/…/oauth/flow" } },
+      { id: "ignore", kind: "json", ref: 18, name: "不想變成筆記的", to: "不想變成筆記的檔案", box: [180, 150, 312, 212], p: { text: "ignore.json", items: ["drafts/", "CHANGELOG.md"], on: 0 } },
     ],
   },
   "writing/embed": {

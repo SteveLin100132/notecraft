@@ -4,6 +4,29 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.10.0] - 2026-10-04
+
+<!-- 重點：.notecraft/ignore.json：像 .gitignore 一樣排除不想讓 NoteCraft 讀的檔案 -->
+
+### 新增
+
+- **`.notecraft/ignore.json`**（設計文件 `docs/notecraft-ignore-config.md`）：以 `.gitignore` 的語法排除檔案與資料夾，例如 `drafts/`、`**/*.private.md`、`!archive/keep.mdx`。被排除的檔完全不讀：不成為筆記、不被 plugin 認領、不出現在資料夾樹與新增筆記的選單、圖片不複製進產物、改了也不觸發 rebuild
+- 改了 `ignore.json` 自動生效：`view` 會重新啟動 dev server，`serve` 會重新 build；格式寫錯時 build 失敗並指出是哪一條
+- build log 印出規則數與排除了多少檔；`!` 規則因為父資料夾整個被排除而無效、想用 `!` 解除內建排除、`ignore.json` 放錯 `.notecraft/` 時各有一行提醒；筆記連到或引用被排除的檔時也會提醒
+- 新增筆記（工作台按鈕與 `npm run new-note`）不能建在被排除的位置
+- JSON Schema：`schemas/ignore.schema.json`，可在 `ignore.json` 用 `$schema` 取得編輯器提示
+
+### 修正
+
+- 筆記資料夾裡 `node_modules/`、`dist/` 底下的 Markdown 不再被當成筆記（之前只有 Sidebar 以外的地方會跳過）
+
+### 內部
+
+- 走訪筆記資料夾的地方（筆記、plugin 資料檔、dev API、CLI 的快取判斷與 watcher）改用同一個 `src/lib/notes-ignore.mjs`；`.notecraft/` 位置的解析也收斂到這裡
+- build 完多一道檢查：產物中出現被排除的檔就讓 build 失敗
+- 新增 `npm run check:ignore`（比對語意的斷言，`check-plugins` 一併執行）；`scripts/fixtures/ignore-sample.mjs`、`ignore-dev.mjs` 是實際跑 build／dev／CLI 的整合驗證
+- 新增依賴 `ignore`
+
 ## [1.9.0] - 2026-10-03
 
 <!-- 重點：檢查更新：npm 有新版時提醒，並列出錯過的 CHANGELOG -->

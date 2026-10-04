@@ -47,6 +47,7 @@ export const CHAPTERS: DocChapter[] = [
         children: [
           { title: "Frontmatter", slug: "getting-started/frontmatter" },
           { title: "系列設定", slug: "getting-started/series" },
+          { title: "排除檔案", slug: "getting-started/ignore" },
           { title: "安裝內建 Skill", slug: "getting-started/skills" },
           { title: "安裝與設定內建 Plugin", slug: "getting-started/plugins" },
         ],
@@ -133,6 +134,7 @@ export const CHAPTERS: DocChapter[] = [
       { title: "Frontmatter 欄位", slug: "reference/frontmatter" },
       { title: "@ai-visualize 標記欄位", slug: "reference/markers" },
       { title: "series.json", slug: "reference/series-json" },
+      { title: "ignore.json", slug: "reference/ignore-json" },
       { title: "plugins.json 與 notecraft-plugin.json", slug: "reference/plugin-json" },
       { title: "鍵盤快捷鍵", slug: "reference/shortcuts" },
       { title: "網址參數", slug: "reference/url-params" },

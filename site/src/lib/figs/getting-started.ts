@@ -73,6 +73,16 @@ export const GETTING_STARTED: Record<string, Fig> = {
       { id: "progress", kind: "progress", ref: 18, name: "系列卡進度", to: "範例", box: [130, 120, 310, 210], p: { n: 3, on: 0 } },
     ],
   },
+  "getting-started/ignore": {
+    caption: "排除檔案分解圖：ignore.json 放在專案根的 .notecraft/，規則從筆記資料夾算起。",
+    layers: [
+      { id: "base", kind: "slab", ref: 10, name: "專案根目錄", to: "寫一份-ignorejson", slab: 14, p: { text: "my-project/" } },
+      { id: "files", kind: "tree", ref: 12, name: "檔案與規則的根", to: "寫一份-ignorejson", side: "l", box: [12, 16, 170, 204], p: { items: [".notecraft/", "  ignore.json", "docs/", "  drafts/", "  archive/", "  guide.md"], on: 1 } },
+      { id: "json", kind: "json", ref: 14, name: "規則", to: "規則怎麼寫", box: [150, 16, 312, 150], p: { text: "ignore.json", items: ["drafts/", "*.private.md", "archive/*", "!archive/keep"], on: 3 } },
+      { id: "scan", kind: "scan", ref: 16, name: "完全不讀", to: "排除之後", box: [40, 110, 220, 200], p: { n: 4, on: -1 } },
+      { id: "term", kind: "terminal", ref: 18, name: "build log 摘要", to: "改了之後", box: [150, 140, 312, 212], p: { text: "[ignore] 6 條規則" } },
+    ],
+  },
   "getting-started/skills": {
     caption: "內建 Skill 分解圖：init-skill 把 Skill 與 Subagent 逐檔裝進 .claude/。",
     layers: [

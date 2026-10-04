@@ -1,0 +1,86 @@
+---
+description: 在 .notecraft/ignore.json 用 .gitignore 的寫法排除草稿、私人筆記或不相干的檔案，讓 NoteCraftApp 完全不讀它們。
+---
+
+筆記資料夾常常就是專案原本的 `docs/`，裡面混著不想變成筆記的東西：`CHANGELOG.md`、文件範本、草稿、測試用的大 JSON。把它們寫進 `.notecraft/ignore.json`，NoteCraftApp 就不會讀。1.10.0 起支援。
+
+## 寫一份 ignore.json
+
+以專案根 `my-project/`、筆記資料夾 `docs/` 為例，指令在 `my-project/` 執行：
+
+```text
+my-project/                 ← 在這裡執行 npx notecraftapp view ./docs
+├── .notecraft/
+│   └── ignore.json         ← 檔案放這裡
+└── docs/                   ← 規則以這裡為根
+    ├── drafts/
+    ├── adr/template.md
+    ├── archive/
+    └── guide.md
+```
+
+```jsonc title=".notecraft/ignore.json"
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/notecraftapp/schemas/ignore.schema.json",
+  "ignore": [
+    "# 草稿與私人筆記",
+    "drafts/",
+    "**/*.private.md",
+    "/adr/template.md",
+    "archive/*",
+    "!archive/keep-this.mdx"
+  ]
+}
+```
+
+- **檔案的位置**和 `plugins.json` 一樣，在執行指令那個目錄的 `.notecraft/`
+- **規則的路徑**以筆記資料夾為根：`drafts/` 指的是 `docs/drafts/`。不要在前面加 `docs/`
+- `$schema` 選填，讓編輯器提示格式
+
+## 規則怎麼寫
+
+寫法和 `.gitignore` 相同：
+
+| 寫法 | 意思 | 例子 |
+| :-- | :-- | :-- |
+| `CHANGELOG.md` | 不含 `/`：任何深度的同名檔案或資料夾 | 也會排除 `api/CHANGELOG.md` |
+| `/README.md` | 開頭 `/`：只比對筆記資料夾的根目錄 | 不會排除 `guides/README.md` |
+| `guides/old.md` | 中間有 `/`：從筆記資料夾的根算起 | |
+| `drafts/` | 結尾 `/`：只比對資料夾，底下全部排除 | |
+| `*.test.mdx`、`**/tmp/` | `*`、`?`、`[abc]` 不跨資料夾，`**` 跨任意層 | |
+| `!archive/keep-this.mdx` | 把前面排除的再收回來，後寫的規則優先 | |
+| `# 說明` | 註解 | |
+
+`.` 開頭的檔案與資料夾（`.git/`、`.obsidian/`…）、`node_modules/`、`dist/` 不用寫，一律排除。
+
+<Callout type="warn">
+資料夾整個被排除之後，裡面的檔案用 `!` 收不回來，和 git 一樣。要保留 `archive/` 裡的一篇，寫 `archive/*` 加 `!archive/keep-this.mdx`，不要寫 `archive/`。寫錯時 build log 會提醒這條 `!` 不會生效。
+</Callout>
+
+## 排除之後
+
+被排除的檔案 NoteCraftApp 完全不讀：
+
+- 不會成為筆記，不出現在 Sidebar、筆記列表、搜尋、儀表板
+- 不會被 Plugin 認領，就算 `plugins.json` 的 `files` 有寫到
+- 不會出現在「新增筆記」的資料夾選單，也不能在被排除的位置新增筆記
+- 被筆記引用的圖片不會複製進 build 產物，`view` 也不提供
+- 改了不會觸發 `serve` 的 rebuild，也不會讓 `build` 的快取失效
+
+連到被排除的筆記、引用被排除的圖片、系列裡的章節被排除時，build log 都會提醒，但不會讓 build 失敗。
+
+## 改了之後
+
+存檔就生效：`view` 會自動重新啟動 dev server，`serve` 會重新 build 一次。啟動時 build log 會印一行摘要，確認規則有讀到：
+
+```text
+[ignore] .notecraft/ignore.json：6 條規則，排除 1 個資料夾、3 個檔案（另有內建排除）
+```
+
+格式寫錯（不是合法 JSON、`ignore` 不是字串陣列）時 build 會失敗並指出是哪一條，避免規則默默失效、讓私人筆記上站。
+
+<Callout>
+`ignore.json` 不是存取控制。被排除的檔案仍在硬碟上，也仍會被 git 提交；它保證的是 build 產物裡沒有這些檔案。部署時只部署產物，不要把整個專案丟上去。
+</Callout>
+
+完整規格見 [ignore.json](/docs/reference/ignore-json/)。

@@ -6,7 +6,7 @@ export const GUIDES: Record<string, Fig> = {
     caption: "工作台分解圖：Rail、Sidebar、主區與 Drawer 四層。",
     layers: [
       { id: "screen", kind: "screen", ref: 10, name: "工作台實機", to: "有哪些頁面", also: ["窄螢幕"], box: [0, 0, 320, 200], shot: "dashboard" },
-      { id: "rail", kind: "rail", ref: 12, name: "Rail", to: "rail", side: "l", box: [0, 0, 18, 200] },
+      { id: "rail", kind: "rail", ref: 12, name: "Rail", to: "rail", also: ["檢查更新"], side: "l", box: [0, 0, 18, 200] },
       { id: "sidebar", kind: "sidebar", ref: 14, name: "Sidebar", to: "sidebar", side: "l", box: [18, 0, 82, 200], p: { n: 11, on: 2 } },
       { id: "main", kind: "kpi", ref: 16, name: "主區", to: "主區", box: [82, 20, 320, 200] },
       { id: "drawer", kind: "drawer", ref: 18, name: "Drawer", to: "drawer", box: [214, 0, 320, 200] },

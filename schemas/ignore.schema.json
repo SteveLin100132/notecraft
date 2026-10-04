@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/npm/notecraftapp/schemas/ignore.schema.json",
+  "title": "NoteCraft .notecraft/ignore.json",
+  "description": "類 .gitignore 的排除規則：被命中的檔案與資料夾 NoteCraft 一律不讀。基準是筆記資料夾（notesDir）。",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "ignore": {
+      "type": "array",
+      "description": "規則，語法同 .gitignore：不含 / 比對任何深度、開頭 / 錨定根目錄、結尾 / 只比資料夾、* ? [abc] **、! 反向（後寫的勝）、# 開頭為註解。. 開頭、node_modules/、dist/ 為內建排除，無法以 ! 解除。",
+      "items": { "type": "string" },
+      "examples": [["drafts/", "**/*.private.md", "archive/*", "!archive/keep.mdx"]]
+    }
+  },
+  "additionalProperties": true
+}

@@ -42,6 +42,7 @@ export const ADVANCED: Record<string, Fig> = {
       { id: "server", kind: "server", ref: 12, name: "--host 0.0.0.0", to: "開放到區網", side: "l", box: [10, 120, 150, 210], p: { text: "0.0.0.0" } },
       { id: "shield", kind: "shield", ref: 14, name: "只接受 127.0.0.1", to: "寫入-api-只接受本機", hl: true, box: [110, 30, 260, 170] },
       { id: "flow", kind: "flow", ref: 16, name: "安裝前的檢查", to: "安裝-plugin-前的檢查", box: [20, 60, 300, 140], p: { items: ["路徑", "類型", "import", "engines"], on: 3 } },
+      { id: "ignore", kind: "file", ref: 18, name: "排除的檔案", to: "排除的檔案不會進產物", side: "l", box: [10, 16, 140, 100], p: { text: "drafts/", dashed: true } },
     ],
   },
 };

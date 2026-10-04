@@ -396,6 +396,9 @@ CLI `serve` 子命令啟動後（除非帶 `--no-watch`）：
    ], { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 200 } })
 
 2. 任一事件（add / change / unlink）→ 進 rebuild 佇列
+   （v1.10.0：被 `.notecraft/ignore.json` 與內建排除的檔不觸發、被排除的資料夾不 watch；
+    ignore.json 本身變動 → 換新比對器並 rebuild。快取失效判斷的 md／json 計數同樣不計被排除的檔，
+    見 docs/notecraft-ignore-config.md §5.4）
 
 3. debounce 300ms，佇列合併：
    ├── 300ms 內連續變動 → 只觸發一次 rebuild

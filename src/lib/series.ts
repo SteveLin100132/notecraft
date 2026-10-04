@@ -12,6 +12,7 @@ import { noteMarkers, type Note } from "@/lib/notes";
 import type { ResolvedDataFile } from "@/lib/plugin-types";
 import { getInactiveMatches } from "@/lib/plugins";
 import { withBase } from "@/lib/base";
+import { getNotesDir, isIgnoredAbs } from "@/lib/notes-ignore-state.mjs";
 
 export type { SeriesDef };
 
@@ -144,6 +145,13 @@ export type SeriesChapter = {
   pluginId?: string;
 };
 
+/** 章節對不到時分辨「被 ignore.json 排除」與「真的不存在」：檔案在、且被排除才算前者。 */
+function isIgnoredRef(rel: string): boolean {
+  if (!rel || rel.startsWith("/") || rel.split("/").includes("..")) return false;
+  const abs = path.join(getNotesDir(), ...rel.split("/"));
+  return fs.existsSync(abs) && isIgnoredAbs(abs);
+}
+
 function noteBySlug(notes: Note[], slug: string): Note | undefined {
   return notes.find((n) => n.id === slug);
 }
@@ -167,6 +175,10 @@ export function getSeriesChapters(
           );
           continue;
         }
+        if (isIgnoredRef(`${routePath}.json`)) {
+          console.warn(`[series] 系列 "${series.id}" 的章節 "${ref}" 已被 .notecraft/ignore.json 排除，已跳過。`);
+          continue;
+        }
         console.warn(
           `[series] 系列 "${series.id}" 的章節 "${ref}" 找不到對應的資料檔。` +
             `請確認 .notecraft/plugins.json 的 files 有涵蓋 ${routePath}.json，且該檔已被 plugin 認領。`,
@@ -188,6 +200,10 @@ export function getSeriesChapters(
     }
     const note = noteBySlug(notes, ref);
     if (!note) {
+      if (isIgnoredRef(`${ref}.md`) || isIgnoredRef(`${ref}.mdx`)) {
+        console.warn(`[series] 系列 "${series.id}" 的章節 slug "${ref}" 已被 .notecraft/ignore.json 排除，已跳過。`);
+        continue;
+      }
       console.warn(`[series] 系列 "${series.id}" 的章節 slug "${ref}" 找不到對應筆記，已跳過。`);
       continue;
     }

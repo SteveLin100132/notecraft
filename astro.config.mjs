@@ -13,24 +13,25 @@ import devApi from "./src/dev-api/integration.ts";
 import notesAssets from "./src/lib/notes-assets-integration.ts";
 import noLocalPath from "./src/lib/no-local-path-integration.mjs";
 import crossDriveContent from "./src/lib/vite-cross-drive-content.ts";
+import ignoreGuard from "./src/lib/ignore-guard-integration.mjs";
+import notesIgnoreWatch from "./src/lib/notes-ignore-integration.mjs";
+import { resolveNotecraftDir } from "./src/lib/notes-ignore.mjs";
 
 // v2 Q3 + Bug fix: `.notecraft/` 資料夾**放在 userCwd**（使用者專案根、與 .claude/ 同層），
 // 不放在 notesDir——因為 subagent 從 project root 跑並寫到 cwd 下的 .notecraft/，
 // 若 alias 指向 notesDir/.notecraft 會找不到（例如 serve ./notes 時 notesDir=project/notes/）。
 //
-// 讀取優先序：NOTECRAFT_USER_CWD > NOTECRAFT_NOTES_DIR。CLI 兩者都會設；
+// 讀取優先序：NOTECRAFT_USER_CWD > NOTECRAFT_NOTES_DIR > cwd，唯一實作在 src/lib/notes-ignore.mjs 的
+// resolveNotecraftDir()（plugins.json、ignore.json、@notes alias 都從同一處來）。CLI 兩者都會設；
 // 舊版 CLI 或 npm run astro build 直接跑時可能只有 notesDir，退回舊行為保相容。
+// 主專案 fallback：讓 @notes alias 恆有定義（deck 兩模式 glob 需要）；指向可能不存在的本地 .notecraft，glob 命中 0 筆、不報錯。
 const notesDir = process.env.NOTECRAFT_NOTES_DIR
   ? path.resolve(process.env.NOTECRAFT_NOTES_DIR)
   : null;
 const userCwd = process.env.NOTECRAFT_USER_CWD
   ? path.resolve(process.env.NOTECRAFT_USER_CWD)
   : null;
-const notecraftDir = userCwd
-  ? path.join(userCwd, ".notecraft")
-  : notesDir
-    ? path.join(notesDir, ".notecraft")
-    : path.join(process.cwd(), ".notecraft"); // 主專案 fallback：讓 @notes alias 恆有定義（deck 兩模式 glob 需要）；指向可能不存在的本地 .notecraft，glob 命中 0 筆、不報錯
+const notecraftDir = resolveNotecraftDir(process.env, process.cwd());
 
 // 部署在子路徑時（例：GitHub Pages 的 /notecraft/demo）以 NOTECRAFT_BASE 指定；站內連結經 src/lib/base.ts 的 withBase() 組出。
 const base = process.env.NOTECRAFT_BASE || undefined;
@@ -56,6 +57,10 @@ export default defineConfig({
     notesAssets(),
     // 護欄：產物（.html／.json）含本機絕對路徑就 build fail（見 src/lib/no-local-path-integration.mjs）
     noLocalPath(),
+    // 護欄：被 .notecraft/ignore.json 排除的檔出現在產物就 build fail（排在 notesAssets 之後）
+    ignoreGuard(),
+    // dev：.notecraft/ignore.json 變動時重新啟動 dev server
+    notesIgnoreWatch(),
   ],
   vite: {
     // Windows：viewer app 與筆記在不同磁碟時修正 content entry 與 @notes glob 的路徑（見檔頭說明）
