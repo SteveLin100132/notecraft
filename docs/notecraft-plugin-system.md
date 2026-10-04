@@ -93,6 +93,8 @@ Project Name: NoteCraft Plugin System
 │   ├── series.json                     # 既有
 │   ├── components/                     # 既有：@ai-visualize 生成元件、deck
 │   ├── public/                         # 既有
+│   ├── ignore.json                     # v1.10.0：排除檔案（docs/notecraft-ignore-config.md）；被排除的資料檔在
+│   │                                   #   plugins.json 的 files／exclude 比對之前就略過，等同不存在
 │   ├── plugins.json                    # 新增：專案級映射（§5）
 │   └── plugins/                        # 新增：已安裝的 plugin
 │       └── er-diagram-renderer/

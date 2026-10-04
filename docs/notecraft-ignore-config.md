@@ -1,10 +1,10 @@
 ---
 Project Name: NoteCraft — `.notecraft/ignore.json`（排除檔案設定）
 文件類型: Design Document
-文件版本: v0.1.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定 —— 比對引擎新增 `ignore`（node-ignore）runtime 依賴（Q1 = A）；其餘沿用既有技術棧
-文件狀態: 待實作 —— §12 的 7 題已全數確認（2026-10-04），皆採建議選項
+文件狀態: 已實作（notecraftapp v1.10.0，Task 117–120，2026-10-04）—— §12 的 7 題已全數確認；實作後回填見 §13
 文件作者: 建宇
 建立日期: 2026-10-04
 更新日期: 2026-10-04
@@ -223,7 +223,7 @@ const notes = defineCollection({
 | `handleFolderList()` | 被排除的資料夾不列入新增筆記的下拉 |
 | `findNoteFile()` | slug 對到被排除的檔 → 當作不存在（404）。避免從舊頁籤或書籤對被排除的筆記改標籤、刪除 |
 | `handleNotesAsset()` | 被排除的檔回 404（理由見 §6） |
-| `POST /api/notes` | 目標路徑會被排除 → **400**，訊息「這個位置被 .notecraft/ignore.json 排除，建立後不會出現在 NoteCraft」。CLI `npm run new-note` 共用同一段邏輯 |
+| `POST /api/notes` | 目標路徑會被排除 → **400**，訊息「這個位置被 .notecraft/ignore.json 排除，建立後不會出現在 NoteCraft」。`npm run new-note`（`scripts/new-note.mjs`）是**獨立實作**、不經 handlers（初稿寫「共用同一段邏輯」有誤，2026-10-04 更正），另外加同一個檢查、共用同一句訊息（`IGNORED_LOCATION_MESSAGE`） |
 
 handler 每次請求都重讀 `ignore.json` 很便宜，但與 Content Layer 的快照會不一致；統一取 §4.3 的模組快取，靠 §5.4 的重啟換新。
 
@@ -356,3 +356,34 @@ handler 每次請求都重讀 `ignore.json` 很便宜，但與 Content Layer 的
 | Q5 | 內建排除（`.` 開頭、`node_modules`、`dist`）能否用 `!` 解除 | A. 不行　B. 可以 | ✅ **已定：A**（2026-10-04）—— `.notecraft`、`.git` 被當成筆記資料夾只會出事；真有需要再開 |
 | Q6 | 去哪裡找 `ignore.json` | A. 與 `plugins.json` 同一處（單一 `notecraftDir`）　B. 與 `series.json` 一樣 `notesDir`、`userCwd` 兩處都找並合併 | ✅ **已定：A**（2026-10-04）—— 規則基準與 plugin 規則一致；兩處合併的優先序難以說明 |
 | Q7 | UI | A. 不做，只有 build log　B. 「設定與關於」加唯讀區塊 | ✅ **已定：A**（2026-10-04）—— 第一版範圍最小；日後若做，規則與路徑只在 dev 顯示（§8） |
+
+---
+
+## 13. 實作後回填（2026-10-04，notecraftapp v1.10.0，Task 117–120）
+
+### 13.1 與本文不同之處
+
+| 項目 | 本文原寫 | 實際 | 原因 |
+| :-- | :-- | :-- | :-- |
+| 型別檔 | `notes-ignore.d.ts` | `notes-ignore.d.mts` | `.ts` 以 `./notes-ignore.mjs` import 時 TypeScript 找 `.d.mts` |
+| build 期單例 | `notes-ignore-state.ts`、模組層快取 | `notes-ignore-state.mjs`、掛 `globalThis` | dev-api 與 integration 是 `.mjs` 也要用；astro.config 與 Vite SSR 各有一份模組實例，掛模組層會讀兩次、印兩次 |
+| 語法錯誤（§7） | 交給 `ignore` 套件 throw | 自己擋未閉合的 `[` | `ignore` 對無效寫法靜默當成不命中、從不 throw；不擋就違反 Q4 |
+| Content Collection（§5.1） | 只攔 `store.set` | 三層：字面負向 pattern＋包 `context.watcher`＋`store.set` 兜底 | 只攔 `store.set` 時被排除的檔仍被讀、parse frontmatter（壞 YAML 讓整個 build 失敗），dev watcher 還會把 notesDir 的 `.json` 當筆記同步 |
+| §1 盤點 | 9 處 | 10 處 | `handlers.mjs` 另有一份 `resolveNotecraftDir()`，已改為委派 |
+| `npm run new-note`（§5.3） | 與 handlers 共用邏輯 | 獨立實作，另加同一個檢查 | `scripts/new-note.mjs` 只 import `node:*` |
+| 訊息中的檔名（§7） | 相對路徑 | 一律 `.notecraft/ignore.json`；被遮蔽的那份以 `.notecraft/` 所在資料夾為基準 | viewer 的 cwd 是 app 根，相對 cwd 會變成 `../../…` |
+| 刪筆記的孤兒判斷 | 未提 | 連被排除的筆記一起看 | 被排除的筆記仍在硬碟上，它引用的元件被刪會讓日後取消排除時壞掉 |
+| `serve` 的父行程 | 未提 | 啟動時設 `NOTECRAFT_NOTES_DIR`／`NOTECRAFT_USER_CWD` | 父行程送 `/notes-assets/*` 時 handlers 收到的 cwd 是 packageRoot，不設會讀到錯的 `.notecraft/` |
+| `serve` 的 watcher | 被排除的資料夾不 watch | 同左，但**啟動時**被排除、之後取消排除的資料夾要重開 `serve` 才會被 watch | chokidar 的 `ignored` 只在遇到路徑時判斷一次 |
+
+### 13.2 驗證
+
+- `npm run check:ignore`：18 組（語意、內建排除、剪枝、`!` 救不回、JSON 形狀、路徑解析、遮蔽）
+- `node scripts/fixtures/ignore-sample.mjs`：以範例資料夾實際 build，8 項（無頁面、`archive/*`＋`!` 救回、`wb-index.json`、附件、build log、無絕對路徑、壞檔 build fail）；暫時讓 loader 不過濾時，產物護欄列出 5 個外洩 path 並 throw
+- `node scripts/fixtures/ignore-dev.mjs`：astro dev 的 dev API、notes-assets、存檔不冒出、改／刪 `ignore.json` 重啟；`notecraftapp build` 的快取；`notecraftapp serve` 的 watcher
+- 主專案 build 49 頁不變；tsc 錯誤 51 → 40（新檔 0 個）；`check-plugins` 通過
+
+### 13.3 已知限制
+
+- 同一個 app 根底下有另一個 astro 行程同時在跑（例如作者在 repo 開著 `npm run dev`，又跑 `ignore-dev.mjs`）時，兩者共用 `.astro/data-store.json`，新起的 dev server 可能讀到另一個專案的筆記，直到下一次重新同步（既有行為，與 ignore 無關；依序切換筆記資料夾時 Astro 會偵測設定變更而清空 store，不受影響）。`ignore-dev.mjs` 遇到時會觸碰 `ignore.json` 強制重新同步
+- 取消排除一個會被 plugin 規則命中、但不符 schema 的資料檔，build 會照「失敗一律 build fail」失敗——這是預期，但作者可能以為是 ignore 的問題

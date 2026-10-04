@@ -648,7 +648,9 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - 新 token 一律 `--wb-*`，規則零色碼；每條動畫都要有 reduced-motion 對應
 > - 驗收以 `astro preview` 為準；registry／CHANGELOG 的情境用 Network overrides 或暫時包 `fetch`，驗完移除
 
-## v1.21.0 追加功能（§8.1 Phase 4.25）— 排除檔案 `.notecraft/ignore.json`（notecraftapp v1.10.0）
+## v1.21.0 追加功能（§8.1 Phase 4.25）— 排除檔案 `.notecraft/ignore.json`（notecraftapp v1.10.0）✅ 已完成（2026-10-04）
+
+> **已完成（2026-10-04）**：Task 117–120 全部實作於 `feat/ignore-config`。實測結論回填於規格 §13；各 Task 檔末有「實作記錄」。
 
 規格 [notecraft-ignore-config.md](../notecraft-ignore-config.md)。
 作者在 `.notecraft/ignore.json` 寫類 `.gitignore` 的規則（`drafts/`、`**/*.test.mdx`、`!archive/keep.mdx`），被命中的檔案與資料夾 NoteCraft 一律不讀：不成為筆記、不被 plugin 認領、不進資料夾樹與新增筆記下拉、不複製進產物、改了也不觸發 rebuild。

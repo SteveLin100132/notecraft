@@ -61,3 +61,10 @@
 ## 依賴
 
 Task 117、118、119。
+
+## 實作記錄（2026-10-04）
+
+- note-scanner 兩份都加「排除的檔案」一節與孤兒判斷規則。`skill-template/` 版**手動套用同一段文字**、沒有跑 `npm run sync-skill`：sync 會從 `.claude/` 重新產生整個 `skill-template/`，蓋掉作者在 `skill-template/` 其他 7 個檔尚未提交的修改。新增段落不含任何會被 sync 替換的路徑，`prepublishOnly` 重新 sync 時結果相同
+- `bump-prd` skill 需要 Git Bash，本機 Git Bash 當掉（留下 `sh.exe.stackdump`，已刪除），PRD 依 Phase 4.24 的格式手動補 Phase 4.25、v1.21.0
+- 文件：README「排除檔案」、CLAUDE.md（目錄、`.notecraft/` 結構、新增一節規則、dev-only API）、plugin-system §4.1、npx-viewer-v2 §7.2、設計文件 §13 回填與 §5.3 更正、CHANGELOG 1.10.0、`package.json` 1.10.0
+- 以本 repo `docs/` 對 viewer 實測與 jsDelivr 上 `$schema` 網址，需發佈後才能驗（未做）

@@ -130,6 +130,41 @@ npx notecraftapp install-plugin
 
 ---
 
+## 排除檔案
+
+筆記資料夾裡有不想讓 NoteCraft 讀的東西（草稿、私人筆記、測試用的大 JSON），在 `.notecraft/ignore.json` 寫規則，語法同 `.gitignore`：
+
+```json
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/notecraftapp/schemas/ignore.schema.json",
+  "ignore": [
+    "drafts/",
+    "**/*.private.md",
+    "CHANGELOG.md",
+    "archive/*",
+    "!archive/keep-this.mdx"
+  ]
+}
+```
+
+| 寫法 | 意義 |
+| --- | --- |
+| `CHANGELOG.md` | 不含 `/`：任何深度的同名檔或資料夾 |
+| `/README.md` | 開頭 `/`：只比對筆記資料夾根目錄 |
+| `drafts/` | 結尾 `/`：只比對資料夾，整棵子樹排除 |
+| `*.test.mdx`、`**/tmp/` | `*`、`?`、`[abc]` 不跨層，`**` 跨任意層 |
+| `!archive/keep-this.mdx` | 把先前排除的納回，後寫的勝 |
+| `# 說明` | 註解 |
+
+- 路徑相對筆記資料夾；`ignore.json` 與 `plugins.json` 放在同一個 `.notecraft/`（執行 `npx notecraftapp` 的資料夾）
+- 被排除的檔**完全不讀**：不成為筆記、不被 plugin 認領、不出現在資料夾樹與新增筆記的選單、圖片不複製進產物、改了也不觸發 rebuild
+- `.` 開頭的檔案與資料夾、`node_modules/`、`dist/` 一律排除，不必寫，也無法用 `!` 解除
+- 資料夾整個被排除後，裡面的檔用 `!` 救不回（同 git）：要保留 `archive/` 裡的一篇，寫 `archive/*` 而不是 `archive/`
+- 改了 `ignore.json` 會自動生效（`view` 重啟 dev server、`serve` 重新 build）；格式寫錯會讓 build 失敗並指出哪一條
+- **它不是存取控制**：被排除的檔仍在硬碟上、仍會被 git commit；它保證的是 build 產物（`dist/`）裡沒有它們
+
+---
+
 ## 系統需求
 
 - **Node.js ≥ 22**

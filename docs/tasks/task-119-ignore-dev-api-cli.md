@@ -78,3 +78,14 @@ Task 118 之後 build 產物已經乾淨，但 dev 與 CLI 還有三種不一致
 ## 依賴
 
 Task 117、Task 118。
+
+## 實作記錄（2026-10-04）
+
+- `handlers.mjs` 的五個接點已在 Task 118 的 commit 一起完成；handlers 以 notecraftDir 為 key 自己快取比對器，匯出 `resetHandlersIgnore()` 給 dev 重啟與 CLI 換新用
+- `findNoteFile()` 不改（新增筆記的撞名檢查要看到硬碟上所有檔），另加 `findVisibleNoteFile()` 給改標籤、刪除、刪除計畫用
+- 刪筆記的孤兒判斷**連被排除的筆記一起看**（只套內建排除）：被排除的筆記還在硬碟上，誤刪它引用的元件日後取消排除就壞了
+- `IGNORED_LOCATION_MESSAGE` 放在 `notes-ignore.mjs`，`POST /api/notes` 與 `npm run new-note` 共用
+- `notes-ignore-integration.mjs` 以 Vite 的 `server.restart()` 重啟：實測 log 出現「ignore.json 已變更，重新啟動 dev server」後 Content Layer 重新同步、被排除的 entry 消失
+- CLI：`serve` 送 `/notes-assets/*` 時 handlers 收到的 cwd 是 packageRoot，所以 `serve` 啟動時在父行程設 `NOTECRAFT_NOTES_DIR`／`NOTECRAFT_USER_CWD`（與子行程相同）；`ignored` callback 用 chokidar 5 的 `(path, stats)` 簽名只剪資料夾
+- `writeMeta` 的 `fileCount` 改成不含被排除的檔：從 1.9.0 升上來第一次 `view`／`build` 若數字不同會重建一次
+- 驗證：`node scripts/fixtures/ignore-dev.mjs`（dev API、notes-assets、存檔不冒出、改／刪 `ignore.json` 重啟、build 快取、serve watcher）

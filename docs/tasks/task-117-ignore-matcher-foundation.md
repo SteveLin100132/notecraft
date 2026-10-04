@@ -86,3 +86,11 @@
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-04）
+
+- `npm run check:ignore` 18 組全綠；`ignore` 7.0.12 進 `dependencies`
+- 型別檔是 **`notes-ignore.d.mts`**（不是 `.d.ts`）：`.ts` 以 `./notes-ignore.mjs` import 時 TypeScript 找的是 `.d.mts`
+- `ignore` 套件對未閉合的 `[` 之類的寫法是**靜默當成不命中**、不會 throw；為了守住 Q4（不要靜默失效），`createNotesIgnore` 自己擋「`[` 沒有對應 `]`」並指出第幾條，其他無效寫法交給 `ignore` 的容錯
+- `createNotesIgnore` 多回傳 `ignoresByUser()`（只看使用者規則，給「排除 N 個檔案」的統計）與 `rules`；另加 `IGNORE_FILE`、`IGNORED_LOCATION_MESSAGE` 常數（Task 119 共用）
+- 本 Task 不換任何走訪點：build 49 頁與 main 相同；tsc 基準 51 個錯誤，新檔 0 個

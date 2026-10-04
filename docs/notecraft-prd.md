@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.20.0
+文件版本: v1.21.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-10-03
+更新日期: 2026-10-04
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -2700,6 +2700,19 @@ model: haiku
 - **不做**：「稍後提醒」、部署站關閉提醒的 build 選項、深色模式
 - 對應實作 Task 113–116；完整設計見 [notecraft-workbench-update-check.md](./notecraft-workbench-update-check.md)（4 題定案紀錄在其 §16，實作後回填在 §17）
 
+#### Phase 4.25 — 排除檔案 `.notecraft/ignore.json`（v1.21.0 追加）
+
+**目標：筆記資料夾裡不想讓 NoteCraft 讀的檔案，可以像 `.gitignore` 一樣排除**
+
+- 設定檔 `.notecraft/ignore.json`，形狀 `{ "ignore": [...] }`，與 `plugins.json` 同一個 `.notecraft/`、只讀一處；規則語法同 `.gitignore`（`ignore` 套件），基準是筆記資料夾
+- 範圍是**所有檔案**：被排除的不成為筆記、不被 plugin 認領、不出現在資料夾樹與新增筆記的選單、附件不複製進產物、改了不觸發 rebuild；dev-only API 也看不到它們
+- 內建排除 `.` 開頭、`node_modules/`、`dist/`，不能用 `!` 解除；`ignore.json` 格式錯誤一律 build fail
+- 改了 `ignore.json` 自動生效（`view` 重啟 dev server、`serve` 重新 build、CLI 快取失效）
+- 隱私保證：build 後檢查產物，出現被排除的檔就 build fail；它不是存取控制（檔案仍在硬碟、仍被 git 追蹤）
+- 所有走訪筆記資料夾的地方收斂到 `src/lib/notes-ignore.mjs`，順帶修正 `node_modules/` 裡的 Markdown 被當成筆記
+- **不做**：讀 `.gitignore`、巢狀 ignore 檔、UI 編輯或顯示規則、依 frontmatter 排除
+- 對應實作 Task 117–120；完整設計見 [notecraft-ignore-config.md](./notecraft-ignore-config.md)（7 題定案紀錄在其 §12，實作後回填在 §13）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2859,6 +2872,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.21.0] - 2026-10-04
+- **Added**: 新增 Phase 4.25 排除檔案（`.notecraft/ignore.json`）
 
 ### [1.20.0] - 2026-10-03
 - **Added**: 新增 Phase 4.24 檢查更新（npm 新版通知、錯過的 CHANGELOG）

@@ -94,3 +94,13 @@ ignore-sample/
 ## 依賴
 
 Task 117。
+
+## 實作記錄（2026-10-04）
+
+- 單例改寫成 **`notes-ignore-state.mjs`**（不是 `.ts`）：dev-api 與 integration 都是 `.mjs`、也要用；掛在 `globalThis`（`Symbol.for`），因為 astro.config 載入的模組與 Vite SSR 模組圖各有一份實例，掛模組層會讀兩次、印兩次訊息
+- `ignoringLoader` 只攔 `store.set` 不夠：被排除的檔仍會被讀、parse frontmatter（壞 YAML 讓整個 build 失敗），dev watcher 還會把 notesDir 的 `.json` 當成筆記同步。改成三層——初次載入用 `walkNotes()` 算出的**字面**負向 pattern（`!drafts/**`、`!c.private.md`）交給 `glob()`、包一層 `context.watcher` 只放行沒被排除的 `.md`／`.mdx` 事件、`store.set` 兜底（檔名含 glob 特殊字元而無法寫成字面 pattern 的）。實測：拿掉過濾時 build 就死在 `drafts/broken.md` 的壞 frontmatter
+- 訊息裡的檔名一律寫 `.notecraft/ignore.json`（相對 cwd 的寫法在 viewer 下會是 app 根外面的路徑）；被遮蔽的那份以 `.notecraft/` 所在資料夾為基準（如 `docs/.notecraft/ignore.json`）
+- `handlers.mjs` 也有一份 `resolveNotecraftDir()`（§1 盤點漏列），改為委派 `notes-ignore.mjs`；dev-api 的 listMdx／資料夾／slug／notes-assets 接點一併在本 Task 完成（原列 Task 119）
+- `ignore-guard-integration`：`wb-index.json` 的 `notes[].path`、`dataFiles[].relPath` 都是相對 notesDir 的真實路徑，直接比對
+- 驗證：`node scripts/fixtures/ignore-sample.mjs` 8 項全綠（被排除筆記無頁面、`archive/*`＋`!` 救回、`wb-index.json`、附件、log、無絕對路徑、壞檔 build fail）；暫時讓 loader 不過濾時護欄 throw 並列出 5 個外洩 path（含 `node_modules/`、`dist/` 底下的 md，證實 §3.4 的既有問題）
+- tsc 錯誤 51 → 40（`plugins.ts`、`series.ts` 少了直接讀 `process.env` 的地方；新檔 0 個）；主專案 build 49 頁不變；`check-plugins` 通過
