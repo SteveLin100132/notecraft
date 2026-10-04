@@ -12,6 +12,7 @@ import { GENERATED_COMPONENT_PACKAGE_WHITELIST } from "./src/lib/generated-compo
 import devApi from "./src/dev-api/integration.ts";
 import notesAssets from "./src/lib/notes-assets-integration.ts";
 import noLocalPath from "./src/lib/no-local-path-integration.mjs";
+import contentLayerGuard from "./src/lib/content-layer-guard-integration.mjs";
 import crossDriveContent from "./src/lib/vite-cross-drive-content.ts";
 import ignoreGuard from "./src/lib/ignore-guard-integration.mjs";
 import notesIgnoreWatch from "./src/lib/notes-ignore-integration.mjs";
@@ -55,6 +56,8 @@ export default defineConfig({
     devApi(),
     // viewer 模式 build 完把產物引用的 /notes-assets/* 複製進 outDir（見檔頭說明）
     notesAssets(),
+    // 護欄：產物根目錄含 content layer 內部檔（data-store.json 等）就 build fail（排在 noLocalPath 之前，訊息才指得出成因）
+    contentLayerGuard(),
     // 護欄：產物（.html／.json）含本機絕對路徑就 build fail（見 src/lib/no-local-path-integration.mjs）
     noLocalPath(),
     // 護欄：被 .notecraft/ignore.json 排除的檔出現在產物就 build fail（排在 notesAssets 之後）

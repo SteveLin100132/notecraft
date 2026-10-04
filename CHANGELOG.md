@@ -4,6 +4,23 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.10.1] - 2026-10-04
+
+### 安全
+
+- `notecraftapp build`／`serve` 的產物不再夾帶 Astro 的內部檔 `data-store.json`、`content-assets.mjs`、`content-modules.mjs` 與 `collections/`。其中 `data-store.json` 含每篇筆記的**完整原文**與本機絕對路徑（跑過 `view` 後才會出現），之前的版本部署 `dist/` 時會一起公開；建議以這一版重新 build 後再部署一次，並刪掉已部署站上的 `/data-store.json`
+
+### 修正
+
+- 1.10.0 在 `build`／`serve` 時以「`data-store.json` 的輸出含本機絕對路徑」失敗、一直停在舊產物的問題（1.10.0 的產物檢查開始掃 `.json`，才把上面這個既有的外洩抓出來）
+- `build`／`serve` 不再清掉 app 資料夾裡 Astro 的 `.astro/`（`view` 的內容快取與型別檔）
+
+### 內部
+
+- 成因：outDir 不在 astro 的工作目錄底下時，Astro 5 的 static build 先輸出到 `<工作目錄>/.astro/`、再整包複製進 outDir，而那裡同時是 content layer 的資料夾。CLI 改為 build 到 app 底下的 `node_modules/.notecraft-build/<hash>/`，完成後才搬進 `~/.notecraft/cache/<hash>/`（不同磁碟時改用複製）
+- build 完多一道檢查：產物根目錄出現上述內部檔就讓 build 失敗
+- 新增 `scripts/fixtures/content-layer-leak.mjs`：實際跑 CLI build 並斷言產物乾淨，可用 `--app` 指向另一個磁碟上的 app 驗證跨磁碟
+
 ## [1.10.0] - 2026-10-04
 
 <!-- 重點：.notecraft/ignore.json：像 .gitignore 一樣排除不想讓 NoteCraft 讀的檔案 -->
