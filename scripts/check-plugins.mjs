@@ -166,17 +166,21 @@ if (!skipBuild && errors.length === 0) {
     );
     await fs.writeFile(path.join(fixture, "docs", "readme.md"), "# fixture\n", "utf-8");
 
-    // 輸出到 fixture 自己的目錄，不要碰 repo 的 dist/ ——
-    // 這支腳本在開發者機器上也會跑（prepublishOnly），清掉人家的產物很沒禮貌。
+    // 不要碰 repo 的 dist/ —— 這支腳本在開發者機器上也會跑（prepublishOnly），清掉人家的產物很沒禮貌。
+    // 但 outDir 也必須在 cwd（repo 根）底下：放在 fixture（系統暫存）時 Astro 會經 <repo>/.astro/ 中轉，
+    // 把 content layer 內部檔帶進產物而被 content-layer-guard 擋下（與 CLI 同一個坑，見 bin/notecraftapp.mjs 的 runAstroBuild）。
     // 直接以 node 執行 astro.js（與 CLI 相同）：Windows 上 spawnSync("npx") 找不到 npx.cmd，
     // 改 shell: true 又會讓含空白的 fixture 路徑（C:\Users\<名字 有空白>\...）被拆開。
+    const outDir = path.join(root, "node_modules", ".notecraft-build", `check-${id}`);
+    await fs.rm(outDir, { recursive: true, force: true });
     const astroBin = path.join(root, "node_modules", "astro", "astro.js");
-    const r = spawnSync(process.execPath, [astroBin, "build", "--outDir", path.join(fixture, "dist")], {
+    const r = spawnSync(process.execPath, [astroBin, "build", "--outDir", outDir], {
       cwd: root,
       env: { ...process.env, NOTECRAFT_NOTES_DIR: path.join(fixture, "docs"), NOTECRAFT_USER_CWD: fixture },
       stdio: "pipe",
     });
     await fs.rm(fixture, { recursive: true, force: true });
+    await fs.rm(outDir, { recursive: true, force: true });
     if (r.status !== 0) {
       const out = r.error?.message ?? (r.stderr?.length ? r.stderr : r.stdout)?.toString() ?? "（無輸出）";
       fail(`[${id}] 配 example 資料 build 失敗：\n${out.split("\n").slice(-12).join("\n")}`);
