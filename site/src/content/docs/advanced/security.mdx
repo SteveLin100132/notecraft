@@ -24,6 +24,14 @@ API 收到的每個路徑都要通過三道檢查才會讀寫：
 
 例外是 plugin 的啟用與停用：它寫的是 `.notecraft/plugins.json`，只動頂層 `disabled` 陣列，plugin id 也要符合小寫英數與 `-` 的格式。
 
+## 排除的檔案不會進產物
+
+被 [`ignore.json`](/docs/getting-started/ignore/) 排除的檔案，NoteCraftApp 從頭到尾都不讀：不產生頁面、不進搜尋索引與 `/wb-index.json`、資料不嵌進頁面，被筆記引用的圖片也不複製；`view` 的 `/notes-assets/*` 對它們回 404。build 結束時還會再檢查一次產物，出現被排除的檔案就讓 build 失敗，避免日後哪個環節漏掉。
+
+<Callout type="warn">
+這不是存取控制。被排除的檔案仍在你的硬碟上，也仍會被 git 提交；保證的範圍只有 build 產物。部署時只部署產物，不要把整個專案或 repo 公開。
+</Callout>
+
 ## 開放到區網
 
 `view` 與 `serve` 預設綁 `127.0.0.1`，只有本機連得到。帶 `--host 0.0.0.0` 會讓同一個網路裡的其他裝置都能連進來。

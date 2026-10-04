@@ -27,6 +27,7 @@ my-project/
 │   │       ├── renderer.tsx       渲染器入口
 │   │       ├── schema.json        資料檔要符合的 JSON Schema
 │   │       └── …                  Plugin 自帶的其他模組與範例
+│   ├── ignore.json                不想讓 NoteCraftApp 讀的檔案與資料夾
 │   ├── plugins.json               哪些資料檔交給哪個 Plugin
 │   └── series.json                系列：多篇筆記的閱讀順序
 └── .claude/
@@ -46,7 +47,7 @@ my-project/
 | 筆記資料夾 | 你；`view` 的「+ 新增筆記」也會在這裡建檔 |
 | `.notecraft/components/` | Claude Code 處理標記或生成簡報時 |
 | `.notecraft/plugins/`、`plugins.json` | `install-plugin`；帶 `--apply` 時會寫入 `plugins.json` 的規則，之後也可以自己改 |
-| `.notecraft/series.json` | 你 |
+| `.notecraft/series.json`、`ignore.json` | 你 |
 | `.claude/skills/`、`.claude/agents/` | `init-skill` |
 
 ## .notecraft/ 在哪裡
@@ -61,6 +62,8 @@ my-project/
 
 資料檔則相反，必須放在筆記資料夾**裡面**，`plugins.json` 的 `files` 也以筆記資料夾為基準，見[映射規則 plugins.json](/docs/guides/plugin-mapping/)。
 
+`ignore.json` 也是這樣：檔案放在執行目錄的 `.notecraft/`，裡面的規則以筆記資料夾為根。上例寫 `drafts/` 指的是 `docs/drafts/`，見[排除檔案](/docs/getting-started/ignore/)。
+
 ## 哪些要提交
 
 | 路徑 | 提交 | 原因 |
@@ -68,7 +71,7 @@ my-project/
 | 筆記資料夾 | 要 | 你的內容 |
 | `.notecraft/components/` | 要 | 筆記 `import` 這些元件，少了就 build 不起來 |
 | `.notecraft/plugins/` | 要 | `plugins.json` 指到沒安裝的 Plugin 時 build 會失敗 |
-| `.notecraft/plugins.json`、`series.json` | 要 | 設定檔 |
+| `.notecraft/plugins.json`、`series.json`、`ignore.json` | 要 | 設定檔 |
 | `.claude/` | 建議 | 其他人 clone 後就能直接在 Claude Code 生成；不提交的話，各自跑一次 `init-skill` |
 | `~/.notecraft/` | 不在專案裡 | 套件的執行位置與 build 快取 |
 

@@ -29,6 +29,16 @@ description: 筆記資料夾的階層會原樣對到網址。這頁說明檔案�
 
 工作台側欄的資料夾樹顯示的是真實的資料夾與檔名，不受正規化影響。
 
+## 不想變成筆記的檔案
+
+筆記資料夾裡每個 `.md`／`.mdx` 預設都會變成筆記。草稿、範本、`CHANGELOG.md` 這類不想出現的，寫進 `.notecraft/ignore.json`：
+
+```jsonc title=".notecraft/ignore.json"
+{ "ignore": ["drafts/", "CHANGELOG.md", "**/*.private.md"] }
+```
+
+`.` 開頭的資料夾、`node_modules/`、`dist/` 不用寫，本來就不讀。寫法與注意事項見[排除檔案](/docs/getting-started/ignore/)。
+
 ## 筆記之間互相連結
 
 直接用相對路徑連到另一個 `.md`／`.mdx` 檔案：
@@ -42,3 +52,5 @@ description: 筆記資料夾的階層會原樣對到網址。這頁說明檔案�
 <Callout>
 連結的改寫依照檔案路徑原樣產生網址，不會套用上面的正規化。資料夾與檔名用小寫英數與 `-`（或中文）命名，相對連結最不容易出錯。
 </Callout>
+
+連到被 `ignore.json` 排除的筆記時，連結照樣改寫，但那一頁不存在、點了會 404，build log 會提醒。

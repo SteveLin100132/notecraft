@@ -41,6 +41,17 @@ export const REFERENCE: Record<string, Fig> = {
       { id: "scan", kind: "scan", ref: 18, name: "對不到就跳過", to: "對不到時", box: [40, 40, 220, 140], p: { n: 4, on: -1 } },
     ],
   },
+  "reference/ignore-json": {
+    caption: "ignore.json 分解圖：只讀一處，.gitignore 的規則加上內建排除。",
+    layers: [
+      { id: "files", kind: "tree", ref: 10, name: "讀取位置", to: "讀取位置", side: "l", box: [10, 20, 170, 200], p: { items: [".notecraft/", "  ignore.json", "docs/", "  .notecraft/", "    ignore.json"], on: 1 } },
+      { id: "json", kind: "json", ref: 12, name: "頂層 ignore", to: "頂層", box: [150, 20, 310, 110], p: { text: "ignore.json", items: ["$schema", "ignore"], on: 1 } },
+      { id: "table", kind: "table", ref: 14, name: "規則語法", to: "規則語法", box: [100, 60, 310, 170], p: { items: ["寫法", "比對"], on: 0 } },
+      { id: "chips", kind: "chips", ref: 16, name: "內建排除", to: "內建排除", side: "l", box: [10, 150, 170, 196], p: { items: [".*", "node_modules/", "dist/"], on: 0 } },
+      { id: "scan", kind: "scan", ref: 18, name: "影響範圍", to: "影響範圍", box: [40, 40, 220, 140], p: { n: 4, on: -1 } },
+      { id: "flow", kind: "flow", ref: 20, name: "錯誤與生效", to: "錯誤與提醒", also: ["生效時機"], box: [20, 150, 300, 214], p: { items: ["JSON", "規則", "build"], on: 2, dashed: true } },
+    ],
+  },
   "reference/plugin-json": {
     caption: "Plugin 設定檔分解圖：專案的 plugins.json 與 plugin 自帶的 manifest。",
     layers: [

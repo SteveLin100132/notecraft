@@ -13,11 +13,13 @@ npx notecraftapp serve ./notes
 | 位置 | 檔案 |
 | :-- | :-- |
 | 筆記資料夾 | `.md`、`.mdx`，以及資料檔 `.json`（`.` 開頭的資料夾不看） |
-| `.notecraft/` | 第一層的 `.json`，例如 `series.json`、`plugins.json` |
+| `.notecraft/` | 第一層的 `.json`，例如 `series.json`、`plugins.json`、`ignore.json` |
 | `.notecraft/components/` | AI 生成的 `.tsx` 元件 |
 | `.notecraft/plugins/` | 已安裝 plugin 的 `.tsx`、`.ts`、`.json` |
 
 `.notecraft/` 指的是你執行指令那個目錄底下的 `.notecraft/`。
+
+被 [`ignore.json`](/docs/getting-started/ignore/) 排除的檔案改了不會觸發 rebuild，被排除的資料夾也不監看。改 `ignore.json` 本身會換用新規則並 rebuild 一次；啟動 `serve` 時被排除、之後才取消排除的資料夾，要重開 `serve` 才會開始監看。`view` 則是在 `ignore.json` 存檔時自動重新啟動 dev server。
 
 ## 一次 rebuild 怎麼跑
 

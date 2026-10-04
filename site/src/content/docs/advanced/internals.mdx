@@ -42,14 +42,14 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 | `NOTECRAFT_BASE` 跟上次 build 不同 | 設定、改掉或拿掉[子路徑](/docs/guides/deploy/#部署到子路徑) |
 | 執行的資料夾跟上次 build 不同 | `.notecraft/` 從執行的資料夾讀，換資料夾可能拿到另一份設定 |
 | 任一 `.md`／`.mdx` 比上次 build 新 | 改了筆記 |
-| `.notecraft/` 第一層任一 `.json` 比上次 build 新 | 改了 `series.json`、`plugins.json` |
+| `.notecraft/` 第一層任一 `.json` 比上次 build 新 | 改了 `series.json`、`plugins.json`、`ignore.json` |
 | `.md`／`.mdx` 的數量變了 | 新增或刪除筆記 |
 | 資料檔 `.json` 比上次 build 新，或數量變了 | 改了 plugin 渲染的資料 |
 | `.notecraft/plugins/` 裡的檔案比上次 build 新，或數量變了 | 安裝、移除或修改 plugin |
 
 <CacheDecision />
 
-比對時間用的是檔案的 mtime。筆記資料夾底下 `.` 開頭的資料夾不掃。
+比對時間用的是檔案的 mtime。筆記資料夾底下 `.` 開頭的檔案與資料夾、`node_modules/`、`dist/`，以及被 [`ignore.json`](/docs/getting-started/ignore/) 排除的檔案都不掃，改了它們不會讓快取失效，也不計入數量（1.10.0 起；更早的版本只跳過 `.` 開頭的資料夾）。
 
 終端機會印出這次重新 build 的原因，例如 `md/mdx 有變動（最新：guides/setup.mdx）`。
 

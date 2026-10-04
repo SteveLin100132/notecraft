@@ -36,7 +36,8 @@ description: 在 .notecraft/plugins.json 寫映射規則，決定哪些資料檔
 
 - **基準是筆記資料夾。** 執行 `npx notecraftapp view ./docs` 時，`planning/schema.json` 指的是 `docs/planning/schema.json`
 - 支援 `*`、`**`、`?`、`{a,b}`，大小寫有別
-- 點開頭的資料夾（`.notecraft/`、`.git/`）不比對
+- 點開頭的資料夾（`.notecraft/`、`.git/`）、`node_modules/`、`dist/` 不比對
+- 被 [`ignore.json`](/docs/getting-started/ignore/) 排除的檔案在比對之前就略過，`files` 寫到也不會接手；一條規則因此一個檔都沒命中時，警告會附上「另有 N 個檔被 .notecraft/ignore.json 排除」
 - 想讓之後新增的檔案自動被接手，用副檔名慣例搭配 glob，例如 `**/*.er.json`
 
 <Callout type="warn">

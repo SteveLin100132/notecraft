@@ -56,6 +56,14 @@ description: 從各頁文件整理出最常踩到的問題，依安裝啟動、�
 
 1.8.1 以前的版本沒寫 frontmatter 的 `title` 時，標題取檔案裡第一個 `# ` 開頭的行，程式碼區塊裡的也算。升級到 1.8.2 以上就會略過程式碼區塊；不想升級的話，把 `title` 寫進 frontmatter。見[標題、目錄與錨點](/docs/writing/headings/#h1-與-frontmatter-的-title)。
 
+### 寫了 `ignore.json`，檔案卻沒被排除？
+
+先看 build log 有沒有 `[ignore] .notecraft/ignore.json：N 條規則` 這一行，沒有就是檔案放錯位置：它要放在**執行指令的目錄**的 `.notecraft/`，不是筆記資料夾裡。再來確認規則的路徑以筆記資料夾為根，執行 `view ./docs` 時寫 `drafts/`，不要寫 `docs/drafts/`。見[排除檔案](/docs/getting-started/ignore/)。
+
+### `!` 規則為什麼救不回資料夾裡的檔案？
+
+資料夾整個被排除（`archive/`）時不會往下讀，裡面的檔案沒有機會被 `!` 收回，和 git 一樣。改寫成 `archive/*` 加 `!archive/keep.mdx`。build log 會提醒哪一條 `!` 不會生效。見[ignore.json](/docs/reference/ignore-json/#規則語法)。
+
 ### 新增筆記時選了資料夾，檔案卻在最上層？
 
 透過 `npx notecraftapp view` 建立的筆記一律放在筆記資料夾最上層，表單裡的資料夾選項目前不會生效。建立後自己把檔案搬進子資料夾。見[在介面新增與編輯](/docs/guides/editing/#新增筆記)。
