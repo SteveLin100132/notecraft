@@ -1,11 +1,11 @@
 // 檢查更新的共用小元件：pills、提示框、升級指令、行內 Markdown（規格 docs/notecraft-workbench-update-check.md §6.3、§8、§10）。
 // 「版本與更新」區塊與更新內容 Drawer 共用；對應 handoff 的 UpdLevelPills、UpdNotes、UpdCmd(s)、updInline。
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Check, Copy, TriangleAlert } from "lucide-react";
 import { daysLabel, type UpdResult } from "@/lib/update-check";
 import { inlineTokens, type ClCat, type InlineToken } from "@/lib/changelog-parse";
 import type { UpdState } from "@/lib/update-store";
-import { writeClipboard } from "@/lib/clipboard";
+import { useCopyState } from "../useCopyState";
 
 export const UPD_CMDS: { label: string; cmd: string }[] = [
   { label: "viewer 模式", cmd: "npx notecraftapp@latest view" },
@@ -135,23 +135,7 @@ export function UpdateNotes({ r, counts }: { r: UpdResult | null; counts: Partia
 }
 
 function UpdateCmd({ label, cmd }: { label: string; cmd: string }) {
-  const [state, setState] = useState<"" | "done" | "fail">("");
-  const timer = useRef<number | null>(null);
-  const codeRef = useRef<HTMLElement>(null);
-  useEffect(() => () => void (timer.current !== null && window.clearTimeout(timer.current)), []);
-  const copy = async () => {
-    const ok = await writeClipboard(cmd);
-    setState(ok ? "done" : "fail");
-    if (!ok && codeRef.current) {
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(codeRef.current);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    }
-    if (timer.current !== null) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setState(""), 1600);
-  };
+  const { state, copy, selectRef: codeRef } = useCopyState<HTMLElement>(cmd);
   return (
     <div className="wb-upd-cmd">
       <span className="wb-upd-cmd-l">{label}</span>

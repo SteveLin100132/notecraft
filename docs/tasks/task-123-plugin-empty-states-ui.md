@@ -100,3 +100,14 @@ Task 121 之後「0 個外掛」才真的會出現，而現行畫面在這些情
 ## 依賴
 
 Task 121（才看得到 0 個外掛）、Task 122（`derivePluginEnv`、`OFFICIAL_PLUGINS`）。
+
+## 實作記錄（2026-10-06）
+
+- 以 Task 124 的 fixture（tarball 解開、`NOTECRAFTAPP_DEV=1`）逐一開 dev 與 `serve` 驗證；情境 3／5／6／7 dev、情境 6 正式、主 repo 情境 1 都與 handoff 一致
+- **刻意偏離規格 §3.1／§8.2**：原本寫「樂觀更新期間以覆寫後的 `enabled` 重算」。實測情境 7 按下開關後，提示會在重載前的 600ms 從「都停用了」錯跳成「有 1 條映射規則，但沒有命中任何檔案」—— 啟用後會命中哪些檔要重新 build 才知道。改成情境一律以 build 期資料判定，切換中（`override` 非空）只收起 `PlHint`，重載後由新資料接手
+- 複製：Browser pane 拒絕寫剪貼簿，正好驗到失敗路徑（「無法複製」、`aria-live` 朗讀、選取 `<code>`、無 Toast）；成功路徑以暫時替換 `navigator.clipboard.writeText` 驗證：剪貼簿內容不含 `$`、Toast「已複製指令」、1.6 秒後還原
+- `UpdateCmd` 改用 `useCopyState`：升級指令只在有新版時出現，本機是最新版、畫面上點不到；邏輯是原封不動搬進 hook，hook 已在外掛頁驗過兩條路徑
+- 手機 375px：`document.documentElement.scrollWidth === 375`、主要指令框 46px、複製鈕 36px、`.pl-es` padding `36px 14px 48px`
+- 正式環境（`serve` 情境 6）：無 `npx`、無 Switch、無 `PlHint`、無說明框、Sidebar 無 Plugin 區段；列上「無命中」pill 照 handoff 在正式環境也顯示
+- fixture 的 dev server 有 dev toolbar 403：`node_modules` 是 symlink 到主 repo，超出 Vite `fs.allow`；與本改動無關，正式安裝不會發生
+- tsc 錯誤數 40 不變；主 repo build 63 頁；`check:wb` 全綠

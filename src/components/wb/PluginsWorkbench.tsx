@@ -1,8 +1,10 @@
 // /plugins（規格 §8.6）：資料檔 Tab（依資料夾分組、單擊即進渲染頁）與已安裝外掛 Tab（列 + Plugin Drawer）。
-// 列上只有「啟用／停用」一種狀態；「渲染錯誤」「不相容」都不做（Q23、Q24）。Switch 由 Task 71 接上。
+// 列上有「啟用／停用」與「未映射／無命中」；「渲染錯誤」「不相容」都不做（Q23、Q24）。Switch 由 Task 71 接上。
+// 沒有資料檔、沒有外掛時的畫面依 lib/wb-plugin-env.ts 的 reason 分派（docs/notecraft-workbench-plugin-empty-states.md）。
 import { useEffect, useMemo, useState } from "react";
 import { Folder, Plug, Search, Sparkles } from "lucide-react";
 import type { WbDataFile, WbPlugin } from "@/lib/wb-types";
+import { derivePluginEnv, pluginRowState } from "@/lib/wb-plugin-env";
 import { ROOT_GROUP } from "@/lib/wb-types";
 import { md } from "@/lib/wb-time";
 import WbHeader from "./WbHeader";
@@ -11,21 +13,9 @@ import PluginDrawer from "./PluginDrawer";
 import { GroupHeader, Ic, Pill, SearchBox, StatStrip } from "./ui";
 import { PluginSwitch, PluginToggleButton } from "./PluginToggle";
 import { withBase } from "@/lib/base";
+import { PlDataEmpty, PlHint, PlInstallEmpty } from "./plugins/PluginEmpty";
 
 type Tab = "files" | "installed";
-
-export function PluginEmptyState() {
-  return (
-    <div className="wb-empty" style={{ textAlign: "left", maxWidth: 560, margin: "0 auto", padding: "56px 16px" }}>
-      <h2 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700, color: "var(--wb-ink)" }}>還沒有資料檔</h2>
-      <p style={{ margin: 0, lineHeight: 1.8 }}>
-        資料檔是被 plugin 畫成頁面的結構化 JSON。裝一個 plugin、在 <code className="wb-code">.notecraft/plugins.json</code>{" "}
-        寫一條映射，符合的檔案就會出現在這裡。
-      </p>
-      <pre className="wb-pre" style={{ marginTop: 14, borderRadius: 6, border: "1px solid var(--wb-line)" }}>npx notecraftapp install-plugin</pre>
-    </div>
-  );
-}
 
 export default function PluginsWorkbench({
   files = [],
@@ -33,12 +23,15 @@ export default function PluginsWorkbench({
   enabledSystem = true,
   appVersion = "",
   isDev = false,
+  workspaceLabel = "",
 }: {
   files?: WbDataFile[];
   plugins?: WbPlugin[];
   enabledSystem?: boolean;
   appVersion?: string;
   isDev?: boolean;
+  /** 筆記資料夾的顯示名稱（WbIndex.workspaceLabel，不含本機絕對路徑）；情境 6 的提示用 */
+  workspaceLabel?: string;
 }) {
   const [tab, setTab] = useState<Tab>("files");
   // 樂觀更新後的啟用狀態；API 成功後整頁重載，build 期資料才會跟上
@@ -79,6 +72,33 @@ export default function PluginsWorkbench({
     return out.sort((a, b) => (a.key === "" ? -1 : b.key === "" ? 1 : a.key.localeCompare(b.key, "zh-Hant")));
   }, [shown]);
 
+  // 情境以 build 期資料判定。切換啟用狀態後到重載前（600ms），啟用後會命中哪些檔還不知道：
+  // 用覆寫後的狀態重算會把「都停用了」錯判成「有規則但沒命中」，所以這段期間只收起提示，重載後由新資料接手
+  const env = derivePluginEnv({ plugins, hasConfig: enabledSystem, fileCount: files.length });
+  const toggling = Object.keys(override).length > 0;
+  const noFiles = files.length === 0;
+  const noPlugins = plugins.length === 0;
+  const REASON_PILL = { nomap: "未設定映射", nohit: "映射無命中", disabled: "外掛全部停用" } as const;
+  const pills: { label: string; tone?: "muted" | "warn" }[] = !noFiles
+    ? [{ label: `${files.length} 個資料檔`, tone: "muted" }, { label: `已裝 ${plugins.length} 個外掛` }]
+    : !isDev
+      ? []
+      : noPlugins
+        ? [{ label: "未安裝外掛", tone: "muted" }]
+        : [
+            { label: `已裝 ${plugins.length} 個外掛` },
+            ...(env.reason === "nomap" || env.reason === "nohit" || env.reason === "disabled"
+              ? [{ label: REASON_PILL[env.reason], tone: "warn" as const }]
+              : []),
+          ];
+  const installedLbl = !noPlugins
+    ? ".notecraft/plugins.json ・ 展開可看映射規則、設定覆寫與外掛檔案"
+    : !isDev
+      ? "這個站沒有使用外掛"
+      : env.reason === "fresh"
+        ? "尚未建立 .notecraft/plugins.json ・ 沒有已安裝的外掛"
+        : ".notecraft/plugins.json ・ 沒有已安裝的外掛";
+
   const enabledCount = plugins.filter(isOn).length;
   const mappedCount = new Set(plugins.flatMap((p) => p.matched)).size;
   const selPlugin = sel ? (plugins.find((p) => p.id === sel) ?? null) : null;
@@ -88,10 +108,7 @@ export default function PluginsWorkbench({
       <WbHeader
         title="Plugin 資料檔"
         crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "Plugin" }]}
-        pills={[
-          { label: `${files.length} 個資料檔`, tone: "muted" },
-          { label: `已裝 ${plugins.length} 個外掛` },
-        ]}
+        pills={pills}
         tabs={[
           { key: "files", label: "資料檔" },
           { key: "installed", label: "已安裝外掛" },
@@ -103,15 +120,27 @@ export default function PluginsWorkbench({
       {tab === "files" ? (
         <>
           <div className="wb-tb">
-            <span className="wb-tb-lbl">所有 plugin 資料檔，依所在資料夾分組</span>
-            <div className="wb-tb-right">
-              <SearchBox value={q} onChange={setQ} icon={Search} placeholder="搜尋檔名、plugin…" />
-              <span className="wb-count tnum">{shown.length} 個</span>
-            </div>
+            {noFiles ? (
+              <span className="wb-tb-lbl">{isDev ? "沒有資料檔 ・ 由外掛渲染的 JSON 檔會列在這裡" : "這個站沒有使用資料檔"}</span>
+            ) : (
+              <>
+                <span className="wb-tb-lbl">所有 plugin 資料檔，依所在資料夾分組</span>
+                <div className="wb-tb-right">
+                  <SearchBox value={q} onChange={setQ} icon={Search} placeholder="搜尋檔名、plugin…" />
+                  <span className="wb-count tnum">{shown.length} 個</span>
+                </div>
+              </>
+            )}
           </div>
           <div id="nc-scroll" className="wb-body flush">
-            {!enabledSystem ? (
-              <PluginEmptyState />
+            {noFiles ? (
+              <PlDataEmpty
+                reason={env.reason}
+                isDev={isDev}
+                pluginCount={plugins.length}
+                activeRules={env.activeRules}
+                onGoInstalled={() => goTab("installed")}
+              />
             ) : shown.length === 0 ? (
               <div className="wb-empty">沒有符合條件的資料檔。</div>
             ) : (
@@ -139,14 +168,16 @@ export default function PluginsWorkbench({
       ) : (
         <>
           <div className="wb-tb">
-            <span className="wb-tb-lbl">.notecraft/plugins.json ・ 點一列可看映射規則、設定覆寫與外掛檔案</span>
-            <div className="wb-tb-right">
-              <span className="wb-count tnum">{plugins.length} 個外掛</span>
-            </div>
+            <span className="wb-tb-lbl">{installedLbl}</span>
+            {noPlugins ? null : (
+              <div className="wb-tb-right">
+                <span className="wb-count tnum">{plugins.length} 個外掛</span>
+              </div>
+            )}
           </div>
           <div id="nc-scroll" className="wb-body flush">
-            {!enabledSystem && plugins.length === 0 ? (
-              <PluginEmptyState />
+            {noPlugins ? (
+              <PlInstallEmpty reason={env.reason} isDev={isDev} />
             ) : (
               <>
                 <StatStrip
@@ -157,40 +188,60 @@ export default function PluginsWorkbench({
                     { label: "notecraftapp", value: `v${appVersion}` },
                   ]}
                 />
+                {isDev && !toggling ? (
+                  <PlHint
+                    env={env}
+                    enabledIds={plugins.filter((p) => p.enabled).map((p) => p.id)}
+                    pluginCount={plugins.length}
+                    workspaceLabel={workspaceLabel}
+                  />
+                ) : null}
                 <GroupHeader name="已安裝外掛" count={plugins.length} icon={Plug} gc="wb-gc-gold" stats="點一列看設定、映射與檔案" />
-                {plugins.map((p) => (
-                  <div key={p.id} className={"wb-row" + (sel === p.id ? " sel" : "") + (isOn(p) ? "" : " dim")}>
-                    <button
-                      type="button"
-                      className="wb-row-main"
-                      aria-pressed={sel === p.id}
-                      onClick={() => setSel((cur) => (cur === p.id ? null : p.id))}
-                    >
-                      <Ic icon={Plug} size={13} color={isOn(p) ? "var(--wb-gold)" : "var(--wb-ink-3)"} />
-                      <span className="wb-row-t">{p.title}</span>
-                      <span className="wb-row-p">{p.id}</span>
-                      <span className="wb-tagchip tnum">v{p.version}</span>
-                      <span className="wb-row-d tnum" style={{ width: 34, flex: "0 0 34px" }}>
-                        {p.matched.length + p.inactiveMatches.length} 檔
-                      </span>
-                      <Pill tone={isOn(p) ? "ok" : "muted"} style={{ width: 44, justifyContent: "center" }}>
-                        {isOn(p) ? "啟用" : "停用"}
-                      </Pill>
-                    </button>
-                    {isDev ? <PluginSwitch id={p.id} title={p.title} enabled={isOn(p)} onChanged={onChanged(p.id)} /> : null}
-                  </div>
-                ))}
-                <div className="wb-callout">
-                  <Ic icon={Sparkles} size={14} color="var(--wb-blue-l)" />
-                  <div>
-                    <div className="wb-callout-t">安裝新外掛</div>
-                    <div className="wb-callout-b">
-                      執行 <span className="wb-code">npx notecraftapp install-plugin &lt;id&gt;</span>，檔案會寫入{" "}
-                      <span className="wb-code">.notecraft/plugins/</span> 並產生型別定義 <span className="wb-code">_types.d.ts</span>。
-                      停用外掛不會把它移出 bundle；要解除安裝請用 <span className="wb-code">install-plugin --remove &lt;id&gt;</span>。
+                {plugins.map((p) => {
+                  const rs = pluginRowState({ ...p, enabled: isOn(p) });
+                  return (
+                    <div key={p.id} className={"wb-row" + (sel === p.id ? " sel" : "") + (isOn(p) ? "" : " dim")}>
+                      <button
+                        type="button"
+                        className="wb-row-main"
+                        aria-pressed={sel === p.id}
+                        onClick={() => setSel((cur) => (cur === p.id ? null : p.id))}
+                      >
+                        <Ic icon={Plug} size={13} color={isOn(p) ? "var(--wb-gold)" : "var(--wb-ink-3)"} />
+                        <span className="wb-row-t">{p.title}</span>
+                        <span className="wb-row-p">{p.id}</span>
+                        <span className="wb-tagchip tnum">v{p.version}</span>
+                        {rs === "unmapped" ? <Pill tone="warn">未映射</Pill> : rs === "nohit" ? <Pill tone="warn">無命中</Pill> : null}
+                        {rs === "off" ? (
+                          <span className="wb-row-d tnum" style={{ width: 34, flex: "0 0 34px" }} title="停用中，不處理任何檔案">
+                            —
+                          </span>
+                        ) : (
+                          <span className="wb-row-d tnum" style={{ width: 34, flex: "0 0 34px" }}>
+                            {p.matched.length} 檔
+                          </span>
+                        )}
+                        <Pill tone={isOn(p) ? "ok" : "muted"} style={{ width: 44, justifyContent: "center" }}>
+                          {isOn(p) ? "啟用" : "停用"}
+                        </Pill>
+                      </button>
+                      {isDev ? <PluginSwitch id={p.id} title={p.title} enabled={isOn(p)} onChanged={onChanged(p.id)} /> : null}
+                    </div>
+                  );
+                })}
+                {isDev ? (
+                  <div className="wb-callout">
+                    <Ic icon={Sparkles} size={14} color="var(--wb-blue-l)" />
+                    <div>
+                      <div className="wb-callout-t">安裝新外掛</div>
+                      <div className="wb-callout-b">
+                        執行 <span className="wb-code">npx notecraftapp install-plugin &lt;id&gt;</span>，檔案會寫入{" "}
+                        <span className="wb-code">.notecraft/plugins/</span> 並產生型別定義 <span className="wb-code">_types.d.ts</span>。
+                        停用外掛不會把它移出 bundle；要解除安裝請用 <span className="wb-code">install-plugin --remove &lt;id&gt;</span>。
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : null}
               </>
             )}
           </div>
