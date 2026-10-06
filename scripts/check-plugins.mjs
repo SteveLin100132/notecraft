@@ -119,6 +119,30 @@ for (const p of registry.plugins) {
   if (!existsSync(path.join(storeDir, p.id))) fail(`registry 列了 "${p.id}"，但 plugins/${p.id} 不存在`);
 }
 
+// ── 4.2：官方 store 不可隨 npm 發佈（Task 121）──────────────
+// app 會 glob 自己根目錄的 plugins/*/renderer.tsx（Q17，給主 repo 用）。一旦 plugins/ 進了 npm 套件，
+// 每個 viewer 工作區都會「內建」官方外掛：沒安裝也列在已安裝、renderer 打進 client chunk。
+// 經 npm_execpath 執行 npm（npm run 時恆有），避免 Windows 上 spawnSync("npm") 找不到 npm.cmd。
+{
+  const npmCli = process.env.npm_execpath;
+  const r = npmCli
+    ? spawnSync(process.execPath, [npmCli, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, stdio: "pipe" })
+    : spawnSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, stdio: "pipe", shell: process.platform === "win32" });
+  let packed = null;
+  try {
+    packed = JSON.parse(r.stdout?.toString() ?? "")?.[0]?.files?.map((f) => f.path) ?? null;
+  } catch {
+    /* 下面統一回報 */
+  }
+  if (!packed) {
+    fail(`npm pack --dry-run 無法解析打包清單：${(r.stderr?.toString() || r.error?.message || "（無輸出）").trim().split("\n").slice(-3).join(" ")}`);
+  } else {
+    const leaked = packed.filter((p) => p.startsWith("plugins/"));
+    if (leaked.length) fail(`plugins/ 不可隨 npm 發佈（Task 121），打包清單含 ${leaked.length} 個檔，例如 ${leaked[0]}`);
+    else console.log("  ✓ npm 打包清單不含 plugins/");
+  }
+}
+
 // ── 4.5：scripts/checks/*.mjs（plugin 推導、Markdown 等純函式的斷言）──────────
 // 以 Node 原生 strip-types 直接載入 plugin 的 .ts —— 不加 test runner。很快，--skip-build 也照跑。
 if (errors.length === 0) {

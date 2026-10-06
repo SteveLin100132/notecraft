@@ -131,6 +131,8 @@ notecraft/
 
 主專案**自己也消費 `plugins/`**（Q17）：`src/lib/plugins.ts` 多掃一條 `/plugins/*/renderer.tsx`，讓官方 plugin 有地方能真的 build、能跑 CI。成本只有一行 glob。
 
+> **只限主 repo（v1.11.0）**：`plugins/` 不隨 npm 發佈。0.6.0–1.10.1 曾把它放進 `package.json` 的 `files`，結果每個 viewer 工作區都「內建」了官方外掛：沒安裝也列在已安裝、renderer 打進每個頁面、`plugins.json` 引用未安裝的官方外掛也 build 得過。viewer 的官方外掛一律經 `install-plugin` 安裝；同 id 兩處都有時以 `.notecraft/plugins/` 為準。`check-plugins` 以 `npm pack --dry-run` 把關（[notecraft-workbench-plugin-empty-states.md](./notecraft-workbench-plugin-empty-states.md) §2）。
+
 ### 4.3 兩份 JSON 的分工
 
 | | 誰寫 | 職責 | 檔名 |
@@ -753,7 +755,7 @@ viewer v2 §7.1 的快取失效條件擴充：
 | Q14 | 自動寫設定 | 預設只印建議片段，`--apply` 才寫 |
 | Q15 | CLI 表面 | 只加 `install-plugin`，列表與移除收在 `--list` / `--remove` |
 | Q16 | 安裝確認 | 一律確認，`--yes` 可略過 |
-| Q17 | 主專案支援 | 要，多一條 `/plugins/*/renderer.tsx` glob 分支 |
+| Q17 | 主專案支援 | 要，多一條 `/plugins/*/renderer.tsx` glob 分支（只限主 repo，`plugins/` 不隨 npm 發佈，v1.11.0） |
 | Q18 | AI 產資料檔 | 架構預留，首版不做 |
 | Q19 | dev HMR | 先實測，不觸發就在 `view` 掛資料檔 watcher |
 | Q20 | `files` 基準 | notesDir（資料檔必須放在筆記資料夾內） |

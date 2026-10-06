@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.21.0
+文件版本: v1.22.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-10-04
+更新日期: 2026-10-06
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -2713,6 +2713,17 @@ model: haiku
 - **不做**：讀 `.gitignore`、巢狀 ignore 檔、UI 編輯或顯示規則、依 frontmatter 排除
 - 對應實作 Task 117–120；完整設計見 [notecraft-ignore-config.md](./notecraft-ignore-config.md)（7 題定案紀錄在其 §12，實作後回填在 §13）
 
+#### Phase 4.26 — Plugin 頁空狀態與「內建外掛外洩」修正（v1.22.0 追加）
+
+**目標：沒裝外掛、裝了沒在用時，`/plugins` 說清楚為什麼是空的、下一步做什麼**
+
+- 修正：官方 store `plugins/` 隨 npm 發佈，app 根目錄的 glob 把它當成已安裝，viewer 工作區沒裝任何外掛也列出 ER Diagram 與 API 文件、renderer 打進每個頁面。`plugins/` 移出 `files`（只給主 repo 用，Q17 不變），`check-plugins` 以 `npm pack --dry-run` 把關；同 id 撞名以 `.notecraft/plugins/` 為準
+- 情境由純函式 `derivePluginEnv` 判定，只看啟用中外掛：全新工作區、有 plugins.json 但 0 個外掛、未設定映射、映射無命中、全部停用
+- 兩個頁籤各有插圖空狀態；dev 附可複製的安裝指令、官方外掛清單、plugins.json 範例與排查提示；Header 徽章、Toolbar、Sidebar「Plugin 資料檔」區段同步
+- 正式環境（部署站、`serve`）只顯示安靜版本，**不出現任何 `npx` 指令**；「安裝新外掛」說明框改為 dev-only
+- **不做**：Plugin Store（官方外掛清單先寫成常數，日後換資料來源）、manifest 加預設 glob 欄位、「不相容」「渲染錯誤」pill
+- 對應實作 Task 121–124；完整設計見 [notecraft-workbench-plugin-empty-states.md](./notecraft-workbench-plugin-empty-states.md)（6 題定案紀錄在其 §14，實作後回填在 §15）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2872,6 +2883,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.22.0] - 2026-10-06
+- **Added**: 新增 Phase 4.26 Plugin 頁空狀態與內建外掛外洩修正
 
 ### [1.21.0] - 2026-10-04
 - **Added**: 新增 Phase 4.25 排除檔案（`.notecraft/ignore.json`）

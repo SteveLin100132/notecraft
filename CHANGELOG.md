@@ -4,6 +4,36 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.11.0] - 2026-10-06
+
+<!-- 重點：/plugins 只列真正安裝的外掛，沒裝、沒在用時告訴你下一步 -->
+
+> **升級注意**：如果 `.notecraft/plugins.json` 引用了官方外掛（`er-diagram-renderer`、`openapi-renderer`），但從沒執行過 `install-plugin`，升級後 build 會失敗。執行 `npx notecraftapp install-plugin <id>` 安裝即可，錯誤訊息裡也附了這行指令。
+
+### 新增
+
+- `/plugins` 的空狀態與引導（設計文件 `docs/notecraft-workbench-plugin-empty-states.md`）：沒安裝外掛、裝了但沒寫映射規則、映射沒有命中任何檔案、外掛全部停用，各有插圖、原因與下一步。`view` 模式附可複製的安裝指令、官方外掛清單、依已安裝外掛產生的 `plugins.json` 範例與排查提示
+- 「已安裝外掛」列上標出「未映射」「無命中」；頁首徽章在沒有資料檔時改說明原因
+- 沒有資料檔時，`view` 模式的側欄保留「Plugin 資料檔 ・ 尚無資料檔」入口
+
+### 修正
+
+- 沒有安裝任何外掛的工作區，「已安裝外掛」仍列出 ER Diagram 與 API 文件。原因是官方外掛跟著 npm 套件一起發佈，被當成已安裝；現在只列 `.notecraft/plugins/` 實際安裝的外掛，沒用到的渲染器也不再打包進頁面（頁面少載入約 200 KB）
+- 同一個外掛同時存在套件內與 `.notecraft/plugins/` 時，渲染器與 manifest 會來自不同版本；現在一律以 `.notecraft/plugins/` 為準，build 時提示一次
+
+### 變更
+
+- 部署站與 `serve` 的 `/plugins` 不再顯示「安裝新外掛」說明框與任何 `npx` 指令（讀者無法安裝外掛）；沒有外掛或資料檔時只顯示一句說明
+- 停用中外掛的檔數顯示「—」（停用的外掛不處理任何檔案），原本會命中的檔案仍列在外掛詳情裡
+- 外掛詳情的「內建」來源改稱「主 repo 官方 store」
+
+### 內部
+
+- `/plugins` 的情境判定收斂到 `src/lib/wb-plugin-env.ts`（只看啟用中外掛），官方外掛清單到 `src/lib/official-plugins.ts`，斷言 `scripts/checks/wb-plugin-env.mjs` 併入 `check:wb`
+- 複製鈕狀態抽成 `useCopyState`，與檢查更新的升級指令共用
+- `check-plugins` 以 `npm pack --dry-run` 斷言打包內容不含 `plugins/`
+- 新增 `scripts/fixtures/plugin-empty-states.mjs`：以 `npm pack` 出的套件建 6 個情境工作區，`--build` 時逐一 build 並斷言產物
+
 ## [1.10.1] - 2026-10-04
 
 ### 安全

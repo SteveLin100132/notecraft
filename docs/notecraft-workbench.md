@@ -657,12 +657,14 @@ README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實�
 
 ### 8.6 Plugin `/plugins`
 
+> 沒有外掛、沒有資料檔、裝了卻沒在用時的畫面（Header 徽章、Toolbar、Sidebar、兩個頁籤的空狀態與提示）見 [notecraft-workbench-plugin-empty-states.md](./notecraft-workbench-plugin-empty-states.md)（v1.11.0）。
+
 資料來源全是 build 期已知的：`getPlugins()`（manifest）、`.notecraft/plugins.json`（映射與 options）、`getDataFiles()`（命中的檔）、`.installed.json`（來源與 commit）、plugin 資料夾的檔案清單。
 
 | Prototype 欄位 | 正式版來源 |
 | :-- | :-- |
 | 標題／版本／作者／描述／homepage／engines／dataSchema／example | `notecraft-plugin.json` |
-| 來源（本機／npm／git） | `.installed.json`；主 repo 的官方 store 沒有這個檔 → 顯示「內建」。本機來源顯示 `local:<資料夾名>`，不輸出絕對路徑（v1.8.5） |
+| 來源（本機／npm／git） | `.installed.json`；主 repo 的官方 store 沒有這個檔 → 顯示「內建 ・ 主 repo 官方 store」（官方 store 不隨 npm 發佈，viewer 不會出現「內建」，v1.11.0）。本機來源顯示 `local:<資料夾名>`，不輸出絕對路徑（v1.8.5） |
 | 映射規則 glob、設定覆寫 JSON | `plugins.json` 裡所有指向該 plugin 的 mapping（可能不只一條） |
 | 命中的資料檔 | `getDataFiles()` 依 `pluginId` 過濾。不在 client 重算 glob |
 | 外掛檔案列表 | build 期 `fs.readdirSync` |

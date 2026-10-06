@@ -681,3 +681,39 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - 被排除 = 不出現在任何產物：`ignore-guard-integration` 在 build 後兜底，違反直接 throw
 > - 所有 `[ignore]` 訊息與 API 回應只用相對路徑，不得出現本機絕對路徑
 > - 工作區裡 `skill-template/` 有作者尚未提交的修改，**每次 commit 只 add 本 Task 的檔案**
+
+## v1.22.0 追加功能（§8.1 Phase 4.26）— Plugin 頁空狀態與「內建外掛外洩」修正（notecraftapp v1.11.0） ✅ 已完成（2026-10-06）
+
+> **已完成（2026-10-06）**：Task 121–124 全部實作於 `fix/plugin-empty-states`。實測結論回填於規格 §15；各 Task 檔末有「實作記錄」。
+
+規格 [notecraft-workbench-plugin-empty-states.md](../notecraft-workbench-plugin-empty-states.md)；像素級規格 [design_handoff_plugin_empty_states/](../prototype/design_handoff_plugin_empty_states/README.md)。
+npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API 文件：官方 store `plugins/` 隨 npm 發佈，被 app 根目錄的 glob 當成已安裝。修掉之後「0 個外掛」才會真的出現，再依 handoff 補齊 7 種情境 × dev／正式的空狀態。
+
+> **六題已全數確認（規格 §14）**：情境只看啟用中外掛（Q1）、範例 glob 取官方常數、其餘 `**/*.json`（Q2）、複製失敗沿用「無法複製」（Q3）、
+> 同 id 撞名一起修（Q4）、版號 `1.11.0`（Q5）、停用外掛的檔數顯示「—」（Q6）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 121](task-121-plugin-store-unbundle.md) | 官方 store 不隨 npm 發佈、同 id 撞名以使用者安裝為準、打包斷言 | §2 | `package.json`（`files`）、`lib/plugins.ts`、`islands/PluginHost.tsx`、`wb/PluginDrawer.tsx`、`scripts/check-plugins.mjs` |
+| [Task 122](task-122-plugin-env-pure-functions.md) | 情境模型 `derivePluginEnv`、列狀態、官方外掛常數、斷言 | §3、§7.1、§7.4 | `lib/wb-plugin-env.ts`、`lib/official-plugins.ts`、`scripts/checks/wb-plugin-env.mjs`、`package.json`（`check:wb`） |
+| [Task 123](task-123-plugin-empty-states-ui.md) | Header、Sidebar、Toolbar、兩個頁籤空狀態、提示區塊、列狀態、Drawer 空文案、插圖、複製 | §4–§10 | `wb/PluginsWorkbench.tsx`、`wb/PluginDrawer.tsx`、`wb/Sidebar.astro`、`wb/plugins/PluginEmpty*.tsx`、`wb/useCopyState.ts`、`wb/update/UpdateParts.tsx`、`workbench.css` |
+| [Task 124](task-124-plugin-empty-states-fixture-docs-release.md) | 情境 fixture、文件回填、發版 | §11、§12、§15 | `scripts/fixtures/plugin-empty-states.mjs`、CLAUDE.md／plugin-system／workbench／PRD／CHANGELOG、v1.11.0 |
+
+**順序**：121 與 122 互不依賴；123 需要兩者；124 的 fixture 可先寫好供 123 驗收。
+
+```
+121 ─┐
+     ├─ 123 ─ 124
+122 ─┘
+```
+
+> **交付節奏**：全程在 `fix/plugin-empty-states` 單一分支上，依 Task 逐步 commit，**Task 124 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `plugins.ts`／`check-plugins.mjs` 的再跑 `npm run check-plugins`，動到 `wb-plugin-env.ts` 的再跑 `npm run check:wb`。
+>
+> **幾條貫穿整批的規則**：
+> - **`plugins/` 不隨 npm 發佈**；app 根目錄的 glob 只給主 repo 用，同 id 以 `.notecraft/plugins/` 為準
+> - 情境判定只有 `derivePluginEnv` 一處，UI 不自己數規則或外掛
+> - **正式環境不出現任何 `npx` 字串**、plugins.json 範例或設定提示；dev 判斷用既有 `isDev` prop 或 `import.meta.env.DEV`
+> - 插圖顏色寫在 `style` 帶 `--wb-*` 變數；`.pl-*` 規則零色碼、不新增 token，860px 規則放在既有媒體規則之前
+> - 路徑只用 `workspaceLabel` 或相對路徑，不得出現本機絕對路徑
+> - `package-lock.json` 在分支建立前就有未提交修改，**每次 commit 只 add 本 Task 的檔案**

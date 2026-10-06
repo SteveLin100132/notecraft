@@ -5,6 +5,7 @@ import type { WbDataFile, WbPlugin } from "@/lib/wb-types";
 import DrawerShell from "./DrawerShell";
 import { Pill } from "./ui";
 import { withBase } from "@/lib/base";
+import { pluginRowState } from "@/lib/wb-plugin-env";
 
 export default function PluginDrawer({
   plugin,
@@ -22,7 +23,7 @@ export default function PluginDrawer({
   const p = plugin;
   const src =
     p.source.kind === "builtin"
-      ? "內建 ・ 隨 notecraftapp 發佈"
+      ? "內建 ・ 主 repo 官方 store"
       : `已安裝${p.source.origin ? ` ・ ${p.source.origin}` : ""}${p.source.commit ? ` @ ${p.source.commit}` : ""}`;
   const meta: [string, ReactNode][] = [
     ["id", <code key="id">{p.id}</code>],
@@ -93,7 +94,7 @@ export default function PluginDrawer({
         </div>
       ) : (
         <p className="wb-dw-p" style={{ fontSize: 12.5, color: "var(--wb-ink-3)" }}>
-          plugins.json 沒有指向這個外掛的規則。
+          plugins.json 沒有指定這個外掛要處理的檔案。
         </p>
       )}
 
@@ -124,7 +125,14 @@ export default function PluginDrawer({
         </div>
       ) : (
         <p className="wb-dw-p" style={{ fontSize: 12.5, color: "var(--wb-ink-3)" }}>
-          沒有檔案符合這些映射。
+          {
+            {
+              off: "停用中，不處理任何檔案。",
+              unmapped: "沒有映射規則，所以沒有命中的檔案。",
+              nohit: "沒有檔案符合這條映射。",
+              ok: "",
+            }[pluginRowState(p)]
+          }
         </p>
       )}
 

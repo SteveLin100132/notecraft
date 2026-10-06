@@ -19,6 +19,9 @@ export interface Props {
 const { index, folderPath = "" } = Astro.props;
 
 const series = index.series.filter((s) => s.chapters.length > 0);
+// 沒有資料檔時：dev 保留一個入口通往 /plugins 的下一步引導；正式環境整段不畫（讀者在那裡沒有東西可看）
+// docs/notecraft-workbench-plugin-empty-states.md §5
+const isDev = import.meta.env.DEV;
 
 // 資料檔依所在資料夾分組；根目錄排最前。
 const dataDirs = new Map<string, number>();
@@ -62,6 +65,18 @@ const dataFolders = Array.from(dataDirs.entries())
             </a>
           </div>
         ))}
+      </>
+    )}
+    {index.dataFiles.length === 0 && isDev && (
+      <>
+        <div class="wb-sb-sec" style="margin-top:8px">Plugin 資料檔</div>
+        <div class="wb-sb-item pl-sb-empty" style="padding-left:10px" data-wb-path={ROUTES.plugins}>
+          <span class="wb-sp11"></span>
+          <a class="wb-sb-link" href={ROUTES.plugins}>
+            <Icon name="plug" size={14} style="color:var(--wb-ink-3);flex:none" />
+            <span class="wb-sb-label">尚無資料檔</span>
+          </a>
+        </div>
       </>
     )}
 

@@ -28,6 +28,7 @@ type AnyRenderer = ComponentType<Omit<HostProps, "pluginId">>;
 
 // eager：plugin 數量是個位數，換來的是不必處理 Suspense 與載入閃動。
 // 若日後一個專案裝到十幾個 plugin，這裡改成惰性載入。
+// **順序即優先序**：同 id 時後展開的 `@notes`（使用者安裝）勝，與 src/lib/plugins.ts 的 PLUGIN_ROOTS 一致。
 const modules: Record<string, { default?: AnyRenderer }> = {
   ...import.meta.glob<{ default?: AnyRenderer }>("/plugins/*/renderer.tsx", { eager: true }),
   ...import.meta.glob<{ default?: AnyRenderer }>("@notes/plugins/*/renderer.tsx", { eager: true }),

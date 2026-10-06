@@ -44,10 +44,14 @@ const Ajv2020 = ((Ajv2020Module as unknown as { default?: Ajv2020Ctor }).default
 const notesDir = getNotesDir();
 const notecraftDir = getNotecraftDir();
 
-/** plugin 套件可能落腳的兩個根：主專案的官方 store、使用者專案的安裝目錄。 */
+/**
+ * plugin 套件可能落腳的兩個根，**順序即優先序**：使用者安裝的在前，主專案的官方 store 在後。
+ * 官方 store（repo 根的 plugins/）不隨 npm 發佈（Task 121），viewer 只會有前者；
+ * 主 repo 兩者都有時，同 id 以使用者安裝為準，manifest／schema 才會與 renderer 來自同一份。
+ */
 const PLUGIN_ROOTS = [
-  path.resolve(process.cwd(), "plugins"),
   path.join(notecraftDir, "plugins"),
+  path.resolve(process.cwd(), "plugins"),
 ];
 
 const CONFIG_PATH = path.join(notecraftDir, "plugins.json");
@@ -65,6 +69,8 @@ function warn(msg: string): void {
 // 兩條 glob：主專案的 plugins/（讓官方 plugin 有地方能真的 build、能跑 CI，Q17）
 // 與使用者專案的 .notecraft/plugins/。`@notes` alias 恆有定義，指向不存在的目錄時
 // glob 命中 0 筆、不報錯（見 astro.config.mjs 的註解）。
+// 主專案的 plugins/ 不隨 npm 發佈（Task 121），所以 viewer 只有第二條會命中。
+// **順序即優先序**：同 id 時後展開的 `@notes` 勝（與 PLUGIN_ROOTS、PluginHost.tsx 一致），不要調換。
 
 type RendererModule = { default?: unknown };
 
@@ -115,9 +121,14 @@ let pluginsCache: Map<string, PluginRecord> | null = null;
 export function getPlugins(): Map<string, PluginRecord> {
   if (pluginsCache) return pluginsCache;
   const out = new Map<string, PluginRecord>();
+  const seen = new Set<string>();
   for (const [key, mod] of Object.entries(rendererModules)) {
     const id = pluginIdFromKey(key);
     if (!id) continue;
+    if (seen.has(id)) {
+      warn(`plugin "${id}" 同時存在於 plugins/ 與 .notecraft/plugins/，採用 .notecraft/plugins/ 的版本`);
+    }
+    seen.add(id);
     if (!mod?.default) {
       fail(`plugin "${id}" 的 renderer.tsx 沒有 default export`);
     }
