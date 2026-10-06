@@ -96,10 +96,17 @@ export function mappingSnippet(ids: readonly string[]): string;   // plugins.jso
 | Scenario | Given | When | Then |
 | --- | --- | --- | --- |
 | 斷言 | Node 22.6+ | `npm run check:wb` | 全綠（含新斷言） |
-| 護欄 | 暫時把判定順序的 3、4 對調 | `npm run check:wb` | 「混合 A」失敗；改回後綠 |
+| 護欄 | 暫時把 `activeRules` 改成計算所有外掛（＝handoff 的算法） | `npm run check:wb` | 「混合 A」「混合 B」失敗；改回後綠 |
 | 全套 | — | `npm run check-plugins` | 通過（`scripts/checks/*.mjs` 自動跑到） |
 | 零變化 | — | `npx tsc --noEmit && npx astro build` | 通過；tsc 錯誤數不增加；頁數與前一個 commit 相同 |
 
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-06）
+
+- `npm run check:wb` 新增 11 組斷言全綠；`check-plugins -- --skip-build` 自動跑到
+- **護欄情境改寫**：原本寫「把判定順序 3、4 對調」，實測不會失敗 —— `activeRules` 只算啟用中外掛，全部停用時必為 0，3、4 的順序本來就不影響結果。改成「`activeRules` 算所有外掛」（即 handoff 的算法），「混合 A」「混合 B」失敗，證明斷言確實守住 Q1
+- `official-plugins.ts` 多匯出 `FALLBACK_GLOB`（`**/*.json`），斷言與元件共用同一個值
+- 本 Task 不動 UI；tsc 錯誤數 40 不變、新檔 0 個
