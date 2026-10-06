@@ -22,7 +22,7 @@ export default function PluginDrawer({
   const p = plugin;
   const src =
     p.source.kind === "builtin"
-      ? "內建 ・ 隨 notecraftapp 發佈"
+      ? "內建 ・ 主 repo 官方 store"
       : `已安裝${p.source.origin ? ` ・ ${p.source.origin}` : ""}${p.source.commit ? ` @ ${p.source.commit}` : ""}`;
   const meta: [string, ReactNode][] = [
     ["id", <code key="id">{p.id}</code>],

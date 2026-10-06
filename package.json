@@ -33,7 +33,6 @@
   },
   "files": [
     "bin/",
-    "plugins/",
     "public/favicon.svg",
     "src/components/*.astro",
     "src/components/islands/",

@@ -64,3 +64,13 @@
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-06）
+
+- `npm pack --dry-run` 不再含 `plugins/`；把 `"plugins/"` 暫時加回 `files`，`check-plugins -- --skip-build` 失敗並指出「打包清單含 36 個檔」，改回後通過
+- `check-plugins` 經 `npm_execpath` 執行 npm（`npm run` 時恆有；直接 `node scripts/check-plugins.mjs` 時退回 `npm`，Windows 加 `shell`）
+- **viewer 實測要繞過 `~/.notecraft/app-<version>/`**：CLI 首次執行會把套件複製到那裡，之後一律在那裡跑；同版號的目錄已存在時，解開 tarball 後直接執行會被 re-exec 到舊的那份（本機 `app-1.10.1` 仍含 `plugins/`，第一次實測因此誤判）。改設 `NOTECRAFTAPP_DEV=1` 直接從解開的套件執行（`node_modules` symlink 到主 repo）
+- 實測（tarball＋空工作區）：`/plugins` 的外掛清單為空；`PluginHost` chunk 從 213 KB 降到 4 KB（兩個官方 renderer 不再打包）；`plugins.json` 引用未安裝的 `er-diagram-renderer` → build fail，訊息含安裝指令
+- 撞名：主 repo 暫時複製 `openapi-renderer` 到 `.notecraft/plugins/` 並改版號 9.9.9 → build log warn 一次；`/plugins` 的 openapi 為 9.9.9、來源 `installed`，ER 仍為 `builtin`；驗完已刪除複本
+- `workbench.ts` 的 `builtin` 判斷不需修改（以 `rec.dir` 為準，換序後自然判對）
+- tsc 錯誤數 40，與改動前相同（`plugins.ts` 的 5 個皆為既有）；主 repo build 63 頁
