@@ -70,3 +70,15 @@
 ## 依賴
 
 Task 121、122、123。
+
+## 實作記錄（2026-10-06）
+
+- fixture 改以 `npm pack` 出的套件執行（`NOTECRAFTAPP_DEV=1`、`node_modules` symlink 回主 repo），不是 Task 檔原寫的「本機 `bin/notecraftapp.mjs`」：repo 的 `bin/` 以 repo 為 app 根目錄，`plugins/` 還在，驗不出 Task 121。多了第 6 個情境 `normal`（有命中），確認正常路徑的資料檔頁仍產生
+- `--build` 6 個情境約 25 秒全綠。斷言的幾個坑：
+  - client chunk 不能用 id 字串判斷官方 renderer（`OFFICIAL_PLUGINS` 本來就含 id），改用 `--oar-`、`.erd-root`
+  - 「這個站沒有使用資料檔」同時是 Toolbar 文字，改比對空狀態才有的說明句
+  - SSR 一律輸出「資料檔」頁籤，「已安裝外掛」頁籤（含說明框）只能在瀏覽器驗；所以 Task 檔的護欄「拿掉說明框的 `isDev`」驗不到，改用「資料檔空狀態一律走 dev 版」→ 3 個情境失敗，改回後通過
+- PRD 以 `bump-prd` 升到 v1.22.0（Phase 4.26，Added）
+- CHANGELOG 類別用既有的「變更」（`check:upd` 只認既有類別，「調整」會失敗）
+- `package-lock.json` 的版號原本停在 1.9.0（分支建立前就有的未提交修改只是版號同步），這版一起改成 1.11.0 並提交
+- 官網文件：`getting-started/plugins.mdx` 的敘述（未安裝就引用會 build fail）現在才成立，不需改；Plugin 管理頁 Plate 拍的情境畫面沒變，不重截

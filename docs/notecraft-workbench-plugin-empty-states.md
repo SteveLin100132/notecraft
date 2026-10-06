@@ -1,9 +1,9 @@
 Project Name: NoteCraft Workbench — Plugin 頁空狀態與「內建外掛外洩」修正
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；插圖為 inline SVG）
-文件狀態: 已定案、未實作 —— §13 的 6 題已於 2026-10-06 逐題確認（紀錄見 §14）
+文件狀態: 已實作（notecraftapp v1.11.0，Task 121–124，2026-10-06）—— §13 的 6 題已於 2026-10-06 逐題確認（紀錄見 §14）；實作後回填見 §15
 文件作者: 建宇
 建立日期: 2026-10-06
 更新日期: 2026-10-06
@@ -118,7 +118,7 @@ export function derivePluginEnv(input: {
 }): PluginEnv;
 ```
 
-輸入全部是 build 期就有的 `WbIndex` 欄位，**不需要新增索引欄位**。island 內切換啟用狀態時（樂觀更新、600ms 後重載），以 `isOn` 覆寫後的 `enabled` 重算。
+輸入全部是 build 期就有的 `WbIndex` 欄位，**不需要新增索引欄位**。island 內切換啟用狀態時（樂觀更新、600ms 後重載）**不重算**，只收起 `PlHint`（見 §8.2、§15）。
 
 ### 3.2 reason 判定（依序，第一個成立者）
 
@@ -270,7 +270,7 @@ handoff 寫「glob 取該外掛 manifest 的預設值」，但 `notecraft-plugin
 
 ### 8.2 重新啟用（情境 7）
 
-dev 的列尾 `PluginSwitch` 與 Drawer 的 `PluginToggleButton` 已存在（寫 `plugins.json` 的 `disabled`、600ms 後重載）。樂觀更新期間以覆寫後的 `enabled` 重算 `derivePluginEnv`，提示會先消失；重載後 Header、Sidebar、兩個頁籤以 build 期資料一致呈現。
+dev 的列尾 `PluginSwitch` 與 Drawer 的 `PluginToggleButton` 已存在（寫 `plugins.json` 的 `disabled`、600ms 後重載）。樂觀更新期間**不重算** `derivePluginEnv`（啟用後會命中哪些檔要重新 build 才知道，重算會把「都停用了」錯判成「有規則但沒命中」），只收起 `PlHint`；重載後 Header、Sidebar、兩個頁籤以 build 期資料一致呈現。
 
 ---
 
@@ -306,13 +306,13 @@ dev 的列尾 `PluginSwitch` 與 Drawer 的 `PluginToggleButton` 已存在（寫
 
 ### 11.1 情境 fixture
 
-新增 `scripts/fixtures/plugin-empty-states.mjs`（放 `fixtures/` 不放 `checks/`）：在 scratch 目錄產生 5 個工作區（情境 3–7），各自以本機 `node bin/notecraftapp.mjs view` 開啟，印出網址供逐一檢查；加 `--build` 時改跑 `build` 並斷言產物：
+新增 `scripts/fixtures/plugin-empty-states.mjs`（放 `fixtures/` 不放 `checks/`）：`npm pack` 後解開到暫存目錄、`node_modules` symlink 回主 repo，產生 6 個工作區（情境 3–7 與正常），以 `NOTECRAFTAPP_DEV=1` 直接從解開的套件執行（直接用 repo 的 `bin/` 時 app 根目錄就是 repo，`plugins/` 還在，驗不出 §2；不設 `NOTECRAFTAPP_DEV` 則會 re-exec 到 `~/.notecraft/app-<version>/` 的舊副本）。預設印出各情境的 `view`／`serve` 指令；加 `--build` 時逐一 build 並斷言產物：
 
 - 情境 3／4：`/plugins` HTML 不含 `er-diagram-renderer`、`openapi-renderer`（驗證 §2）
-- 全部情境：正式產物不含 `npx`
-- client chunk 不含官方 renderer 的程式碼（以 `oar-` 或 ER 專屬 class 字串抽查）
+- 全部情境：正式產物不含 `npx`；情境 3–7 的「資料檔」頁籤是安靜版（SSR 一律輸出這個頁籤，「已安裝外掛」頁籤要靠瀏覽器驗）
+- client chunk 不含官方 renderer 的程式碼（`--oar-`、`.erd-root`；不能用 id 字串，`OFFICIAL_PLUGINS` 本來就含 id）
 
-需要幾分鐘，不併入 `check-plugins`（同 `ignore-sample.mjs` 的定位）。
+約 25 秒，不併入 `check-plugins`（同 `ignore-sample.mjs` 的定位）。
 
 ---
 
@@ -360,4 +360,27 @@ dev 的列尾 `PluginSwitch` 與 Drawer 的 `PluginToggleButton` 已存在（寫
 
 ## 15. 實作後回填
 
-（實作完成後填寫：與本文件的偏離、實測結果）
+### Task 121（2026-10-06）
+
+- `npm pack --dry-run` 不含 `plugins/`；打包斷言的護欄驗過（加回 `files` → 失敗並指出 36 個檔）
+- tarball＋空工作區實測：外掛清單為空、`PluginHost` chunk 從 213 KB 降到 4 KB；`plugins.json` 引用未安裝的官方外掛 → build fail 並附安裝指令
+- 撞名：主 repo 暫時複製 `openapi-renderer` 到 `.notecraft/plugins/` 並改版號 → warn 一次、版本與來源都取 `.notecraft` 那份
+- **第一次 viewer 實測誤判**：CLI 首次執行會把套件複製到 `~/.notecraft/app-<version>/`，之後一律 re-exec 到那裡；本機已有 `app-1.10.1`（仍含 `plugins/`），解開 tarball 直接跑也會被導回舊副本。之後的驗證一律設 `NOTECRAFTAPP_DEV=1`。這也表示**已發佈的 1.10.1 使用者升級到 1.11.0 會拿到新的 `app-1.11.0`**，不受舊副本影響
+
+### Task 122（2026-10-06）
+
+- 11 組斷言全綠。Task 檔原本寫的護欄（判定順序 3、4 對調）實測不會失敗：`activeRules` 只算啟用中外掛，全部停用時必為 0。改用「`activeRules` 算所有外掛」（＝handoff 的算法）當護欄，「混合 A」「混合 B」失敗
+
+### Task 123（2026-10-06）
+
+- 情境 3／5／6／7 dev、情境 6 正式、主 repo 情境 1 都在瀏覽器逐一確認；手機 375px 無橫向捲動
+- **與本文件的偏離**：§3.1／§8.2 原寫「樂觀更新期間重算」，實測情境 7 按下開關後提示會錯跳成「有 1 條映射規則，但沒有命中任何檔案」，改成不重算、只收起提示（本文件已改寫）
+- 複製失敗路徑在 Browser pane 自然驗到（pane 拒絕寫剪貼簿）；成功路徑以暫時替換 `writeText` 驗證
+- 檢查更新的 `UpdateCmd` 改用 `useCopyState`：升級指令只在有新版時出現，本機無法點到，依賴同一個 hook 已驗過的兩條路徑
+
+### Task 124（2026-10-06）
+
+- fixture `--build` 6 個情境約 25 秒全數通過；兩個護欄驗過（說明框的 `isDev` 守衛因 SSR 不輸出該頁籤而驗不到，改以「資料檔頁籤一律走 dev 版」當護欄，3 個情境失敗）
+- 斷言起初誤用「這個站沒有使用資料檔」判斷安靜版：那也是 Toolbar 的文字，護欄抓不到；改比對空狀態才有的說明句
+- `package-lock.json` 的版號原本停在 1.9.0（分支建立前就有未提交的同步），這版一起改成 1.11.0
+- 官網 `/docs` 的 Plugin 管理頁 Plate 拍的是有外掛、有資料檔、dev 模式的畫面；這個情境的畫面本批沒有變（說明框在 dev 照常顯示、列都是正常狀態），不需重截

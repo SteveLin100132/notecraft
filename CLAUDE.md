@@ -23,6 +23,7 @@ src/
 ├── components/wb/dashboard/     Dashboard「總覽」的七張卡＋「更新月曆」的 Calendar／CalCell／CalDot／CalNote（不是獨立 island，由 DashboardWorkbench 渲染）
 ├── components/wb/tabs/          筆記頁籤：TabBar（island 入口，layout 每頁掛）＋TabStrip／TabMenu／TabAll／TabSheet／TabPop
 ├── components/wb/update/        檢查更新：UpdateHost（island 入口，layout 每頁掛）＋UpdateBlock／UpdateDrawer／UpdateChangelog／UpdateToast／UpdateParts
+├── components/wb/plugins/       /plugins 的空狀態：PluginEmpty（PlInstallEmpty／PlDataEmpty／PlHint／PlCmd／PlSnippet）＋PluginEmptyArt（6 張插圖）；複製鈕狀態在 wb/useCopyState.ts（與檢查更新共用）
 ├── components/islands/          其他 React island（TagEditor、Toc、PluginHost、SeriesNav…）
 ├── layouts/WorkbenchLayout.astro  三欄工作台的殼，所有頁面共用（簡報頁例外）
 ├── lib/workbench.ts             工作台索引（build 期、模組層快取）；client-safe 型別在 lib/wb-types.ts
@@ -31,6 +32,7 @@ src/
 ├── lib/wb-tabs.ts               頁籤清單的純函式（ensure／close／固定／移動／LRU／鄰居／重開）；只能 import type、不碰 window，scripts/checks/wb-tabs.mjs 斷言
 ├── lib/wb-tabs-store.ts         頁籤的 localStorage 讀寫（每次寫入先重讀、storage 事件同步）；lib/toast.ts 是 ToastHost 掛載前的提示佇列
 ├── lib/wb-nav.ts                換頁轉場分類（peer／drill／section）；lib/wb-tabs-prepaint.ts、lib/series-progress-pure.ts 是殼的預繪。三者都以 toString() 內嵌進 inline script：函式必須自足、只能 import type，check:wb 斷言
+├── lib/wb-plugin-env.ts          /plugins 的情境判定（derivePluginEnv／pluginRowState）；lib/official-plugins.ts 是官方外掛清單與安裝指令。兩者只能 import type，scripts/checks/wb-plugin-env.mjs 斷言（併入 check:wb）
 ├── lib/update-check.ts          檢查更新的純函式（semver／落後版數／Node 需求／快取／toast 條件）；lib/changelog-parse.ts 解析 CHANGELOG。兩者只能 import type，scripts/checks/upd-*.mjs 斷言（npm run check:upd）
 ├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
 ├── lib/notes-ignore.mjs          .notecraft/ignore.json 的比對、走訪（walkNotes）與 .notecraft 位置解析（resolveNotecraftDir）；.mjs 是因為 Astro、dev-api、CLI 三種環境共用，scripts/checks/notes-ignore.mjs 斷言（npm run check:ignore）；build／dev 期單例在 lib/notes-ignore-state.mjs
@@ -138,6 +140,8 @@ status: pending | generated | locked | failed
   layout 每頁掛 `wb/update/UpdateHost client:idle`（toast、Drawer portal 進 `#nc-main`）；Rail「設定與關於」的圓點由 Rail 之後的 inline script 以 `lib/update-prepaint.ts` 的 `railHint` 預繪（`toString()` 內嵌，必須自足）。
   store 是 `lib/update-store.ts` 模組單例，`UpdateHost`／`SettingsView`／`Palette` 共用。CHANGELOG 由 jsDelivr `notecraftapp@<latest>/CHANGELOG.md` 取、GitHub raw 備援，所以 **`CHANGELOG.md` 必須留在 `package.json` 的 `files`**；
   只列 npm 上發佈過的版本（沒單獨發佈的段落不列）、「內部」類別不顯示；版本標題必須是 `## [x.y.z] - YYYY-MM-DD`，`npm run check:upd` 以真實 CHANGELOG 斷言（含與官網 `readReleases()` 對照）
+- **Plugin 頁空狀態**（v1.11.0，[docs/notecraft-workbench-plugin-empty-states.md](docs/notecraft-workbench-plugin-empty-states.md)）：情境只由 `lib/wb-plugin-env.ts` 的 `derivePluginEnv` 判定，**只看啟用中外掛**，UI 不自己數規則或外掛；切換啟用狀態到重載前不重算（啟用後命中哪些檔要 build 才知道），只收起提示。
+  官方外掛清單與安裝指令只從 `lib/official-plugins.ts` 讀。**正式環境不出現任何 `npx` 指令**、plugins.json 範例或設定提示（「安裝新外掛」說明框也是 dev-only）；Sidebar 0 檔時 dev 留「尚無資料檔」入口、正式整段不畫。class 沿用 handoff 的 `pl-`，標題／說明／按鈕沿用 `pt-empty-*`
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）
@@ -161,6 +165,8 @@ status: pending | generated | locked | failed
 
 ### 幾條不會變的規則
 
+- **`plugins/`（官方 store）不隨 npm 發佈**（v1.11.0）：app 根目錄的 `/plugins/*/renderer.tsx` glob 只給主 repo 用（Q17）；放進 `package.json` 的 `files` 會讓每個 viewer 工作區都「內建」官方外掛。`check-plugins` 以 `npm pack --dry-run` 把關。同 id 撞名時以 `.notecraft/plugins/` 為準（`PLUGIN_ROOTS` 與兩條 glob 的**順序即優先序**）。
+  驗證 viewer 行為要用 `npm pack` 出的套件並設 `NOTECRAFTAPP_DEV=1`，否則 CLI 會 re-exec 到 `~/.notecraft/app-<version>/` 的舊副本；`node scripts/fixtures/plugin-empty-states.mjs [--build]` 已包好
 - **`plugins.json` 頂層 `disabled: string[]`**（v1.0.0）：停用的 plugin 其所有規則在比對前就略過、等同不存在，也不參與安裝檢查（壞掉的 plugin 先停用，站仍 build 得出來）。停用不是解除安裝，renderer 仍在 client chunk
 - **`meta.backTo` 是 app 層約定的第三個 meta 欄位**（與 `meta.title`、`meta.description` 並列）：「回到來源筆記」的站內路徑，只接受單一 `/` 開頭，不符者忽略並 warn
 - **manifest 的 `meta`（v1.6.0）以 JSON Pointer 改指上述三個欄位的來源**（例：OpenAPI 的 `/info/title`、`/x-notecraft-back-to`），給資料格式不是自己定的 plugin 用；省略的鍵退回 `meta.<鍵>`。取值在 `src/lib/plugin-meta.ts`，之後的清理（去 Markdown、backTo 驗證）與 `meta.*` 相同

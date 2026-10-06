@@ -682,7 +682,9 @@ MPA 下頁籤是存在 localStorage 的「已開啟清單」，每次換頁由 `
 > - 所有 `[ignore]` 訊息與 API 回應只用相對路徑，不得出現本機絕對路徑
 > - 工作區裡 `skill-template/` 有作者尚未提交的修改，**每次 commit 只 add 本 Task 的檔案**
 
-## v1.22.0 追加功能（§8.1 Phase 4.26）— Plugin 頁空狀態與「內建外掛外洩」修正（notecraftapp v1.11.0）
+## v1.22.0 追加功能（§8.1 Phase 4.26）— Plugin 頁空狀態與「內建外掛外洩」修正（notecraftapp v1.11.0） ✅ 已完成（2026-10-06）
+
+> **已完成（2026-10-06）**：Task 121–124 全部實作於 `fix/plugin-empty-states`。實測結論回填於規格 §15；各 Task 檔末有「實作記錄」。
 
 規格 [notecraft-workbench-plugin-empty-states.md](../notecraft-workbench-plugin-empty-states.md)；像素級規格 [design_handoff_plugin_empty_states/](../prototype/design_handoff_plugin_empty_states/README.md)。
 npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API 文件：官方 store `plugins/` 隨 npm 發佈，被 app 根目錄的 glob 當成已安裝。修掉之後「0 個外掛」才會真的出現，再依 handoff 補齊 7 種情境 × dev／正式的空狀態。
