@@ -10,6 +10,7 @@ import ReadingControl from "@/components/islands/ReadingControl.tsx";
 import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
 import RefLayer from "@/components/islands/RefLayer.tsx";
+import RefBacklinks from "@/components/wb/RefBacklinks.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
 import NoteSkeleton from "@/components/wb/NoteSkeleton.astro";
 import Icon from "@/components/Icon.astro";
@@ -84,6 +85,17 @@ const pageDefs = (defNote?.defines ?? [])
   .map((id) => defIndex.defs.get(id))
   .filter((d) => !!d)
   .map((d) => ({ id: d.id, label: d.label, refs: d.refs.map((r) => backlinkRow(r.slug, r.kinds)) }));
+// 整篇的反向連結（§8.1）：引用本篇任一 define 的筆記；排序＝引用本篇的 id 數多到少，同數依各 define 清單裡先出現的順序
+const blMap = new Map<string, { slug: string; title: string; folder: string; ids: { id: string; kinds: ("inc" | "ref")[] }[] }>();
+for (const d of pageDefs) {
+  for (const r of d.refs) {
+    const row = blMap.get(r.slug) ?? { slug: r.slug, title: r.title, folder: r.folder, ids: [] };
+    row.ids.push({ id: d.id, kinds: r.kinds });
+    blMap.set(r.slug, row);
+  }
+}
+const backlinks = [...blMap.values()].sort((a, b) => b.ids.length - a.ids.length);
+const citedDefs = pageDefs.filter((d) => d.refs.length > 0).map((d) => ({ id: d.id, count: d.refs.length }));
 
 // 目錄收 h1–h3，id 直接用 Astro 幫標題產生的 slug（與內文標題同一個函式，不會對不上）。
 // 嵌入的標題（::include）id 是 inc-<defId>-<slug>，TOC 前面加 icon（define-ref §6.1）
@@ -108,6 +120,7 @@ const toc = headings
 >
   <Fragment slot="actions">
     <DeckAction client:idle slug={note.id} hasDeck={noteHasDeck} promptPath={promptPath} isDev={isDev} />
+    {backlinks.length > 0 && <RefBacklinks client:idle title={note.data.title} rows={backlinks} defIds={citedDefs} />}
     <FavoriteIcon client:idle slug={note.id} />
     {isDev && (
       <MoreMenu
@@ -152,6 +165,11 @@ const toc = headings
             <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
           </span>
           <ReadingControl client:idle slug={note.id} />
+          {backlinks.length > 0 && (
+            <button type="button" class="rf-bl-meta" data-nc-bl-open aria-haspopup="dialog" aria-expanded="false">
+              <Icon name="cornerDownRight" size={14} /> 被 <b>{backlinks.length}</b> 篇筆記引用
+            </button>
+          )}
         </div>
       </div>
 
@@ -447,6 +465,10 @@ const toc = headings
   // Content tabs 與 Tooltips 的初始化在 lib/nc-tabs.ts、lib/nc-tip.ts（預覽卡 RefLayer 也要用）
   initAllTabs(document);
   initTips(document);
+  // meta 列的「被 N 篇筆記引用」→ RefBacklinks 開 Drawer（define-ref §8.1）
+  document.querySelectorAll<HTMLElement>("[data-nc-bl-open]").forEach((b) =>
+    b.addEventListener("click", () => window.dispatchEvent(new Event("nc-backlinks-open"))),
+  );
 
   // Code annotations（PRD §7.1 / task-20）漸進增強：點擊程式碼中的 (n) 標記，浮現對應說明氣泡。
   // 標記由 EC 外掛產生（.nc-anno-marker[data-anno]）；說明為 .nc-anno-item（id=nc-anno-{uid}-{n}）。

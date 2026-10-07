@@ -37,7 +37,8 @@ type Name =
   | "arrowLeft"
   | "presentation"
   | "filter"
-  | "more";
+  | "more"
+  | "cornerDownRight";
 
 export interface Props {
   name: Name;
@@ -51,6 +52,7 @@ const { name, size = 20, stroke = 1.9, class: className, style } = Astro.props;
 
 const paths: Record<Name, string[]> = {
   play: ['<polygon points="6 3 20 12 6 21 6 3" />'],
+  cornerDownRight: ['<path d="m15 10 5 5-5 5"/>', '<path d="M4 4v7a4 4 0 0 0 4 4h12"/>'],
   dashboard: [
     '<rect x="3" y="3" width="7" height="9" rx="1.5"/>',
     '<rect x="14" y="3" width="7" height="5" rx="1.5"/>',

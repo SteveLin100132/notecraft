@@ -1,7 +1,7 @@
 // 指令面板 ⌘K：全站跳轉 + pagefind 全文（規格 §8.9）。由 WorkbenchLayout 以 client:idle 全站掛一次。
 // 平時不渲染任何 DOM、也不抓任何資料；第一次開啟才載入 /wb-index.json 與 pagefind。
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FileText, RefreshCw, Search, Tag } from "lucide-react";
+import { FileText, Hash, RefreshCw, Search, Tag } from "lucide-react";
 import { openDrawer, requestCheckOnSettings } from "@/lib/update-store";
 import { useUpd } from "./update/useUpd";
 import type { WbDataFile, WbNoteRow, WbSeries, WbTagStat } from "@/lib/wb-types";
@@ -74,6 +74,8 @@ const has = (hay: string, q: string) => hay.toLowerCase().includes(q);
 
 /** 「已開啟的頁籤」分區：無查詢列前 N 筆、有查詢比對標題＋路徑（規格 docs/notecraft-workbench-note-tabs.md §8.1） */
 const TAB_GROUP_MAX = 6;
+/** 「定義」分區（docs/notecraft-workbench-define-ref.md §8.3）：有輸入才出現、排最上方，Enter 優先前往第一個定義 */
+const DEF_GROUP_MAX = 6;
 const TAB_GROUP_MAX_Q = 4;
 
 export default function Palette({ workspace = "" }: { workspace?: string }) {
@@ -174,7 +176,29 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
           .slice(0, 5)
       : [];
 
+    const titleOf = new Map(index.notes.map((r) => [r.slug, r.title]));
+    const defs = ql
+      ? (index.defs ?? []).filter((d) => has(d.id, ql) || has(d.label, ql)).slice(0, DEF_GROUP_MAX)
+      : [];
+
     const out: Group[] = [
+      {
+        label: "定義",
+        items: defs.map((d) => ({
+          key: "def:" + d.id,
+          href: withBase(`/notes/${d.slug}#def-${d.id}`),
+          node: (
+            <>
+              <Ic icon={Hash} size={13} color="var(--wb-blue-l)" />
+              <span className="wb-row-t wb-pal-defid">{d.id}</span>
+              <span className="wb-row-p">
+                {d.label} ・ {titleOf.get(d.slug) ?? d.slug}
+              </span>
+              <Pill tone="muted">{d.refs.length ? `被 ${d.refs.length} 篇引用` : "未被引用"}</Pill>
+            </>
+          ),
+        })),
+      },
       {
         label: "筆記",
         items: notes.map((r) => ({
@@ -317,10 +341,11 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
     return items.length ? { label: "指令", items } : null;
   }, [open, term, upd.res]);
 
-  const allGroups = useMemo(
-    () => [...(tabGroup ? [tabGroup] : []), ...groups, ...(cmdGroup ? [cmdGroup] : [])],
-    [tabGroup, groups, cmdGroup],
-  );
+  const allGroups = useMemo(() => {
+    const defGroup = groups.filter((g) => g.label === "定義");
+    const rest = groups.filter((g) => g.label !== "定義");
+    return [...defGroup, ...(tabGroup ? [tabGroup] : []), ...rest, ...(cmdGroup ? [cmdGroup] : [])];
+  }, [tabGroup, groups, cmdGroup]);
   const flat = useMemo(() => allGroups.flatMap((g) => g.items), [allGroups]);
   const active = Math.min(sel, Math.max(flat.length - 1, 0));
 
@@ -421,6 +446,9 @@ export default function Palette({ workspace = "" }: { workspace?: string }) {
               })}
             </div>
           ))}
+          {!term && index?.defs?.length ? (
+            <div className="wb-pal-hint">輸入 id 的任一段（hr.、role-admin）或定義名稱，可直接跳到定義所在處。</div>
+          ) : null}
         </div>
       </div>
     </div>

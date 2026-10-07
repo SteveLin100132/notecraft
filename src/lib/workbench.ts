@@ -27,6 +27,7 @@ import type {
   WbSeries,
 } from "@/lib/wb-types";
 
+import { getDefIndex } from "@/lib/defs-state.mjs";
 export type * from "@/lib/wb-types";
 
 const toPosix = (p: string): string => p.split(path.sep).join("/");
@@ -246,6 +247,9 @@ async function build(): Promise<WbIndex> {
     });
   }
 
+  // 定義與引用（define-ref §9）：索引與 remark plugin 共用同一份
+  const defIndex = getDefIndex();
+
   const rows: WbNoteRow[] = notes.map((n) => {
     const rel = relPathBySlug.get(n.id) ?? n.id;
     const segs = rel.split("/");
@@ -269,6 +273,8 @@ async function build(): Promise<WbIndex> {
       hasFrontmatter: hasFrontmatter(n.filePath),
       hasDeck: hasDeck(n.id),
       promptPath: promptPathOf(rel),
+      defines: defIndex.notes.get(n.id)?.defines ?? [],
+      references: defIndex.notes.get(n.id)?.references ?? [],
     };
   });
 
@@ -305,6 +311,7 @@ async function build(): Promise<WbIndex> {
     appVersion: appVersion(),
     pending: { markers: pendingMarkers, notes: pendingNotes },
     workspaceLabel: workspaceLabel(),
+    defs: [...defIndex.defs.values()].map((d) => ({ id: d.id, label: d.label, slug: d.slug, refs: d.refs })),
   };
 }
 

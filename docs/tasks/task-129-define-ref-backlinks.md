@@ -70,3 +70,13 @@ define 旁的「被 N 篇引用」只回答單一定義的影響範圍。作者�
 ## 依賴
 
 Task 126。Palette 的 flash 需要 Task 128。
+
+## 實作記錄（2026-10-07）
+
+- `WbNoteRow` 加 `defines`、`references`，`WbIndex` 加 `defs`（`id`／`label`／`slug`／`refs`）；`/wb-index.json` 不含原始碼與路徑（build 後檢查 `source` 字串不存在）
+- 筆記頁：`RefBacklinks`（頁首按鈕＋Drawer，portal 到 `#nc-main`）；meta 列的 SSR 按鈕以 `nc-backlinks-open` 事件交給它，兩顆按鈕的 `aria-expanded` 同步。清單由 `[...slug].astro` 以 build 期資料帶入，不讀 `/wb-index.json`
+- `Icon.astro` 新增 `cornerDownRight`（meta 列的 icon）
+- `NoteDrawer` 三段：只在該列有 `defines` 或 `references` 時才 `useWbIndex(true)`（與 Palette 共用同一次請求）；沒資料時 Drawer 與原本相同
+- Palette：「定義」分區排在最上方（含「已開啟的頁籤」之前），所以 Enter 預設就是第一個定義；空查詢時底部顯示提示。既有 Palette 已有 ↑↓ 選取（handoff §4.3 的「後續建議」已存在）
+- 瀏覽器實測（dev）：Overview 的頁首與 meta 列入口皆開 Drawer、7 個 chips、篩選正確、關閉後 `aria-expanded` 還原；請假功能規格沒有入口；`?backlinks=1` 自動開 Drawer 並移除參數；`/notes` 列表 Drawer 出現「被引用 2」「本篇定義 7」；Palette 輸入 `hr.` 出現 6 筆定義、第一筆選取中
+- tsc 錯誤數 40 不變

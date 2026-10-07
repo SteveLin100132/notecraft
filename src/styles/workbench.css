@@ -534,6 +534,42 @@ table.wb-table{width:100%;border-collapse:collapse;font-size:12.5px}
 .pl-snip-h .wb-upd-copy{margin-left:auto}
 .pl-snip .wb-pre{border-radius:0;overflow-wrap:anywhere}
 .wb-sb-item.pl-sb-empty .wb-sb-label{color:var(--wb-ink-3)}
+/* ── 定義與引用：反向連結（docs/notecraft-workbench-define-ref.md §8；handoff §4）──
+   筆記頁「被引用 N」入口與 Drawer、NoteDrawer 三段摘要、Palette「定義」分區。放在 860px 媒體規則之前。 */
+.rf-bl-trig b{font-weight:700;color:var(--wb-blue-l);font-variant-numeric:tabular-nums}
+.rf-bl-trig.on{background:var(--wb-bg);border-color:var(--wb-blue-l)}
+.rf-bl-meta{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 8px;margin:0 0 0 -8px;border:0;border-radius:6px;background:none;font:inherit;font-size:13px;color:var(--text-muted);cursor:pointer}
+.rf-bl-meta b{font-weight:700;color:var(--wb-ink-2)}
+.rf-bl-meta:hover,.rf-bl-meta[aria-expanded="true"]{background:var(--neutral-100)}
+.rf-bl-note{margin-top:4px}
+.rf-bl-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.rf-bl-chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-panel);font:inherit;font-size:12px;color:var(--wb-ink-2);cursor:pointer}
+.rf-bl-chip.mono{font-family:var(--font-mono);font-size:11.5px}
+.rf-bl-chip span{color:var(--wb-ink-3)}
+.rf-bl-chip:hover{background:var(--wb-bg)}
+.rf-bl-chip[aria-pressed="true"]{border-color:var(--wb-blue-l);background:var(--wb-a-blue-10);color:var(--wb-blue)}
+.nc-bl-list{list-style:none;margin:0;padding:0;border:1px solid var(--wb-line);border-radius:8px;overflow:hidden}
+.nc-bl-list li+li{border-top:1px solid var(--wb-line-2)}
+.nc-bl-row{display:flex;flex-direction:column;gap:6px;min-height:48px;padding:8px 14px;color:var(--wb-ink);text-decoration:none}
+.nc-bl-row:hover,.nc-bl-row:focus-visible{background:var(--wb-bg)}
+.nc-bl-row-t{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.nc-bl-row-t .nc-bl-doc{flex:none;margin-top:3px;color:var(--wb-ink-3)}
+.nc-bl-row .nc-bl-ti{display:block;font-size:13.5px;font-weight:600;line-height:1.45}
+.nc-bl-row .nc-bl-fo{display:block;font-size:11px;color:var(--wb-ink-3)}
+.nc-bl-ids{display:flex;flex-wrap:wrap;gap:6px;padding-left:22px}
+.nc-bl-id{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border:1px solid var(--wb-line);border-radius:999px;font-family:var(--font-mono);font-size:11px;color:var(--wb-ink-2)}
+.rf-bl-legend{display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--wb-ink-3)}
+.rf-bl-legend span{display:inline-flex;align-items:center;gap:4px}
+.rf-dw-row{gap:8px}
+.rf-dw-ids{display:inline-flex;gap:4px;flex:none}
+.rf-dw-id{display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 6px;border:1px solid var(--wb-line);border-radius:999px;font-family:var(--font-mono);font-size:10.5px;color:var(--wb-ink-3)}
+.rf-dw-id.more{font-family:inherit}
+.rf-dw-all{display:inline-block;padding:6px 0 0;font-size:12px}
+.rf-dw-ic{flex:none;color:var(--wb-ink-3)}
+.rf-dw-mono{margin-left:4px;font-family:var(--font-mono);font-size:11px;color:var(--wb-ink-3)}
+.rf-dw-src{max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-pal-defid{font-family:var(--font-mono);font-size:12.5px}
+.wb-pal-hint{padding:10px 16px 12px;border-top:1px solid var(--wb-line-2);font-size:11.5px;color:var(--wb-ink-3)}
 @media(max-width:860px){
   .pl-es{padding:36px 14px 48px}
   .pl-hint{padding:12px 14px}
