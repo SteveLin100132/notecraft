@@ -24,7 +24,15 @@ const check = (name, fn) => {
 };
 const read = (name) => fs.readFileSync(path.join(dir, name, "index.html"), "utf8");
 const count = (html, re) => (html.match(re) ?? []).length;
-const templatesOf = (html) => [...html.matchAll(/<template\b[^>]*>([\s\S]*?)<\/template>/g)].map((m) => m[1]);
+/** 預覽內容的容器（hidden）裡每一份 [data-nc-def] 的 HTML；以下一份的開頭切開 */
+const templatesOf = (html) => {
+  const i = html.indexOf("data-nc-def-templates");
+  if (i < 0) return [];
+  // 容器是 .nc-prose 的最後一個子元素，後面緊接的是 RefLayer 等 island
+  const end = html.indexOf("<astro-island", i);
+  const box = html.slice(i, end < 0 ? undefined : end);
+  return box.split(/<div data-nc-def="/).slice(1);
+};
 
 assert.ok(fs.existsSync(dir), `找不到 ${path.relative(process.cwd(), dir)}，請先 build`);
 const pages = { overview: read("系統-overview"), leave: read("請假功能規格"), acct: read("帳號權限規格") };
@@ -65,14 +73,20 @@ check("嵌入的標題相對化並帶 inc- id；template 內沒有標題", () =>
 check("include、template 都帶 data-pagefind-ignore；template 內的 ref 是 is-static", () => {
   for (const html of Object.values(pages)) {
     for (const m of html.matchAll(/<div class="nc-inc"[^>]*>/g)) assert.match(m[0], /data-pagefind-ignore/);
-    if (html.includes("<template")) assert.match(html, /<div hidden[^>]*data-pagefind-ignore[^>]*data-nc-def-templates/);
+    if (html.includes("data-nc-def-templates")) assert.match(html, /<div hidden[^>]*data-pagefind-ignore[^>]*data-nc-def-templates/);
     for (const t of templatesOf(html)) for (const m of t.matchAll(/<a [^>]*class="nc-ref[^"]*"/g)) assert.match(m[0], /is-static/);
   }
 });
 
-check("template 只放本頁用到的 id", () => {
-  const ids = (h) => [...h.matchAll(/<template data-nc-def="([^"]+)"/g)].map((m) => m[1]).sort();
-  assert.deepEqual(ids(pages.acct), ["hr.role-admin", "hr.role-employee", "hr.role-manager", "hr.term-quota"]);
+check("預覽內容不是空的", () => {
+  const t = templatesOf(pages.leave);
+  assert.equal(t.length, 4);
+  for (const x of t) assert.ok(x.replace(/<[^>]+>/g, "").trim().length > 20, x.slice(0, 80));
+});
+
+check("預覽內容只放本頁用到的 id", () => {
+  const ids = (h) => [...h.matchAll(/<div data-nc-def="([^"]+)"/g)].map((m) => m[1]).sort();
+  assert.deepEqual(ids(pages.acct), ["hr.leave-status", "hr.role-admin", "hr.role-employee", "hr.role-manager", "hr.term-quota"]);
   assert.deepEqual(ids(pages.leave), ["hr.role-admin", "hr.role-employee", "hr.role-manager", "hr.term-quota"]);
 });
 

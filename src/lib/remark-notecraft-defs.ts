@@ -7,7 +7,7 @@
  * - `::::define{id}` → `section.nc-def#def-<id>`（meta 列＋內容）
  * - `::include{id}`  → `.nc-inc`（來源列＋嵌入內容；元件換成 placeholder、相對路徑改寫、標題層級相對化）
  * - `:ref[文字]{id}` → `a.nc-ref`（mdast link，交給 remarkNotecraftBase 補前綴）
- * - 文末：本篇用到的每個 ref id 各一個 `<template data-nc-def>`，給預覽卡用
+ * - 文末：本篇用到的每個 ref id 各一份預覽內容（hidden 容器內的 `div[data-nc-def]`），給預覽卡用
  *
  * 引用數、錯誤都來自 defs-state.mjs 的索引；define 片段以 `this.parse()` 解析（同一套語法擴充，Task 125）。
  */
@@ -310,8 +310,10 @@ function templateFor(ctx: Ctx, d: DefEntry): MdNode {
   let body = parseDefine(ctx, d);
   body.forEach(flattenHeadings);
   body = transform(body, ctx, "preview", [d.id]);
+  // 不用 <template>：hast 的 template 內容放在 content 屬性，MDX 編譯時 children 會被丟掉（輸出空的 template）。
+  // 改放在 hidden 的容器裡；RefLayer 複製時會清掉頁面初始化留下的 data-enhanced。
   return el(
-    "template",
+    "div",
     {
       "data-nc-def": d.id,
       "data-label": d.label,

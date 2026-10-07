@@ -9,6 +9,7 @@ import { DeckAction, FavoriteIcon } from "@/components/wb/actions.tsx";
 import ReadingControl from "@/components/islands/ReadingControl.tsx";
 import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
+import RefLayer from "@/components/islands/RefLayer.tsx";
 import AiMarkerCard from "@/components/AiMarkerCard.astro";
 import NoteSkeleton from "@/components/wb/NoteSkeleton.astro";
 import Icon from "@/components/Icon.astro";
@@ -20,6 +21,7 @@ import { getDataFiles } from "@/lib/plugins";
 import { getWorkbenchIndex, noteRelPath, promptPathOf } from "@/lib/workbench";
 import { notesFolderHref } from "@/lib/wb-routes";
 import { ROOT_GROUP } from "@/lib/wb-types";
+import { getDefIndex } from "@/lib/defs-state.mjs";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -68,6 +70,20 @@ const aiPill =
     : genCount > 0
       ? { label: `已生成 ${genCount}`, tone: "ok" as const }
       : { label: "無標記", tone: "muted" as const };
+
+// 定義與引用（define-ref §7、§8）：本篇有 define／include／ref 才掛 RefLayer；
+// 「被 N 篇引用」的清單在 build 期就確定，直接當 props 帶（不另抓 /wb-index.json，沒有載入中狀態）
+const defIndex = getDefIndex();
+const defNote = defIndex.notes.get(note.id);
+const hasDefsUi = !!defNote && (defNote.defines.length + defNote.includes.length + defNote.refs.length > 0);
+const backlinkRow = (slug: string, kinds: ("inc" | "ref")[]) => {
+  const n = defIndex.notes.get(slug);
+  return { slug, title: n?.title ?? slug, folder: n?.folder ?? "", kinds };
+};
+const pageDefs = (defNote?.defines ?? [])
+  .map((id) => defIndex.defs.get(id))
+  .filter((d) => !!d)
+  .map((d) => ({ id: d.id, label: d.label, refs: d.refs.map((r) => backlinkRow(r.slug, r.kinds)) }));
 
 // 目錄收 h1–h3，id 直接用 Astro 幫標題產生的 slug（與內文標題同一個函式，不會對不上）。
 // 嵌入的標題（::include）id 是 inc-<defId>-<slug>，TOC 前面加 icon（define-ref §6.1）
@@ -152,6 +168,8 @@ const toc = headings
       <div class="nc-prose" data-pagefind-body>
         <Content />
       </div>
+
+      {hasDefsUi && <RefLayer client:idle defs={pageDefs} isDev={isDev} />}
 
       <DonePrompt client:visible slug={note.id} />
 
@@ -423,82 +441,12 @@ const toc = headings
 
 <script>
   import { COPY_FAILED_MSG, writeClipboard } from "@/lib/clipboard";
+  import { initAllTabs } from "@/lib/nc-tabs";
+  import { initTips } from "@/lib/nc-tip";
 
-  // Content tabs（PRD §7.1 / task-15）漸進增強：框架無關 vanilla JS，不引入 React island。
-  // 無此 script 時 CSS 會展開所有面板（不遺失內容）；載入後才接管切換。
-  function initTabs(root: HTMLElement) {
-    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-    const panels = Array.from(root.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
-    if (!tabs.length) return;
-    root.setAttribute("data-enhanced", "");
-
-    const select = (i: number) => {
-      tabs.forEach((tab, j) => {
-        const selected = j === i;
-        tab.setAttribute("aria-selected", selected ? "true" : "false");
-        tab.tabIndex = selected ? 0 : -1;
-        if (panels[j]) panels[j].hidden = !selected;
-      });
-    };
-
-    tabs.forEach((tab, i) => {
-      tab.addEventListener("click", () => {
-        select(i);
-        tab.focus();
-      });
-      tab.addEventListener("keydown", (e: KeyboardEvent) => {
-        let next: number | null = null;
-        if (e.key === "ArrowRight") next = (i + 1) % tabs.length;
-        else if (e.key === "ArrowLeft") next = (i - 1 + tabs.length) % tabs.length;
-        else if (e.key === "Home") next = 0;
-        else if (e.key === "End") next = tabs.length - 1;
-        else return;
-        e.preventDefault();
-        select(next);
-        tabs[next].focus();
-      });
-    });
-
-    const initial = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
-    select(initial < 0 ? 0 : initial);
-  }
-
-  document.querySelectorAll<HTMLElement>("[data-nc-tabs]").forEach(initTabs);
-
-  // Tooltips（PRD §7.1 / task-16）定位：氣泡採 position:fixed，於 hover / focus 時以 JS
-  // 夾在內容捲動區內，避免被 table/tabs 的 overflow 裁切、超出視窗或被 sidebar 遮蔽。
-  function positionTip(tip: HTMLElement) {
-    const bubble = tip.querySelector<HTMLElement>(".nc-tip__bubble");
-    if (!bubble) return;
-    bubble.style.left = "0px";
-    bubble.style.top = "0px";
-    const tr = tip.getBoundingClientRect();
-    const bw = bubble.offsetWidth;
-    const bh = bubble.offsetHeight;
-    const scroll = document.getElementById("nc-scroll");
-    const sr = scroll
-      ? scroll.getBoundingClientRect()
-      : ({ left: 8, right: window.innerWidth - 8, top: 8 } as DOMRect);
-    const minX = Math.max(8, sr.left + 8);
-    const maxX = Math.min(window.innerWidth - 8, sr.right - 8);
-    let left = tr.left + tr.width / 2 - bw / 2;
-    left = Math.max(minX, Math.min(left, maxX - bw));
-    let top = tr.top - bh - 9;
-    const below = top < sr.top + 8;
-    if (below) top = tr.bottom + 9;
-    bubble.style.left = `${Math.round(left)}px`;
-    bubble.style.top = `${Math.round(top)}px`;
-    bubble.style.setProperty(
-      "--nc-tip-arrow",
-      `${Math.round(tr.left + tr.width / 2 - left)}px`,
-    );
-    bubble.classList.toggle("nc-tip__bubble--below", below);
-  }
-
-  document.querySelectorAll<HTMLElement>(".nc-tip").forEach((tip) => {
-    tip.addEventListener("mouseenter", () => positionTip(tip));
-    tip.addEventListener("focusin", () => positionTip(tip));
-  });
+  // Content tabs 與 Tooltips 的初始化在 lib/nc-tabs.ts、lib/nc-tip.ts（預覽卡 RefLayer 也要用）
+  initAllTabs(document);
+  initTips(document);
 
   // Code annotations（PRD §7.1 / task-20）漸進增強：點擊程式碼中的 (n) 標記，浮現對應說明氣泡。
   // 標記由 EC 外掛產生（.nc-anno-marker[data-anno]）；說明為 .nc-anno-item（id=nc-anno-{uid}-{n}）。

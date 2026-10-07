@@ -64,3 +64,15 @@ Task 127 之後 ref 只是連結，讀者一點就離開本篇。這一步加上
 ## 依賴
 
 Task 127。
+
+## 實作記錄（2026-10-07）
+
+- **預覽內容不用 `<template>`**：hast 的 template 把內容放在 `content` 屬性，MDX 編譯時 children 被丟掉，輸出的是空 template。改成 hidden 容器（`div[hidden][data-pagefind-ignore][data-nc-def-templates]`）裡的 `div[data-nc-def]`。頁面 inline script 會先初始化這些隱藏的 tabs／tip，所以複製進卡片時先移除 `data-enhanced`、`data-nc-tip` 再重新初始化。`define-ref-html.mjs` 加上「預覽內容不是空的」斷言
+- **「被 N 篇引用」popover 不抓 `/wb-index.json`**：清單在 build 期就確定，`[...slug].astro` 直接以 props 帶給 `RefLayer`（`defs`），沒有載入中狀態
+- 卡片 portal 到 `body`（`position: fixed`；`#nc-main` 內的 Drawer 才需要它當定位基準）；z-index `--wb-z-pop: 680`（高於頁籤列 650、低於更新 toast 700），sheet 用既有 `--wb-z-overlay`
+- 卡片進場動畫不留 `transform`（沒有 fill），否則卡片內 `:tip` 的 `position: fixed` 氣泡會以卡片為基準而錯位
+- SSR 不輸出任何東西、掛載後才 portal（避免 hydration 遇到 portal）
+- 範例筆記補一個指向 `hr.leave-status` 的 `:ref`（帳號權限規格），才驗得到卡片內的 steps＋tabs 與「看完整內容」
+- 瀏覽器實測（dev，1440×900 與 375×812）：hover 開卡且 ref 在視窗下緣時翻到上方；點擊固定、焦點移入卡片；Esc 關閉、焦點還給 ref 且不再觸發預覽；「看完整內容」展開後內捲；卡片內 tabs 可切換、id 帶 `pv-` 前綴、卡片內的 ref 是 `is-static`；`#def-…` 落點距捲動區頂端 32px、取得焦點並 flash（`ncDefFlash`，1.6s 後移除）；popover 列出 2 篇、Esc 還焦點；手機為 sheet、`aria-modal`、「開啟來源」40px
+- 改了 remark plugin 要重啟 dev server（它在 astro.config 載入，不會熱更新）
+- tsc 錯誤數 40 不變
