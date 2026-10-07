@@ -94,3 +94,15 @@ export function assertDefIndex(index: DefIndex): void;   // 有錯誤就 throw�
 ## 依賴
 
 Task 125。
+
+## 實作記錄（2026-10-07）
+
+- **掃描器改成 `src/lib/defs-scan.mjs`＋`.d.mts`，不是 `.ts`**：dev-api 的 `handlers.mjs` 也被 CLI 以純 Node 載入（Task 130 的刪除提醒要用索引），不能 import `.ts`；與 `notes-ignore.mjs` 同理。檔案零 import，`check:defs` 斷言純度
+- 斷言併成一支 `scripts/checks/defs.mjs`（22 項），跨檔規則以 `buildDefIndex(files)` 純函式加 inline fixture 測，不需要 `fixtures/defs/` 目錄
+- `#id` 簡寫與 remark-directive 相同：遇到 `.` 就是 class 的開始，所以帶點的 id（`hr.role-admin`）只能寫 `id="…"`；斷言鎖住這個行為，規格 §2.1 要補註
+- 循環偵測一開始只從筆記最上層的 include 出發，沒被引用的 define 互相 include 會漏掉；改成對每個 define 都走一次
+- 掃描器多回傳 `h1`（給沒有 frontmatter title 的筆記當標題），斷言以現有全部筆記對照 `note-text.ts` 的 `firstH1`
+- 需要 import 的元件只算大寫開頭或含 `.` 的 JSX；小寫 HTML 元素（`<br />`）不需要 import，嵌入時照常渲染
+- 範例筆記 3 篇在 `testing/define-ref/`：7 個定義（含 0 篇引用的 `hr.term-carryover` 與含元件的 `hr.leave-raci`）
+- git-ignored warn 以暫存檔實測：`testing/` 的筆記引用 `private/` 的定義時印出 warn
+- 66 頁（+3 篇範例）；tsc 錯誤數 40 不變
