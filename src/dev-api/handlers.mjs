@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { slug as githubSlug } from "github-slugger";
+import { buildDefIndex } from "../lib/defs-state.mjs";
 import {
   createNotesIgnore,
   IGNORED_LOCATION_MESSAGE,
@@ -682,11 +683,39 @@ async function resolveNoteForDelete(notesRoot, slug, res, ig) {
   return file;
 }
 
+/**
+ * 刪掉這篇後會壞掉的引用（docs/notecraft-workbench-define-ref.md §13、Q11）：引用本篇任一 define 的筆記。
+ * 只用來提醒、不擋刪除（依靠 git 復原）；刪除後 build 會失敗並指出要改哪裡。
+ * 只看沒被排除的筆記（被排除的不會進 build，引用它也不會壞）；只回傳相對資訊。
+ */
+async function referencedByOf(notesRoot, file, ig) {
+  const files = [];
+  for (const abs of await listMdx(notesRoot, ig)) {
+    files.push({ rel: path.relative(notesRoot, abs).split(path.sep).join("/"), source: await fs.readFile(abs, "utf-8") });
+  }
+  const index = buildDefIndex(files);
+  const rel = path.relative(notesRoot, file).split(path.sep).join("/");
+  const me = [...index.notes.values()].find((n) => n.rel === rel);
+  if (!me) return [];
+  const by = new Map();
+  for (const id of me.defines) {
+    for (const r of index.defs.get(id)?.refs ?? []) {
+      const n = index.notes.get(r.slug);
+      const row = by.get(r.slug) ?? { slug: r.slug, title: n?.title ?? r.slug, ids: [] };
+      row.ids.push(id);
+      by.set(r.slug, row);
+    }
+  }
+  return [...by.values()];
+}
+
 async function handleDeletePlan(cwd, notesRoot, slug, res) {
-  const file = await resolveNoteForDelete(notesRoot, slug, res, ignoreFor(cwd));
+  const ig = ignoreFor(cwd);
+  const file = await resolveNoteForDelete(notesRoot, slug, res, ig);
   if (!file) return;
   const { componentsDir, toDelete, keptShared } = await planNoteDeletion(cwd, notesRoot, file);
-  return json(res, 200, { componentsDir, toDelete, keptShared });
+  const referencedBy = await referencedByOf(notesRoot, file, ig);
+  return json(res, 200, { componentsDir, toDelete, keptShared, referencedBy });
 }
 
 async function handleDeleteNote(cwd, notesRoot, slug, req, res) {
