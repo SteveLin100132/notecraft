@@ -410,3 +410,38 @@
     transition: none;
   }
 }
+
+/* 多檔示範（MdDemoFiles，定義與引用）：原文與筆記頁兩側的檔案頁籤 */
+.mdd-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 0;
+}
+.mdd-file-tab {
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-2);
+  font: 500 12.5px/1 var(--f-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mdd-out .mdd-file-tab {
+  font-family: var(--f-cjk);
+}
+.mdd-file-tab:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.mdd-file-tab.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+.mdd-file-tab:focus-visible {
+  outline: 2px solid var(--sheet);
+  outline-offset: 2px;
+}

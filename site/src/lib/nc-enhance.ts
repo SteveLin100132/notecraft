@@ -211,3 +211,258 @@ export function enhanceNote(scope: HTMLElement): Off {
   scope.querySelectorAll<HTMLButtonElement>(".nc-cb__copy").forEach((b) => initCopy(b, offs));
   return () => offs.forEach((f) => f());
 }
+
+// ── 定義與引用（app 的 islands/RefLayer.tsx 的精簡移植）──────────────────
+// 行內引用的預覽卡：hover 300ms 開、離開 150ms 關、點擊固定、Esc／點外面關閉；卡片內容複製自頁面上隱藏的 [data-nc-def]。
+// 「被 N 篇引用」列出示範裡引用它的檔案。卡片掛在示範框（.ncp）裡，才吃得到筆記樣式與 token。
+// 文件頁是整頁捲動，卡片是 position: fixed：沒固定的卡片捲動就收起來，固定的跟著重新定位。
+
+export type DefsBacklink = { slug: string; title: string; kinds: ("inc" | "ref")[] };
+
+const GAP = 8;
+const EDGE = 12;
+
+function place(anchor: Element, card: HTMLElement, alignOffset: number) {
+  const rects = anchor.getClientRects();
+  const first = rects[0] ?? anchor.getBoundingClientRect();
+  const last = rects[rects.length - 1] ?? first;
+  const w = card.offsetWidth;
+  const h = card.offsetHeight;
+  const below = window.innerHeight - EDGE - (last.bottom + GAP);
+  const above = first.top - GAP - EDGE;
+  let top: number;
+  let left: number;
+  let up = false;
+  if (h <= below || below >= above) {
+    top = last.bottom + GAP;
+    left = last.left - alignOffset;
+    if (h > below) top = Math.max(EDGE, window.innerHeight - EDGE - h);
+  } else {
+    up = true;
+    top = first.top - GAP - h;
+    left = first.left - alignOffset;
+    if (h > above) top = EDGE;
+  }
+  left = Math.max(EDGE, Math.min(left, window.innerWidth - w - EDGE));
+  card.style.left = `${Math.round(left)}px`;
+  card.style.top = `${Math.round(top)}px`;
+  card.classList.toggle("anim-up", up);
+  card.classList.toggle("anim", !up);
+}
+
+function el(tag: string, cls: string, text?: string): HTMLElement {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+/**
+ * 對示範框套上定義與引用的互動；回傳清除函式。
+ * onGo(slug, hash)：點了指向某篇筆記的連結（前往來源、開啟來源、反向連結清單）——示範裡沒有真的頁面，交給呼叫端切換檔案。
+ */
+export function enhanceDefs(scope: HTMLElement, backlinks: Record<string, DefsBacklink[]>, onGo: (slug: string, hash: string) => void): Off {
+  const offs: Off[] = [];
+  let card: HTMLElement | null = null;
+  let cardOff: Off | null = null;
+  let anchor: HTMLElement | null = null;
+  let pinned = false;
+  let openT: number | undefined;
+  let closeT: number | undefined;
+
+  const close = () => {
+    window.clearTimeout(openT);
+    window.clearTimeout(closeT);
+    cardOff?.();
+    cardOff = null;
+    card?.remove();
+    card = null;
+    if (anchor) {
+      anchor.classList.remove("on");
+      anchor.setAttribute("aria-expanded", "false");
+      anchor.closest(".nc-def")?.classList.remove("is-open");
+    }
+    anchor = null;
+    pinned = false;
+  };
+
+  const header = (title: string, id: string) => {
+    const h = el("div", "nc-pop-h");
+    const hl = el("div", "nc-pop-hl");
+    hl.append(el("div", "nc-pop-t", title), el("div", "nc-pop-id", `# ${id}`));
+    const x = el("button", "nc-pop-x", "✕");
+    x.setAttribute("type", "button");
+    x.setAttribute("aria-label", "關閉");
+    x.addEventListener("click", () => {
+      const a = anchor;
+      close();
+      a?.focus();
+    });
+    h.append(hl, x);
+    return h;
+  };
+
+  const show = (c: HTMLElement, a: HTMLElement, alignOffset: number) => {
+    card = c;
+    anchor = a;
+    a.classList.add("on");
+    a.setAttribute("aria-expanded", "true");
+    c.addEventListener("pointerenter", () => window.clearTimeout(closeT));
+    c.addEventListener("pointerleave", () => {
+      if (!pinned) closeT = window.setTimeout(close, 150);
+    });
+    c.addEventListener("pointerdown", () => (pinned = true));
+    scope.appendChild(c);
+    place(a, c, alignOffset);
+  };
+
+  const openRef = (a: HTMLAnchorElement, pin: boolean) => {
+    const id = a.dataset.def ?? "";
+    const tpl = scope.querySelector<HTMLElement>(`[data-nc-def-templates] > [data-nc-def="${CSS.escape(id)}"]`);
+    if (!tpl) return;
+    close();
+    pinned = pin;
+    const c = el("div", "nc-pop");
+    c.setAttribute("role", "dialog");
+    c.setAttribute("aria-label", tpl.dataset.label ?? id);
+    c.tabIndex = -1;
+    c.appendChild(header(tpl.dataset.label ?? id, id));
+    const wrap = el("div", "nc-pv-wrap");
+    const body = el("div", "nc-pv-b nc-prose");
+    tpl.childNodes.forEach((n) => body.appendChild(n.cloneNode(true)));
+    body.querySelectorAll("[id]").forEach((n) => (n.id = `pv-${n.id}`));
+    body.querySelectorAll("[aria-controls]").forEach((n) => n.setAttribute("aria-controls", `pv-${n.getAttribute("aria-controls")}`));
+    body.querySelectorAll("[aria-describedby]").forEach((n) => n.setAttribute("aria-describedby", `pv-${n.getAttribute("aria-describedby")}`));
+    body.querySelectorAll("[data-enhanced]").forEach((n) => n.removeAttribute("data-enhanced"));
+    wrap.appendChild(body);
+    c.appendChild(wrap);
+    const f = el("div", "nc-pop-f");
+    const src = el("span", "nc-pop-src");
+    src.append("來自 ", el("b", "", tpl.dataset.srcTitle ?? ""));
+    const go = el("a", "nc-pop-go", "開啟來源 ↗") as HTMLAnchorElement;
+    go.href = tpl.dataset.href ?? "#";
+    f.append(src, go);
+    c.appendChild(f);
+    show(c, a, 14);
+    cardOff = enhanceNote(body);
+    // 太長就截斷，按「看完整內容」展開內捲
+    if (body.scrollHeight > body.clientHeight + 1) {
+      wrap.classList.add("clip");
+      const more = el("button", "nc-pv-more", "⌄ 看完整內容");
+      more.setAttribute("type", "button");
+      more.addEventListener("click", () => {
+        wrap.classList.remove("clip");
+        body.classList.add("open");
+        body.tabIndex = 0;
+        more.remove();
+        if (card && anchor) place(anchor, card, 14);
+      });
+      wrap.appendChild(more);
+      place(a, c, 14);
+    }
+    if (pin) c.focus({ preventScroll: true });
+  };
+
+  const openBacklinks = (btn: HTMLButtonElement) => {
+    const id = btn.dataset.def ?? "";
+    const list = backlinks[id] ?? [];
+    close();
+    pinned = true;
+    const c = el("div", "nc-pop nc-bl-pop");
+    c.setAttribute("role", "dialog");
+    c.tabIndex = -1;
+    c.appendChild(header(`被 ${list.length} 篇筆記引用`, id));
+    const ul = el("ul", "nc-bl-pl");
+    for (const r of list) {
+      const li = el("li", "");
+      const a = el("a", "nc-bl-pi") as HTMLAnchorElement;
+      a.href = `/notes/${r.slug}`;
+      const tx = el("span", "nc-bl-tx");
+      tx.append(el("span", "nc-bl-ti", r.title));
+      const kinds = el("span", "nc-bl-kinds");
+      for (const k of r.kinds) kinds.append(el("span", "nc-bl-kind", k === "inc" ? "↳ 嵌入" : "# 行內"));
+      a.append(tx, kinds);
+      li.appendChild(a);
+      ul.appendChild(li);
+    }
+    c.appendChild(ul);
+    btn.closest(".nc-def")?.classList.add("is-open");
+    show(c, btn, 0);
+    c.focus({ preventScroll: true });
+  };
+
+  const refOf = (t: EventTarget | null) => (t instanceof Element ? (t.closest("a.nc-ref:not(.is-static)") as HTMLAnchorElement | null) : null);
+
+  const onOver = (e: PointerEvent) => {
+    const a = refOf(e.target);
+    if (!a || e.pointerType !== "mouse" || pinned || anchor === a) return;
+    window.clearTimeout(openT);
+    openT = window.setTimeout(() => openRef(a, false), 300);
+  };
+  const onOut = (e: PointerEvent) => {
+    const a = refOf(e.target);
+    if (!a || e.pointerType !== "mouse") return;
+    window.clearTimeout(openT);
+    if (!pinned && anchor === a && !(e.relatedTarget instanceof Node && card?.contains(e.relatedTarget))) closeT = window.setTimeout(close, 150);
+  };
+  const onClick = (e: MouseEvent) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const a = refOf(t);
+    if (a) {
+      e.preventDefault();
+      if (anchor === a && pinned) close();
+      else openRef(a, true);
+      return;
+    }
+    const cnt = t.closest<HTMLButtonElement>("button.nc-def-cnt");
+    if (cnt) {
+      if (anchor === cnt) close();
+      else openBacklinks(cnt);
+      return;
+    }
+    if (t.closest("button.nc-def-id")) return; // 示範裡沒有真的網址可以複製
+    const link = t.closest<HTMLAnchorElement>("a[href]");
+    const m = link && /^\/notes\/([^#?]+)(#.*)?$/.exec(decodeURI(link.getAttribute("href") ?? ""));
+    if (m) {
+      e.preventDefault();
+      close();
+      onGo(m[1], (m[2] ?? "").slice(1));
+    }
+  };
+  const onDown = (e: PointerEvent) => {
+    if (!card) return;
+    const t = e.target;
+    if (t instanceof Node && (card.contains(t) || anchor?.contains(t))) return;
+    close();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || !card) return;
+    const a = anchor;
+    close();
+    a?.focus();
+  };
+  const onMove = () => {
+    if (!card || !anchor) return;
+    if (!pinned) close();
+    else place(anchor, card, card.classList.contains("nc-bl-pop") ? 0 : 14);
+  };
+  scope.addEventListener("pointerover", onOver);
+  scope.addEventListener("pointerout", onOut);
+  scope.addEventListener("click", onClick);
+  document.addEventListener("pointerdown", onDown);
+  document.addEventListener("keydown", onKey);
+  window.addEventListener("scroll", onMove, { passive: true });
+  window.addEventListener("resize", onMove);
+  offs.push(() => {
+    close();
+    scope.removeEventListener("pointerover", onOver);
+    scope.removeEventListener("pointerout", onOut);
+    scope.removeEventListener("click", onClick);
+    document.removeEventListener("pointerdown", onDown);
+    document.removeEventListener("keydown", onKey);
+    window.removeEventListener("scroll", onMove);
+    window.removeEventListener("resize", onMove);
+  });
+  return () => offs.forEach((f) => f());
+}
