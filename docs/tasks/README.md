@@ -717,3 +717,40 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 插圖顏色寫在 `style` 帶 `--wb-*` 變數；`.pl-*` 規則零色碼、不新增 token，860px 規則放在既有媒體規則之前
 > - 路徑只用 `workspaceLabel` 或相對路徑，不得出現本機絕對路徑
 > - `package-lock.json` 在分支建立前就有未提交修改，**每次 commit 只 add 本 Task 的檔案**
+
+## v1.23.0 追加功能（§8.1 Phase 4.27）— 定義區塊、嵌入、行內引用與反向連結（notecraftapp v1.12.0）
+
+規格 [notecraft-workbench-define-ref.md](../notecraft-workbench-define-ref.md)；像素級規格 [design_handoff_workbench_define_ref/](../prototype/design_handoff_workbench_define_ref/README.md)（與規格衝突時以規格為準，差異見規格 §12）。
+作者寫系統文件時常在多篇筆記重複同一段說明（角色職責、術語），之後要同步改好幾處。以 `::::define{id}`、`::include{id}`、`:ref[文字]{id}` 讓內容「只定義一次，到處引用」，引用只寫 id、不寫文件路徑；來源處看得到被哪些筆記引用。
+
+> **十二題已全數確認（規格 §17）**：只做亮色（Q1）、define 片段先用 `this.parse()` 解析（Q2）、Esc 沿用 LIFO（Q3）、id 允許中文（Q4）、
+> **define 內可放元件，嵌入處顯示 placeholder**（Q5）、選填 `label` 屬性（Q6）、define 只能放最上層（Q7）、引用 git-ignored 筆記的 define 時 warn（Q8）、
+> include 不進 pagefind 索引（Q9）、**範例筆記 3 篇**＋規模 fixture（Q10）、刪除被引用的筆記不擋只提醒（Q11）、版號 `1.12.0`（Q12）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 125](task-125-define-ref-spike.md) | spike：`this.parse()`、嵌入標題 id、dev 跨檔失效、slug 規則 | §4.3、§4.4、§6 | 只改規格文件（回填結論） |
+| [Task 126](task-126-define-ref-scan-index.md) | 地基：掃描器、索引單例、錯誤與 warn、斷言、範例筆記 3 篇 | §2、§3、§4.1、§4.2、§14.1 | `lib/defs-scan.ts`、`lib/defs-state.mjs`、`scripts/checks/defs-*.mjs`、`package.json`（`check:defs`）、`testing/define-ref/` |
+| [Task 127](task-127-define-ref-remark-output.md) | MDX 輸出：define／include／ref、元件 placeholder、預覽 template、TOC、dev 失效 | §2.5、§4.3、§4.4、§5、§6 | `lib/remark-notecraft-defs.ts`、`lib/defs-integration.mjs`、`astro.config.mjs`、`[...slug].astro`、`Toc.tsx`、`global.css` |
+| [Task 128](task-128-define-ref-reflayer.md) | 閱讀端互動：預覽卡、sheet、define popover、flash、id 複製 | §7 | `islands/RefLayer.tsx`、`lib/nc-tabs.ts`、`lib/nc-tip.ts`、`[...slug].astro`、`global.css` |
+| [Task 129](task-129-define-ref-backlinks.md) | 反向連結：`/wb-index.json`、筆記頁入口與 Drawer、NoteDrawer 三段、Palette 定義群組 | §8、§9 | `wb-types.ts`、`workbench.ts`、`wb/RefBacklinks.tsx`、`wb/NoteDrawer.tsx`、`wb/Palette.tsx`、`workbench.css` |
+| [Task 130](task-130-define-ref-fixture-docs-release.md) | 規模 fixture、刪除提醒、Subagent 說明、文件回填、發版 | §13、§14.1、§15 | `scripts/fixtures/define-ref-scale.mjs`、`dev-api/handlers.mjs`、`DeleteNoteButton.tsx`、CLAUDE.md／PRD／workbench／官網／CHANGELOG、v1.12.0 |
+
+**順序**：125 先做（結論可能改動 126、127 的做法）；129 只依賴 126，可與 127、128 平行。
+
+```
+125 ─ 126 ─┬─ 127 ─ 128 ─┐
+           └─ 129 ───────┴─ 130
+```
+
+> **交付節奏**：全程在 `feat/define-ref` 單一分支上，依 Task 逐步 commit，**Task 130 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `defs-scan.ts`／`defs-state.mjs` 的再跑 `npm run check:defs`，動到 `scripts/checks/` 的再跑 `npm run check-plugins`。
+>
+> **幾條貫穿整批的規則**：
+> - **引用只寫 id**，id 全域唯一；引用數、反向連結、錯誤都只由 `defs-state.mjs` 的索引計算，UI 不自己數
+> - `remarkNotecraftDefs` **排在 `remarkDirective` 之後、`remarkNotecraftDirectives` 之前**，嵌入的內容才會走同一條管線
+> - 嵌入處與預覽卡**不渲染元件**，一律 placeholder；來源頁照常渲染
+> - include 與預覽 template 帶 `data-pagefind-ignore`；template 內不輸出標題與 `def-` id，整頁不得有重複 id
+> - 新 token 一律 `--wb-*`、只寫亮色；每條動畫都要有 reduced-motion 對應
+> - 錯誤訊息、索引、產物只用 notesDir 相對路徑，不得出現本機絕對路徑
+> - **每次 commit 只 add 本 Task 的檔案**
