@@ -588,6 +588,13 @@ export interface WbIndex {
 | 官網 | 新增 `/docs/writing/define-ref/`（第 3 章「撰寫筆記」，「在筆記裡嵌元件」之後）。`site` 的 `astro build` 在 main 上本來就會失敗（架構圖元件解析到根目錄的 React），與本功能無關，已另開待辦；新頁以 site dev server 確認渲染 |
 | tsc | 錯誤數 40，與開工前相同 |
 
+### 「尚未被引用」也能複製語法（2026-10-07，作者要求）
+
+handoff H§1 的 0 篇狀態是不可點的純文字，但複製 include／ref 語法正是「還沒人引用」時最需要的。改為：
+
+- 正式環境維持純文字（複製語法是 dev 限定）；remark 輸出的 `span.nc-def-cnt.zero` 帶 `data-def`
+- dev 由 `RefLayer` 換成 `button.nc-def-cnt.zero.is-dev`（MDX 的靜態 DOM，不屬於 island，替換不影響 hydration），打開同一個 popover：標題「尚未被引用」、說明「還沒有筆記引用這個定義。複製下面的語法，貼到其他筆記即可嵌入或引用。」、底部「複製 include 語法」「複製 ref 語法」
+
 ### 官網「筆記頁」示範（2026-10-07，發版後追加）
 
 官網 `/docs/writing/define-ref/` 加上與「程式碼區塊」頁同一種「原文 → 筆記頁」示範，用的是 app 的同一份規則：

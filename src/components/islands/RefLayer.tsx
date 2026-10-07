@@ -130,6 +130,24 @@ export default function RefLayer({ defs = [], isDev = false }: { defs?: RefLayer
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // dev：「尚未被引用」換成按鈕，打開的 popover 有「複製 include／ref 語法」（還沒人引用時最需要它）。
+  // 正式環境維持純文字（複製語法是 dev 限定）。這段是 MDX 輸出的靜態 DOM、不屬於任何 island，直接替換不影響 hydration
+  useEffect(() => {
+    if (!isDev) return;
+    document.querySelectorAll<HTMLSpanElement>("span.nc-def-cnt.zero[data-def]").forEach((span) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nc-def-cnt zero is-dev";
+      btn.dataset.def = span.dataset.def ?? "";
+      btn.setAttribute("aria-haspopup", "dialog");
+      btn.setAttribute("aria-expanded", "false");
+      btn.title = "複製 include／ref 語法";
+      btn.innerHTML =
+        '尚未被引用<svg class="nc-def-chev" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+      span.replaceWith(btn);
+    });
+  }, [isDev]);
+
   const clearTimers = () => {
     if (openTimer.current) window.clearTimeout(openTimer.current);
     if (closeTimer.current) window.clearTimeout(closeTimer.current);
@@ -491,7 +509,7 @@ export default function RefLayer({ defs = [], isDev = false }: { defs?: RefLayer
       <div className="nc-pop-h">
         <div className="nc-pop-hl">
           <div id="rf-bl-t" className="nc-pop-t">
-            被 {def.refs.length} 篇筆記引用
+            {def.refs.length ? `被 ${def.refs.length} 篇筆記引用` : "尚未被引用"}
           </div>
           <div className="nc-pop-id"># {def.id}</div>
         </div>
@@ -504,7 +522,9 @@ export default function RefLayer({ defs = [], isDev = false }: { defs?: RefLayer
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`篩選 ${def.refs.length} 篇筆記…`} aria-label="篩選引用的筆記" />
         </div>
       )}
-      {rows.length ? (
+      {def.refs.length === 0 ? (
+        <div className="nc-bl-none">還沒有筆記引用這個定義。複製下面的語法，貼到其他筆記即可嵌入或引用。</div>
+      ) : rows.length ? (
         <ul className={`nc-bl-pl${def.refs.length >= FILTER_MIN ? " scroll" : ""}`}>
           {rows.map((r) => (
             <li key={r.slug}>

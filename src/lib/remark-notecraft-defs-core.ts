@@ -258,7 +258,8 @@ function transform(nodes: MdNode[], ctx: Ctx, mode: Mode, trail: string[]): MdNo
                   text(" 篇引用"),
                   el("svg", { ...ICON_ATTRS, width: 11, height: 11, className: ["nc-def-chev"] }, [el("path", { d: "m6 9 6 6 6-6" })]),
                 ])
-              : el("span", { className: ["nc-def-cnt", "zero"] }, [text("尚未被引用")]),
+              : // 正式環境是純文字；dev 由 RefLayer 換成按鈕，才能打開 popover 複製 include／ref 語法
+                el("span", { className: ["nc-def-cnt", "zero"], "data-def": d.id }, [text("尚未被引用")]),
           ]),
           el("div", { className: ["nc-def-body"] }, body),
         ]),

@@ -747,6 +747,10 @@ img { max-width: 100%; display: block; }
 .nc-def-cnt:hover b,
 .nc-def-cnt[aria-expanded="true"] b { color: var(--wb-blue-l); }
 .nc-def-cnt.zero { padding: 0; cursor: default; background: none; color: var(--wb-ink-3); }
+/* dev：「尚未被引用」是按鈕（RefLayer 替換），可打開 popover 複製語法 */
+.nc-def-cnt.zero.is-dev { padding: 0 5px; cursor: pointer; }
+.nc-def-cnt.zero.is-dev:hover,
+.nc-def-cnt.zero.is-dev[aria-expanded="true"] { background: var(--wb-bg); color: var(--wb-blue-l); }
 .nc-def-chev { transition: transform 160ms ease-out; }
 .nc-def-cnt[aria-expanded="true"] .nc-def-chev { transform: rotate(180deg); }
 .nc-def-body > :first-child,
