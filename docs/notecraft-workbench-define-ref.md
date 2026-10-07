@@ -109,7 +109,7 @@ JSX 元件與 `{…}` 運算式**可以放**，但只在來源頁渲染，嵌入
 
 | define 內的節點 | 嵌入處／預覽卡輸出 |
 | :-- | :-- |
-| 區塊 JSX（`mdxJsxFlowElement`，例：`<GeneratedFrame>…</GeneratedFrame>`、`<RrRaci />`） | 區塊 placeholder `div.nc-inc-ph`：元件 icon＋「此處有互動元件，請至原文檢視」＋「前往原文 ↗」（連到 `/notes/<slug>#def-<id>`） |
+| 區塊 JSX（`mdxJsxFlowElement`，例：`<GeneratedFrame>…</GeneratedFrame>`、`<RrRaci />`）；以及**只含行內 JSX 的段落**（單行的 `<X>…</X>` 會被解析成段落裡的 `mdxJsxTextElement`，Task 125 實測） | 區塊 placeholder `div.nc-inc-ph`：元件 icon＋「此處有互動元件，請至原文檢視」＋「前往原文 ↗」（連到 `/notes/<slug>#def-<id>`） |
 | 行內 JSX（`mdxJsxTextElement`）、`{…}` 運算式 | 行內 placeholder `span.nc-inc-ph-i`「〔元件〕」，`title` 為「請至原文檢視」 |
 | 同一個 define 內連續多個區塊 JSX | 合併成一個 placeholder，避免一長串重複的提示 |
 
@@ -212,7 +212,7 @@ interface DefEntry {
 
 快取以「各檔 mtime＋大小」當鍵；dev 期間由 integration 在檔案變動時 reset（§4.4）。
 
-**slug**：`href` 要用來源筆記的 `entry.id`，必須和 Content Layer 預設 `generateId` 同一套規則。實作時抽成共用函式，並在 check 裡以現有全部筆記對照 `getWorkbenchIndex()` 的 slug 斷言。
+**slug**：`href` 要用來源筆記的 `entry.id`，必須和 Content Layer 預設 `generateId` 同一套規則（Task 125 確認於 `astro/dist/content/loaders/glob.js`）：frontmatter 有 `slug` 就用它；否則去副檔名、以 `/` 分段、每段 `github-slugger` 的 `slug()`、去掉結尾 `/index`。`github-slugger` 已是直接相依。現有 33 篇全部一致。
 
 ### 4.3 remark plugin `remark-notecraft-defs.ts`
 
@@ -244,7 +244,7 @@ Astro 只會重新渲染**改了的那篇**。改了 Overview 的 define，嵌�
 2. 比對變動前後的 `DefEntry.source`，找出內容變了的 id
 3. 找出引用這些 id 的筆記（`kinds` 含 `inc`，或文末有該 id 的 template，也就是含 `ref`），在 Vite module graph 讓它們失效，再送 full-reload
 
-失效方式（invalidate module 或 touch 檔案）由 Task 125 的 spike 決定。這是本功能最大的技術風險：spike 不通過就先接受「dev 期間要重新整理才看得到其他篇的更新」，並寫進文件。
+失效方式（Task 125 實測）：以 `server.moduleGraph.getModulesByFile(<引用筆記的絕對路徑>)` 取得模組（會有兩個：`x.mdx` 與 `x.mdx?astroPropagatedAssets`），逐一 `invalidateModule()`，再 `server.ws.send({ type: "full-reload" })`。對照組：不做這一步時，引用筆記停在舊內容。
 
 CLI `serve` 的背景 rebuild 每次都是完整 build，沒有這個問題。
 
@@ -566,4 +566,14 @@ export interface WbIndex {
 
 ## 18. 實作後回填
 
-（各 Task 完成後填寫）
+### Task 125 spike（2026-10-07）
+
+四項全部通過，§4 的架構不需要調整，Q2 維持 `this.parse()`、不新增相依。
+
+| 項目 | 結論 |
+| :-- | :-- |
+| `this.parse()` | 在掛在 `remarkDirective` 之後的 plugin 裡解析另一篇的片段：GFM 表格是 `table`、`:::note`／`:tip` 是 directive 節點、JSX 是 `mdxJsx*`；接進目前的 tree 後，`remarkNotecraftDirectives` 照常處理，輸出 `.nc-adm`、`.nc-tip`、`<table>` |
+| 單行 JSX | `<GeneratedFrame title="x">hi</GeneratedFrame>` 寫成一行時是「段落＞`mdxJsxTextElement`」，不是 `mdxJsxFlowElement`。placeholder 要把「只含行內 JSX 的段落」當成區塊處理（§2.5 已補） |
+| 標題 id | heading 設 `data.hProperties.id` 後，HTML 的 id 與 `render()` 的 `headings[].slug` 都是指定值（中文、含 `.` 都保留），TOC 的 `href` 也對得上 |
+| dev 跨檔失效 | `getModulesByFile()`＋`invalidateModule()`＋`full-reload` 有效；不做時引用筆記停在舊內容（對照組）。Content Layer 的 digest 沒有擋住重新渲染 |
+| slug | Astro 預設規則見 §4.2；以現有 33 篇對照 `/wb-index.json`，0 筆差異 |

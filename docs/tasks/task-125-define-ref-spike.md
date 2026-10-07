@@ -69,3 +69,10 @@
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-07）
+
+- 四項全部通過，結論回填於規格 §18；§2.5、§4.2、§4.4 依結論補上細節
+- 發現：單行的 `<X>…</X>` 會解析成段落裡的 `mdxJsxTextElement`，placeholder 要把「只含行內 JSX 的段落」當區塊
+- dev 失效以 `getModulesByFile`（兩個模組：本體與 `?astroPropagatedAssets`）＋`invalidateModule`＋`full-reload` 達成；對照組確認不做時會停在舊內容
+- 暫存程式碼（`src/lib/_spike*.ts`、`testing/_spike/`、`astro.config.mjs` 的掛載）已全部移除，只 commit 規格文件
