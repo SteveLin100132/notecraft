@@ -718,7 +718,9 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 路徑只用 `workspaceLabel` 或相對路徑，不得出現本機絕對路徑
 > - `package-lock.json` 在分支建立前就有未提交修改，**每次 commit 只 add 本 Task 的檔案**
 
-## v1.23.0 追加功能（§8.1 Phase 4.27）— 定義區塊、嵌入、行內引用與反向連結（notecraftapp v1.12.0）
+## v1.23.0 追加功能（§8.1 Phase 4.27）— 定義區塊、嵌入、行內引用與反向連結（notecraftapp v1.12.0） ✅ 已完成（2026-10-07）
+
+> **已完成（2026-10-07）**：Task 125–130 全部實作於 `feat/define-ref`。實測結論回填於規格 §18；各 Task 檔末有「實作記錄」。
 
 規格 [notecraft-workbench-define-ref.md](../notecraft-workbench-define-ref.md)；像素級規格 [design_handoff_workbench_define_ref/](../prototype/design_handoff_workbench_define_ref/README.md)（與規格衝突時以規格為準，差異見規格 §12）。
 作者寫系統文件時常在多篇筆記重複同一段說明（角色職責、術語），之後要同步改好幾處。以 `::::define{id}`、`::include{id}`、`:ref[文字]{id}` 讓內容「只定義一次，到處引用」，引用只寫 id、不寫文件路徑；來源處看得到被哪些筆記引用。

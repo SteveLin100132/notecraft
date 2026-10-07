@@ -4,6 +4,26 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.12.0] - 2026-10-07
+
+<!-- 重點：同一段說明只寫一次，其他筆記嵌入或引用它 -->
+
+### 新增
+
+- 定義與引用（設計文件 `docs/notecraft-workbench-define-ref.md`）：以 `::::define{id="…"}` 把一段內容標成可被引用的定義，其他筆記以 `::include{id="…"}` 原樣嵌入、以 `:ref[文字]{id="…"}` 在行文中引用。引用只寫 id、不寫檔案路徑，來源筆記搬移或改名都不會斷
+- 嵌入的內容與來源走同一套渲染（提示框、分頁、步驟、程式碼區塊都一樣），標題配合嵌入位置調整層級並列入目錄；「前往來源」會捲到那段定義並短暫標示
+- 行內引用滑過即可預覽定義，點擊可固定卡片；內容太長時可展開，手機改由底部滑出
+- 反向連結：每段定義旁顯示「被 N 篇引用」並可列出引用的筆記；被引用的筆記頁首有「被引用 N」，打開後可依定義篩選；筆記列表的預覽多了「被引用」「本篇定義」「引用的定義」；指令面板（⌘K）可用 id 或定義名稱直接跳到定義
+- 定義裡可以放 AI 生成元件，來源頁照常顯示；嵌入處與預覽卡改顯示「此處有互動元件，請至原文檢視」
+- `view` 模式刪除筆記時，若它的定義被別篇引用，確認對話框會列出那些筆記（不擋刪除）
+- id 找不到、重複、互相嵌入、嵌入過深、define 放錯位置或裡面有 `import` 時 build 失敗，訊息附檔案、行號與相近的 id；引用被 git 忽略的筆記裡的定義時印出警告
+
+### 內部
+
+- 定義的掃描與索引在 `src/lib/defs-scan.mjs`、`src/lib/defs-state.mjs`（build、dev API、CLI 共用），斷言 `scripts/checks/defs.mjs`（`npm run check:defs`）
+- `remark-notecraft-defs.ts` 排在 `remark-directive` 之後、既有擴充語法之前；dev 期間改了來源定義，嵌入或引用它的筆記會一併重新渲染
+- 新增 `scripts/fixtures/define-ref-html.mjs`（產物斷言）與 `scripts/fixtures/define-ref-scale.mjs`（以 `npm pack` 出的套件驗證 12 篇引用與同頁嵌入兩次）
+
 ## [1.11.0] - 2026-10-06
 
 <!-- 重點：/plugins 只列真正安裝的外掛，沒裝、沒在用時告訴你下一步 -->

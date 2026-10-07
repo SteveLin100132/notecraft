@@ -1,9 +1,9 @@
 Project Name: NoteCraft Workbench — 定義區塊（define）、嵌入（include）、行內引用（ref）與反向連結
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧；語法沿用已啟用的 `remark-directive`，原則上不新增套件，見 Q2）
-文件狀態: 已定案、待實作 —— §16 的 12 題已於 2026-10-07 逐題確認（紀錄見 §17），Q5、Q10 與建議不同
+文件狀態: 已實作（notecraftapp v1.12.0，Task 125–130，2026-10-07）—— §16 的 12 題已於 2026-10-07 逐題確認（紀錄見 §17），Q5、Q10 與建議不同；實作後回填見 §18
 文件作者: 建宇
 建立日期: 2026-10-07
 更新日期: 2026-10-07
@@ -82,6 +82,7 @@ Project Name: NoteCraft Workbench — 定義區塊（define）、嵌入（includ
 - 格式：`^[\p{L}\p{N}_-]+(\.[\p{L}\p{N}_-]+)*$`（字母、數字、`_`、`-`，以 `.` 分段，允許中文，Q4）
 - 慣例：第一段當命名空間（`hr.role-admin`、`crm.role-admin`），不強制
 - 比對區分大小寫
+- 要寫成 `id="…"`：remark-directive 的 `{#a.b}` 簡寫遇到 `.` 就當成 class 的開始，id 只剩 `a`（Task 126 實測）
 
 ### 2.3 label
 
@@ -169,7 +170,9 @@ remark-notecraft-defs.ts          lib/workbench.ts → /wb-index.json
 筆記頁 HTML ──► RefLayer island    NoteDrawer、Palette、反向連結 Drawer
 ```
 
-### 4.1 掃描器 `lib/defs-scan.ts`（純函式）
+### 4.1 掃描器 `lib/defs-scan.mjs`（純函式）
+
+> 實作為 `.mjs`＋`.d.mts`（不是 `.ts`）：dev-api 的 `handlers.mjs` 也被 CLI 以純 Node 載入，不能 import `.ts`（Task 126）。
 
 輸入一篇筆記的原始碼，輸出：
 
@@ -268,7 +271,7 @@ class 名稱沿用 handoff。
 </section>
 ```
 
-引用數在 build 期就寫進 HTML（來自索引），SSR 不需要佔位。「被 N 篇引用」的 popover 由 `RefLayer` 接手（§7）。反向連結清單不放在 HTML 裡，popover 開啟時從 `/wb-index.json` 取（Palette 已經在延遲載入它）。
+引用數在 build 期就寫進 HTML（來自索引），SSR 不需要佔位。「被 N 篇引用」的 popover 由 `RefLayer` 接手（§7）。反向連結清單以 `RefLayer` 的 props 帶入（build 期資料，Task 128 改；原本規劃從 `/wb-index.json` 取）。
 
 ### 5.2 include（H§2）
 
@@ -294,13 +297,15 @@ class 名稱沿用 handoff。
 
 沒有 JS 時就是一般連結，點了會前往來源。預覽卡裡的 ref 加上 `.is-static`，不再開第二層卡。
 
-### 5.4 預覽 template
+### 5.4 預覽內容
+
+> **不用 `<template>`**（Task 128 發現）：hast 的 template 把內容放在 `content` 屬性，MDX 編譯時 children 被丟掉，輸出空的 template。改成 hidden 容器裡的 `div[data-nc-def]`；頁面的 inline script 會先初始化裡面的 tabs／tip，`RefLayer` 複製時先移除 `data-enhanced` 再重新初始化。
 
 ```html
 <div hidden data-pagefind-ignore data-nc-def-templates>
-  <template data-nc-def="hr.role-admin" data-label="管理員" data-src-title="系統 Overview" data-src-folder="請假系統" data-href="/notes/…#def-hr.role-admin">
+  <div data-nc-def="hr.role-admin" data-label="管理員" data-src-title="系統 Overview" data-src-folder="請假系統" data-href="/notes/…#def-hr.role-admin">
     …已渲染的定義內容…
-  </template>
+  </div>
 </div>
 ```
 
@@ -337,7 +342,7 @@ class 名稱沿用 handoff。
 | :-- | :-- |
 | ref 預覽卡 | H§3.2–3.3：hover 300ms／focus 150ms 開卡、150ms 關閉寬限、點擊或 Enter 固定、修飾鍵點擊走原生、捲動時重新定位、截斷 320px＋「看完整內容」、翻轉與夾邊、ResizeObserver |
 | 手機 sheet | H§3.4：≤860px 或 `(hover: none)` |
-| define 的「被 N 篇引用」popover | H§1：360px，≥10 篇時加篩選框；清單從 `/wb-index.json` 取；dev 底部「複製 include／ref 語法」 |
+| define 的「被 N 篇引用」popover | H§1：360px，≥10 篇時加篩選框；清單由 `[...slug].astro` 以 build 期 props 帶入（不抓 `/wb-index.json`，沒有載入中狀態）；dev 底部「複製 include／ref 語法」 |
 | define id 複製 | 複製 `/notes/<slug>#def-<id>`（含 base），走 `lib/clipboard.ts`＋toast |
 | 落點 flash | 網址 hash 是 `#def-…` 時：等捲動還原讓位（現行規則：遇到 hash 不還原）後捲到 define、上留 32px、`focus({preventScroll:true})`、加 `.flash` |
 
@@ -565,6 +570,23 @@ export interface WbIndex {
 ---
 
 ## 18. 實作後回填
+
+各 Task 檔末有完整的「實作記錄」；這裡只列與規格不同、或之後實作時要知道的事。
+
+### 總覽（Task 126–130，2026-10-07）
+
+| 項目 | 結果 |
+| :-- | :-- |
+| 掃描器 | `src/lib/defs-scan.mjs`（不是 `.ts`，§4.1）；斷言 `scripts/checks/defs.mjs`（`npm run check:defs`，併入 `check-plugins`） |
+| 預覽內容 | hidden 容器裡的 `div[data-nc-def]`，不是 `<template>`（§5.4） |
+| popover 與筆記頁 Drawer 的資料 | build 期 props，不抓 `/wb-index.json`；NoteDrawer 與 Palette 用 `/wb-index.json` 的 `defs` |
+| `.ts` 與 Node API | 專案沒有 `@types/node`，`.ts` 用了 `node:path`／`process` 會讓 tsc 錯誤增加；這類邏輯一律放 `defs-state.mjs`（`siteBase`、`relOfNoteFile`、`rebaseRelativeUrl`） |
+| 元件 placeholder | 只對「需要 import 的元件」（大寫開頭或含 `.` 的 JSX）與 `{…}` 運算式；小寫 HTML（`<br />`）照常渲染。單行 `<X>…</X>` 是段落裡的行內 JSX，也當區塊 |
+| 範例筆記 | 3 篇（Q10）；帳號權限規格多一個指向 `hr.leave-status` 的 `:ref`，才驗得到卡片內的 steps＋tabs |
+| 規模驗證 | `node scripts/fixtures/define-ref-scale.mjs --build`（npm pack 後的 viewer，1 篇來源＋12 篇引用，約 7 秒 build）；`node scripts/fixtures/define-ref-html.mjs`（先 build 主 repo，11 項） |
+| dev | 改了 remark plugin 或 dev-api（`handlers.mjs`）要重啟 dev server：它們在 astro.config 載入，不會熱更新 |
+| 官網 | 新增 `/docs/writing/define-ref/`（第 3 章「撰寫筆記」，「在筆記裡嵌元件」之後）。`site` 的 `astro build` 在 main 上本來就會失敗（架構圖元件解析到根目錄的 React），與本功能無關，已另開待辦；新頁以 site dev server 確認渲染 |
+| tsc | 錯誤數 40，與開工前相同 |
 
 ### Task 125 spike（2026-10-07）
 

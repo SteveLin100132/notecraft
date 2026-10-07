@@ -62,3 +62,12 @@
 ## 依賴
 
 Task 126–129。
+
+## 實作記錄（2026-10-07）
+
+- `scripts/fixtures/define-ref-scale.mjs --build`：npm pack 後的 viewer 工作區（1 篇來源＋12 篇引用，附錄 01 另外 include 同一個定義兩次），build 約 7 秒，5 項斷言通過（12 篇、附錄 01 的 kinds 合併為 `["inc","ref"]` 且排最前、`-2` 標題 id、無重複 id、無本機路徑）
+- ≥10 篇的 popover 另以 dev server 實測（暫時放 12 篇引用筆記，看完刪除）：篩選框、清單 280px 內捲、無結果文案、dev 的複製語法按鈕
+- 刪除提醒：`GET …/delete-plan` 回傳 `referencedBy`（以 `buildDefIndex` 對沒被排除的筆記計算，只回相對資訊）；`DeleteNoteButton` 對話框列出筆記與 id，仍可刪除。只改 `DeleteNoteButton.tsx`：`MoreMenu` 共用同一個 `useDeleteNote`
+- Subagent：note-scanner 註明標記可在 define 內（回報 `in define:`），mdx-writer 規定 define 內的標記其 `import` 一律放檔頭；`npm run sync-skill` 同步到 `skill-template/`
+- 官網：新增 `/docs/writing/define-ref/`（「撰寫筆記」章、「在筆記裡嵌元件」之後；作者要求中途不詢問，位置由實作決定）。正文裡的 `<來源筆記>` 被 MDX 當成 JSX，改寫成文字。`site` 的 `astro build` 在 main 上本來就失敗（`ArchExplode` 解析到根目錄的 React），與本功能無關，已另開待辦；新頁以 site dev server 確認渲染
+- 驗證：`npx tsc --noEmit`（40，不變）、`npx astro build`、`node scripts/fixtures/define-ref-html.mjs`（11 項）、`npm run check-plugins`（含 `scripts/checks/defs.mjs`）、`npm run check:upd`

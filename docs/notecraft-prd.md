@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.22.0
+文件版本: v1.23.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -84,6 +84,7 @@ Project Name: NoteCraft
 22. \* 提供 [Markdown 擴充語法 — Steps](#markdown-擴充語法steps)：條列「步驟」內容，支援 `horizontal` 與 `vertical`（預設）兩種版型，重用 `remark-directive` 底座，純 CSS / 漸進增強，正式環境同樣可用
 23. \* 提供 [筆記轉簡報（Note → Presentation）](#筆記轉簡報note--presentation)：作者於 [筆記檢視頁面](#筆記檢視頁面) 功能列點「生成簡報」按鈕複製提示詞、貼進 Claude Code，由 AI 讀取整篇筆記（文字 ＋ 既有 [Generated 元件](#generated-元件)）重新編排為一份**多頁簡報**（每篇一份、獨立 slides 檔），並於 [簡報模式](#筆記轉簡報note--presentation)（`/present/[slug]`）以「檢視 / 播放」兩態呈現；生成為 dev-only、播放正式環境亦可用，版面遵循 [trendlink-design](#skills)。由獨立的 `content-present` Skill 與兩個新 Subagent 執行，**與既有 AI 視覺化管線完全隔離**
 24. \* 為每個 [Generated 元件](#generated-元件) 提供 [放大檢視](#ai-生成內容外框卡片--放大檢視viz-zoom)：從 [AI 生成內容外框卡片](#ai-生成內容外框卡片) 標題列點「放大檢視」，把元件搬進全螢幕可拖曳平移、可縮放的畫布閱讀（沿用簡報端既有的 `CanvasViewport`），互動完整保留、可匯出 100% 原尺寸 PNG；解決寬元件在內文欄寬下被擠壓、橫向溢出的問題，dev 與正式環境皆可用
+25. \* 提供 [定義與引用](#phase-427--定義區塊嵌入行內引用與反向連結v1230-追加)：以 `::::define{id}` 把一段內容標成可被引用的定義，其他筆記以 `::include{id}` 原樣嵌入、以 `:ref[文字]{id}` 行內引用並預覽，來源處看得到被哪些筆記引用；引用只寫 id、錯誤一律 build 失敗，dev 與正式環境皆可用
 
 ### 4.2 非目標（Out of Scope）
 
@@ -2724,6 +2725,18 @@ model: haiku
 - **不做**：Plugin Store（官方外掛清單先寫成常數，日後換資料來源）、manifest 加預設 glob 欄位、「不相容」「渲染錯誤」pill
 - 對應實作 Task 121–124；完整設計見 [notecraft-workbench-plugin-empty-states.md](./notecraft-workbench-plugin-empty-states.md)（6 題定案紀錄在其 §14，實作後回填在 §15）
 
+#### Phase 4.27 — 定義區塊、嵌入、行內引用與反向連結（v1.23.0 追加）
+
+**目標：同一段說明只寫一次，其他筆記引用它（SSoT）**
+
+- 語法沿用 `remark-directive`：`::::define{id label?}`（容器，只能放最上層）、`::include{id}`（嵌入）、`:ref[文字]{id}`（行內引用）。id 全域唯一、可用中文，引用只寫 id 不寫路徑
+- 嵌入的內容與來源走同一條 remark 管線（提示框、分頁、步驟、程式碼區塊一致）；標題層級相對化並計入目錄；元件只在來源頁渲染，嵌入處與預覽卡顯示 placeholder；嵌入內容不進 pagefind 索引
+- 行內引用：hover／focus 預覽、點擊固定、手機底部 sheet；預覽內容 build 期就輸出在頁面上，沒有載入中狀態
+- 反向連結：define 旁的「被 N 篇引用」、筆記頁頂端入口與 Drawer、工作台列表 Drawer 三段摘要、Palette 以 id 搜尋定義
+- 錯誤（id 不存在、重複、循環、深度、位置、define 內 import）一律 build 失敗；引用 git-ignored 筆記的定義只 warn；dev 期間改來源會一併重新渲染引用處
+- 只做亮色；**不做**：`[[…]]` 語法糖、簡報展開 include、定義總表頁
+- 對應實作 Task 125–130；完整設計見 [notecraft-workbench-define-ref.md](./notecraft-workbench-define-ref.md)（12 題定案紀錄在其 §17，實作後回填在 §18）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2883,6 +2896,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.23.0] - 2026-10-07
+- **Added**: 新增 Phase 4.27 定義區塊、嵌入、行內引用與反向連結；§4.1 目標新增第 25 項
 
 ### [1.22.0] - 2026-10-06
 - **Added**: 新增 Phase 4.26 Plugin 頁空狀態與內建外掛外洩修正

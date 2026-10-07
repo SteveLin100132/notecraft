@@ -51,6 +51,8 @@ NoteCraft 不讀被排除的檔，你也不要掃。開始前先找 `.notecraft/
 3. 解析每個區塊的四個欄位（id、type、prompt、status）
 4. **偵測標記是否被 code fence 包住**：若 `{/* @ai-visualize` 上一行是 ```` ``` ```` 或 ```` ```mdx ````、且 `*/}` 下一行是對應的關閉 ``` `，代表該標記被圍欄包住。這類標記若狀態為 `generated` 卻仍留著圍欄，prompt 會原樣外露給讀者——請在回報中以 `fenced: yes` 標註，提醒主 Agent 寫回時要拆圍欄。
 5. 若同一檔案內有 `id` 重複，標註為錯誤但繼續處理
+   標記也可能寫在 `::::define{id="…"}` 定義區塊裡（docs/notecraft-workbench-define-ref.md）：照常掃描、照常回報，在回報的該列註明 `in define: <define id>`。
+   生成的元件只在來源筆記渲染；其他筆記 `::include` 這段定義時會顯示「此處有互動元件，請至原文檢視」的 placeholder，不需要另外處理
 6. 若有區塊格式錯亂（例如缺欄位），標註為錯誤但繼續處理
 6. **掃描孤兒元件**：列出 `src/components/generated/*.tsx`，比對所有 MDX 中存在的標記區塊 `id`；若某個生成元件對應的 `id` 已不存在於任何 MDX 中，將其視為孤兒並列入回報。
    **比對 id 時要連被排除的筆記一起看**（只讀它們的標記 id、不列入其他表格）：只被被排除筆記引用的元件不是孤兒，列在 Orphans 表下方註明「引用者已被 ignore.json 排除」，避免作者誤刪
