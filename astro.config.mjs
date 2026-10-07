@@ -4,6 +4,7 @@ import mdx from "@astrojs/mdx";
 import react from "@astrojs/react";
 import tailwind from "@astrojs/tailwind";
 import remarkDirective from "remark-directive";
+import remarkNotecraftDefs from "./src/lib/remark-notecraft-defs.ts";
 import remarkNotecraftDirectives from "./src/lib/remark-notecraft-directives.ts";
 import remarkNotecraftCodeblock from "./src/lib/remark-notecraft-codeblock.ts";
 import remarkNotecraftNotesAssets from "./src/lib/remark-notecraft-notes-assets.ts";
@@ -16,6 +17,7 @@ import contentLayerGuard from "./src/lib/content-layer-guard-integration.mjs";
 import crossDriveContent from "./src/lib/vite-cross-drive-content.ts";
 import ignoreGuard from "./src/lib/ignore-guard-integration.mjs";
 import notesIgnoreWatch from "./src/lib/notes-ignore-integration.mjs";
+import defsWatch from "./src/lib/defs-integration.mjs";
 import { resolveNotecraftDir } from "./src/lib/notes-ignore.mjs";
 
 // v2 Q3 + Bug fix: `.notecraft/` 資料夾**放在 userCwd**（使用者專案根、與 .claude/ 同層），
@@ -64,6 +66,8 @@ export default defineConfig({
     ignoreGuard(),
     // dev：.notecraft/ignore.json 變動時重新啟動 dev server
     notesIgnoreWatch(),
+    // dev：define 變動時，讓嵌入／引用它的筆記一起重新渲染（docs/notecraft-workbench-define-ref.md §4.4）
+    defsWatch(),
   ],
   vite: {
     // Windows：viewer app 與筆記在不同磁碟時修正 content entry 與 @notes glob 的路徑（見檔頭說明）
@@ -96,10 +100,11 @@ export default defineConfig({
     // 關閉 Astro 內建 Shiki：圍欄程式碼改由 remarkNotecraftCodeblock 以自寫 build-time
     // tokenizer 渲染成設計定稿的白底程式碼塊（見 src/lib/remark-notecraft-codeblock.ts）。
     syntaxHighlight: false,
-    // 順序固定：remark-directive 先解析指令；directives 處理 admonition/tabs/tooltip/annotate；
+    // 順序固定：remark-directive 先解析指令；defs 把 include 的子樹搬進來、ref 換成連結（嵌入的內容才會走後面同一條管線）；
+    // directives 處理 admonition/tabs/tooltip/annotate；
     // codeblock 最後改寫 code 節點（buildAnnotate 需在 code 仍為原始節點時讀值）。
     // notes-assets 只在 viewer 模式（有 NOTECRAFT_NOTES_DIR）下作用，重寫相對圖片路徑為 /notes-assets/*。
     // base 最後跑：有 NOTECRAFT_BASE 時替站內絕對連結補前綴（含 notes-assets 產生的）。
-    remarkPlugins: [remarkDirective, remarkNotecraftDirectives, remarkNotecraftCodeblock, remarkNotecraftNotesAssets, remarkNotecraftBase],
+    remarkPlugins: [remarkDirective, remarkNotecraftDefs, remarkNotecraftDirectives, remarkNotecraftCodeblock, remarkNotecraftNotesAssets, remarkNotecraftBase],
   },
 });

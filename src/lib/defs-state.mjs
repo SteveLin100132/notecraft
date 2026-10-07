@@ -285,3 +285,21 @@ export function relOfNoteAbs(abs) {
   if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return null;
   return rel.split(path.sep).join("/");
 }
+
+/** NOTECRAFT_BASE 前綴（與 remark-notecraft-base.ts 同一套規則）；remark plugin 用（.ts 不碰 process，避免 tsc 錯誤）。 */
+export function siteBase() {
+  const raw = process.env.NOTECRAFT_BASE ?? "";
+  return raw === "/" ? "" : raw.replace(/\/+$/, "");
+}
+
+/** remark 的 file.path（可能是相對 cwd）→ notesDir 相對路徑；不在 notesDir 底下回 null。 */
+export function relOfNoteFile(filePath) {
+  return relOfNoteAbs(path.resolve(filePath));
+}
+
+/** 相對 URL 以來源檔解析，再改成相對於目前檔（include 的圖片、連結）。 */
+export function rebaseRelativeUrl(url, srcRel, curRel) {
+  const target = path.posix.normalize(path.posix.join(path.posix.dirname(srcRel), url));
+  const rel = path.posix.relative(path.posix.dirname(curRel), target);
+  return rel.startsWith(".") ? rel : `./${rel}`;
+}

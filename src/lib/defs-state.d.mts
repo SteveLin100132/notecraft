@@ -54,3 +54,6 @@ export function assertDefIndex(index?: DefIndex): void;
 export function resetDefIndex(): void;
 export function setDefIndexDev(on: boolean): void;
 export function relOfNoteAbs(abs: string): string | null;
+export function siteBase(): string;
+export function relOfNoteFile(filePath: string): string | null;
+export function rebaseRelativeUrl(url: string, srcRel: string, curRel: string): string;

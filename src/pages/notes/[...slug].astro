@@ -69,10 +69,11 @@ const aiPill =
       ? { label: `已生成 ${genCount}`, tone: "ok" as const }
       : { label: "無標記", tone: "muted" as const };
 
-// 目錄收 h1–h3，id 直接用 Astro 幫標題產生的 slug（與內文標題同一個函式，不會對不上）
+// 目錄收 h1–h3，id 直接用 Astro 幫標題產生的 slug（與內文標題同一個函式，不會對不上）。
+// 嵌入的標題（::include）id 是 inc-<defId>-<slug>，TOC 前面加 icon（define-ref §6.1）
 const toc = headings
   .filter((h) => h.depth <= 3)
-  .map((h) => ({ id: h.slug, label: h.text, lv: h.depth as 1 | 2 | 3 }));
+  .map((h) => ({ id: h.slug, label: h.text, lv: h.depth as 1 | 2 | 3, ...(h.slug.startsWith("inc-") ? { inc: true } : {}) }));
 ---
 <WorkbenchLayout
   title={note.data.title}
@@ -343,6 +344,13 @@ const toc = headings
   }
   .nc-toc-label {
     min-width: 0;
+  }
+  /* 嵌入的內容（::include）的標題（define-ref §6.1） */
+  .nc-toc-inc {
+    display: inline-flex;
+    margin-right: 4px;
+    vertical-align: -1px;
+    color: var(--wb-ink-3);
   }
   .nc-toc-item:hover {
     color: var(--blue-700);

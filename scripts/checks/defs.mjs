@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { isValidDefId, maskNonProse, parseAttrs, scanDefs, suggestIds } from "../../src/lib/defs-scan.mjs";
-import { buildDefIndex, slugOfNotePath } from "../../src/lib/defs-state.mjs";
+import { buildDefIndex, rebaseRelativeUrl, slugOfNotePath } from "../../src/lib/defs-state.mjs";
 import { firstH1 } from "../../src/lib/note-text.ts";
 import { walkNotes, createNotesIgnore } from "../../src/lib/notes-ignore.mjs";
 
@@ -181,6 +181,12 @@ check("slugOfNotePath：與 Content Layer 規則一致", () => {
   assert.equal(slugOfNotePath("中文/系統 Overview.md"), "中文/系統-overview");
   assert.equal(slugOfNotePath("x/index.mdx"), "x");
   assert.equal(slugOfNotePath("x.mdx", "custom/slug"), "custom/slug");
+});
+
+check("rebaseRelativeUrl：以來源檔解析、改成相對於目前檔", () => {
+  assert.equal(rebaseRelativeUrl("./images/a.png", "sys/overview.mdx", "sys/leave.mdx"), "./images/a.png");
+  assert.equal(rebaseRelativeUrl("images/a.png", "sys/overview.mdx", "other/deep/x.mdx"), "../../sys/images/a.png");
+  assert.equal(rebaseRelativeUrl("../b.mdx", "sys/sub/o.mdx", "root.mdx"), "./sys/b.mdx");
 });
 
 check("真實筆記：掃描不出錯、H1 與 note-text.ts 的 firstH1 一致", () => {

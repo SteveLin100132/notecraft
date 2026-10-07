@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
 import { readPrefs } from "@/lib/wb-prefs";
 
 type Level = 1 | 2 | 3;
-type Heading = { id: string; label: string; lv: Level };
+/** inc：嵌入的內容（::include）的標題，前面加 icon（docs/notecraft-workbench-define-ref.md §6.1） */
+type Heading = { id: string; label: string; lv: Level; inc?: boolean };
 type Node = Heading & { depth: number; parent: Node | null; hasKids: boolean };
 
 /** 標題距捲動容器頂端小於這個值，就算「已讀到」。 */
@@ -196,7 +197,14 @@ export default function Toc({ items = [] }: { items?: Heading[] }) {
                   }}
                 >
                   {h.depth > 0 && <span className="nc-toc-mark" aria-hidden="true" />}
-                  <span className="nc-toc-label">{h.label}</span>
+                  <span className="nc-toc-label">
+                    {h.inc && (
+                      <span className="nc-toc-inc" title="嵌入的內容">
+                        <CornerDownRight size={11} aria-hidden="true" />
+                      </span>
+                    )}
+                    {h.label}
+                  </span>
                 </a>
                 {h.hasKids && (
                   <button

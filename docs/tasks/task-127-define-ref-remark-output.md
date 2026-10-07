@@ -85,3 +85,15 @@
 ## 依賴
 
 Task 125、126。
+
+## 實作記錄（2026-10-07）
+
+- `remarkNotecraftDefs` 掛在 `remarkDirective` 之後；include 每處以 `this.parse()` 重新解析一次（天然是深複製），嵌入的 tabs、tip 的 id 由後面的 directives 計數器產生，整頁不重複
+- 依賴 `node:path`／`process` 的部分（base 前綴、相對路徑改寫、file.path 轉相對路徑）放進 `defs-state.mjs` 匯出，`.ts` 不直接用：專案沒有 `@types/node`，否則 tsc 會多出錯誤（40 → 42）
+- placeholder 判定「需要 import 的元件」：大寫開頭或含 `.` 的 JSX、只含這類元件的段落、`{…}` 運算式；MDX 註解與 ESM 直接移除。小寫 HTML 元素照常渲染
+- dev 旗標：`WorkbenchLayout` 的 `<html>` 在 dev 帶 `data-nc-dev`，CSS 以它顯示 include 來源列的 id（860px 以下仍隱藏）
+- dev 跨檔失效實測兩個方向：改來源 define → 嵌入頁更新；別篇新增 `:ref` → 來源頁「被 N 篇引用」更新（`尚未被引用` 消失、還原後再出現）
+- 錯誤 build：`testing/_bad.mdx:4 :ref 找不到定義「hr.role-admn」（是不是「hr.role-admin」？）`，exit 1
+- `scripts/fixtures/define-ref-html.mjs` 10 項通過；`NOTECRAFT_BASE=/x` build 後以 `--base /x` 再跑一次也通過
+- reduced-motion：`global.css` 本來就有全域 `animation/transition: none`，flash 另外改成外框
+- tsc 錯誤數 40 不變；66 頁
