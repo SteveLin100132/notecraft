@@ -5,7 +5,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { isValidDefId, maskNonProse, parseAttrs, scanDefs, suggestIds } from "../../src/lib/defs-scan.mjs";
+import matter from "gray-matter";
 import { buildDefIndex, rebaseRelativeUrl, slugOfNotePath } from "../../src/lib/defs-state.mjs";
+import { readFrontmatterLite } from "../../src/lib/defs-index.mjs";
 import { firstH1 } from "../../src/lib/note-text.ts";
 import { walkNotes, createNotesIgnore } from "../../src/lib/notes-ignore.mjs";
 
@@ -202,6 +204,30 @@ check("真實筆記：掃描不出錯、H1 與 note-text.ts 的 firstH1 一致",
     const body = f.source.replace(/^﻿?---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "");
     assert.equal(scanDefs(f.source).h1, firstH1(body) ?? "", f.rel);
   }
+});
+
+check("readFrontmatterLite：現有筆記的 title／slug 與 gray-matter 一致（官網示範用輕量版）", () => {
+  const notesDir = path.resolve("src/content/notes");
+  if (!fs.existsSync(notesDir)) return;
+  walkNotes(notesDir, createNotesIgnore([]), ({ rel, abs }) => {
+    if (!/\.(md|mdx)$/.test(rel)) return;
+    const src = fs.readFileSync(abs, "utf8");
+    const full = matter(src).data;
+    const lite = readFrontmatterLite(src);
+    for (const k of ["title", "slug"]) {
+      if (typeof full[k] === "string") assert.equal(lite[k], full[k], `${rel} 的 ${k}`);
+    }
+  });
+});
+
+check("瀏覽器可用：defs-index.mjs 只 import github-slugger 與 defs-scan.mjs、不碰 Node API", () => {
+  const code = (f) => fs.readFileSync(path.resolve(f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const src = code("src/lib/defs-index.mjs");
+  const imports = [...src.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]).sort();
+  assert.deepEqual(imports, ["./defs-scan.mjs", "github-slugger"]);
+  assert.doesNotMatch(src, /\bprocess\.|node:|\bfs\./);
+  const core = code("src/lib/remark-notecraft-defs-core.ts");
+  assert.doesNotMatch(core, /from "node:|defs-state|\bprocess\./);
 });
 
 check("純度：defs-scan.mjs 沒有任何 import", () => {

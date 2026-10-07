@@ -36,7 +36,9 @@ src/
 ├── lib/update-check.ts          檢查更新的純函式（semver／落後版數／Node 需求／快取／toast 條件）；lib/changelog-parse.ts 解析 CHANGELOG。兩者只能 import type，scripts/checks/upd-*.mjs 斷言（npm run check:upd）
 ├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
 ├── lib/defs-scan.mjs             定義與引用的掃描器（原始碼 → define／include／ref 的 id 與位置）；零 import 的 .mjs，Astro、dev-api、CLI 共用，scripts/checks/defs.mjs 斷言（npm run check:defs）
-├── lib/defs-state.mjs            定義索引單例（globalThis；反向連結、跨檔錯誤、git-ignored warn）；remark plugin、workbench.ts、dev-api 共用。lib/remark-notecraft-defs.ts 輸出 HTML、lib/defs-integration.mjs 處理 dev 跨檔失效
+├── lib/defs-index.mjs            定義索引的純計算（buildDefIndex、slug、相對路徑改寫）；只 import github-slugger 與 defs-scan.mjs，**不可碰 Node API**：官網的「筆記頁」示範在瀏覽器裡也用它
+├── lib/defs-state.mjs            定義索引單例（globalThis；讀檔、gray-matter、git-ignored warn）；remark plugin、workbench.ts、dev-api 共用。lib/defs-integration.mjs 處理 dev 跨檔失效
+├── lib/remark-notecraft-defs-core.ts  define／include／ref 的 remark 核心，索引與路徑由呼叫端注入（app：remark-notecraft-defs.ts 接 defs-state；官網：site/src/lib/nc-render.ts 的 renderNoteSet）
 ├── lib/notes-ignore.mjs          .notecraft/ignore.json 的比對、走訪（walkNotes）與 .notecraft 位置解析（resolveNotecraftDir）；.mjs 是因為 Astro、dev-api、CLI 三種環境共用，scripts/checks/notes-ignore.mjs 斷言（npm run check:ignore）；build／dev 期單例在 lib/notes-ignore-state.mjs
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
@@ -149,6 +151,7 @@ status: pending | generated | locked | failed
   嵌入處與預覽卡**不渲染元件**（需要 import 的 JSX、`{…}` 運算式一律 placeholder），來源頁照常；嵌入的標題相對化、id 為 `inc-<defId>-<slug>[-n]` 並進 TOC。
   預覽內容放在文末 `div[hidden][data-pagefind-ignore][data-nc-def-templates]`，**不可改用 `<template>`**（hast 的 template 內容在 `content`，MDX 會輸出空的 template）；`RefLayer` 複製時要先清掉 `data-enhanced`。include 也帶 `data-pagefind-ignore`。
   「被 N 篇引用」與筆記頁的反向連結 Drawer 用 build 期 props，不抓 `/wb-index.json`；NoteDrawer 與 Palette 用 `/wb-index.json` 的 `defs`。`.ts` 端不碰 `node:*`／`process`（放 `defs-state.mjs`，避免 tsc 錯誤增加）。
+  樣式放在 `global.css` 的筆記內文區段（`prose styles for MDX note bodies` 與 `unstyled button reset` 之間），官網 `site/scripts/sync-nc-prose.mjs` 才抽得到（`:root` 在官網改成 `.ncp`，另帶 workbench.css 的 `:root` token）。
   改了 remark plugin 或 dev-api 要**重啟 dev server**（它們在 astro.config 載入）；整合驗證 `node scripts/fixtures/define-ref-html.mjs`（先 build）、`node scripts/fixtures/define-ref-scale.mjs --build`
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 

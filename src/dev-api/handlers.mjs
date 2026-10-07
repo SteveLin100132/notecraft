@@ -693,7 +693,7 @@ async function referencedByOf(notesRoot, file, ig) {
   for (const abs of await listMdx(notesRoot, ig)) {
     files.push({ rel: path.relative(notesRoot, abs).split(path.sep).join("/"), source: await fs.readFile(abs, "utf-8") });
   }
-  const index = buildDefIndex(files);
+  const index = buildDefIndex(files, { frontmatter: (t) => matter(t).data ?? {} });
   const rel = path.relative(notesRoot, file).split(path.sep).join("/");
   const me = [...index.notes.values()].find((n) => n.rel === rel);
   if (!me) return [];

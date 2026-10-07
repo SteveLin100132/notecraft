@@ -48,7 +48,10 @@ export interface DefIndex {
 
 export const MAX_INCLUDE_DEPTH: number;
 export function slugOfNotePath(rel: string, fmSlug?: unknown): string;
-export function buildDefIndex(files: { rel: string; source: string }[]): DefIndex;
+export function buildDefIndex(
+  files: { rel: string; source: string }[],
+  opts?: { frontmatter?: (source: string) => Record<string, unknown> },
+): DefIndex;
 export function getDefIndex(): DefIndex;
 export function assertDefIndex(index?: DefIndex): void;
 export function resetDefIndex(): void;

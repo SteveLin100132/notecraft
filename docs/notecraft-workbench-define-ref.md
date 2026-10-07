@@ -588,6 +588,15 @@ export interface WbIndex {
 | 官網 | 新增 `/docs/writing/define-ref/`（第 3 章「撰寫筆記」，「在筆記裡嵌元件」之後）。`site` 的 `astro build` 在 main 上本來就會失敗（架構圖元件解析到根目錄的 React），與本功能無關，已另開待辦；新頁以 site dev server 確認渲染 |
 | tsc | 錯誤數 40，與開工前相同 |
 
+### 官網「筆記頁」示範（2026-10-07，發版後追加）
+
+官網 `/docs/writing/define-ref/` 加上與「程式碼區塊」頁同一種「原文 → 筆記頁」示範，用的是 app 的同一份規則：
+
+- **索引的純計算抽成 `src/lib/defs-index.mjs`**（`buildDefIndex`、`slugOfNotePath`、`rebaseRelativeUrl`，不碰 Node API）；`defs-state.mjs` 改為從它取用，frontmatter 以 gray-matter 注入（官網用只認單行 `title`／`slug` 的輕量版，`check:defs` 以現有筆記對照兩者一致）
+- **remark plugin 拆成 `remark-notecraft-defs-core.ts`**（`createRemarkDefs({ getIndex, assert, relOf, base })`）與 app 的薄包裝 `remark-notecraft-defs.ts`；`check:defs` 斷言核心與 `defs-index.mjs` 沒有 Node API
+- **CSS 移進 `global.css` 的筆記內文區段**，官網的 `sync-nc-prose.mjs` 才抽得到；`:root` 在官網改成 `.ncp`，並帶上 workbench.css 的 `:root` token（`--wb-blue-l` 等）
+- 官網新增多檔示範 `MdDemoFiles`（原文、筆記頁兩側各有檔案頁籤）、`renderNoteSet`（整組建索引後逐檔渲染，frontmatter 換成等量空行）、`enhanceDefs`（預覽卡、「被 N 篇引用」清單、前往來源切檔並標示）。示範的 `rehypeHeadingIds` 改為保留已有的 id（同 Astro），嵌入標題的 `inc-…` 才不會被蓋掉
+
 ### Task 125 spike（2026-10-07）
 
 四項全部通過，§4 的架構不需要調整，Q2 維持 `this.parse()`、不新增相依。
