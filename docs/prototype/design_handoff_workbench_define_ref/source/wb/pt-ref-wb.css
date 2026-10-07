@@ -1,0 +1,52 @@
+/* 工作台整合：steps、字級縮放、請假系統資料夾。依賴 wb/pt.css、wb/pt-ref.css 的 token，不寫死色碼 */
+.rf-scaled{font-size:calc(var(--nc-fs) * var(--nc-fs-scale,1))}
+.nc-pv-b .nc-flow,.nc-sheet .nc-flow{font-size:var(--nc-fs)}
+/* steps（既有 NoteCraft 擴充語法） */
+.nc-steps{list-style:none;margin:1.25em 0;padding:0;display:flex;flex-direction:column}
+.nc-step{position:relative;display:grid;grid-template-columns:1.6em minmax(0,1fr);column-gap:.75em;padding-bottom:.85em}
+.nc-step:last-child{padding-bottom:0}
+.nc-step:not(:last-child)::before{content:"";position:absolute;left:.8em;top:1.75em;bottom:.2em;width:1px;background:var(--wb-line)}
+.nc-step-n{grid-row:1/3;align-self:start;margin-top:.12em;width:1.95em;height:1.95em;font-size:.8em;border-radius:50%;border:1.5px solid var(--wb-blue-l);color:var(--wb-blue-l);background:var(--wb-panel);display:flex;align-items:center;justify-content:center;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.nc-step-h{font-weight:700;color:var(--wb-ink);line-height:1.7}
+.nc-step-d{grid-column:2;font-size:.92em;line-height:1.75}
+.nc-pv-b .nc-steps{margin:.9em 0}
+.nc-pv-b .nc-step{padding-bottom:.6em}
+.wb-dark .nc-step-n{color:color-mix(in srgb,var(--wb-blue-l) 55%,var(--wb-ink));border-color:color-mix(in srgb,var(--wb-blue-l) 70%,var(--wb-ink))}
+.wb-dark .nc-adm-t{color:color-mix(in srgb,var(--k) 55%,var(--wb-ink))}
+.rf-meta .wb-tagchip{font-family:inherit}
+/* 筆記頁沿用既有 NoteView 版式：區塊在 .nc-in-note 內，字級、色彩、間距對齊 NoteBody（app/noteview.jsx） */
+.wb-dark{--text-strong:var(--wb-ink)}
+.nc-flow.nc-in-note{--nc-fs:var(--text-md);font-size:var(--text-md);color:var(--text-body);line-height:1.85;--wb-line:var(--neutral-200);--wb-line-2:var(--neutral-100);--wb-bg:var(--neutral-50);--wb-ink:var(--text-strong);--wb-ink-2:var(--text-body);--wb-ink-3:var(--text-muted)}
+.nc-in-note .nc-p{margin:0 0 16px}
+.nc-in-note .nc-p strong{color:var(--text-strong)}
+.nc-in-note .nc-ul{margin:0 0 18px;padding-left:22px;gap:4px}
+.nc-in-note .nc-h{color:var(--text-strong);font-weight:700;line-height:1.3;scroll-margin-top:90px}
+.nc-in-note .nc-h2{font-size:var(--text-2xl);margin:38px 0 14px}
+.nc-in-note .nc-h3{font-size:var(--text-xl);margin:28px 0 10px}
+.nc-in-note .nc-h4{font-size:var(--text-lg);margin:22px 0 8px}
+.nc-in-note .nc-tablewrap,.nc-in-note .nc-adm,.nc-in-note .nc-tabs,.nc-in-note .nc-fig,.nc-in-note .nc-steps{margin:22px 0}
+.nc-in-note .nc-tablewrap,.nc-in-note .nc-adm,.nc-in-note .nc-tabs{border-radius:var(--radius-lg)}
+.nc-in-note .nc-table{font-size:var(--text-sm)}
+.nc-in-note .nc-def,.nc-in-note .nc-inc{margin:26px 0}
+.nc-in-note .nc-def+.nc-def{margin-top:34px}
+.nc-in-note .nc-inc+.nc-inc{margin-top:18px}
+.nc-in-note .nc-def-meta,.nc-in-note .nc-inc-src{font-size:12px;line-height:1.4}
+.nc-in-note .nc-def-id,.nc-in-note .nc-def-cnt,.nc-in-note .nc-inc-go{font-size:12px}
+.nc-in-note>:last-child>:last-child{margin-bottom:0}
+.wb-host .nc-bl{margin-top:44px;padding-top:26px;border-top:1px solid var(--neutral-200)}
+.wb-host .nc-bl-h{font-size:var(--text-lg);color:var(--text-strong)}
+/* 被引用：頂端入口（頁首按鈕／meta 列／TOC）→ Drawer */
+.rf-bl-trig b{font-weight:700;color:var(--wb-blue-l)}
+.rf-bl-trig.on{background:var(--wb-bg);border-color:var(--wb-blue-l)}
+.rf-bl-meta{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 8px;margin:0 -8px;border:none;border-radius:6px;background:none;font:inherit;font-size:13px;color:var(--text-muted);cursor:pointer}
+.rf-bl-meta b{font-weight:700;color:var(--blue-500);font-variant-numeric:tabular-nums}
+.rf-bl-meta:hover{background:var(--neutral-100);color:var(--text-body)}
+.rf-bl-meta:focus-visible,.rf-toc-bl:focus-visible{outline:2px solid var(--wb-blue-l);outline-offset:1px}
+.rf-toc-bl{border:none;background:none;text-align:left;font:inherit;cursor:pointer}
+.rf-toc-bl:hover{color:var(--blue-500)!important}
+.rf-bl-dw{outline:none}
+.nc-bl.in-dw{margin-top:14px;padding-top:0;border-top:none}
+.nc-bl.in-dw .nc-bl-sub{margin-top:0}
+.nc-bl.in-dw .nc-bl-row{grid-template-columns:minmax(0,1fr);gap:6px}
+.nc-bl.in-dw .nc-bl-row .t{white-space:normal}
+.nc-bl.in-dw .nc-bl-ids{justify-content:flex-start}

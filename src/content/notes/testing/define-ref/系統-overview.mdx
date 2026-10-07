@@ -1,0 +1,102 @@
+---
+title: "請假系統：系統 Overview"
+description: "請假系統的角色、假單狀態與術語定義。其他規格以 ::include 與 :ref 引用這裡，只在這一篇維護。"
+tags: ["系統規格", "測試"]
+createdAt: "2026-10-07"
+updatedAt: "2026-10-07"
+---
+
+import GeneratedFrame from "@/components/GeneratedFrame.astro";
+import RrRaci from "@/components/generated/rr-raci";
+
+請假系統讓員工線上申請假別、主管簽核、管理員維護帳號與額度。本篇是角色、狀態與術語的唯一來源：功能規格引用這裡的定義，不另外重寫。
+
+## 角色
+
+::::define{id="hr.role-admin"}
+**管理員**：負責帳號審核、權限設定與稽核報表，也是唯一能調整年度額度的人。
+
+:::note
+離職時要同步撤權：帳號停用與角色移除必須在同一天完成。
+:::
+::::
+
+::::define{id="hr.role-manager"}
+**主管**：部門的第一線簽核者，對假單有核准與退回權，並對部門的出勤狀況負責。
+
+### 主管職責
+
+| 職責 | 說明 | 頻率 |
+| --- | --- | --- |
+| 簽核假單 | 收到送審通知後 2 個工作天內核准或退回 | 每次送審 |
+| 代理人指派 | 主管請假時指定代理簽核人 | 主管請假時 |
+| 出勤檢視 | 檢查部門的出勤異常與未銷假單 | 每週 |
+| 額度申訴 | 員工對額度有疑義時先由主管確認 | 視需要 |
+::::
+
+::::define{id="hr.role-employee"}
+**員工**：假單的申請人。可以：
+
+- 申請、修改、撤回自己的草稿
+- 查看自己的剩餘額度與歷史假單
+- 在假期結束後銷假
+::::
+
+## 假單狀態
+
+:::::define{id="hr.leave-status" label="假單狀態"}
+每張假單依序經過下列狀態，任何一步退回都會回到草稿。
+
+::::steps
+:::step{title="草稿" status="done"}
+員工填寫假別、日期與事由，尚未送出。
+:::
+:::step{title="送審" status="done"}
+送出後通知主管，等待簽核。
+:::
+:::step{title="核准／退回" status="current"}
+主管核准後扣除額度；退回時附上原因。
+:::
+:::step{title="銷假"}
+假期結束後員工確認實際天數。
+:::
+::::
+
+::::tabs
+:::tab{label="一般假"}
+病假、事假依實際天數扣除，不需要預先累積。
+:::
+:::tab{label="特休"}
+特休從 :ref[年度額度]{id="hr.term-quota"} 扣除，未用完的部分依公司規定處理。
+:::
+::::
+:::::
+
+## 術語
+
+::::define{id="hr.term-quota"}
+**年度額度**：員工每年可用的特休天數，依年資計算，於每年 1 月 1 日重新計算。
+
+```ts
+// 年資滿 1 年 7 天、滿 2 年 10 天，之後每年加 1 天，上限 30 天
+function annualQuota(years: number): number {
+  if (years < 1) return 0;
+  if (years < 2) return 7;
+  return Math.min(30, 10 + (years - 2));
+}
+```
+::::
+
+::::define{id="hr.term-carryover" label="特休遞延"}
+未休完的特休可以遞延到隔年第一季，逾期歸零。這個定義目前沒有被任何規格引用，用來示範「尚未被引用」。
+::::
+
+## 簽核權責
+
+::::define{id="hr.leave-raci" label="簽核權責表"}
+各角色在請假流程中的 RACI 分工：
+
+<GeneratedFrame id="rr-raci" type="table" caption="借用既有的 RACI 元件，示範 define 內含元件時，嵌入處會顯示 placeholder。">
+  <RrRaci client:visible />
+</GeneratedFrame>
+::::

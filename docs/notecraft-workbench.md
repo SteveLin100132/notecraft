@@ -571,6 +571,8 @@ Prototype 的色碼絕大多數**本來就是 DS 的值**，只是寫成了 hex�
 
 ### 8.3 筆記內文 `/notes/[...slug]`（Q12 已定案）
 
+> 定義與引用（v1.12.0）在筆記頁加了頁首「被引用 N」入口、meta 列入口與反向連結 Drawer，內文的 define／include／ref 與預覽卡見 [notecraft-workbench-define-ref.md](./notecraft-workbench-define-ref.md) §5–§8。
+
 README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實際只對 `.wb-viewhost`（資料檔頁）做了 `header{display:none}`；筆記頁的標籤編輯、h1、描述、meta 列、動作列在 prototype 裡全部都還在，標題因此出現兩次。Codebase 的筆記頁也沒有 `<header>` 元素，這些東西直接寫在 `.astro` 裡。定案：**頁首接手「標題 + 動作」，其餘留在內文**。
 
 ```
@@ -779,6 +781,8 @@ README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實�
 - 流程列與技術選型文案照抄 `PT_FLOW`／`PT_STACK`
 
 ### 8.9 Palette ⌘K（Q13 已定案）
+
+> v1.12.0 起有輸入時最上方多一個「定義」分區（以 id 或定義名稱比對，Enter 前往定義並標示），見 [notecraft-workbench-define-ref.md](./notecraft-workbench-define-ref.md) §8.3。筆記 Drawer 的「被引用／本篇定義／引用的定義」三段見同文件 §8.2。
 
 新設計有**兩個**搜尋入口，職責不同：
 

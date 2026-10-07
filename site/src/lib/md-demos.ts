@@ -3,9 +3,13 @@
 // MDX 文件裡寫 <MdDemo id="…" />；id 對到這裡的鍵。
 
 export type MdPreset = { label: string; source: string };
+/** 多檔示範（定義與引用）的一組：files 依序是原文側的檔案頁籤，show 是筆記頁側預設顯示第幾個 */
+export type MdFileSet = { label: string; files: { name: string; source: string }[]; show: number };
 export type MdDemoSpec = {
-  /** 原文框上方的檔名，只是示意 */
+  /** 原文框上方的檔名，只是示意（多檔示範不用） */
   file: string;
+  /** 多檔示範：有這個欄位時改用 MdDemoFiles，presets 不用 */
+  fileSets?: MdFileSet[];
   /** 圖說（FIG. n 由 docs.css 的計數器補） */
   caption: string;
   presets: MdPreset[];
@@ -357,6 +361,198 @@ pnpm add -g notecraftapp
 :::step{title="部署"}
 :::
 ::::`,
+      },
+    ],
+  },
+
+  /* ── 定義與引用（多檔）── */
+  defineRef: {
+    file: "",
+    caption: "定義寫在「系統 Overview」，其他筆記用 include 嵌入、用 :ref 引用。兩邊的原文都可以改，筆記頁跟著重算；在筆記頁點「前往來源」「開啟來源」或「被 N 篇引用」，會切到來源那一篇。",
+    presets: [],
+    fileSets: [
+      {
+        label: "嵌入與引用",
+        show: 1,
+        files: [
+          { name: "系統/overview.md", source: `---
+title: 系統 Overview
+---
+
+## 角色
+
+::::define{id="hr.role-admin"}
+**管理員**：負責帳號審核、權限設定與稽核報表。
+
+:::note
+離職時要同步撤權。
+:::
+::::
+
+::::define{id="hr.role-manager"}
+**主管**：部門的第一線簽核者。
+
+### 主管職責
+
+| 職責 | 頻率 |
+| --- | --- |
+| 簽核假單 | 每次送審 |
+| 出勤檢視 | 每週 |
+::::
+
+## 術語
+
+::::define{id="hr.term-quota" label="年度額度"}
+員工每年可用的特休天數，依年資計算，上限 30 天。
+::::` },
+          { name: "系統/請假功能.md", source: `---
+title: 請假功能規格
+---
+
+## 簽核角色
+
+::include{id="hr.role-manager"}
+
+## 流程
+
+送出後由 :ref[主管]{id="hr.role-manager"} 在兩天內簽核，逾期通知 :ref{id="hr.role-admin"}。特休從 :ref[年度額度]{id="hr.term-quota"} 扣除，詳見 [帳號規格](/notes/x) 與 :tip[五年]{content='紀錄保存年限'}。` },
+        ],
+      },
+      {
+        label: "只有行內引用",
+        show: 1,
+        files: [
+          { name: "系統/overview.md", source: `---
+title: 系統 Overview
+---
+
+## 角色
+
+::::define{id="hr.role-admin"}
+**管理員**：負責帳號審核、權限設定與稽核報表。
+
+:::note
+離職時要同步撤權。
+:::
+::::
+
+::::define{id="hr.role-manager"}
+**主管**：部門的第一線簽核者。
+
+### 主管職責
+
+| 職責 | 頻率 |
+| --- | --- |
+| 簽核假單 | 每次送審 |
+| 出勤檢視 | 每週 |
+::::
+
+## 術語
+
+::::define{id="hr.term-quota" label="年度額度"}
+員工每年可用的特休天數，依年資計算，上限 30 天。
+::::` },
+          { name: "帳號/權限.md", source: `---
+title: 帳號權限規格
+---
+
+新進人員由 :ref{id="hr.role-admin"} 建立帳號，預設角色是員工；部門主管另外加上 :ref[主管]{id="hr.role-manager"} 角色。` },
+        ],
+      },
+      {
+        label: "來源端",
+        show: 0,
+        files: [
+          { name: "系統/overview.md", source: `---
+title: 系統 Overview
+---
+
+## 角色
+
+::::define{id="hr.role-admin"}
+**管理員**：負責帳號審核、權限設定與稽核報表。
+
+:::note
+離職時要同步撤權。
+:::
+::::
+
+::::define{id="hr.role-manager"}
+**主管**：部門的第一線簽核者。
+
+### 主管職責
+
+| 職責 | 頻率 |
+| --- | --- |
+| 簽核假單 | 每次送審 |
+| 出勤檢視 | 每週 |
+::::
+
+## 術語
+
+::::define{id="hr.term-quota" label="年度額度"}
+員工每年可用的特休天數，依年資計算，上限 30 天。
+::::` },
+          { name: "系統/請假功能.md", source: `---
+title: 請假功能規格
+---
+
+## 簽核角色
+
+::include{id="hr.role-manager"}
+
+## 流程
+
+送出後由 :ref[主管]{id="hr.role-manager"} 在兩天內簽核，逾期通知 :ref{id="hr.role-admin"}。特休從 :ref[年度額度]{id="hr.term-quota"} 扣除，詳見 [帳號規格](/notes/x) 與 :tip[五年]{content='紀錄保存年限'}。` },
+          { name: "帳號/權限.md", source: `---
+title: 帳號權限規格
+---
+
+新進人員由 :ref{id="hr.role-admin"} 建立帳號，預設角色是員工；部門主管另外加上 :ref[主管]{id="hr.role-manager"} 角色。` },
+        ],
+      },
+      {
+        label: "id 打錯",
+        show: 1,
+        files: [
+          { name: "系統/overview.md", source: `---
+title: 系統 Overview
+---
+
+## 角色
+
+::::define{id="hr.role-admin"}
+**管理員**：負責帳號審核、權限設定與稽核報表。
+
+:::note
+離職時要同步撤權。
+:::
+::::
+
+::::define{id="hr.role-manager"}
+**主管**：部門的第一線簽核者。
+
+### 主管職責
+
+| 職責 | 頻率 |
+| --- | --- |
+| 簽核假單 | 每次送審 |
+| 出勤檢視 | 每週 |
+::::
+
+## 術語
+
+::::define{id="hr.term-quota" label="年度額度"}
+員工每年可用的特休天數，依年資計算，上限 30 天。
+::::` },
+          { name: "系統/請假功能.md", source: `---
+title: 請假功能規格
+---
+
+送出後由 :ref[主管]{id="hr.role-manger"} 簽核。
+
+::include{id="hr.role-admin"}` },
+        ],
       },
     ],
   },

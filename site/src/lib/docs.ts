@@ -64,6 +64,7 @@ export const CHAPTERS: DocChapter[] = [
       { title: "圖片與附件", slug: "writing/images" },
       { title: "巢狀資料夾與網址", slug: "writing/folders" },
       { title: "在筆記裡嵌元件", slug: "writing/embed" },
+      { title: "定義與引用", slug: "writing/define-ref" },
       { title: "標籤", slug: "writing/tags" },
     ],
   },

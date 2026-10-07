@@ -1,0 +1,35 @@
+---
+title: "請假系統：請假功能規格"
+description: "員工申請、主管簽核的流程規格。角色與狀態都引用系統 Overview 的定義。"
+tags: ["系統規格", "測試"]
+createdAt: "2026-10-07"
+updatedAt: "2026-10-07"
+---
+
+這份規格描述請假從申請到銷假的流程。角色與狀態的定義都在 [系統 Overview](/notes/testing/define-ref/系統-overview)，這裡只寫請假功能特有的規則。
+
+## 簽核角色
+
+請假只有一位簽核者：
+
+::include{id="hr.role-manager"}
+
+## 流程
+
+員工送出假單後，由 :ref[主管]{id="hr.role-manager"} 在兩個工作天內簽核；逾期未簽核時系統會通知 :ref[管理員]{id="hr.role-admin"}。假單送出前，:ref[員工]{id="hr.role-employee"} 可以隨時修改，相關操作說明見 [帳號權限規格](/notes/testing/define-ref/帳號權限規格)。簽核紀錄會保留 :tip[五年]{content='依勞動基準法施行細則，出勤紀錄須保存五年'}。
+
+假單的狀態流轉如下：
+
+::include{id="hr.leave-status"}
+
+## 參與者
+
+本功能牽涉的另外兩個角色，連續嵌入：
+
+::include{id="hr.role-employee"}
+
+::include{id="hr.role-admin"}
+
+## 權責分工
+
+::include{id="hr.leave-raci"}

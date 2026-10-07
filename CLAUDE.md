@@ -35,6 +35,10 @@ src/
 ├── lib/wb-plugin-env.ts          /plugins 的情境判定（derivePluginEnv／pluginRowState）；lib/official-plugins.ts 是官方外掛清單與安裝指令。兩者只能 import type，scripts/checks/wb-plugin-env.mjs 斷言（併入 check:wb）
 ├── lib/update-check.ts          檢查更新的純函式（semver／落後版數／Node 需求／快取／toast 條件）；lib/changelog-parse.ts 解析 CHANGELOG。兩者只能 import type，scripts/checks/upd-*.mjs 斷言（npm run check:upd）
 ├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
+├── lib/defs-scan.mjs             定義與引用的掃描器（原始碼 → define／include／ref 的 id 與位置）；零 import 的 .mjs，Astro、dev-api、CLI 共用，scripts/checks/defs.mjs 斷言（npm run check:defs）
+├── lib/defs-index.mjs            定義索引的純計算（buildDefIndex、slug、相對路徑改寫）；只 import github-slugger 與 defs-scan.mjs，**不可碰 Node API**：官網的「筆記頁」示範在瀏覽器裡也用它
+├── lib/defs-state.mjs            定義索引單例（globalThis；讀檔、gray-matter、git-ignored warn）；remark plugin、workbench.ts、dev-api 共用。lib/defs-integration.mjs 處理 dev 跨檔失效
+├── lib/remark-notecraft-defs-core.ts  define／include／ref 的 remark 核心，索引與路徑由呼叫端注入（app：remark-notecraft-defs.ts 接 defs-state；官網：site/src/lib/nc-render.ts 的 renderNoteSet）
 ├── lib/notes-ignore.mjs          .notecraft/ignore.json 的比對、走訪（walkNotes）與 .notecraft 位置解析（resolveNotecraftDir）；.mjs 是因為 Astro、dev-api、CLI 三種環境共用，scripts/checks/notes-ignore.mjs 斷言（npm run check:ignore）；build／dev 期單例在 lib/notes-ignore-state.mjs
 ├── styles/workbench.css         工作台樣式（--wb-* token；規則裡不出現色碼字面值）
 ├── dev-api/                     dev-only API（handlers.mjs 供 astro dev 與 CLI 共用）
@@ -142,6 +146,13 @@ status: pending | generated | locked | failed
   只列 npm 上發佈過的版本（沒單獨發佈的段落不列）、「內部」類別不顯示；版本標題必須是 `## [x.y.z] - YYYY-MM-DD`，`npm run check:upd` 以真實 CHANGELOG 斷言（含與官網 `readReleases()` 對照）
 - **Plugin 頁空狀態**（v1.11.0，[docs/notecraft-workbench-plugin-empty-states.md](docs/notecraft-workbench-plugin-empty-states.md)）：情境只由 `lib/wb-plugin-env.ts` 的 `derivePluginEnv` 判定，**只看啟用中外掛**，UI 不自己數規則或外掛；切換啟用狀態到重載前不重算（啟用後命中哪些檔要 build 才知道），只收起提示。
   官方外掛清單與安裝指令只從 `lib/official-plugins.ts` 讀。**正式環境不出現任何 `npx` 指令**、plugins.json 範例或設定提示（「安裝新外掛」說明框也是 dev-only）；Sidebar 0 檔時 dev 留「尚無資料檔」入口、正式整段不畫。class 沿用 handoff 的 `pl-`，標題／說明／按鈕沿用 `pt-empty-*`
+- **定義與引用**（v1.12.0，[docs/notecraft-workbench-define-ref.md](docs/notecraft-workbench-define-ref.md)）：`::::define{id label?}`、`::include{id}`、`:ref[文字]{id}`。**引用只寫 id**（全域唯一、可用中文；`{#a.b}` 簡寫遇到 `.` 會變 class，一律寫 `id="…"`）；define 只能放最上層、不可巢狀、裡面不能有 `import`／`export`。
+  `remarkNotecraftDefs` **排在 `remarkDirective` 之後、`remarkNotecraftDirectives` 之前**，嵌入的子樹以 `this.parse()` 解析後走同一條管線；引用數、反向連結、錯誤只由 `defs-state.mjs` 的索引計算，UI 不自己數。
+  嵌入處與預覽卡**不渲染元件**（需要 import 的 JSX、`{…}` 運算式一律 placeholder），來源頁照常；嵌入的標題相對化、id 為 `inc-<defId>-<slug>[-n]` 並進 TOC。
+  預覽內容放在文末 `div[hidden][data-pagefind-ignore][data-nc-def-templates]`，**不可改用 `<template>`**（hast 的 template 內容在 `content`，MDX 會輸出空的 template）；`RefLayer` 複製時要先清掉 `data-enhanced`。include 也帶 `data-pagefind-ignore`。
+  「被 N 篇引用」與筆記頁的反向連結 Drawer 用 build 期 props，不抓 `/wb-index.json`；NoteDrawer 與 Palette 用 `/wb-index.json` 的 `defs`。`.ts` 端不碰 `node:*`／`process`（放 `defs-state.mjs`，避免 tsc 錯誤增加）。
+  樣式放在 `global.css` 的筆記內文區段（`prose styles for MDX note bodies` 與 `unstyled button reset` 之間），官網 `site/scripts/sync-nc-prose.mjs` 才抽得到（`:root` 在官網改成 `.ncp`，另帶 workbench.css 的 `:root` token）。
+  改了 remark plugin 或 dev-api 要**重啟 dev server**（它們在 astro.config 載入）；整合驗證 `node scripts/fixtures/define-ref-html.mjs`（先 build）、`node scripts/fixtures/define-ref-scale.mjs --build`
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）
@@ -236,7 +247,7 @@ repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就�
 - `PUT /api/tags/:old` — 重新命名標籤（合併語意：若新名稱已存在則自動去重）
 - `DELETE /api/tags/:tag` — 從所有 MDX 移除該標籤
 - `PUT /api/notes/:slug/tags` — 替換單篇筆記標籤
-- `DELETE /api/notes/:slug` — 刪除筆記（連帶處理未被其他筆記引用的生成元件）
+- `DELETE /api/notes/:slug` — 刪除筆記（連帶處理未被其他筆記引用的生成元件）；刪除計畫（`GET …/delete-plan`）另列出引用本篇定義的筆記（`referencedBy`，只提醒、不擋）
 - `GET /api/folders` — notesDir 底下所有層的資料夾（遞迴），供新增筆記的下拉選單
 - `PUT /api/plugins/:id` body `{ enabled }` — 增刪 `.notecraft/plugins.json` 頂層 `disabled` 陣列的元素；只動這個鍵、保留作者排版
 

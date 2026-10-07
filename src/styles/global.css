@@ -662,6 +662,430 @@ img { max-width: 100%; display: block; }
   font-size: var(--text-sm);
 }
 
+/* ── 定義與引用（docs/notecraft-workbench-define-ref.md §5、§11；像素值見 design_handoff_workbench_define_ref §1–§3）──
+   放在筆記內文樣式區段內（unstyled button reset 之前）：官網的 site/scripts/sync-nc-prose.mjs 會抽這一段給「筆記頁」示範用，
+   :root 在官網會改成示範框 .ncp。
+   define：左側細線括號＋meta 列，無底無框（不像 admonition）；include：2px 左線＋來源列（內容常有框，避免盒中盒）；
+   :ref：字色 × 底色 × 實線底線三維度，與一般連結、:tip 的虛線區分。只做亮色（Q1）。
+   token 放 :root：預覽卡 portal 在 .nc-prose 之外也要用得到。 */
+:root {
+  --wb-ref-bg: color-mix(in srgb, var(--wb-blue-l) 9%, transparent);
+  --wb-ref-bg-on: color-mix(in srgb, var(--wb-blue-l) 17%, transparent);
+  --wb-ref-line: color-mix(in srgb, var(--wb-blue-l) 55%, transparent);
+  --wb-def-rule: var(--wb-line);
+  --wb-def-rule-on: var(--wb-blue-l);
+  --wb-def-flash: color-mix(in srgb, var(--wb-gold) 14%, transparent);
+  --wb-inc-rule: color-mix(in srgb, var(--wb-blue-l) 34%, var(--wb-line));
+}
+@keyframes ncDefFlash { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+
+.nc-prose .nc-def {
+  position: relative;
+  isolation: isolate;
+  margin: 1.75em 0;
+  scroll-margin-top: 28px;
+}
+.nc-prose .nc-def + .nc-def { margin-top: 2.25em; }
+.nc-prose .nc-def:focus { outline: none; }
+.nc-prose .nc-def::before {
+  content: "";
+  position: absolute;
+  left: -18px; top: 2px; bottom: 2px;
+  width: 6px;
+  border: 1px solid var(--wb-def-rule);
+  border-right: 0;
+  border-radius: 3px 0 0 3px;
+  transition: border-color 160ms ease-out;
+}
+.nc-prose .nc-def:hover::before,
+.nc-prose .nc-def:focus-within::before,
+.nc-prose .nc-def.is-open::before,
+.nc-prose .nc-def.flash::before { border-color: var(--wb-def-rule-on); }
+.nc-prose .nc-def::after {
+  content: "";
+  position: absolute;
+  inset: -8px -12px;
+  z-index: -1;
+  border-radius: 8px;
+  background: var(--wb-def-flash);
+  opacity: 0;
+  pointer-events: none;
+}
+.nc-prose .nc-def.flash::after { animation: ncDefFlash 1600ms ease-out forwards; }
+.nc-def-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 20px;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  line-height: 20px;
+  color: var(--wb-ink-3);
+}
+.nc-def-id,
+.nc-def-cnt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 5px;
+  margin: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 160ms ease-out, color 160ms ease-out;
+}
+.nc-def-id { font-family: var(--font-mono); margin-left: -5px; }
+.nc-def-id:hover { background: var(--wb-bg); color: var(--wb-ink-2); }
+.nc-def-sep { width: 1px; height: 10px; background: var(--wb-line); }
+.nc-def-cnt b { font-weight: 700; color: var(--wb-ink-2); font-variant-numeric: tabular-nums; }
+.nc-def-cnt:hover,
+.nc-def-cnt[aria-expanded="true"] { background: var(--wb-bg); color: var(--wb-blue-l); }
+.nc-def-cnt:hover b,
+.nc-def-cnt[aria-expanded="true"] b { color: var(--wb-blue-l); }
+.nc-def-cnt.zero { padding: 0; cursor: default; background: none; color: var(--wb-ink-3); }
+/* dev：「尚未被引用」是按鈕（RefLayer 替換），可打開 popover 複製語法 */
+.nc-def-cnt.zero.is-dev { padding: 0 5px; cursor: pointer; }
+.nc-def-cnt.zero.is-dev:hover,
+.nc-def-cnt.zero.is-dev[aria-expanded="true"] { background: var(--wb-bg); color: var(--wb-blue-l); }
+.nc-def-chev { transition: transform 160ms ease-out; }
+.nc-def-cnt[aria-expanded="true"] .nc-def-chev { transform: rotate(180deg); }
+.nc-def-body > :first-child,
+.nc-inc-body > :first-child { margin-top: 0; }
+.nc-def-body > :last-child,
+.nc-inc-body > :last-child { margin-bottom: 0; }
+
+.nc-prose .nc-inc {
+  margin: 1.75em 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--wb-inc-rule);
+}
+.nc-prose .nc-inc + .nc-inc { margin-top: 1.25em; }
+.nc-inc-src {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  line-height: 20px;
+  color: var(--wb-ink-3);
+}
+.nc-inc-ic, .nc-def-ic { flex-shrink: 0; }
+.nc-inc-t {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--wb-ink-2);
+}
+.nc-inc-id { display: none; font-family: var(--font-mono); white-space: nowrap; }
+[data-nc-dev] .nc-inc-id { display: inline; }
+.nc-prose .nc-inc-go {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: var(--wb-ink-3);
+  border: 0;
+  text-decoration: none;
+}
+.nc-prose .nc-inc-go:hover { background: var(--wb-bg); color: var(--wb-blue-l); }
+
+/* 元件 placeholder（§2.5）：嵌入處與預覽卡不渲染元件 */
+.nc-prose .nc-inc-ph {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 1em 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--wb-line);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--wb-ink-3);
+}
+.nc-prose .nc-inc-ph-go {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--wb-blue-l);
+  border: 0;
+  text-decoration: none;
+}
+.nc-prose .nc-inc-ph-i { font-size: 0.92em; color: var(--wb-ink-3); }
+
+.nc-prose a.nc-ref {
+  padding: 0 0.18em;
+  border-bottom: 1.5px solid var(--wb-ref-line);
+  border-radius: 3px 3px 0 0;
+  background: var(--wb-ref-bg);
+  color: var(--wb-ink);
+  text-decoration: none;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-color 160ms ease-out;
+}
+.nc-prose a.nc-ref:hover,
+.nc-prose a.nc-ref.on { background: var(--wb-ref-bg-on); color: var(--wb-ink); }
+.nc-prose a.nc-ref:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* flash 改成 1.6s 的外框（RefLayer 會在時間到後移除 .flash） */
+  .nc-prose .nc-def.flash::after { opacity: 0; }
+  .nc-prose .nc-def.flash { outline: 2px solid var(--wb-def-rule-on); outline-offset: 6px; border-radius: 6px; }
+}
+@media (max-width: 860px) {
+  .nc-prose .nc-def::before { left: -12px; width: 5px; }
+  .nc-prose .nc-inc { padding-left: 12px; }
+  [data-nc-dev] .nc-inc-id { display: none; }
+}
+
+/* ── 預覽卡、反向連結 popover、手機 sheet（RefLayer；handoff §1、§3.3、§3.4）──
+   portal 到 body，所以不在 .nc-prose 底下；卡片內容區自己帶 .nc-prose 吃正文樣式，再縮成 13.5px。
+   z-index：高於頁籤列（650）與 Drawer（600）、低於更新 toast（700）；sheet 與其他全螢幕浮層同層。 */
+:root {
+  --wb-pop-shadow: 0 12px 32px rgba(22, 28, 40, 0.16), 0 1px 3px rgba(22, 28, 40, 0.08);
+  --wb-pop-w: 400px;
+  --wb-pop-maxh: 320px;
+  --wb-pop-maxh-x: min(60vh, 520px);
+  --wb-z-pop: 680;
+  --wb-sheet-shadow: 0 -10px 30px rgba(22, 28, 40, 0.18);
+}
+@keyframes ncPopIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes ncPopInUp { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.nc-pop {
+  position: fixed;
+  z-index: var(--wb-z-pop);
+  width: var(--wb-pop-w);
+  max-width: calc(100vw - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--wb-panel);
+  border: 1px solid var(--wb-line);
+  border-radius: 10px;
+  box-shadow: var(--wb-pop-shadow);
+  color: var(--wb-ink);
+  font-family: var(--font-sans);
+  outline: none;
+}
+.nc-pop.anim { animation: ncPopIn 200ms ease-out; }
+.nc-pop.anim-up { animation: ncPopInUp 200ms ease-out; }
+.nc-pop-h {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 10px 9px 14px;
+  border-bottom: 1px solid var(--wb-line-2);
+}
+.nc-pop-hl { flex: 1; min-width: 0; }
+.nc-pop-t { font-size: 14px; font-weight: 800; line-height: 1.4; color: var(--wb-ink); }
+.nc-pop-id { margin-top: 2px; font-family: var(--font-mono); font-size: 11px; color: var(--wb-ink-3); overflow-wrap: anywhere; }
+.nc-pop-x {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--wb-ink-3);
+  cursor: pointer;
+}
+.nc-pop-x:hover { background: var(--wb-bg); color: var(--wb-ink); }
+.nc-pv-wrap { position: relative; }
+.nc-pv-b {
+  max-width: none;
+  max-height: var(--wb-pop-maxh);
+  overflow: hidden;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+.nc-pv-b.open { max-height: var(--wb-pop-maxh-x); overflow: auto; overscroll-behavior: contain; }
+.nc-pv-b.is-sheet { flex: 1; min-height: 0; max-height: none; overflow: auto; overscroll-behavior: contain; font-size: 15px; padding: 14px 16px; }
+.nc-pv-b > :first-child { margin-top: 0; }
+.nc-pv-b > :last-child { margin-bottom: 0; }
+.nc-pv-b.nc-prose p,
+.nc-pv-b.nc-prose ul,
+.nc-pv-b.nc-prose ol,
+.nc-pv-b.nc-prose .nc-adm__body p { font-size: 1em; line-height: 1.75; margin-bottom: 0.7em; }
+.nc-pv-b.nc-prose li { margin-bottom: 0.3em; }
+.nc-pv-b.nc-prose .nc-adm,
+.nc-pv-b.nc-prose table,
+.nc-pv-b.nc-prose .nc-tabs,
+.nc-pv-b.nc-prose .nc-steps,
+.nc-pv-b.nc-prose .nc-inc,
+.nc-pv-b.nc-prose .nc-inc-ph,
+.nc-pv-b.nc-prose pre,
+.nc-pv-b.nc-prose figure { margin-top: 0.9em; margin-bottom: 0.9em; }
+.nc-pv-b.nc-prose table { font-size: 0.92em; }
+.nc-pv-b.nc-prose img { max-height: 216px; width: auto; }
+.nc-pv-b .nc-pv-h { margin: 0.9em 0 0.4em; font-size: 1.06em; font-weight: 700; color: var(--wb-ink); }
+.nc-pv-b .nc-inc-ph { font-size: 12.5px; }
+.nc-pv-b a.nc-ref.is-static { cursor: default; }
+.nc-pv-wrap.clip::after {
+  content: "";
+  position: absolute;
+  left: 1px; right: 1px; bottom: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, transparent, var(--wb-panel) 70%);
+  pointer-events: none;
+}
+.nc-pv-more {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  z-index: 1;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--wb-panel);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wb-blue-l);
+  cursor: pointer;
+}
+.nc-pv-more:hover { background: var(--wb-bg); }
+.nc-pop-f {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 10px 6px 14px;
+  border-top: 1px solid var(--wb-line-2);
+  font-size: 12px;
+  color: var(--wb-ink-3);
+}
+.nc-pop-src { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc-pop-src b { font-weight: 600; color: var(--wb-ink-2); }
+.nc-pop-go {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wb-blue-l);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nc-pop-go:hover { color: var(--wb-blue); }
+.nc-pop-go.is-pill {
+  height: 40px;
+  padding: 0 16px;
+  margin: 2px 0;
+  border-radius: 999px;
+  background: var(--wb-blue);
+  color: var(--wb-panel);
+  font-size: 14px;
+}
+.nc-pop-go.is-pill:hover { background: var(--wb-blue-d); color: var(--wb-panel); }
+
+/* 反向連結 popover（define 的「被 N 篇引用」） */
+.nc-bl-pop { width: 360px; }
+.nc-bl-filter { padding: 8px 10px 4px; }
+.nc-bl-filter input {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--wb-line);
+  border-radius: 6px;
+  background: var(--wb-panel);
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--wb-ink);
+}
+.nc-bl-filter input:focus { outline: 2px solid color-mix(in srgb, var(--wb-blue-l) 40%, transparent); border-color: var(--wb-blue-l); }
+.nc-bl-pl { list-style: none; margin: 0; padding: 4px; }
+.nc-bl-pl.scroll { max-height: 280px; overflow: auto; overscroll-behavior: contain; }
+.nc-bl-pi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--wb-ink);
+  text-decoration: none;
+}
+.nc-bl-pi:hover, .nc-bl-pi:focus-visible { background: var(--wb-bg); color: var(--wb-ink); }
+.nc-bl-doc { flex-shrink: 0; color: var(--wb-ink-3); }
+.nc-bl-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nc-bl-ti { font-size: 13px; font-weight: 500; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc-bl-fo { font-size: 11px; line-height: 1.4; color: var(--wb-ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc-bl-kinds { flex-shrink: 0; display: inline-flex; gap: 4px; }
+.nc-bl-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--wb-line);
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: var(--wb-ink-3);
+}
+.nc-bl-none { padding: 14px; font-size: 12.5px; color: var(--wb-ink-3); }
+.nc-pop-acts { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--wb-line-2); }
+.nc-pop-acts button {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--wb-line);
+  border-radius: 6px;
+  background: var(--wb-panel);
+  font: inherit;
+  font-size: 12px;
+  color: var(--wb-ink-2);
+  cursor: pointer;
+}
+.nc-pop-acts button:hover { background: var(--wb-bg); color: var(--wb-blue-l); }
+
+/* 手機 sheet（≤860px 或沒有 hover） */
+.nc-sheet-wrap { position: fixed; inset: 0; z-index: var(--wb-z-overlay); display: flex; flex-direction: column; justify-content: flex-end; }
+.nc-sheet-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: var(--wb-a-scrim-44); animation: ncFade 280ms cubic-bezier(0.22, 0.7, 0.3, 1); cursor: default; }
+.nc-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 78%;
+  background: var(--wb-panel);
+  border-radius: 14px 14px 0 0;
+  box-shadow: var(--wb-sheet-shadow);
+  color: var(--wb-ink);
+  font-family: var(--font-sans);
+  outline: none;
+  animation: ncSheetUp 280ms cubic-bezier(0.22, 0.7, 0.3, 1);
+}
+@keyframes ncSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+.nc-sheet-grip { width: 36px; height: 4px; margin: 8px auto 2px; border-radius: 999px; background: var(--wb-line); }
+.nc-sheet .nc-pop-h { padding: 6px 12px 10px 16px; }
+.nc-sheet .nc-pop-t { font-size: 15px; }
+.nc-sheet .nc-pop-f { padding: 8px 12px 8px 16px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.nc-sheet .nc-bl-pi { min-height: 48px; }
+.nc-sheet.nc-bl-pop { width: auto; }
+.nc-sheet .nc-bl-pl { overflow: auto; }
+
 /* ── unstyled button reset for ghost buttons ── */
 .nc-btn-reset {
   border: none; background: none; padding: 0; margin: 0; cursor: pointer;

@@ -39,6 +39,23 @@ export interface WbNoteRow {
   hasDeck: boolean;
   /** 給 Claude Code 對話範本用、相對專案根的檔案路徑。**僅 dev 輸出**，正式 build 不帶這個鍵。 */
   promptPath?: string;
+  /** 本篇 define 的 id（文件順序）；沒有就是 []（docs/notecraft-workbench-define-ref.md §9） */
+  defines: string[];
+  /** 本篇引用的定義（不含自己的；同 id 合併 kinds） */
+  references: { id: string; kinds: WbRefKind[] }[];
+}
+
+/** 定義與引用：嵌入（::include）或行內引用（:ref） */
+export type WbRefKind = "inc" | "ref";
+
+/** 一個 define 的摘要。反向連結只存在這裡，筆記列上不另存（避免雙向資料不同步）。 */
+export interface WbDef {
+  id: string;
+  label: string;
+  /** 來源筆記的 slug */
+  slug: string;
+  /** 引用它的筆記，已排序（引用該來源的 id 數多到少，同數依資料夾樹） */
+  refs: { slug: string; kinds: WbRefKind[] }[];
 }
 
 /** 資料夾樹的節點。不帶 color（Q6：資料夾不分色）。 */
@@ -140,6 +157,8 @@ export interface WbIndex {
   pending: { markers: number; notes: number };
   /** 顯示用的工作區名稱；不含本機絕對路徑、不含 ../。 */
   workspaceLabel: string;
+  /** 全站的定義（不含原始碼與渲染內容；預覽內容在各筆記頁上） */
+  defs: WbDef[];
 }
 
 /** AI 狀態：`status !== "generated"` 即算待生成（與舊 BaseLayout 的算法一致）。 */

@@ -20,6 +20,8 @@ type DeletePlan = {
   componentsDir: string;
   toDelete: string[];
   keptShared: string[];
+  /** 引用本篇定義的筆記（define-ref §13）：刪除後它們的 include／ref 會讓 build 失敗。只提醒、不擋 */
+  referencedBy?: { slug: string; title: string; ids: string[] }[];
 };
 
 /**
@@ -128,13 +130,28 @@ export function useDeleteNote({ slug, title, path, workspace }: Props): { open: 
               ) : !plan ? (
                 <div style={{ ...planBox, color: "var(--text-muted)" }}>正在確認會一併刪除的 AI 生成元件…</div>
               ) : (
-                (plan.toDelete.length > 0 || plan.keptShared.length > 0) && (
+                (plan.toDelete.length > 0 || plan.keptShared.length > 0 || (plan.referencedBy?.length ?? 0) > 0) && (
                   <div style={{ ...planBox, display: "flex", flexDirection: "column", gap: 10 }}>
                     {plan.toDelete.length > 0 && (
                       <FileList label="將一併刪除以下 AI 生成元件：" dir={plan.componentsDir} files={plan.toDelete} />
                     )}
                     {plan.keptShared.length > 0 && (
                       <FileList label="其他筆記也引用、會保留：" dir={plan.componentsDir} files={plan.keptShared} muted />
+                    )}
+                    {(plan.referencedBy?.length ?? 0) > 0 && (
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--orange-600)", marginBottom: 6 }}>
+                          {plan.referencedBy!.length} 篇筆記引用了這篇的定義，刪除後 build 會失敗，請修改這些引用：
+                        </div>
+                        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
+                          {plan.referencedBy!.map((r) => (
+                            <li key={r.slug} style={{ fontSize: 13, color: "var(--text-strong)" }}>
+                              {r.title}{" "}
+                              <code style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-muted)" }}>{r.ids.join("、")}</code>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 )

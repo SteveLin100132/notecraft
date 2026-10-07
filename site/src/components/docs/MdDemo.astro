@@ -4,6 +4,7 @@
 import "../../styles/nc-prose.gen.css";
 import "../../styles/md-demo.css";
 import MdDemoView from "../MdDemo.tsx";
+import MdDemoFiles from "../MdDemoFiles.tsx";
 import { MD_DEMOS } from "../../lib/md-demos";
 
 type Props = { id: string };
@@ -12,9 +13,11 @@ const spec = MD_DEMOS[id];
 if (!spec) throw new Error(`MdDemo：src/lib/md-demos.ts 沒有 id「${id}」`);
 
 // 動態 import：island 也是動態載入這兩支，靜態 import 會讓 Vite 警告分不出 chunk
-const { renderNote } = await import("../../lib/nc-render");
+const { renderNote, renderNoteSet } = await import("../../lib/nc-render");
 const { renderMdx } = await import("../../lib/nc-render-mdx");
 const prefix = `ncd-${id}-`;
+// 多檔示範（定義與引用）：整組建索引後逐檔渲染。「id 打錯」這類預設組本來就是要示範 build 失敗，不擋
+const fileSets = spec.fileSets?.map((f) => ({ ...f, set: renderNoteSet(f.files, prefix) }));
 const presets = spec.presets.map((p) => {
   if (spec.compare) return { ...p, md: renderNote(p.source, `${prefix}md-`), mdx: renderMdx(p.source, `${prefix}mdx-`) };
   const md = renderNote(p.source, prefix);
@@ -23,4 +26,8 @@ const presets = spec.presets.map((p) => {
 });
 ---
 
+{fileSets ? (
+  <MdDemoFiles client:visible id={id} caption={spec.caption} presets={fileSets} />
+) : (
 <MdDemoView client:visible id={id} file={spec.file} caption={spec.caption} toc={spec.toc} compare={spec.compare} presets={presets} />
+)}
