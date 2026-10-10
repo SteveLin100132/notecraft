@@ -114,12 +114,22 @@ if (noLinks) {
   const TERMS = ["sys.term-idempotent", "sys.term-backpressure", "sys.term-quorum", "sys.term-sla"];
   hubTerms.body.push(...TERMS.map((id, i) => `::::define{id="${id}"}\n**術語 ${i + 1}**：${id} 的說明。\n::::`));
 
+  // 標題只影響畫面（官網的截圖用這份工作區）；檔名仍是流水號，slug 與預期的邊不受影響
+  const TITLES = {
+    前端: ["瀏覽器渲染流程", "CSS 版面：Grid 與 Flexbox", "事件迴圈與任務佇列", "狀態管理的取捨", "表單驗證策略", "圖片與字型載入", "無障礙檢查清單", "打包與程式碼分割", "前端錯誤監控", "設計 token 與主題", "列表虛擬化", "動畫與效能預算", "元件測試策略"],
+    後端: ["API 版本策略", "冪等的寫入端點", "背景工作與重試", "快取失效的模式", "訊息佇列選型", "分散式鎖", "限流與熔斷", "設定管理", "結構化日誌", "服務間認證", "批次匯入流程", "Webhook 設計", "健康檢查與就緒探針"],
+    資料庫: ["索引設計原則", "交易隔離等級", "資料表分割", "查詢計畫怎麼讀", "遷移腳本的寫法", "備份與還原演練"],
+    產品管理: ["需求訪談紀錄", "使用者旅程圖", "優先序評估方法", "版本規劃節奏", "驗收條件的寫法", "指標定義", "競品觀察", "上線檢查表", "回饋整理流程"],
+    資安: ["威脅建模入門", "密碼與金鑰管理", "OAuth 2.0 授權流程", "輸入驗證與輸出編碼", "相依套件掃描", "稽核紀錄要記什麼", "權限模型比較", "資料分級與遮罩", "事故應變流程"],
+    網路: ["DNS 解析過程", "TLS 握手", "HTTP 快取策略", "CDN 與邊緣節點", "連線逾時怎麼設", "WebSocket 與 SSE", "負載平衡演算法", "跨來源資源共用"],
+    雜記: ["讀書筆記：系統思考", "會議記錄範本", "工具清單"],
+  };
   let serial = 0;
   for (const [dir, topic, count] of FOLDERS) {
     for (let i = 0; i < count; i++) {
       serial++;
       const tags = serial % 11 === 0 ? [] : serial % 9 === 0 ? [pick(TAGS.slice(8))] : [pick(TAGS.slice(0, 8)), ...(serial % 4 === 0 ? [pick(TAGS)] : [])].filter((v, k, a) => a.indexOf(v) === k);
-      mk(`${dir ? dir + "/" : ""}${topic}-筆記-${String(i + 1).padStart(2, "0")}.md${serial % 2 ? "x" : ""}`, `${topic}筆記 ${i + 1}`, tags, serial % 4 === 3);
+      mk(`${dir ? dir + "/" : ""}${topic}-筆記-${String(i + 1).padStart(2, "0")}.md${serial % 2 ? "x" : ""}`, TITLES[topic]?.[i] ?? `${topic}筆記 ${i + 1}`, tags, serial % 4 === 3);
     }
   }
   const plain = notes.filter((n) => !n.orphan && ![hubHttp, hubTerms, hubOverview, spaced].includes(n));
