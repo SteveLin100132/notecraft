@@ -109,7 +109,7 @@ export function scanDefs(source) {
     offset += line.length + 1;
 
     if (!res.h1) {
-      const h = /^ {0,3}#[ \t]+(.+?)[ \t#]*$/.exec(line);
+      const h = /^ {0,3}#[ \t]+(.+?)[ \t#\r]*$/.exec(line); // \r：CRLF 的檔案（Windows 的 autocrlf checkout）
       if (h && stack.length === 0) res.h1 = h[1].trim();
     }
 

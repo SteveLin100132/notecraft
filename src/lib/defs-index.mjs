@@ -1,10 +1,12 @@
 // 定義與引用的索引計算（docs/notecraft-workbench-define-ref.md §4.2）：一組檔案 → defines、反向連結、跨檔錯誤。
 //
 // 純計算、不碰檔案系統與 Node API：app 的 defs-state.mjs（build／dev／CLI）與官網的瀏覽器示範共用同一份規則。
-// 只 import github-slugger（瀏覽器可用）與零 import 的 defs-scan.mjs。
+// 只 import github-slugger（瀏覽器可用）、零 import 的 defs-scan.mjs 與只依賴它的 links-scan.mjs。
+// 每篇的站內連結（links）搭這一次讀檔一起掃，給 Graph 檢視算邊用（docs/notecraft-workbench-notes-graph.md §4.3）。
 
 import { slug as githubSlug } from "github-slugger";
 import { scanDefs, suggestIds } from "./defs-scan.mjs";
+import { scanLinks } from "./links-scan.mjs";
 
 /** @typedef {import("./defs-state.d.mts").DefIndex} DefIndex */
 /** @typedef {import("./defs-state.d.mts").DefEntry} DefEntry */
@@ -97,7 +99,7 @@ export function buildDefIndex(files, opts = {}) {
     const folder = f.rel.includes("/") ? f.rel.slice(0, f.rel.lastIndexOf("/")) : "";
     for (const e of scan.errors) index.errors.push(`${f.rel}:${e.line} ${e.message}`);
     /** @type {DefNote} */
-    const note = { slug, rel: f.rel, title, folder, defines: [], includes: scan.includes, refs: scan.refs, references: [] };
+    const note = { slug, rel: f.rel, title, folder, defines: [], includes: scan.includes, refs: scan.refs, references: [], links: scanLinks(f.source) };
     index.notes.set(slug, note);
     for (const d of scan.defines) {
       const prev = index.defs.get(d.id);

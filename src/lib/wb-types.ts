@@ -58,6 +58,30 @@ export interface WbDef {
   refs: { slug: string; kinds: WbRefKind[] }[];
 }
 
+/** Graph 檢視的邊種類：定義引用、定義嵌入、站內連結、系列順序（docs/notecraft-workbench-notes-graph.md §4.2） */
+export type WbEdgeKind = "ref" | "inc" | "link" | "seq";
+
+/**
+ * Graph 檢視的一條邊：同一對（有序）節點的所有關聯合成一條。方向是「來源 → 被參照的一方」。
+ * 節點 id：筆記是 slug，資料檔是 `view:<routePath>`。只由 lib/wb-graph.ts 的 buildGraphEdges 產生。
+ */
+export interface WbGraphEdge {
+  s: string;
+  t: string;
+  /** 各種類的次數 */
+  kinds: Partial<Record<WbEdgeKind, number>>;
+}
+
+/** Graph 檢視的資料檔節點（只列出現在任何一條邊裡的資料檔） */
+export interface WbGraphDataNode {
+  /** `view:<routePath>` */
+  id: string;
+  title: string;
+  pluginId: string;
+  /** /view/<routePath>，已含 base */
+  href: string;
+}
+
 /** 資料夾樹的節點。不帶 color（Q6：資料夾不分色）。 */
 export interface WbFolderNode {
   name: string;
@@ -159,6 +183,8 @@ export interface WbIndex {
   workspaceLabel: string;
   /** 全站的定義（不含原始碼與渲染內容；預覽內容在各筆記頁上） */
   defs: WbDef[];
+  /** Graph 檢視的邊（全站）。節點由 notes 與 dataFiles 推導，不另存 */
+  graph: { edges: WbGraphEdge[] };
 }
 
 /** AI 狀態：`status !== "generated"` 即算待生成（與舊 BaseLayout 的算法一致）。 */

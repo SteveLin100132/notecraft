@@ -1,4 +1,5 @@
 import type { ScanUse } from "./defs-scan.d.mts";
+import type { ScanLink } from "./links-scan.d.mts";
 
 export type RefKind = "inc" | "ref";
 
@@ -35,6 +36,8 @@ export interface DefNote {
   refs: ScanUse[];
   /** 本篇引用的定義（不含自己的；同 id 合併 kinds） */
   references: { id: string; kinds: RefKind[] }[];
+  /** 本篇寫的站內連結（原始 URL，未解析）；Graph 檢視的 link 邊由 lib/wb-graph.ts 解析 */
+  links: ScanLink[];
 }
 
 export interface DefIndex {

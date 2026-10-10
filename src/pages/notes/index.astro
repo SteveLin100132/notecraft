@@ -4,6 +4,7 @@
 import WorkbenchLayout from "@/layouts/WorkbenchLayout.astro";
 import NotesWorkbench from "@/components/wb/NotesWorkbench.tsx";
 import { getWorkbenchIndex, publicIndex } from "@/lib/workbench";
+import { withBase } from "@/lib/base";
 
 const isDev = import.meta.env.DEV;
 const index = publicIndex(await getWorkbenchIndex());
@@ -13,6 +14,12 @@ const series = index.series.map((s) => ({
   accent: s.accent,
   dataChapters: s.chapters.filter((c) => c.kind === "data").length,
 }));
+// Graph 檢視：邊是全站的；資料檔只帶出現在邊裡的（/notes 不列資料檔，它們只以節點出現）
+const edges = index.graph.edges;
+const inEdges = new Set(edges.flatMap((e) => [e.s, e.t]));
+const dataNodes = index.dataFiles
+  .map((f) => ({ id: `view:${f.routePath}`, title: f.title, pluginId: f.pluginId, href: withBase(`/view/${f.routePath}`) }))
+  .filter((d) => inEdges.has(d.id));
 ---
 <WorkbenchLayout title="全部筆記" description="瀏覽所有 NoteCraft 筆記" bare>
   <NotesWorkbench
@@ -20,6 +27,9 @@ const series = index.series.map((s) => ({
     rows={index.notes}
     series={series}
     seriesFull={index.series}
+    edges={edges}
+    dataNodes={dataNodes}
+    tagStats={index.tags.map((t) => ({ name: t.name, count: t.count }))}
     workspaceLabel={index.workspaceLabel}
     isDev={isDev}
   />

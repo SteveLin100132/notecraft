@@ -28,6 +28,8 @@ import type {
 } from "@/lib/wb-types";
 
 import { getDefIndex } from "@/lib/defs-state.mjs";
+import { buildGraphEdges } from "@/lib/wb-graph";
+import { slug as githubSlug } from "github-slugger";
 export type * from "@/lib/wb-types";
 
 const toPosix = (p: string): string => p.split(path.sep).join("/");
@@ -312,6 +314,26 @@ async function build(): Promise<WbIndex> {
     pending: { markers: pendingMarkers, notes: pendingNotes },
     workspaceLabel: workspaceLabel(),
     defs: [...defIndex.defs.values()].map((d) => ({ id: d.id, label: d.label, slug: d.slug, refs: d.refs })),
+    // Graph 檢視的邊（notes-graph §4）：定義索引的 references／links ＋ 系列章節 ＋ 資料檔的 backTo
+    graph: {
+      edges: buildGraphEdges({
+        notes: rows.map((r) => {
+          const dn = defIndex.notes.get(r.slug);
+          return {
+            slug: r.slug,
+            rel: r.path,
+            references: (dn?.references ?? []).flatMap((ref) => {
+              const src = defIndex.defs.get(ref.id)?.slug;
+              return src ? [{ slug: src, kinds: ref.kinds }] : [];
+            }),
+            links: dn?.links ?? [],
+          };
+        }),
+        series: series.map((s) => s.chapters.map((c) => c.ref)),
+        dataFiles: dataFilesRaw.map((f) => ({ routePath: f.routePath, relPath: f.relPath, ...(f.backTo ? { backTo: f.backTo } : {}) })),
+        slugify: (seg) => githubSlug(seg),
+      }),
+    },
   };
 }
 

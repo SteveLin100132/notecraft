@@ -8,7 +8,7 @@ import { CalendarDays, Filter, Folder, Layers, Search, Tag } from "lucide-react"
 import type { LucideProps } from "lucide-react";
 import type { ComponentType } from "react";
 import type { SeriesAccent } from "@/data/series";
-import type { WbNoteRow, WbSeries } from "@/lib/wb-types";
+import type { WbGraphDataNode, WbGraphEdge, WbNoteRow, WbSeries } from "@/lib/wb-types";
 import { markerCounts } from "@/lib/wb-types";
 import { applyFilters, EMPTY_QUERY, groupRows, parseQuery, toSearch, type WbQuery } from "@/lib/wb-filter";
 import { DEFAULT_PREFS, GROUP_LABEL, readPrefs, VIEW_LABEL, WB_GROUPS, WB_VIEWS, writePrefs, type WbGroupBy, type WbView } from "@/lib/wb-prefs";
@@ -48,9 +48,16 @@ export default function NotesWorkbench({
   rows = [],
   series = [],
   seriesFull = [],
+  edges = [],
+  dataNodes = [],
+  tagStats = [],
   workspaceLabel = "",
   isDev = false,
 }: {
+  /** Graph 檢視：全站的邊、出現在邊裡的資料檔、全站標籤統計（docs/notecraft-workbench-notes-graph.md §4.5） */
+  edges?: WbGraphEdge[];
+  dataNodes?: WbGraphDataNode[];
+  tagStats?: { name: string; count: number }[];
   rows?: WbNoteRow[];
   series?: NotesSeriesInfo[];
   /** 完整章節，供 Drawer 的「同系列章節」 */
