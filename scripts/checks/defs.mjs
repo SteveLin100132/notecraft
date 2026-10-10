@@ -8,6 +8,7 @@ import { isValidDefId, maskNonProse, parseAttrs, scanDefs, suggestIds } from "..
 import matter from "gray-matter";
 import { buildDefIndex, rebaseRelativeUrl, slugOfNotePath } from "../../src/lib/defs-state.mjs";
 import { readFrontmatterLite } from "../../src/lib/defs-index.mjs";
+import { scanLinks } from "../../src/lib/links-scan.mjs";
 import { firstH1 } from "../../src/lib/note-text.ts";
 import { walkNotes, createNotesIgnore } from "../../src/lib/notes-ignore.mjs";
 
@@ -206,6 +207,66 @@ check("真實筆記：掃描不出錯、H1 與 note-text.ts 的 firstH1 一致",
   }
 });
 
+// ── 站內連結掃描（Graph 檢視，docs/notecraft-workbench-notes-graph.md §4.3）──
+check("scanLinks：行內連結、reference 定義、href、PluginView 四種寫法", () => {
+  const src = [
+    "---",
+    "title: x",
+    "---",
+    "看 [總覽](/notes/a/b#sec) 與 [外部](https://example.com)。",
+    "",
+    '[帶標題](<../c d.md> "標題")',
+    "",
+    "[ref]: /view/api/orders.openapi",
+    "",
+    '<a href="/notes/e">e</a> <Card href=\'./f\' />',
+    "",
+    '<PluginView src="api/orders.openapi.json" options={{ operation: "x" }} />',
+  ].join("\n");
+  assert.deepEqual(scanLinks(src), [
+    { url: "/notes/a/b#sec", line: 4, via: "link" },
+    { url: "https://example.com", line: 4, via: "link" },
+    { url: "../c d.md", line: 6, via: "link" },
+    { url: "/view/api/orders.openapi", line: 8, via: "link" },
+    { url: "/notes/e", line: 10, via: "link" },
+    { url: "./f", line: 10, via: "link" },
+    { url: "api/orders.openapi.json", line: 12, via: "pluginview" },
+  ]);
+});
+
+check("scanLinks：圖片、圍欄程式碼、行內 code、註解、:ref 不算", () => {
+  const src = [
+    "![圖](/notes/img.png)",
+    "```md",
+    "[在程式碼裡](/notes/x)",
+    "```",
+    "行內 `[y](/notes/y)` 不算",
+    "{/* [z](/notes/z) */}",
+    "<!-- [w](/notes/w) -->",
+    ':ref[額度]{id="hr.term-quota"}',
+    "[真的](/notes/real)",
+  ].join("\n");
+  assert.deepEqual(scanLinks(src), [{ url: "/notes/real", line: 9, via: "link" }]);
+});
+
+check("scanLinks：現有筆記的站內連結都掃得到（buildDefIndex 的 links）", () => {
+  const notesDir = path.resolve("src/content/notes");
+  if (!fs.existsSync(notesDir)) return;
+  const files = [];
+  walkNotes(notesDir, createNotesIgnore([]), ({ rel, abs }) => {
+    if (/\.(md|mdx)$/.test(rel)) files.push({ rel, source: fs.readFileSync(abs, "utf8") });
+  });
+  const idx = buildDefIndex(files);
+  const all = [...idx.notes.values()].flatMap((n) => n.links);
+  const count = (re) => all.filter((l) => l.via === "link" && re.test(l.url)).length;
+  // 與原始碼對照：遮掉非正文後出現的次數
+  const raw = files.map((f) => maskNonProse(f.source)).join("\n");
+  assert.equal(count(/^\/notes\//), (raw.match(/\]\(\/notes\//g) ?? []).length + (raw.match(/href="\/notes\//g) ?? []).length);
+  assert.equal(count(/^\/view\//), (raw.match(/\]\(\/view\//g) ?? []).length + (raw.match(/href="\/view\//g) ?? []).length);
+  assert.equal(all.filter((l) => l.via === "pluginview").length, (raw.match(/<PluginView\b/g) ?? []).length);
+  for (const n of idx.notes.values()) assert.ok(Array.isArray(n.links), n.rel);
+});
+
 check("readFrontmatterLite：現有筆記的 title／slug 與 gray-matter 一致（官網示範用輕量版）", () => {
   const notesDir = path.resolve("src/content/notes");
   if (!fs.existsSync(notesDir)) return;
@@ -224,8 +285,11 @@ check("瀏覽器可用：defs-index.mjs 只 import github-slugger 與 defs-scan.
   const code = (f) => fs.readFileSync(path.resolve(f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const src = code("src/lib/defs-index.mjs");
   const imports = [...src.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]).sort();
-  assert.deepEqual(imports, ["./defs-scan.mjs", "github-slugger"]);
+  assert.deepEqual(imports, ["./defs-scan.mjs", "./links-scan.mjs", "github-slugger"]);
   assert.doesNotMatch(src, /\bprocess\.|node:|\bfs\./);
+  const links = code("src/lib/links-scan.mjs");
+  assert.deepEqual([...links.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]), ["./defs-scan.mjs"]);
+  assert.doesNotMatch(links, /\bprocess\.|node:|\bfs\./);
   const core = code("src/lib/remark-notecraft-defs-core.ts");
   assert.doesNotMatch(core, /from "node:|defs-state|\bprocess\./);
 });

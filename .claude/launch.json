@@ -62,6 +62,21 @@
       "autoPort": true
     },
     {
+      "name": "graph-fixture-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "node_modules/astro/astro.js",
+        "dev",
+        "--port",
+        "4344"
+      ],
+      "env": {
+        "NOTECRAFT_NOTES_DIR": "tmp/graph-ws"
+      },
+      "port": 4344,
+      "autoPort": true
+    },
+    {
       "name": "viewer-poc",
       "runtimeExecutable": "/Users/trendlink/.nvm/versions/node/v22.16.0/bin/node",
       "runtimeArgs": [
