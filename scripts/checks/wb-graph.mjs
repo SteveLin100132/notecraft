@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   GR_DATA,
+  GR_DENSE,
   GR_DIM,
   GR_HUB_R,
   GR_MOVE_MS,
@@ -26,6 +27,7 @@ import {
   tagSlots,
   tierOf,
 } from "../../src/lib/wb-graph.ts";
+import { LAYOUT_DENSE, LAYOUT_HUB_R, edgeGeom, fitView, layoutDoc, layoutTag, mulberry32, runLayout } from "../../src/lib/wb-graph-layout.ts";
 
 let failed = 0;
 const check = (name, fn) => {
@@ -362,6 +364,124 @@ check("高亮（標籤模式）：hover 樞紐 → 樞紐＋成員＋細線；ho
   assert.deepEqual([...n.nodes].sort(), ["b", "tag:前端", "tag:效能"].sort());
 });
 
+// ── 佈局（斷言性質，不比對座標快照）────────────────────────────────────────
+
+/** 以固定種子產生一張圖：n 個節點、約 1.2n 條邊、其餘是孤島 */
+function sample(n, seed = 7) {
+  const rnd = mulberry32(seed);
+  const groups = ["g0", "g1", "g2", "g3", "g4"];
+  const nodes = Array.from({ length: n }, (_, i) => ({ id: "n" + i, r: GR_R[Math.floor(rnd() * rnd() * 4)], orphan: true, group: groups[Math.floor(rnd() * groups.length)] }));
+  const pool = nodes.filter(() => rnd() > 0.2);
+  const edges = [];
+  for (let i = 0; i < n * 1.2; i++) {
+    const a = pool[Math.floor(rnd() * pool.length)];
+    const b = pool[Math.floor(rnd() * rnd() * pool.length)];
+    if (a !== b) edges.push({ s: a.id, t: b.id });
+  }
+  const linked = new Set(edges.flatMap((e) => [e.s, e.t]));
+  for (const x of nodes) x.orphan = !linked.has(x.id);
+  return { nodes, edges, groups };
+}
+
+for (const n of [1, 12, 65, 200]) {
+  check(`文件模式（${n} 節點）：結果確定、沒有 NaN、有邊的節點兩兩不重疊、孤島在主圖之外`, () => {
+    const g = sample(n);
+    const a = layoutDoc(g.nodes, g.edges, g.groups);
+    const b = layoutDoc(g.nodes, g.edges, g.groups);
+    assert.deepEqual(a, b, "同一輸入兩次結果要完全相同");
+    assert.equal(Object.keys(a.pos).length, n);
+    for (const p of Object.values(a.pos)) assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+    const conn = g.nodes.filter((x) => !x.orphan);
+    let maxR = 0;
+    for (const x of conn) maxR = Math.max(maxR, Math.hypot(a.pos[x.id].x, a.pos[x.id].y) + x.r);
+    for (let i = 0; i < conn.length; i++) {
+      for (let j = i + 1; j < conn.length; j++) {
+        const p = a.pos[conn[i].id];
+        const q = a.pos[conn[j].id];
+        assert.ok(Math.hypot(p.x - q.x, p.y - q.y) >= conn[i].r + conn[j].r - 1, `${conn[i].id} 與 ${conn[j].id} 重疊`);
+      }
+    }
+    if (conn.length) {
+      for (const c of a.clusters) assert.ok(Math.hypot(c.x, c.y) > maxR, `孤島團「${c.key}」落在主圖裡`);
+    }
+    assert.equal(a.clusters.reduce((s, c) => s + c.n, 0), g.nodes.filter((x) => x.orphan).length);
+  });
+}
+
+check("文件模式：孤島的團依分組順序排、同組相鄰", () => {
+  const nodes = ["b", "a", "b", "c", "a"].map((g, i) => ({ id: "o" + i, r: 5, orphan: true, group: g }));
+  const out = layoutDoc(nodes, [], ["a", "b", "c"]);
+  assert.deepEqual(out.clusters.map((c) => [c.key, c.n]), [["a", 2], ["b", 2], ["c", 1]]);
+  const d = (i, j) => Math.hypot(out.pos["o" + i].x - out.pos["o" + j].x, out.pos["o" + i].y - out.pos["o" + j].y);
+  assert.ok(d(0, 2) < d(0, 1), "同組的孤島比不同組的近");
+});
+
+check("標籤模式：樞紐等距排在圓上、自 −90° 起；單一歸屬的節點離自己的樞紐最近；結果確定", () => {
+  const slots = ["甲", "乙", "丙", "丁", "其他標籤", "未加標籤"];
+  const rnd = mulberry32(3);
+  const nodes = Array.from({ length: 60 }, (_, i) => {
+    const one = slots[Math.floor(rnd() * 5)];
+    const two = slots[Math.floor(rnd() * 4)];
+    return { id: "n" + i, r: 5, data: i % 20 === 0, slots: i % 7 === 0 && one !== two && one !== "其他標籤" ? [one, two] : [one] };
+  });
+  const a = layoutTag(nodes, slots);
+  assert.deepEqual(a, layoutTag(nodes, slots));
+  const present = slots.filter((s) => nodes.some((n) => n.slots.includes(s)));
+  assert.deepEqual(a.hubs.map((h) => h.tag), present, "只放有節點的樞紐，順序照 slots");
+  assert.ok(Math.abs(a.hubs[0].x) < 1e-6 && a.hubs[0].y < 0, "第一個樞紐在正上方");
+  const radii = a.hubs.map((h) => Math.hypot(h.x, h.y));
+  for (const r of radii) assert.ok(Math.abs(r - radii[0]) < 1e-6);
+  for (const h of a.hubs) {
+    assert.equal(a.pos[h.id].x, h.x);
+    assert.ok(h.r >= GR_HUB_R);
+    assert.equal(h.n, nodes.filter((n) => !n.data && n.slots.includes(h.tag)).length, "樞紐上的數字不含資料檔");
+  }
+  for (const n of nodes.filter((x) => x.slots.length === 1)) {
+    const p = a.pos[n.id];
+    const nearest = [...a.hubs].sort((x, y) => Math.hypot(p.x - x.x, p.y - x.y) - Math.hypot(p.x - y.x, p.y - y.y))[0];
+    assert.equal(nearest.tag, n.slots[0], n.id);
+  }
+  assert.deepEqual(layoutTag([], slots), { pos: {}, hubs: [] });
+});
+
+check("符合視窗：所有點落在視窗內、倍率在下限與 160% 之間", () => {
+  const g = sample(65);
+  const { pos } = layoutDoc(g.nodes, g.edges, g.groups);
+  for (const [w, h] of [[1148, 721], [600, 400], [300, 2000]]) {
+    const v = fitView(Object.values(pos), w, h);
+    assert.ok(v.k >= GR_ZOOM.min && v.k <= 1.6);
+    if (v.k > GR_ZOOM.min) {
+      for (const p of Object.values(pos)) {
+        const x = p.x * v.k + v.x;
+        const y = p.y * v.k + v.y;
+        assert.ok(x >= 0 && x <= w && y >= 0 && y <= h, `(${x.toFixed(0)}, ${y.toFixed(0)}) 超出 ${w}×${h}`);
+      }
+    }
+  }
+  assert.equal(fitView([{ x: 0, y: 0 }], 1000, 800).k, 1.6, "只有一個點時用上限");
+  assert.equal(fitView([], 1000, 800), null);
+  assert.equal(fitView([{ x: 0, y: 0 }], 0, 0), null);
+});
+
+check("邊的幾何：線從來源邊緣外 1.5px 到箭頭底部、尖端在目標邊緣外 2px；兩端太近不畫", () => {
+  const g = edgeGeom({ x: 0, y: 0 }, { x: 100, y: 0 }, 5, 8);
+  assert.equal(g.x1, 6.5);
+  assert.equal(g.tx, 90);
+  assert.equal(g.x2, 84.5);
+  assert.equal(g.arrow, "M90 0L83 3.3L83 -3.3z");
+  assert.equal(edgeGeom({ x: 0, y: 0 }, { x: 20, y: 0 }, 5, 8), null);
+});
+
+check("runLayout：兩種模式回同一種形狀；佈局常數與 wb-graph.ts 一致", () => {
+  const g = sample(20);
+  const doc = runLayout({ key: "k", mode: "doc", nodes: g.nodes, edges: g.edges, groups: g.groups });
+  assert.deepEqual(Object.keys(doc).sort(), ["clusters", "hubs", "pos"]);
+  const tag = runLayout({ key: "k", mode: "tag", nodes: g.nodes.map((n) => ({ id: n.id, r: n.r, data: false, slots: ["x"] })), slots: ["x"] });
+  assert.equal(tag.hubs.length, 1);
+  assert.equal(LAYOUT_DENSE, GR_DENSE);
+  assert.equal(LAYOUT_HUB_R, GR_HUB_R);
+});
+
 // ── 常數與 token、純度 ──────────────────────────────────────────────────────
 
 const root = new URL("../../", import.meta.url);
@@ -369,6 +489,12 @@ const read = (rel) => fs.readFileSync(new URL(rel, root), "utf8");
 
 check("純度：wb-graph.ts 只有 import type、不碰 window／node:", () => {
   const src = read("src/lib/wb-graph.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  for (const m of src.matchAll(/^import\s+(.*)$/gm)) assert.match(m[1], /^type\b/, `非 type 的 import：${m[0]}`);
+  assert.doesNotMatch(src, /\bwindow\.|\bdocument\.|["']node:|\bprocess\./);
+});
+
+check("純度：wb-graph-layout.ts 沒有非 type 的 import、不碰 window／node:", () => {
+  const src = read("src/lib/wb-graph-layout.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   for (const m of src.matchAll(/^import\s+(.*)$/gm)) assert.match(m[1], /^type\b/, `非 type 的 import：${m[0]}`);
   assert.doesNotMatch(src, /\bwindow\.|\bdocument\.|["']node:|\bprocess\./);
 });

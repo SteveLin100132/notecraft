@@ -1,13 +1,13 @@
 // 工作台偏好（client-safe）。localStorage["nc-workbench-prefs-v1"]，形狀 { defaultView, groupBy, tocDefault }。
 // 讀不到或值無效時一律回預設。設定頁寫、/notes 讀；在 Toolbar 切分組時也會回寫 groupBy；筆記頁的目錄讀 tocDefault。
-export type WbView = "list" | "board" | "table" | "timeline";
+export type WbView = "list" | "board" | "table" | "timeline" | "graph";
 export type WbGroupBy = "folder" | "series" | "tag" | "month";
 /** 筆記目錄剛載入時子項目的狀態 */
 export type WbTocDefault = "collapsed" | "expanded";
 
-export const WB_VIEWS: readonly WbView[] = ["list", "board", "table", "timeline"];
+export const WB_VIEWS: readonly WbView[] = ["list", "board", "table", "timeline", "graph"];
 export const WB_GROUPS: readonly WbGroupBy[] = ["folder", "series", "tag", "month"];
-export const VIEW_LABEL: Record<WbView, string> = { list: "List", board: "Board", table: "Table", timeline: "Timeline" };
+export const VIEW_LABEL: Record<WbView, string> = { list: "List", board: "Board", table: "Table", timeline: "Timeline", graph: "Graph" };
 export const GROUP_LABEL: Record<WbGroupBy, string> = { folder: "資料夾", series: "系列", tag: "標籤", month: "月份" };
 export const WB_TOC_DEFAULTS: readonly WbTocDefault[] = ["collapsed", "expanded"];
 export const TOC_DEFAULT_LABEL: Record<WbTocDefault, string> = { collapsed: "全部收合", expanded: "全部展開" };

@@ -3,7 +3,7 @@
 //
 // 首次 render 必須與 SSR 一致：SSR 看不到 query、也沒有 localStorage，畫的是「全部筆記 · List · 依資料夾」。
 // 真正的篩選、偏好、收藏都在 effect 裡才套用；layout 的 pre-paint script 會先把主區藏起來避免閃一下。
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Filter, Folder, Layers, Search, Tag } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import type { ComponentType } from "react";
@@ -20,10 +20,14 @@ import NoteDrawer from "./NoteDrawer";
 import BoardView from "./views/BoardView";
 import TableView from "./views/TableView";
 import TimelineView from "./views/TimelineView";
+import { GraphFallback, GraphNarrow } from "./GraphStatic";
 import { Chip, GroupHeader, SearchBox, Seg } from "./ui";
 import { withBase } from "@/lib/base";
 
-export type NotesSeriesInfo = { id: string; title: string; accent: SeriesAccent; dataChapters: number };
+// Graph 檢視另外分包：用不到的人不下載（notes-graph §10）。SSR 永遠畫 List，所以這個 chunk 只在瀏覽器載入
+const GraphView = lazy(() => import("./graph/GraphView"));
+
+export type NotesSeriesInfo ={ id: string; title: string; accent: SeriesAccent; dataChapters: number };
 
 const GROUP_ICON: Record<WbGroupBy, ComponentType<LucideProps>> = {
   folder: Folder,
@@ -102,9 +106,15 @@ export default function NotesWorkbench({
     });
   }, []);
 
-  const view: WbView = narrow ? "list" : (query.view ?? defaultView);
+  // 窄畫面只有 List；選了 Graph 的話留在 Graph，顯示「需要較寬的畫面」（notes-graph §11），不悄悄跳回 List
+  const wanted: WbView = query.view ?? defaultView;
+  const view: WbView = narrow ? (wanted === "graph" ? "graph" : "list") : wanted;
+  const isGraph = view === "graph";
 
-  const filtered = useMemo(() => applyFilters(rows, query, { favorites, text }), [rows, query, favorites, text]);
+  // Graph 的搜尋只高亮、不過濾：它用的是「套用網址上的篩選、不套用搜尋字串」的那一份（notes-graph §8.1）
+  const graphRows = useMemo(() => applyFilters(rows, query, { favorites }), [rows, query, favorites]);
+  const listRows = useMemo(() => applyFilters(rows, query, { favorites, text }), [rows, query, favorites, text]);
+  const filtered = isGraph ? graphRows : listRows;
   const groups = useMemo(() => groupRows(filtered, groupBy, query.folder), [filtered, groupBy, query.folder]);
 
   // chip 上的數字是全站的量，不隨目前篩選變動
@@ -150,11 +160,39 @@ export default function NotesWorkbench({
         title={scopeLabel}
         crumbs={[{ label: "NoteCraft", href: withBase("/") }, { label: "筆記", href: withBase("/notes") }, { label: scopeLabel }]}
         pills={pills}
-        tabs={(narrow ? (["list"] as WbView[]) : [...WB_VIEWS]).map((v) => ({ key: v, label: VIEW_LABEL[v] }))}
+        tabs={(narrow ? (["list", "graph"] as WbView[]) : [...WB_VIEWS]).map((v) => ({ key: v, label: VIEW_LABEL[v] }))}
         activeTab={view}
         onTab={(v) => patch({ view: v })}
         isDev={isDev}
       />
+      {isGraph ? (
+        narrow ? (
+          <>
+            <div className="wb-tb">
+              <span className="wb-tb-lbl">Graph 在窄畫面不顯示</span>
+            </div>
+            <div id="nc-scroll" className="wb-body flush gr-body" data-wb-rows>
+              <GraphNarrow onList={() => patch({ view: "list" })} />
+            </div>
+          </>
+        ) : (
+          <Suspense fallback={<GraphFallback />}>
+            <GraphView
+              rows={graphRows}
+              allRows={rows}
+              edges={edges}
+              dataNodes={dataNodes}
+              tagStats={tagStats}
+              query={query}
+              scopeLabel={scopeLabel}
+              sel={sel}
+              onSelect={onSelect}
+              onClearExtra={() => patch({ pending: false, hasAi: false, nofm: false, fav: false })}
+            />
+          </Suspense>
+        )
+      ) : (
+      <>
       <div className="wb-tb">
         {activeSeries && activeSeries.dataChapters > 0 ? (
           <>
@@ -233,6 +271,8 @@ export default function NotesWorkbench({
           <TimelineView rows={filtered} sel={sel} onSelect={onSelect} />
         )}
       </div>
+      </>
+      )}
       {selRow ? (
         <NoteDrawer
           row={selRow}
