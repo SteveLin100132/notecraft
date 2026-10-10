@@ -756,3 +756,45 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 新 token 一律 `--wb-*`、只寫亮色；每條動畫都要有 reduced-motion 對應
 > - 錯誤訊息、索引、產物只用 notesDir 相對路徑，不得出現本機絕對路徑
 > - **每次 commit 只 add 本 Task 的檔案**
+
+## v1.24.0 追加功能（§8.1 Phase 4.28）— 筆記頁 Graph 檢視：文件關聯與標籤關聯（notecraftapp v1.13.0）
+
+> **尚未動工**：Task 131–136 已建立（2026-10-10），分支 `feat/notes-graph`。PRD 的 Phase 4.28 於 Task 136 回填。
+
+規格 [notecraft-workbench-notes-graph.md](../notecraft-workbench-notes-graph.md)；像素級規格 [design_handoff_notes_graph/](../prototype/design_handoff_notes_graph/README.md)（與規格衝突時以規格為準，差異見規格 §14）。
+定義與引用上線後，筆記之間有了機器可讀的關聯，但只在「某個定義被誰引用」的清單裡看得到。在 `/notes` 新增第五個檢視 Graph：文件模式以力導向圖畫出定義引用、定義嵌入、站內連結、系列順序四種邊；標籤模式以標籤為樞紐把筆記聚成團。
+
+> **十二題已全數確認（規格 §20）**：`<PluginView>` 與 `meta.backTo` 都算 `link` 邊（Q1）、相對連結一律算（Q2）、標籤樞紐取全站前 8 個＋「其他標籤」（Q3）、
+> 著色前 8 組配色其餘灰色「其他」（Q4）、AI／收藏等篩選照常套用並顯示「已篩選 ✕」（Q5）、偏好存 localStorage 不進網址（Q6）、點樞紐是真的連結換頁（Q7）、
+> 佈局在主執行緒同步算、Worker 視 spike 而定（Q8）、每個節點都是 tab stop（Q9）、**空狀態 B 的方式卡 dev 與正式都顯示**（Q10）、
+> 示範資料用 fixture 產生器（Q11）、版號 `1.13.0`（Q12）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 131](task-131-notes-graph-spike.md) | spike：佈局耗時、`React.lazy` 分塊、tween 幀率 | §5.2、§5.3、§10 | 只改規格文件（回填結論） |
+| [Task 132](task-132-notes-graph-data-layer.md) | 資料層：連結掃描器、`buildGraphEdges`、`WbIndex.graph`、`deriveGraph`、標籤樞紐與著色分組、斷言 | §4、§6、§13 | `lib/links-scan.mjs`、`lib/wb-graph.ts`、`lib/defs-index.mjs`、`wb-types.ts`、`workbench.ts`、`pages/notes/index.astro`、`scripts/checks/wb-graph.mjs`、`package.json`（`check:wb`） |
+| [Task 133](task-133-notes-graph-layout-canvas.md) | 佈局與靜態渲染：佈局純函式、`GraphView`、畫布、平移縮放、token、`WbView` 加 graph、窄畫面 | §3.1、§5、§7、§10、§12 | `lib/wb-graph-layout.ts`、`wb/graph/GraphView.tsx`／`GraphCanvas.tsx`／`useGraphViewport.ts`／`GrStates.tsx`、`wb/GraphNarrow.tsx`、`wb-prefs.ts`、`NotesWorkbench.tsx`、`workbench.css` |
+| [Task 134](task-134-notes-graph-interactions.md) | 互動與浮層：Toolbar、著色下拉、hover／搜尋高亮、提示框、圖例、統計列、縮放控制、選取、偏好 | §6.1、§7–§9 | `lib/wb-graph-prefs.ts`、`wb/graph/GraphToolbar.tsx`／`GrColorMenu.tsx`／`GrOverlays.tsx`、`wb/ui.tsx`、`workbench.css` |
+| [Task 135](task-135-notes-graph-tag-mode-states.md) | 標籤模式、模式切換動畫、兩種空狀態、reduced-motion | §5.3、§6.2、§8.2、§11 | `wb/graph/*`、`workbench.css` |
+| [Task 136](task-136-notes-graph-fixture-docs-release.md) | 示範與規模 fixture、全狀態驗收、文件回填、發版 | §15、§16.1、§17 | `scripts/fixtures/notes-graph-sample.mjs`、CLAUDE.md／PRD／workbench／官網／CHANGELOG、v1.13.0 |
+
+**順序**：131 與 132 互不依賴，可平行；133 要等兩者（131 的結論決定佈局在哪裡算、是否 lazy）。
+
+```
+131 ─┐
+132 ─┴─ 133 ─ 134 ─ 135 ─ 136
+```
+
+> **交付節奏**：全程在 `feat/notes-graph` 單一分支上，依 Task 逐步 commit，**Task 136 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 `wb-graph*.ts` 的再跑 `npm run check:wb`，動到 `links-scan.mjs`／`defs-index.mjs` 的再跑 `npm run check:defs`，動到 `scripts/checks/` 的再跑 `npm run check-plugins`。
+>
+> **幾條貫穿整批的規則**：
+> - **邊只由 `buildGraphEdges` 計算**，連入數、級距、孤島只由 `deriveGraph` 計算，UI 不自己數
+> - `wb-graph.ts`、`wb-graph-layout.ts` 只能 `import type`、不碰 `window`；`links-scan.mjs` 不碰 Node API（官網示範會載入）
+> - 佈局算完即靜止、同樣的輸入每次結果相同；斷言的是性質，不是座標快照
+> - **SSR 不輸出任何節點**；`#nc-scroll` 不可拿掉
+> - 淡出用 `fill-opacity`／`stroke-opacity` 與根元素的 class，不對群組設 `opacity`；縮放只改 `.gr-world` 的 `transform` 與 `--k`
+> - 新 token 一律 `--wb-gr-*`、只寫亮色、規則裡不出現色碼；`gr-` 規則放在 860px 媒體規則之前；每條動畫都要有 reduced-motion 對應
+> - 換頁的目標（資料檔節點、標籤樞紐、清除篩選）是真的連結，`href` 經 `withBase`
+> - 產物只含 slug 與 routePath，不得出現本機絕對路徑
+> - **每次 commit 只 add 本 Task 的檔案**
