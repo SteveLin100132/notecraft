@@ -100,3 +100,13 @@ export function fitView(points, width, height): { x: number; y: number; k: numbe
 ## 依賴
 
 Task 131、132。
+
+## 實作記錄（2026-10-10）
+
+- Task 133–135 的元件互相 import，**合併成一筆 commit**（`feat: 筆記頁新增 Graph 檢視`）
+- 依 Task 131 的結論多了 `src/lib/wb-graph-worker.ts`：節點 > 150 由 Worker 算，`runLayout` 是主執行緒與 Worker 共用的入口；結果放模組層的快取（最多 16 筆）
+- `GraphNarrow.tsx` 改名 `GraphStatic.tsx`：窄畫面說明、骨架、Suspense fallback 三個都要在 lazy chunk 之外
+- `wb-graph-layout.ts` 沒有任何 import（常數 `LAYOUT_DENSE`、`LAYOUT_HUB_R` 自己持有，`check:wb` 對照 `wb-graph.ts` 的同名值）
+- 資料檔節點與標籤樞紐是 SVG 裡的 `<a>`；JSX 的 `<a>` 沒有 `transform`，位置放在裡面那層 `<g>`
+- 標題的位置用 `transform` 加 `dy="1.25em"`：字級隨 `--k` 換算，`em` 跟著縮，不必在縮放時改座標
+- 以主專案（25 篇）在 dev server 確認：圖、孤島群標、資料檔的方塊、平移縮放、Sidebar 篩選後重新佈局、窄畫面、SSR 沒有節點

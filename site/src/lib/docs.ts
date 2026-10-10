@@ -77,6 +77,7 @@ export const CHAPTERS: DocChapter[] = [
         children: [
           { title: "介面總覽", slug: "guides/workbench" },
           { title: "筆記列表", slug: "guides/notes-list" },
+          { title: "筆記關聯圖（Graph）", slug: "guides/notes-graph" },
           { title: "儀表板與更新月曆", slug: "guides/dashboard" },
           { title: "筆記頁籤", slug: "guides/tabs" },
           { title: "指令面板與全文搜尋", slug: "guides/palette" },

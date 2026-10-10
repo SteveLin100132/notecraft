@@ -122,3 +122,14 @@ export function graphStats(mode, graph, kinds, query): GraphStats;
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-10）
+
+- `scanLinks` 回傳 `{ url, line, via }`，`via` 是 `"link"` 或 `"pluginview"`；沒有採用「在 url 前加前綴」的做法
+- `buildGraphEdges` 的 `references` 由 `workbench.ts` 先把定義 id 換成來源筆記的 slug 再傳入；`slugify` 由呼叫端注入 `github-slugger`
+- 另外放進 `wb-graph.ts` 的純函式：`mainKind`、`tierOf`、`tagSlots`、`tagLines`、`matchNodes`、`highlightOf`（高亮集合，規格 §8 的 hover／搜尋規則），以及 `colorScheme`（規格寫的 `colorGroups`，回傳 `keyOf`／`order`／`colorOf`／`labelOf`）
+- `/notes` 的 island props 多了規格沒列的 `tagStats`（全站標籤統計，標籤樞紐要用）
+- 主專案 build 出 25 條邊，與 repo 內的連結、定義引用、系列章節逐條對得上；`../project-requirement-document.md` 那條相對連結因目標不在 notesDir 內，沒有產生邊
+- **順手修掉**：`defs-scan.mjs` 的 H1 規則不認 CRLF，在 Windows 的 `autocrlf` checkout 下 `check:defs` 的「真實筆記」一項會失敗
+- `scripts/checks/wb-graph.mjs` 21 項（Task 133 再加佈局的 14 項）、`scripts/checks/defs.mjs` 多 3 項
+- tsc 錯誤數 40 不變

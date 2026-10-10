@@ -757,9 +757,10 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 錯誤訊息、索引、產物只用 notesDir 相對路徑，不得出現本機絕對路徑
 > - **每次 commit 只 add 本 Task 的檔案**
 
-## v1.24.0 追加功能（§8.1 Phase 4.28）— 筆記頁 Graph 檢視：文件關聯與標籤關聯（notecraftapp v1.13.0）
+## v1.24.0 追加功能（§8.1 Phase 4.28）— 筆記頁 Graph 檢視：文件關聯與標籤關聯（notecraftapp v1.13.0） ✅ 已完成（2026-10-10）
 
-> **尚未動工**：Task 131–136 已建立（2026-10-10），分支 `feat/notes-graph`。PRD 的 Phase 4.28 於 Task 136 回填。
+> **已完成（2026-10-10）**：Task 131–136 全部實作於 `feat/notes-graph`。實測結論回填於規格 §21；各 Task 檔末有「實作記錄」。
+> Task 133–135 的元件互相 import，合併成一筆 commit；spike（131）的結論是大圖的佈局改由 Web Worker 計算。
 
 規格 [notecraft-workbench-notes-graph.md](../notecraft-workbench-notes-graph.md)；像素級規格 [design_handoff_notes_graph/](../prototype/design_handoff_notes_graph/README.md)（與規格衝突時以規格為準，差異見規格 §14）。
 定義與引用上線後，筆記之間有了機器可讀的關聯，但只在「某個定義被誰引用」的清單裡看得到。在 `/notes` 新增第五個檢視 Graph：文件模式以力導向圖畫出定義引用、定義嵌入、站內連結、系列順序四種邊；標籤模式以標籤為樞紐把筆記聚成團。

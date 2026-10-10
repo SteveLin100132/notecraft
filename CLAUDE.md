@@ -23,6 +23,7 @@ src/
 ├── components/wb/dashboard/     Dashboard「總覽」的七張卡＋「更新月曆」的 Calendar／CalCell／CalDot／CalNote（不是獨立 island，由 DashboardWorkbench 渲染）
 ├── components/wb/tabs/          筆記頁籤：TabBar（island 入口，layout 每頁掛）＋TabStrip／TabMenu／TabAll／TabSheet／TabPop
 ├── components/wb/update/        檢查更新：UpdateHost（island 入口，layout 每頁掛）＋UpdateBlock／UpdateDrawer／UpdateChangelog／UpdateToast／UpdateParts
+├── components/wb/graph/         /notes 的 Graph 檢視：GraphView（React.lazy 的入口，整個資料夾另外分包）＋GraphCanvas／GraphToolbar／GrColorMenu／GrOverlays／GrStates／useGraphViewport；窄畫面說明與骨架在 wb/GraphStatic.tsx（不進 lazy chunk）
 ├── components/wb/plugins/       /plugins 的空狀態：PluginEmpty（PlInstallEmpty／PlDataEmpty／PlHint／PlCmd／PlSnippet）＋PluginEmptyArt（6 張插圖）；複製鈕狀態在 wb/useCopyState.ts（與檢查更新共用）
 ├── components/islands/          其他 React island（TagEditor、Toc、PluginHost、SeriesNav…）
 ├── layouts/WorkbenchLayout.astro  三欄工作台的殼，所有頁面共用（簡報頁例外）
@@ -35,6 +36,9 @@ src/
 ├── lib/wb-plugin-env.ts          /plugins 的情境判定（derivePluginEnv／pluginRowState）；lib/official-plugins.ts 是官方外掛清單與安裝指令。兩者只能 import type，scripts/checks/wb-plugin-env.mjs 斷言（併入 check:wb）
 ├── lib/update-check.ts          檢查更新的純函式（semver／落後版數／Node 需求／快取／toast 條件）；lib/changelog-parse.ts 解析 CHANGELOG。兩者只能 import type，scripts/checks/upd-*.mjs 斷言（npm run check:upd）
 ├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
+├── lib/wb-graph.ts              Graph 檢視的純函式（buildGraphEdges／deriveGraph／標籤樞紐／著色分組／高亮集合＋JS 端的數值常數）；lib/wb-graph-layout.ts 是佈局（力導向、群聚、符合視窗、邊的幾何）。兩者只能 import type、不碰 window，scripts/checks/wb-graph.mjs 斷言（併入 check:wb）
+├── lib/wb-graph-worker.ts       佈局的 Web Worker（節點超過 150 時用；只能由 new Worker(new URL(…)) 載入）；lib/wb-graph-prefs.ts 是 Graph 偏好的 localStorage 讀寫
+├── lib/links-scan.mjs            站內連結的掃描器（原始碼 → 連結的原始 URL 與行號）；只 import defs-scan.mjs、**不可碰 Node API**，由 defs-index.mjs 在同一次讀檔裡呼叫（結果在 DefNote.links），scripts/checks/defs.mjs 斷言
 ├── lib/defs-scan.mjs             定義與引用的掃描器（原始碼 → define／include／ref 的 id 與位置）；零 import 的 .mjs，Astro、dev-api、CLI 共用，scripts/checks/defs.mjs 斷言（npm run check:defs）
 ├── lib/defs-index.mjs            定義索引的純計算（buildDefIndex、slug、相對路徑改寫）；只 import github-slugger 與 defs-scan.mjs，**不可碰 Node API**：官網的「筆記頁」示範在瀏覽器裡也用它
 ├── lib/defs-state.mjs            定義索引單例（globalThis；讀檔、gray-matter、git-ignored warn）；remark plugin、workbench.ts、dev-api 共用。lib/defs-integration.mjs 處理 dev 跨檔失效
@@ -153,6 +157,14 @@ status: pending | generated | locked | failed
   「被 N 篇引用」與筆記頁的反向連結 Drawer 用 build 期 props，不抓 `/wb-index.json`；NoteDrawer 與 Palette 用 `/wb-index.json` 的 `defs`。`.ts` 端不碰 `node:*`／`process`（放 `defs-state.mjs`，避免 tsc 錯誤增加）。
   樣式放在 `global.css` 的筆記內文區段（`prose styles for MDX note bodies` 與 `unstyled button reset` 之間），官網 `site/scripts/sync-nc-prose.mjs` 才抽得到（`:root` 在官網改成 `.ncp`，另帶 workbench.css 的 `:root` token）。
   改了 remark plugin 或 dev-api 要**重啟 dev server**（它們在 astro.config 載入）；整合驗證 `node scripts/fixtures/define-ref-html.mjs`（先 build）、`node scripts/fixtures/define-ref-scale.mjs --build`
+- **Graph 檢視**（v1.13.0，[docs/notecraft-workbench-notes-graph.md](docs/notecraft-workbench-notes-graph.md)）：`/notes?view=graph`，文件模式（力導向）與標籤模式（群聚）。
+  **邊只由 `lib/wb-graph.ts` 的 `buildGraphEdges` 在 build 期計算**（`WbIndex.graph.edges`，同時是 `/notes` 的 island props）；連入數、級距、孤島只由 `deriveGraph` 計算，UI 不自己數。四種邊：`ref`／`inc`（每個不同的定義 id 算 1）、`link`（每出現一次算 1；含 `/notes/…`、`/view/…`、相對連結、`<PluginView src>`、資料檔的 `meta.backTo`）、`seq`（系列相鄰章節）；方向一律是「來源 → 被參照的一方」，目標不存在的直接略過。
+  佈局是固定種子的純函式、算完即靜止，`check:wb` 斷言的是**性質**（確定性、不重疊…）不是座標快照；斥力是 O(n²)，節點 > 150（`GR_DENSE`）改由 Web Worker 算、先畫骨架、模式切換不做移動動畫。
+  **SSR 不輸出任何節點**（build 期看不到 `?view=`，SSR 永遠是 List）；`GraphView` 以 `React.lazy` 另外分包，窄畫面（≤ 860）不下載它。island 自己輸出的 Body 仍要帶 `id="nc-scroll"`。
+  渲染的四條規矩：平移縮放只改 `.gr-world` 的 `transform` 與 `--k`（標題字級、熱區寬度寫成 `calc(… / var(--k))`）；淡出用根元素的 `.is-dimming` 加元素的 `.hot`、一律 `fill-opacity`／`stroke-opacity`，**不對群組設 `opacity`**；標題顯示門檻由根元素的 `data-labels`／`data-near`／`.dense` 決定；模式切換的動畫直接改 DOM 屬性、不經過 React。
+  換頁的目標（資料檔節點、標籤樞紐、「清除篩選」）是真的連結（Sidebar 的高亮是載入時畫的，island 內改網址不會更新它）；筆記節點是 `role="button"`，單擊走 `rowHandlers`、Enter／Space 等同單擊。標籤樞紐取全站前 8 個（＋篩選中的標籤），著色超過 8 組的歸灰色「其他」。
+  偏好存 `nc-graph-prefs-v1`（模式、著色、邊的開關、孤島、圖例），不進網址。token 一律 `--wb-gr-*`、只寫亮色，`gr-` 規則必須在 860px 媒體規則之前；JS 也要用的數值（半徑、縮放門檻、淡出值、移動時長）在 `wb-graph.ts` 有同名常數，`check:wb` 對照兩邊。
+  改了 `links-scan.mjs` 要**重啟 dev server**。整合驗證 `node scripts/fixtures/notes-graph-sample.mjs --build`（約 65 篇，邊與產生器記下的逐條比對；另有 `--n 300`、`--no-links`、`--out <dir>`）
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）

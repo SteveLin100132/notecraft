@@ -366,7 +366,7 @@ export async function getWorkbenchIndex(): Promise<WbIndex>   // 模組層快取
 | `/notes?series=<id>`、`?tag=<名稱>` | 系列／標籤篩選 |
 | `/notes?pending=1` | AI 標記佇列（Rail 的 sparkle） |
 | `/notes?fav=1`、`?hasAi=1`、`?nofm=1` | 其餘篩選 chip：只看收藏（Q11）、含 AI 標記、無 frontmatter。可彼此組合，也可與 `folder`／`series`／`tag` 組合 |
-| `/notes?view=list\|board\|table\|timeline` | view Tab（Q3 已定案）。值一律小寫；未帶或值無效時用設定頁的預設 view；手機忽略此參數、一律 List。可與篩選參數組合，例 `?folder=a/b&view=table` |
+| `/notes?view=list\|board\|table\|timeline\|graph` | view Tab（Q3 已定案）。值一律小寫；未帶或值無效時用設定頁的預設 view；手機忽略此參數、一律 List（**例外**：`graph` 在手機上留在 Graph，顯示「需要較寬的畫面」）。`graph` 是 v1.13.0 新增的第五個檢視，見 [notecraft-workbench-notes-graph.md](./notecraft-workbench-notes-graph.md)。可與篩選參數組合，例 `?folder=a/b&view=table` |
 | `/notes/<slug>` | 筆記內文（不變） |
 | `/series`、`/series/<id>` | 不變 |
 | `/tags` | 不變 |
@@ -771,7 +771,7 @@ README §5.3 說「隱藏 NoteView 自帶 header」，但 prototype 的 CSS 實�
 
   | 項目 | 選項 | 預設 | 作用 |
   | :-- | :-- | :-- | :-- |
-  | 預設 view | List／Board／Table／Timeline | List | 進 `/notes` 且網址沒帶 `?view=` 時用哪一種（Q3）；手機一律 List |
+  | 預設 view | List／Board／Table／Timeline／Graph（v1.13.0） | List | 進 `/notes` 且網址沒帶 `?view=` 時用哪一種（Q3）；手機一律 List |
   | List 預設分組 | 資料夾／系列／標籤／月份 | 資料夾 | List 一開始的分組方式。在 Toolbar 切換分組時也會回寫這個值（prototype 如此） |
   | 目錄預設狀態 | 全部收合／全部展開 | 全部收合 | 開啟筆記時目錄子項目的初始狀態；SSR 一律收合，掛載後才套用。目錄標頭的按鈕仍可隨時切換，但不回寫設定 |
 

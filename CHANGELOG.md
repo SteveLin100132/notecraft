@@ -4,6 +4,30 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.13.0] - 2026-10-10
+
+<!-- 重點：筆記列表多一個 Graph 檢視，看得出哪些筆記是樞紐、哪些是孤島 -->
+
+### 新增
+
+- 筆記列表新增第五個檢視 Graph（設計文件 `docs/notecraft-workbench-notes-graph.md`）：以圖呈現筆記之間的關聯，可平移、縮放、搜尋，點節點開啟預覽。可在設定頁設為預設檢視
+- 文件模式：箭頭由引用的一方指向被參照的一方，四種關聯以線型區分 —— 定義引用（`:ref`）、定義嵌入（`::include`）、站內連結、系列順序。兩篇之間的關聯越多線越粗；被越多篇連入的筆記節點越大；沒有任何關聯的筆記依分組排在外圍
+- 站內連結包含 `/notes/…`、`/view/…`、相對的 `.md`／`.mdx` 連結、筆記內嵌的資料檔（`<PluginView>`）與資料檔的「回到來源筆記」
+- 標籤模式：筆記數最多的 8 個標籤是樞紐，筆記圍著自己的標籤聚成團，帶多個標籤的落在幾團之間；點樞紐只看那個標籤
+- 節點可依資料夾、系列或標籤著色；四種關聯可分別開關、可隱藏沒有關聯的筆記；這些選擇會記住
+- 資料夾、系列、標籤等既有的篩選在 Graph 同樣有效
+- 視窗寬度 860px 以下不畫圖，改顯示說明
+
+### 內部
+
+- 邊在 build 期由 `src/lib/wb-graph.ts` 的 `buildGraphEdges` 計算，寫進 `/wb-index.json` 的 `graph.edges`；站內連結由新的 `src/lib/links-scan.mjs` 掃描，搭定義索引的同一次讀檔
+- 佈局是固定種子的純函式（`src/lib/wb-graph-layout.ts`），節點超過 150 時改由 Web Worker 計算；Graph 的程式另外分包，只在切到 Graph 時下載
+- 斷言 `scripts/checks/wb-graph.mjs`（併入 `npm run check:wb`）；新增 `scripts/fixtures/notes-graph-sample.mjs`（以 `npm pack` 出的套件 build 約 65 篇的工作區，邊與預期逐條比對）
+
+### 修正
+
+- 筆記檔案是 CRLF 換行時，沒有 frontmatter `title` 的筆記抓不到 H1 當標題
+
 ## [1.12.0] - 2026-10-07
 
 <!-- 重點：同一段說明只寫一次，其他筆記嵌入或引用它 -->

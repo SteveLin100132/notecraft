@@ -3,7 +3,7 @@ Project Name: NoteCraft Workbench — 筆記頁（/notes）Graph 檢視：文件
 文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用既有技術棧，不新增套件；佈局為自寫的純函式，不使用 d3-force，見 §5.1）
-文件狀態: 已定案、尚未實作 —— §19 的 12 題已於 2026-10-10 逐題確認（紀錄見 §20），Q10 與建議不同；Task 131–136 已建立、尚未動工
+文件狀態: 已實作（notecraftapp v1.13.0，Task 131–136，2026-10-10）—— §19 的 12 題已於 2026-10-10 逐題確認（紀錄見 §20），Q10 與建議不同；實作後回填見 §21（大圖的佈局改由 Web Worker 計算）
 文件作者: 建宇
 建立日期: 2026-10-10
 更新日期: 2026-10-10
@@ -252,6 +252,8 @@ export function fitView(points, width, height): { x: number; y: number; k: numbe
 `check:wb` 斷言的是性質，不是座標快照（不同 Node 版本的浮點結果可能有末位差異）：同一輸入連跑兩次結果完全相同、沒有 NaN、節點兩兩不重疊（容許 1px）、孤島都在主圖最大半徑之外、標籤樞紐等距排在圓上。
 
 ### 5.2 在哪裡算（Q8）
+
+> **實作後更新（§21）**：Task 131 實測 300 節點約 0.2 秒、1,000 節點約 1.4 秒，超過下面的門檻，所以節點 > 150 時改由 Web Worker（`lib/wb-graph-worker.ts`）計算；≤ 150 仍照本節在主執行緒同步算。
 
 在瀏覽器主執行緒同步算。不在 build 期預算：佈局取決於「可見節點集合 × 模式 × 著色依據 × 孤島開關」，篩選是任意組合，無法窮舉。
 
@@ -598,4 +600,54 @@ repo 目前 25 篇筆記的邊不多，看不到 handoff 的大部分狀態（�
 
 ## 21. 實作後回填
 
-（實作後填寫）
+各 Task 檔末有「實作記錄」；這裡只列與規格不同、或之後實作時要知道的事。
+
+### Task 131 spike 結論（2026-10-10）
+
+| 項目 | 結論 |
+| :-- | :-- |
+| 佈局耗時 | 以亂數圖在 Node 22 量 5 次取中位數（文件／標籤模式）：65 節點 13／6 ms、150 節點 93／20 ms、300 節點 193／68 ms、600 節點 511／212 ms、1,000 節點 1,401／593 ms。同一輸入連跑兩次結果逐位元相同 |
+| 判定 | 300 節點超過 150 ms、1,000 節點超過 500 ms，照 §19 Q8 的門檻**改用 Web Worker**：節點 ≤ 150 仍在主執行緒同步算（不到 0.1 秒），超過的丟給 `lib/wb-graph-worker.ts`，算完之前畫骨架。沒有去改演算法（格狀分區等），維持 handoff 的參數 |
+| Worker 的打包 | `new Worker(new URL("…/wb-graph-worker.ts", import.meta.url), { type: "module" })` 在主專案與 `npm pack` 出的 viewer build 都會分出獨立的 chunk；建立失敗時退回主執行緒的 `setTimeout` |
+| `React.lazy` | 主專案與 viewer 的 build 都分出 `GraphView.*.js`；`/notes` 的 HTML 不預先載入它；窄畫面不下載。沒有 hydration mismatch（SSR 是 List，Graph 在 effect 之後才出現） |
+| tween | 以 ref 直接改 SVG 屬性，不經過 React。**幀率沒有實測**：開發用的瀏覽器面板在背景時不觸發 `requestAnimationFrame`，量不到；只確認了起點與終點正確。因此加了計時器保底（680 ms 後直接套用終點），分頁在背景時節點不會卡在起點 |
+
+spike 沒有另外寫拋棄式程式碼：佈局直接寫成正式的 `wb-graph-layout.ts` 後量測，`React.lazy` 與 Worker 在正式實作上驗證。
+
+### 總覽（Task 132–136，2026-10-10）
+
+| 項目 | 結果 |
+| :-- | :-- |
+| 邊的資料 | `WbIndex.graph.edges`；`/notes` 另帶 `dataNodes` 與 `tagStats`（全站標籤統計，規格 §4.5 沒列，標籤樞紐要用） |
+| 主專案的邊 | 25 篇筆記、25 條邊（系列 13、連結含資料檔 10、定義引用與嵌入 2 條合併邊） |
+| 佈局 | `layoutDoc`／`layoutTag`／`fitView`／`edgeGeom`／`runLayout`（主執行緒與 Worker 共用的入口）。`wb-graph-layout.ts` 完全沒有 import |
+| 佈局快取 | 模組層的 Map，最多 16 筆；節點沒變、只換模式或著色時，新佈局算好之前先留著舊畫面，不閃骨架 |
+| 元件 | `wb/graph/` 六個檔＋`wb/GraphStatic.tsx`（窄畫面說明、骨架、Suspense fallback；不進 lazy chunk）。規格 §3.1 的 `GraphNarrow.tsx` 改名為 `GraphStatic.tsx`，因為骨架也要放在 chunk 之外 |
+| 事件 | 節點、樞紐、邊的 hover／focus／click 都委派在 `.gr-world` 上一份，以 `data-n`／`data-hub`／`data-e` 找回目標 |
+| SVG 的連結 | JSX 的 `<a>` 是 HTML 的型別、沒有 `transform`：位置放在連結裡面那層 `<g>`，動畫改的也是它 |
+| 斷言 | `scripts/checks/wb-graph.mjs` 35 項（併入 `check:wb`）；`scripts/checks/defs.mjs` 多 3 項連結掃描 |
+| fixture | `node scripts/fixtures/notes-graph-sample.mjs --build`：`npm pack` 後的 viewer 工作區 65 篇、3 個資料檔、3 個系列，84 條邊與產生器記下的逐條相同（約 26 秒）。`--n 300`（358 條邊、41 秒）、`--n 1000`（1,194 條邊）、`--no-links` 都通過。另加了規格沒列的 `--no-links` 與 `--out <dir>`（把工作區寫到指定資料夾，給主 repo 的 dev server 看） |
+| 規模 | 1,000 篇時 `/wb-index.json` 344 KB、`/notes` 的 HTML 1,948 KB（筆記列與邊都是 island props）。§4.5 的「改為進 Graph 才抓」這次沒做 |
+| 瀏覽器驗證 | 主專案（25 篇）、65 篇示範、300 篇三份資料以 dev server 檢查：hover／選取／搜尋／邊的開關／孤島／著色下拉的鍵盤操作／標籤模式／點樞紐換頁／兩種空狀態／已篩選／窄畫面／偏好保存。300 篇時 hover 約 19 ms、切模式約 0.1 秒（Worker） |
+| tsc | 錯誤數 40，與開工前相同 |
+
+### 與規格不同的地方
+
+- **§5.2**：大圖改用 Web Worker（見上）。「先畫骨架、下一個 frame 再算」的主執行緒版本只在 Worker 建立失敗時使用
+- **「不著色」的顏色**：handoff §7.1 的表寫 c7、內文與 prototype 的程式碼是 c0（灰）。採 c0，著色下拉的預覽色點也一併用 c0
+- **鍵盤**：筆記節點的單擊、`⌘`／`Ctrl`＋單擊、中鍵、雙擊走 `rowHandlers`，但 **Enter 不走它**：`rowHandlers` 的 Enter 是「開啟筆記」，Graph 照 handoff 是「等同單擊（開 Drawer）」
+- **`SearchBox` 沒有改**：Task 134 原本要給它加清除鈕與 Esc 的選填 props；Graph 的搜尋框直接在 `GraphToolbar` 寫（沿用 `.wb-search` 樣式），其他頁的用法不受影響
+- **箭頭與線的顏色**：圖例、提示框、Toolbar 的線型樣本共用 `GrLine`，都是 inline SVG；其餘圖示用 `lucide-react`（D14）
+- **launch 設定**：`.claude/launch.json` 多一個 `graph-fixture-win`（`NOTECRAFT_NOTES_DIR=tmp/graph-ws` 的 dev server），搭 fixture 的 `--out tmp/graph-ws` 使用
+
+### 順手修掉的
+
+- `defs-scan.mjs` 的 H1 規則不認 CRLF：Windows 以 `autocrlf` checkout 的工作目錄下，沒有 frontmatter `title` 的筆記抓不到 H1，`npm run check:defs` 的「真實筆記」那一項會失敗。補上 `\r`
+
+### 仍未做的
+
+- 筆記頁上的局部圖、斷鏈檢查（§1.3 的非目標；`DefNote.links` 與 `WbIndex.graph` 已經備好資料）
+- 模式切換動畫的幀率實測（需要在前景的真實瀏覽器裡量）
+- 方向鍵導覽（Q9）
+- 官網新頁沒有截圖（`Plate`）：之後補
+- 主專案模式下相對 `.md` 連結不會被改寫成站內連結（§18），圖上有邊但點連結會 404

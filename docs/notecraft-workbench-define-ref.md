@@ -413,6 +413,7 @@ export interface WbIndex {
 - 反向連結只存在 `WbDef.refs`，筆記列上不另存，避免雙向資料不同步（H§0.2）
 - 不含原始碼與渲染後內容：預覽內容在頁面的 template 裡，`/wb-index.json` 只放摘要
 - 不含 `file`（路徑）：顯示用的資料夾取自 `notes` 的 `path`／`folder`
+- v1.13.0 起，`buildDefIndex()` 在同一次讀檔裡另外掃出每篇的站內連結（`DefNote.links`，`lib/links-scan.mjs`），給 Graph 檢視算邊用；它不影響定義的索引與錯誤檢查（[notecraft-workbench-notes-graph.md](./notecraft-workbench-notes-graph.md) §4.3）
 
 ---
 

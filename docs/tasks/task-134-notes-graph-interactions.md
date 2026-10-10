@@ -106,3 +106,13 @@ export function writeGraphPrefs(patch: Partial<GraphPrefs>): GraphPrefs;
 ## 依賴
 
 Task 133。
+
+## 實作記錄（2026-10-10）
+
+- 與 Task 133、135 合併成一筆 commit
+- **沒有改 `SearchBox`**：Graph 的搜尋框直接寫在 `GraphToolbar`（沿用 `.wb-search`），清除鈕與 Esc 都在那裡處理
+- 鍵盤：Enter／Space 等同單擊（開 Drawer），沒有走 `rowHandlers` 的 Enter（那是「開啟筆記」）；單擊、`⌘`／`Ctrl`＋單擊、中鍵、雙擊走 `rowHandlers`
+- hover／focus／click 委派在 `.gr-world` 上一份；在同一個元素的子節點之間移動不重複觸發
+- 「不著色」用 c0（灰），著色下拉的預覽色點同步用 c0（handoff 的表與內文不一致，採內文與 prototype 的做法）
+- 以 dev server 實測：hover 淡出與提示框、點節點開 Drawer 並出現選取環、搜尋「define」符合 3 個且 Esc 清空、關掉系列邊後邊數 25 → 12 而節點不動、隱藏孤島、著色下拉的 ↑↓／Enter／Esc 與焦點歸還、`?pending=1` 的「已篩選」、偏好寫入 localStorage
+- 焦點環（`:focus-visible`）只以合成事件確認了提示框；真實鍵盤的 Tab 順序以 DOM 順序確認（縮放控制、圖例在節點之前）

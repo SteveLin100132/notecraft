@@ -1,7 +1,7 @@
 ---
 Project Name: NoteCraft
 文件類型: Project Requirement Document (PRD)
-文件版本: v1.23.0
+文件版本: v1.24.0
 開發模式: Waterfall
 技術選型: 確定
 技術架構: 確定
@@ -10,7 +10,7 @@ Project Name: NoteCraft
 文件作者: 建宇
 審核人: 建宇
 建立日期: 2026-06-12
-更新日期: 2026-10-06
+更新日期: 2026-10-10
 ---
 
 # NoteCraft — AI 互動筆記 Web App
@@ -85,6 +85,7 @@ Project Name: NoteCraft
 23. \* 提供 [筆記轉簡報（Note → Presentation）](#筆記轉簡報note--presentation)：作者於 [筆記檢視頁面](#筆記檢視頁面) 功能列點「生成簡報」按鈕複製提示詞、貼進 Claude Code，由 AI 讀取整篇筆記（文字 ＋ 既有 [Generated 元件](#generated-元件)）重新編排為一份**多頁簡報**（每篇一份、獨立 slides 檔），並於 [簡報模式](#筆記轉簡報note--presentation)（`/present/[slug]`）以「檢視 / 播放」兩態呈現；生成為 dev-only、播放正式環境亦可用，版面遵循 [trendlink-design](#skills)。由獨立的 `content-present` Skill 與兩個新 Subagent 執行，**與既有 AI 視覺化管線完全隔離**
 24. \* 為每個 [Generated 元件](#generated-元件) 提供 [放大檢視](#ai-生成內容外框卡片--放大檢視viz-zoom)：從 [AI 生成內容外框卡片](#ai-生成內容外框卡片) 標題列點「放大檢視」，把元件搬進全螢幕可拖曳平移、可縮放的畫布閱讀（沿用簡報端既有的 `CanvasViewport`），互動完整保留、可匯出 100% 原尺寸 PNG；解決寬元件在內文欄寬下被擠壓、橫向溢出的問題，dev 與正式環境皆可用
 25. \* 提供 [定義與引用](#phase-427--定義區塊嵌入行內引用與反向連結v1230-追加)：以 `::::define{id}` 把一段內容標成可被引用的定義，其他筆記以 `::include{id}` 原樣嵌入、以 `:ref[文字]{id}` 行內引用並預覽，來源處看得到被哪些筆記引用；引用只寫 id、錯誤一律 build 失敗，dev 與正式環境皆可用
+26. \* 提供 [筆記關聯圖（Graph 檢視）](#phase-428--筆記頁-graph-檢視文件關聯與標籤關聯v1240-追加)：在筆記列表以圖呈現筆記之間的關聯。文件模式畫出定義引用、定義嵌入、站內連結、系列順序四種有方向的邊；標籤模式以標籤為樞紐把筆記聚成團。可看出樞紐與孤島，點節點預覽，dev 與正式環境皆可用
 
 ### 4.2 非目標（Out of Scope）
 
@@ -2737,6 +2738,18 @@ model: haiku
 - 只做亮色；**不做**：`[[…]]` 語法糖、簡報展開 include、定義總表頁
 - 對應實作 Task 125–130；完整設計見 [notecraft-workbench-define-ref.md](./notecraft-workbench-define-ref.md)（12 題定案紀錄在其 §17，實作後回填在 §18）
 
+#### Phase 4.28 — 筆記頁 Graph 檢視：文件關聯與標籤關聯（v1.24.0 追加）
+
+**目標：一眼看出筆記之間的結構 —— 哪些是樞紐、哪些是孤島、哪些主題聚在一起**
+
+- `/notes` 新增第五個檢視 Graph（`?view=graph`，設定頁可設為預設 view）；沿用 Sidebar 篩選、NoteDrawer、Esc 堆疊
+- 文件模式：力導向圖。邊有四種、都有方向（來源 → 被參照的一方）：定義引用（`:ref`）、定義嵌入（`::include`）、站內連結（`/notes/…`、`/view/…`、相對連結、`<PluginView>`、資料檔的 `meta.backTo`）、系列順序。同一對筆記的多次關聯合成一條、以粗細表示次數；節點大小依被連入的篇數分四級；沒有邊的筆記依著色分組排在外圍
+- 標籤模式：全站筆記數前 8 個標籤是樞紐，另有「其他標籤」「未加標籤」兩團；點樞紐換頁到該標籤的 Graph
+- 邊在 build 期算好、隨頁面送出；佈局是固定種子的純函式，算完即靜止；節點超過 150 時改由 Web Worker 計算
+- Graph 的程式另外分包，只在切到 Graph 時下載；寬度 860px 以下不畫圖，顯示說明
+- 只做亮色；**不做**：筆記頁上的局部圖、斷鏈檢查、拖曳節點
+- 對應實作 Task 131–136；完整設計見 [notecraft-workbench-notes-graph.md](./notecraft-workbench-notes-graph.md)（12 題定案紀錄在其 §20，實作後回填在 §21）
+
 #### Phase 5 — 部署與收尾
 
 **目標：上線**
@@ -2896,6 +2909,9 @@ gantt
 ---
 
 ## 11. Change Log（變更紀錄）
+
+### [1.24.0] - 2026-10-10
+- **Added**: 新增 Phase 4.28 筆記頁 Graph 檢視（文件關聯與標籤關聯）；§4.1 目標新增第 26 項
 
 ### [1.23.0] - 2026-10-07
 - **Added**: 新增 Phase 4.27 定義區塊、嵌入、行內引用與反向連結；§4.1 目標新增第 25 項

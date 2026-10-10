@@ -73,3 +73,12 @@
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-10）
+
+- 沒有另外寫拋棄式程式碼：佈局直接寫成正式的 `src/lib/wb-graph-layout.ts`，以一支暫時的量測腳本計時（量完已刪除）；`React.lazy` 與 Worker 在 Task 133 的正式實作上驗證
+- 佈局耗時（Node 22，5 次取中位數，文件／標籤模式）：65 節點 13／6 ms、150 節點 93／20 ms、300 節點 193／68 ms、600 節點 511／212 ms、1,000 節點 1,401／593 ms；同一輸入兩次結果逐位元相同。**只在 Node 量，沒有另外在 Chrome 量**；瀏覽器裡以 300 篇的工作區實際操作確認
+- 判定：300 節點 > 150 ms、1,000 節點 > 500 ms → **大圖改用 Web Worker**（節點 > 150），演算法與參數不動
+- `React.lazy`：主專案與 `npm pack` 出的 viewer build 都分出 `GraphView.*.js` 與 `wb-graph-worker-*.js`；`/notes` 的 HTML 不預先載入；沒有 hydration mismatch。`NOTECRAFT_BASE` 沒有另外測 chunk 網址
+- tween：採「以 ref 直接改 SVG 屬性」。**兩種寫法的掉幀對照沒有做**：開發用的瀏覽器面板在背景時不觸發 `requestAnimationFrame`。只確認起點、終點與中途打斷的行為，並加了計時器保底
+- 結論回填於規格 §21，§5.2 加了更新註記

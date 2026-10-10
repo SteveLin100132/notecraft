@@ -78,3 +78,13 @@ repo 目前 25 篇筆記的邊不多，看不到 handoff 的大部分狀態（�
 ## 依賴
 
 Task 132–135。
+
+## 實作記錄（2026-10-10）
+
+- `scripts/fixtures/notes-graph-sample.mjs --build`：65 篇、3 個資料檔、3 個系列，**84 條邊與產生器記下的逐條相同**；另驗三個樞紐被 8 篇以上連入、四種邊都有、資料檔的三條路、孤島不在任何邊裡、SSR 沒有節點、有 GraphView 與 Worker 的 chunk、沒有本機路徑（約 26 秒）
+- `--no-links`（12 篇、0 條邊）、`--n 300`（358 條邊，`/wb-index.json` 104 KB、`/notes` 620 KB）、`--n 1000`（1,194 條邊，344 KB、1,948 KB）都通過
+- 多了規格沒列的 `--out <dir>`：不打包，只把工作區寫到指定資料夾；搭 `.claude/launch.json` 新增的 `graph-fixture-win`（`NOTECRAFT_NOTES_DIR=tmp/graph-ws`）用主 repo 的 dev server 看
+- 以 `--out` 的 65 篇與 300 篇在瀏覽器檢查：三個樞紐是第 4 級並顯示標題、六個孤島群標、10 個資料夾時前 8 組配色其餘「其他」、300 篇先出骨架再出圖（Worker）、hover 約 19 ms、切模式約 0.1 秒
+- **沒有做的驗收**：`NOTECRAFT_BASE=/x` 的 build、`ignore.json` 排除被連到的筆記、viewer 的 `view`／`serve` 實際開頁面（fixture 只驗了 viewer 的 build 產物）、1,000 篇在瀏覽器裡的操作
+- 官網新增 `/docs/guides/notes-graph/`（「筆記列表」之後），`notes-list` 頁補一句指向它；沒有截圖，也沒有啟動 site 的 dev server 確認渲染
+- 驗證：`npx tsc --noEmit`（40，不變）、`npx astro build`、`npm run check-plugins`、`npm run check:upd`
