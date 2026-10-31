@@ -34,3 +34,8 @@
 | 相容 | 主專案既有筆記 | build | 所有既有語法照常渲染、無 build 錯誤 |
 | 鍵盤 | 分頁 | 方向鍵／Home／End | 行為不變 |
 | 全套 | — | `npx tsc --noEmit && npx astro build` | 通過 |
+
+## 實作記錄（2026-10-31）
+
+- 沒寫 `status` 的步驟維持藍框編號、寫了的才有狀態 pill（`.is-set`）；序號不補零；`:badge` 的 neutral 改金色；define／include／ref 原本的外觀已與 handoff 一致，未改
+- 詳見規格 §15

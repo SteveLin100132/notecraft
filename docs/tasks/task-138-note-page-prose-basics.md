@@ -51,3 +51,8 @@ GFM 輸出的 `section.footnotes` 加 `nc-fns`、標題「註腳」、上標 `[n
 | 待辦 | 已勾選與未勾選各一 | 點擊 | 可切換；重新整理回到原狀 |
 | 官網 | — | site dev | 官網示範的內文樣式正常（品牌） |
 | 全套 | — | `npx tsc --noEmit && npx astro build` | 通過；tsc 錯誤數不增加 |
+
+## 實作記錄（2026-10-31）
+
+- `==螢光==` 由 `remark-notecraft-mark.ts` 處理（`scripts/checks/note-page-remark.mjs` 斷言）；標題錨點改在瀏覽器插入；註腳標題是 `<p class="nc-fns-h">`（不進目錄）；表格改 `border-collapse: separate` 讓圓角生效
+- 詳見規格 §15

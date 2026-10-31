@@ -58,3 +58,8 @@
 ## 依賴
 
 無。
+
+## 實作記錄（2026-10-31）
+
+- 版面改為 `.np-host`＞`.np-page`，門檻 900／720（container query）；頁首標題隱藏時連寬度一起收起；閱讀時間在 `lib/note-text.ts` 的 `readingMinutes`（CJK 字＋單字，程式碼與 import 不算）；預繪與 `wb-prefs` 的夾值由 `scripts/checks/note-theme-prepaint.mjs` 對照
+- 詳見規格 §15

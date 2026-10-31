@@ -40,3 +40,8 @@
 | pagefind | 同上 | 搜尋 prompt 文字 | 搜不到 |
 | 系列 | 系列中間章、含資料檔章節 | 點上一章／下一章 | 正確導覽 |
 | 全套 | — | `npx tsc --noEmit && npx astro build` | 通過 |
+
+## 實作記錄（2026-10-31）
+
+- 待生成卡片由 `remark-notecraft-ai-markers.ts` 在註解後插入；GeneratedFrame 改 `.nc-viz` class，VizZoom 與「複製提示詞」照舊；SeriesNav 改純靜態、拿掉章節清單
+- 詳見規格 §15

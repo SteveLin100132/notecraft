@@ -50,3 +50,8 @@
 | viewer | `npm pack` 後 `NOTECRAFTAPP_DEV=1` build | 開含公式的筆記 | 字型載入成功 |
 | base | `NOTECRAFT_BASE=/x` | 同上 | 同上 |
 | 全套 | — | `npx tsc --noEmit && npx astro build` | 通過 |
+
+## 實作記錄（2026-10-31）
+
+- 新增 `remark-math`、`rehype-katex`、`katex`；主專案的 `$` 金額沒有被誤判（全站無 `.katex` 產物）；`:::details` 連續的包成 `.nc-dets`
+- 詳見規格 §15

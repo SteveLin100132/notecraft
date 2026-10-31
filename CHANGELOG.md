@@ -4,6 +4,32 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.14.0] - 2026-10-31
+
+<!-- 重點：筆記頁改版 —— 新的「品牌」主題、可調字級，所有 Markdown 與擴充語法都有了樣式 -->
+
+### 新增
+
+- 筆記閱讀頁改版（設計文件 `docs/notecraft-workbench-note-page.md`）：新的「品牌」主題為預設，改版前的樣子保留為「經典」主題，在設定頁「筆記 › 頁面主題」切換
+- 設定頁新增筆記字級（0.9×–1.25×），內文、程式碼、表格一起縮放
+- 標題、描述與資訊列移到內文開頭；資訊列多了資料夾、閱讀時間與系列「n/N」。殼的頁首標題捲過文內標題後才出現
+- 新語法：程式碼分頁 `:::code-group`、摺疊問答 `:::details`、並排圖片 `:::figures`、定義清單 `:::dl`、數學公式 `$…$`／`$$…$$`、螢光標記 `==文字==`、diff 程式碼（圍欄的語言寫 `diff`）
+- 步驟新增 `status="err"`（需處理）與 `status="skip"`（已略過），寫了 status 的步驟會顯示狀態標籤
+- 標題滑過時左側出現 `#` 錨點；註腳、待辦清單、kbd、圖片與圖說有了對應樣式，待辦清單可以在閱讀畫面勾選（不寫回檔案）
+- 待生成與生成失敗的 `@ai-visualize` 標記改在原位顯示提示卡
+
+### 變更
+
+- 程式碼區塊、提示框、分頁、程式碼註解、AI 元件與資料檔外框、系列導覽換上新外觀；程式碼註解前會自動補上該語言的註解符號
+- 目錄改為收合後顯示子項數、目前位置在收合段落裡也照樣顯示；單欄時收成一列「目錄＋目前章節」按鈕
+- 系列章節導覽簡化為「上一章／下一章」；完整章節清單在系列頁
+
+### 內部
+
+- 新增依賴 `remark-math`、`rehype-katex`、`katex`（KaTeX 的 CSS 只在筆記頁載入）
+- 主題與字級存在 `nc-workbench-prefs-v1`（`noteTheme`、`noteFontScale`），由 `src/lib/note-theme-prepaint.ts` 在第一次繪製前套上
+- 新增 `src/lib/remark-notecraft-mark.ts`、`src/lib/remark-notecraft-ai-markers.ts`；斷言 `scripts/checks/note-theme-prepaint.mjs`、`scripts/checks/note-page-remark.mjs`（併入 `npm run check:wb`）；驗收 fixture `scripts/fixtures/note-page-sample.mjs`
+
 ## [1.13.1] - 2026-10-31
 
 ### 修正

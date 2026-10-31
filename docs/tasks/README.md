@@ -800,7 +800,10 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 產物只含 slug 與 routePath，不得出現本機絕對路徑
 > - **每次 commit 只 add 本 Task 的檔案**
 
-## v1.25.0 追加功能（§8.1 Phase 4.29）— 筆記閱讀頁改版：品牌／經典主題、語法補齊、目錄與外框（notecraftapp v1.14.0）
+## v1.25.0 追加功能（§8.1 Phase 4.29）— 筆記閱讀頁改版：品牌／經典主題、語法補齊、目錄與外框（notecraftapp v1.14.0） ✅ 已完成（2026-10-31）
+
+> **已完成（2026-10-31）**：Task 137–144 全部實作於 `feat/note-page-redesign`。與規格不同之處與驗證結果回填於規格 §15。
+> 各 Task 共用 `global.css` 的 prose 區段、`[...slug].astro` 與 remark 外掛，彼此交錯修改，合併成兩筆 commit（實作、文件與發版）。
 
 規格 [notecraft-workbench-note-page.md](../notecraft-workbench-note-page.md)；像素級規格 [design_handoff_note_page/](../prototype/design_handoff_note_page/README.md)（與規格衝突時以規格為準，差異見規格 §11、§14）。
 筆記頁的樣式散在三處、字級是絕對值、主色是橘色。依 handoff 新增「品牌」主題並保留「經典」主題、補齊 Markdown 與擴充語法的樣式、新增 code-group／details／figures／定義清單／數學／螢光／diff，並換上新的程式碼區塊、外框、目錄與響應式。

@@ -3,7 +3,7 @@ Project Name: NoteCraft Workbench — 筆記閱讀頁改版（品牌／經典主
 文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 沿用既有技術棧；數學公式新增 remark-math + rehype-katex（作者已同意，§14 Q4）
-文件狀態: 已定案（§13 的 12 題已於 2026-10-31 確認，紀錄見 §14；Q2、Q7、Q9 與建議不同）
+文件狀態: 已實作（notecraftapp v1.14.0，Task 137–144，2026-10-31）—— §13 的 12 題已於 2026-10-31 確認（紀錄見 §14，Q2、Q7、Q9 與建議不同）；實作後回填見 §15
 文件作者: 建宇
 建立日期: 2026-10-31
 更新日期: 2026-10-31
@@ -367,3 +367,36 @@ GFM 輸出 `<input type="checkbox" disabled>`。handoff 要求可勾選但只存
 | `.md-aim` | `AiMarkerCard` → `.nc-aim` |
 | `.md-series` | `SeriesNav` |
 | `.np-toc` | `Toc` |
+
+---
+
+## 15. 實作後回填（Task 137–144，2026-10-31）
+
+### 與規格不同的地方
+
+- **斷點**（§3.3）：container 是 `.np-host`（`.np-page` 的外層），門檻定為內容寬 ≥ 900（目錄 220、gap 48）、720–900（目錄 184、gap 28、左右 padding 28／24）、< 720（單欄、padding `20px 20px 150px`、H1 24px）。`Toc.tsx` 以 ResizeObserver 量同一個 `.np-host`，不再找 `.wb-host`
+- **頁首標題**（Q3）：隱藏時除了 `opacity`／`visibility` 也把 `max-width` 收成 0，否則看不見的標題仍佔寬度，pill 會浮在中間；捲過 H1 時展開淡入
+- **系列導覽**（§7）：`SeriesNav` 改成純靜態（不再是 island）、只留 handoff 的「系列名稱＋第 n／N 章」與上一章／下一章；原本的完整章節清單與進度條拿掉（系列頁與 Sidebar 已有）
+- **資訊列**（Q8）：順序為資料夾 → 更新於 → 閱讀時間 → 系列 n/N → 閱讀進度 → 被 N 篇引用；`ReadingControl` 縮成 22px 高以配合 12px 的資訊列
+- **程式碼註解的 Esc**（§8）：沒有改走 `lib/wb-escape.ts`，改成與 OpenAPI renderer 相同的「晚一拍、看 `defaultPrevented`」，Palette／Drawer 先處理時讓位。捲動容器一捲動就關閉彈窗（fixed 定位不跟著捲）
+- **程式碼註解的過場**：只在打開時淡入。接管的那一刻清單項目從原位變成 `position: fixed`，若關閉也有過場，頁面載入時會在左上角閃一下（手機寬度實測）
+- **程式碼分頁**：分頁名取自 `title=` 時，內層程式碼標頭不再重複顯示檔名，只留語言
+- **步驟**：序號不再補零（handoff 是 `1` 不是 `01`）；沒寫 `status` 的步驟維持藍框編號，寫了的才套狀態外觀與 pill（`.is-set`）
+- **Badge**：預設（`neutral`）改為金色、`note`／`info` 為藍色，其他 variant 沿用類型色
+- **註腳標題**：`remarkRehype` 的 `footnoteLabelTagName: "p"`，避免「註腳」變成 heading 進目錄
+- **標題錨點**：在瀏覽器插入（不進 pagefind、不影響 build 期的目錄文字）；`.nc-viz` 裡的標題不插、也不套品牌 H2 的底線與金線（嵌入的 renderer 有自己的標題）
+- **外框樣式位置**：`.nc-viz` 放在 `global.css` 的 prose 區段（不在 `.nc-prose` 底下，PluginView 與 AI 元件共用）
+- **官網**：`.ncp` 示範框加 `np-d`；`sync-nc-prose.mjs` 把 `.np-d .ncp .nc-prose` 改寫成 `.ncp.np-d .nc-prose`。示範加了 `==螢光==`，**數學公式在官網示範不渲染**（KaTeX 只在 app 的筆記頁載入）
+
+### 驗證
+
+- `npm run check:wb` 新增 `note-theme-prepaint`（5 項）與 `note-page-remark`（5 項）；`app-note-text` 多了閱讀時間的 4 項
+- `scripts/fixtures/note-page-sample.mjs`：`--out` 寫 handoff 4 篇範例的工作區（本專案語法），`.claude/launch.json` 的 `note-page-fixture-win` 以 dev server 開；`--build` 以 `npm pack` 的套件 build 並斷言產物
+- 瀏覽器實測（fixture 工作區）：1440×900 品牌與經典（1.1×）、375×812 單欄目錄、程式碼註解彈窗、設定頁兩個新設定
+- 主專案 build：`$` 金額沒有被誤判成公式（全站沒有 `.katex` 產物）；`private/2026-08-月會簡報文案` 的 5 個 pending 標記在原位出現
+- tsc 錯誤數 40 不變
+
+### 仍未做的
+
+- 暗色模式（Q1，另開版本）
+- 官網示範的數學公式

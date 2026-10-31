@@ -32,3 +32,8 @@
 - `CHANGELOG.md`：`## [1.14.0] - YYYY-MM-DD`，格式依 `npm run check:upd`
 - `package.json` 版號 `1.14.0`；確認 `files` 涵蓋新檔與 KaTeX 相關資產
 - 開 PR 併回 main
+
+## 實作記錄（2026-10-31）
+
+- fixture 以 `--out` 寫 handoff 4 篇範例的工作區、`--build` 以打包後的套件 build 並斷言；官網 `.ncp` 加 `np-d`，`sync-nc-prose.mjs` 改寫主題選擇器；數學公式在官網示範不渲染
+- 詳見規格 §15
