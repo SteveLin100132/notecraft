@@ -4,7 +4,7 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
-## [Unreleased]
+## [1.13.1] - 2026-10-31
 
 ### 修正
 
