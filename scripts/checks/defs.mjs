@@ -10,7 +10,7 @@ import { buildDefIndex, rebaseRelativeUrl, slugOfNotePath } from "../../src/lib/
 import { readFrontmatterLite } from "../../src/lib/defs-index.mjs";
 import { scanLinks } from "../../src/lib/links-scan.mjs";
 import { firstH1 } from "../../src/lib/note-text.ts";
-import { walkNotes, createNotesIgnore } from "../../src/lib/notes-ignore.mjs";
+import { walkNotes, createNotesIgnore, loadNotesIgnore } from "../../src/lib/notes-ignore.mjs";
 
 let failed = 0;
 const check = (name, fn) => {
@@ -196,7 +196,8 @@ check("真實筆記：掃描不出錯、H1 與 note-text.ts 的 firstH1 一致",
   const notesDir = path.resolve("src/content/notes");
   if (!fs.existsSync(notesDir)) return;
   const files = [];
-  walkNotes(notesDir, createNotesIgnore([]), ({ rel, abs }) => {
+  // 與 app 相同：套用 repo 的 .notecraft/ignore.json（被排除的舊筆記與範例筆記的定義 id 會重複，app 看不到它們）
+  walkNotes(notesDir, loadNotesIgnore(path.resolve(".notecraft")), ({ rel, abs }) => {
     if (/\.(md|mdx)$/.test(rel)) files.push({ rel, source: fs.readFileSync(abs, "utf8") });
   });
   const idx = buildDefIndex(files);
