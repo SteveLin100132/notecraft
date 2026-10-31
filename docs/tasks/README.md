@@ -799,3 +799,45 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 換頁的目標（資料檔節點、標籤樞紐、清除篩選）是真的連結，`href` 經 `withBase`
 > - 產物只含 slug 與 routePath，不得出現本機絕對路徑
 > - **每次 commit 只 add 本 Task 的檔案**
+
+## v1.25.0 追加功能（§8.1 Phase 4.29）— 筆記閱讀頁改版：品牌／經典主題、語法補齊、目錄與外框（notecraftapp v1.14.0）
+
+規格 [notecraft-workbench-note-page.md](../notecraft-workbench-note-page.md)；像素級規格 [design_handoff_note_page/](../prototype/design_handoff_note_page/README.md)（與規格衝突時以規格為準，差異見規格 §11、§14）。
+筆記頁的樣式散在三處、字級是絕對值、主色是橘色。依 handoff 新增「品牌」主題並保留「經典」主題、補齊 Markdown 與擴充語法的樣式、新增 code-group／details／figures／定義清單／數學／螢光／diff，並換上新的程式碼區塊、外框、目錄與響應式。
+
+> **十二題已全數確認（規格 §14）**：暗色模式本版不做（Q1）、語法不加別名（Q2）、Header 標題捲過文內 H1 才顯示（Q3）、數學用 remark-math＋KaTeX（Q4）、
+> 螢光與定義清單自寫（Q5）、待生成標記原位渲染（Q6）、**目錄維持 H1–H3**（Q7）、資訊列保留既有項目（Q8）、**放大與「複製提示詞」維持現況**（Q9）、
+> 字級 5 段（Q10）、官網只用品牌主題（Q11）、版號 `1.14.0`（Q12）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 137](task-137-note-page-foundation.md) | 基礎：`.np-page` 版面、主題 class、`--md-fs`、偏好與預繪、設定頁、文內標頭、Header 標題 | §3、§4、§10 | `[...slug].astro`、`Header.astro`、`SettingsView.tsx`、`wb-prefs.ts`、`lib/note-theme-prepaint.ts`、`workbench.css` |
+| [Task 138](task-138-note-page-prose-basics.md) | 內文基本樣式：H1–H6、錨點、引言、表格、行內元素、圖片、註腳、待辦、`==螢光==` | §5.1、§5.6、§5.7 | `global.css`、`lib/remark-notecraft-mark.ts` |
+| [Task 139](task-139-note-page-directives-restyle.md) | 既有擴充語法換外觀；步驟補 err／skip | §5、§8 | `remark-notecraft-directives.ts`、`global.css` |
+| [Task 140](task-140-note-page-codeblock.md) | 程式碼區塊：外觀、語法色、diff、註解彈窗、`:::code-group` | §5.3、§5.4 | `remark-notecraft-codeblock.ts`、`code-tokenize.ts`、`global.css` |
+| [Task 141](task-141-note-page-new-syntax.md) | 新語法：details、figures、`:::dl`、數學（KaTeX） | §5.2 | `remark-notecraft-directives.ts`、`astro.config.mjs`、`package.json` |
+| [Task 142](task-142-note-page-frames.md) | 外框：GeneratedFrame、PluginView、待生成標記原位渲染、系列導覽 | §5.5、§7 | `GeneratedFrame.astro`、`PluginView.astro`、`SeriesNav.astro`、remark |
+| [Task 143](task-143-note-page-toc-responsive.md) | 目錄與響應式 | §3.3、§6 | `Toc.tsx`、`workbench.css` |
+| [Task 144](task-144-note-page-fixture-docs-release.md) | 驗收 fixture、官網同步、文件回填、發版 | §10、§12.1 | `scripts/fixtures/note-page-sample.mjs`、官網、CLAUDE.md／PRD／CHANGELOG、v1.14.0 |
+
+**順序**：137 先做；138–142 互不依賴，可任意順序；143 要等 138（標題錨點）；144 最後。
+
+```
+      ┌ 138 ┐
+      ├ 139 ┤
+137 ──┼ 140 ┼── 143 ── 144
+      ├ 141 ┤
+      └ 142 ┘
+```
+
+> **交付節奏**：全程在 `feat/note-page-redesign` 單一分支上，依 Task 逐步 commit，**Task 144 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到 prepaint 或 `wb-prefs` 的再跑 `npm run check:wb`，動到 `scripts/checks/` 的再跑 `npm run check-plugins`。
+>
+> **幾條貫穿整批的規則**：
+> - **既有語法一律不改、不加別名**；既有筆記 build 不得退化
+> - 沿用 `nc-*` class，不改成 handoff 的 `md-*`（官網同步與 RefLayer 依賴它們）
+> - 內文樣式放在 `global.css` 的 prose 區段（起訖註解不可動）；主題差異以 `.np-d`／`.np-o` 前綴；尺寸一律 em
+> - 規則裡不出現色碼字面值：新色值定義為 `--wb-*` 變數；只寫亮色
+> - `#nc-scroll` 不可拿掉；預繪函式必須自足、在捲動還原之前執行
+> - 每條動畫都要有 reduced-motion 對應；Esc 走 `lib/wb-escape.ts`
+> - **每次 commit 只 add 本 Task 的檔案**
