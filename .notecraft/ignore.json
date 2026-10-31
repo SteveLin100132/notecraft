@@ -1,0 +1,26 @@
+{
+  "ignore": [
+    "# 舊筆記：2026-10-31 改以 design_handoff_note_page 的 4 篇範例取代（筆記仍在硬碟上，拿掉對應的行即可恢復）",
+    "/ai-內容生成演示系列-複利效應.mdx",
+    "/ai-內容生成演示系列-訂單狀態機.mdx",
+    "/http-caching.mdx",
+    "/markdown-擴充語法.mdx",
+    "/project-mgmt-tool-專案管理工具.mdx",
+    "/rag-embedding-選型-mistral-與-voyage.mdx",
+    "/role-responsibility-rr.mdx",
+    "/waterfall-sdlc.mdx",
+    "/waterfall-vs-agile.mdx",
+    "/五個-lang-函式庫還是服務.mdx",
+    "/專案-vs-產品.mdx",
+    "/專案管理系列.mdx",
+    "/專案管理系列第七章-規格撰寫.mdx",
+    "/專案管理系列第六章-需求分析.mdx",
+    "/建立-bump-prd-hook-的認知調整歷程.mdx",
+    "/規格書撰寫-how-怎麼寫.mdx",
+    "/規格書撰寫-what-寫什麼.mdx",
+    "/規格書撰寫-where-寫在哪.mdx",
+    "/非結構化文件-pii-去識別化.mdx",
+    "/private/",
+    "/testing/**/*.mdx"
+  ]
+}

@@ -618,6 +618,21 @@ function buildDl(node: MdNode, file: VFileLike): void {
   node.children = rows;
 }
 
+
+/**
+ * 圖說（note-page §5.2，handoff md-basics「圖片」）：段落只有一張圖片、下一行緊接一段斜體時，
+ * 整段變成 `<figure>`，斜體成為 `<figcaption>`。其他段落不動。
+ */
+function figureFromParagraph(node: MdNode): boolean {
+  const kids = (node.children || []).filter((c) => !(c.type === "text" && !(c.value || "").trim()));
+  if (kids.length !== 2 || kids[0].type !== "image" || kids[1].type !== "emphasis") return false;
+  const [img, cap] = kids;
+  node.type = "ncElement";
+  node.data = { hName: "figure", hProperties: { className: ["nc-fig"] } };
+  node.children = [img, el("figcaption", {}, cap.children || [])];
+  return true;
+}
+
 function buildTooltip(node: MdNode, uid: number, file: VFileLike): void {
   const attrs = node.attributes || {};
   const content = (attrs.content || "").trim();
@@ -741,6 +756,7 @@ export default function remarkNotecraftDirectives() {
           buildBadge(child, file);
           continue;
         }
+        if (child.type === "paragraph" && figureFromParagraph(child)) continue;
         if (DIRECTIVE_TYPES.has(child.type)) {
           // 未處理的 directive（誤判的 `:中文`、未知類型、孤立的 :::tab 等）→ 還原為字面文字，避免掉字。
           revertDirective(child);

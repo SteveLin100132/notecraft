@@ -47,6 +47,10 @@ assert.deepEqual(
   [["flow", "diagram", "pending", "# 不是標題"]],
 );
 
+// 圍欄程式碼裡示範的標記不算（md-viz 範例筆記）
+assert.deepEqual(parseMarkers("```mdx\n" + marker + "\n```"), []);
+assert.deepEqual(parseMarkers("~~~\n" + marker + "\n~~~\n\n" + marker).map((m) => m.id), ["flow"]);
+
 // 閱讀時間：字數 / 450 四捨五入、至少 1；程式碼區塊不算
 assert.equal(readingMinutes(""), 1);
 assert.equal(readingMinutes("字".repeat(900)), 2);

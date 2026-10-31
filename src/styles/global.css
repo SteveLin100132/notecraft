@@ -156,6 +156,8 @@ img { max-width: 100%; display: block; }
 .nc-prose tbody tr:last-child td { border-bottom: none; }
 .nc-prose :is(th, td)[align="right"] { text-align: right; font-variant-numeric: tabular-nums; }
 .nc-prose :is(th, td)[align="center"] { text-align: center; }
+/* 表說明：表格下一段加 class="nc-tcap"（MDX 的 <p className="nc-tcap">） */
+.nc-prose .nc-tcap { font-size: .78em; color: var(--wb-ink-3); margin: -.7em 0 1.4em; }
 
 /* 圖片與圖說；:::figures 兩欄 */
 .nc-prose img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--wb-line); background: var(--wb-bg); }

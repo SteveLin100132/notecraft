@@ -8,6 +8,33 @@
 import type { SeriesDef } from "@/data/series";
 
 export const SERIES: SeriesDef[] = [
+  // 範例筆記（design_handoff_note_page 的 4 篇；2026-10-31 起取代舊系列，舊系列見下方 ARCHIVED_SERIES）
+  {
+    id: "md-guide",
+    title: "Markdown 寫作指南",
+    eyebrow: "WRITING SERIES",
+    description: "從標準 Markdown 到 NoteCraft 的 MDX 擴充語法與互動元件，依序讀完就能寫出結構完整的筆記。",
+    accent: "blue",
+    icon: "code",
+    slugs: ["md-basics", "md-advanced", "md-viz", "view:schema-demo.er"],
+  },
+  {
+    id: "hr-spec",
+    title: "請假系統規格",
+    eyebrow: "SPEC SERIES",
+    description: "以特休假規格為範例，示範規格文件如何宣告定義、搭配互動元件與資料檔。",
+    accent: "orange",
+    icon: "layers",
+    // handoff 的第二章是 planning/roadmap.json（timeline-renderer），repo 沒有這個外掛與資料檔，先只放規格本身
+    slugs: ["annual-leave-spec"],
+  },
+];
+
+/**
+ * 舊系列：章節筆記已由 .notecraft/ignore.json 排除（筆記還在硬碟上）。不參與載入，
+ * 要恢復時把這些項目搬回 SERIES、並從 ignore.json 拿掉對應的筆記。
+ */
+export const ARCHIVED_SERIES: SeriesDef[] = [
   {
     id: "pm-basics",
     title: "專案管理筆記",

@@ -1,0 +1,261 @@
+---
+title: 進階語法
+description: 提示文字、定義與引用、提示框、分頁、步驟、數學公式、程式碼註解與摺疊問答。
+tags:
+  - MDX
+  - 語法
+category: guide
+createdAt: '2026-05-24'
+updatedAt: '2026-06-12'
+---
+
+NoteCraft 以 MDX 擴充標準 Markdown。本篇逐一示範這些語法的寫法與渲染結果；基本語法請見上一章「Markdown 基本語法」，互動元件請見下一章「視覺化互動元件」。
+
+## 提示文字
+
+以 `:tip[文字]{content="說明"}` 為名詞加上滑鼠停留說明，例如 :tip[frontmatter]{content="檔案開頭以 --- 包住的 YAML，記錄標題、標籤與狀態。"} 與 :tip[slug]{content="由檔名產生的網址片段。"}。適合不值得獨立成定義的短說明。
+
+## 定義與引用
+
+同一個名詞在多篇筆記出現時，只在一處用 `::::define` 宣告，其他地方以 id 引用。修改定義時只改來源，所有引用處會同步更新。
+
+```mdx
+::::define{id="nc.syntax-define"}
+**定義區塊**：以 id 宣告一段可被其他筆記引用的內容。
+::::
+
+員工到職滿半年取得 :ref[特別休假]{id="hr.term-annual-leave"}。
+
+::include{id="hr.rule-settlement"}
+```
+
+### 宣告定義
+
+宣告後，左側會出現定義標記，上方顯示 id 與被引用的篇數：
+
+::::define{id="nc.syntax-define"}
+**定義區塊**：以 id 宣告一段可被其他筆記引用的內容。id 在全站唯一，建議以領域作為前綴，例如 `hr.` 或 `nc.`。
+::::
+
+### 行內引用
+
+以 `:ref` 在句子中引用定義，滑鼠停留顯示摘要，點擊前往來源。例如：每位 :ref[員工]{id="hr.role-employee"} 到職滿六個月後取得 :ref[特別休假]{id="hr.term-annual-leave"}，兩個定義都來自「特休假規格與計算」。
+
+### 嵌入定義
+
+需要完整呈現定義內容時，以 `::include` 整段嵌入，並保留前往來源的連結：
+
+::include{id="hr.rule-settlement"}
+
+## 提示框
+
+以 `:::note`、`:::tip`、`:::warning`、`:::danger` 四種類型區分重要程度。
+
+:::note
+備註：補充背景資訊，讀者略過也不影響理解。
+:::
+
+:::tip
+提示：可以讓事情更順利的做法，例如以 <kbd>⌘</kbd> <kbd>K</kbd> 搜尋定義 id。
+:::
+
+:::warning
+注意：容易出錯的地方，例如 id 重複時建置會失敗。
+:::
+
+:::danger
+警告：會造成資料遺失或無法還原的操作。
+:::
+
+### 可收合的提示框
+
+加上 `collapsible` 即可收合，再加 `open` 為預設展開，否則預設收合：
+
+:::note{collapsible open title="預設展開：定義與提示文字的差別"}
+提示文字只存在於當下這句話；定義則有 id，可以被其他筆記引用與嵌入，也會出現在關聯圖中。
+:::
+
+:::warning{collapsible title="預設收合：搬移定義的注意事項"}
+把定義搬到另一篇筆記時，id 不需要變更，引用處會自動指向新的來源。
+
+- 刪除定義前，先確認被引用篇數為 0
+- 建置時會列出找不到 id 的引用
+:::
+
+```mdx
+:::tip
+在「假勤設定」開啟提前提醒。
+:::
+
+:::warning{collapsible title="系統升級注意事項"}
+v2.3 起申請最小單位改為 1 小時。
+:::
+```
+
+## 分頁
+
+### 內容分頁
+
+以 `:::tabs` 包住多個 `:::tab`，每個分頁可放任意 Markdown，包含清單、表格與提示框。分頁裡還有區塊語法時，外層的冒號要比內層多。
+
+:::::tabs
+::::tab{label="已發佈"}
+預設狀態。筆記出現在列表、搜尋與關聯圖，並計入系列進度。
+
+- frontmatter 不需要寫 `status`
+- 可以轉成簡報
+::::
+
+::::tab{label="草稿"}
+以 `status: empty` 標示，筆記頁顯示新建時的引導畫面。
+
+:::tip
+草稿不計入系列進度的分母。
+:::
+::::
+
+::::tab{label="即將登場"}
+以 `status: coming-soon` 標示，用來預告系列中還沒寫完的章節。
+
+| 狀態 | 列表 | 系列進度 |
+| --- | :---: | :---: |
+| 已發佈 | 顯示 | 計入 |
+| 草稿 | 顯示 | 不計入 |
+| 即將登場 | 顯示 | 不計入 |
+::::
+:::::
+
+### 程式碼分頁
+
+分頁裡只有程式碼時，使用 `:::code-group`，分頁名取自每段程式碼的 `title`，分頁會直接貼合程式碼區塊：
+
+:::code-group
+```bash title="npm"
+npm install notecraft
+npx notecraft dev
+```
+
+```bash title="pnpm"
+pnpm add notecraft
+pnpm notecraft dev
+```
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "notecraft dev",
+    "build": "notecraft build"
+  }
+}
+```
+:::
+
+## 步驟
+
+以 `::::steps` 包住多個 `:::step`。每一步可以加上說明與狀態，狀態有已完成、進行中、未開始、需處理與已略過五種（`done`、`current`、`todo`、`err`、`skip`）。
+
+::::steps
+:::step{title="建立檔案"}
+在 src/content/notes 新增 .mdx 檔，填寫 frontmatter。
+:::
+
+:::step{title="撰寫內容"}
+以 H2 切分章節，需要時引用定義或加入互動元件。
+:::
+
+:::step{title="本機預覽"}
+執行 notecraft dev，在工作台確認目錄與引用。
+:::
+
+:::step{title="發佈"}
+推送到主分支後自動建置。
+:::
+::::
+
+標上狀態後，可以呈現單一工作的進度：
+
+::::steps
+:::step{title="解析 frontmatter" status="done"}
+42 篇筆記
+:::
+
+:::step{title="檢查定義引用" status="err"}
+1 個引用找不到 id：hr.term-quota
+:::
+
+:::step{title="產生視覺化元件" status="skip"}
+沒有待生成的標記，略過
+:::
+
+:::step{title="建置頁面" status="current"}
+等待上一步修正
+:::
+
+:::step{title="部署" status="todo"}
+:::
+::::
+
+加上 `layout="horizontal"` 改為水平排列，適合 3 到 5 個簡短步驟：
+
+::::steps{layout="horizontal"}
+:::step{title="基本語法" status="done"}
+已讀
+:::
+
+:::step{title="進階語法" status="current"}
+閱讀中
+:::
+
+:::step{title="視覺化元件" status="todo"}
+:::
+
+:::step{title="ER 圖" status="todo"}
+:::
+::::
+
+## 數學公式
+
+以 `$$` 包住獨立公式，以 `$` 包住行內公式，語法與 LaTeX 相同。工作台估算閱讀時間的方式如下：
+
+$$
+t = \left\lceil \frac{w}{450} \right\rceil + 0.2 \times n_{\text{viz}}
+$$
+
+其中 $w$ 為字數，$n_{\text{viz}}$ 為互動元件數量，每個元件以 0.2 分鐘計[^1]。
+
+## 程式碼註解
+
+以 `:::annotate` 包住程式碼與一個編號清單，在程式碼行尾加上 `(1)!`。點行尾的編號即可展開對應說明。
+
+:::annotate
+```ts title="notecraft.config.ts"
+export default defineConfig({
+  contentDir: "src/content/notes",
+  toc: { minLevel: 2, maxLevel: 3 }, (1)!
+  defines: { scope: "site" }, (2)!
+  visualize: { outDir: "src/components/generated" }, (3)!
+});
+```
+
+1. 只有 H2 與 H3 會列入目錄；改為 `maxLevel: 4` 時，目錄會再多一層。
+2. 定義 id 的作用範圍。`site` 表示全站唯一，跨資料夾也可以引用。
+3. AI 依標記產生的元件會寫入這個資料夾，建議納入版本控制。
+:::
+
+## 摺疊問答
+
+以 `:::details[問題]` 撰寫常見問題，預設收合，加上 `{open}` 預設展開。
+
+:::details[定義可以引用其他定義嗎？]{open}
+可以。定義內容中的 `:ref` 會正常渲染，但嵌入時只會展開一層，避免循環。
+:::
+
+:::details[引用的 id 打錯會怎樣？]
+建置時會列出找不到的 id，筆記頁上的引用改以虛線顯示。
+:::
+
+:::details[提示框可以放在分頁裡嗎？]
+可以，分頁內容支援所有區塊語法，見上方「草稿」分頁的範例。
+:::
+
+[^1]: 互動元件需要操作時間，因此另外加計；純圖片不加計。

@@ -294,6 +294,8 @@ trim 前後空白 → 過濾空字串 → 同篇內不分大小寫去重（保�
 
 ## 工作慣例
 
+- **範例筆記**（2026-10-31）：`src/content/notes/` 只顯示 handoff 的 4 篇範例（`md-basics`、`md-advanced`、`md-viz`、`annual-leave-spec`），官網 Demo 也取自這裡；舊筆記仍在硬碟上、由 `.notecraft/ignore.json` 逐篇排除（拿掉該行即恢復），舊系列移到 `series.registry.ts` 的 `ARCHIVED_SERIES`。資料檔不排除
+
 - AI 視覺化**不在 CI 階段執行**，僅由作者於本機 Claude Code 對話觸發，產出隨原始碼一起 commit
 - Dashboard 統計於 `astro build` 階段透過 Content Collections 預計算為 JSON，**無執行時 API**
 - 元件強制 TypeScript（`.tsx`），禁用 `any`（除非註解說明理由），不可有 required props

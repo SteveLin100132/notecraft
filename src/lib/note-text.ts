@@ -94,10 +94,31 @@ export function acceptsMarkers(filePath: string | undefined | null): boolean {
   return !filePath || /\.mdx$/i.test(filePath);
 }
 
+/** 把圍欄程式碼的內容行換成空行（行數不變）：示範標記寫法的程式碼區塊不是真的標記 */
+function maskFences(body: string): string {
+  let fence: { ch: string; len: number } | null = null;
+  return body
+    .split("\n")
+    .map((line) => {
+      if (fence) {
+        const close = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
+        if (close && close[1][0] === fence.ch && close[1].length >= fence.len) fence = null;
+        return "";
+      }
+      const open = line.match(FENCE_OPEN);
+      if (open) {
+        fence = { ch: open[1][0], len: open[1].length };
+        return "";
+      }
+      return line;
+    })
+    .join("\n");
+}
+
 export function parseMarkers(body: string | undefined | null): AiMarker[] {
   const out: AiMarker[] = [];
   if (!body) return out;
-  for (const m of body.matchAll(MARKER_RE)) {
+  for (const m of maskFences(body).matchAll(MARKER_RE)) {
     const raw = m[1];
     const obj: Record<string, string> = {};
     let key: string | null = null;
