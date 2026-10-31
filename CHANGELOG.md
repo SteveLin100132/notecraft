@@ -4,6 +4,17 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.13.1] - 2026-10-31
+
+### 修正
+
+- Windows 上 NoteCraftApp 與筆記在不同磁碟機時（例：app 在 C 槽的 `~/.notecraft/app-x.y.z`、筆記在 D 槽，以 `notecraftapp view` 開啟），筆記頁「以 VS Code 編輯」開到 `C:\…\app-x.y.z\D:\…` 這種不存在的路徑
+
+### 內部
+
+- 成因：Content Layer 的 `filePath` 是 `path.relative(cwd, 檔案)`，跨磁碟機時會是絕對路徑，筆記頁卻直接接在 cwd 後面。改用 `path.resolve`，並把「絕對路徑 → `vscode://file/…`」抽成 `src/lib/vscode-href.mjs`（筆記頁、資料檔頁、筆記內嵌資料檔、plugin 錯誤卡片、dev API 的新增筆記共用；前兩處以外原本沒把反斜線轉成正斜線，Windows 上的連結現在也是 `D:/…`）
+- 新增斷言 `scripts/checks/app-vscode-href.mjs`（以 `path.win32`／`path.posix` 驗證同磁碟機、跨磁碟機、POSIX 與 fallback）
+
 ## [1.13.0] - 2026-10-10
 
 <!-- 重點：筆記列表多一個 Graph 檢視，看得出哪些筆記是樞紐、哪些是孤島 -->

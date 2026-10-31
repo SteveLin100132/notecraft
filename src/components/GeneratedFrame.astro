@@ -2,6 +2,7 @@
 import { withBase } from "@/lib/base";
 import Icon from "./Icon.astro";
 import VizZoom from "@/components/islands/VizZoom.tsx";
+import { toVscodeHref } from "@/lib/vscode-href.mjs";
 
 export interface Props {
   id: string;
@@ -64,7 +65,7 @@ const label = TYPE_LABELS[type] ?? "視覺化";
     )}
     {dataFile && isDev && (
       <a
-        href={`vscode://file/${dataFile.absPath.replace(/^\/+/, "")}`}
+        href={toVscodeHref(dataFile.absPath)}
         title="以 VS Code 編輯這份資料"
         style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--neutral-200);background:#fff;color:var(--text-muted);font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;"
       >

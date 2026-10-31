@@ -16,6 +16,7 @@ import {
   toNotesRel,
   walkNotesAsync,
 } from "../lib/notes-ignore.mjs";
+import { toVscodeHref } from "../lib/vscode-href.mjs";
 
 // ── 路徑決策 & 安全檢查 ────────────────────────────────────────────────
 
@@ -466,7 +467,7 @@ async function handleCreateNote(cwd, notesRoot, req, res, ig) {
       slug,
       // 與 /api/folders 同一套前綴：主專案仍是 src/content/notes/…，viewer 不會冒出 ../../ 的 package root 相對路徑
       path: folderDisplayRoot(cwd, notesRoot) + path.relative(notesRoot, abs).split(path.sep).join("/"),
-      vscode: `vscode://file/${abs.replace(/\\/g, "/").replace(/^\/+/, "")}`,
+      vscode: toVscodeHref(abs),
     });
   } catch (e) {
     return json(res, 400, { error: e.message });

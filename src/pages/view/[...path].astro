@@ -15,6 +15,7 @@ import { getDataFiles, getPlugins } from "@/lib/plugins";
 import { getAllNotes } from "@/lib/notes";
 import { loadSeries, seriesOf, dataRef } from "@/lib/series";
 import { fmtDate, daysAgo } from "@/lib/dates";
+import { toVscodeHref } from "@/lib/vscode-href.mjs";
 
 export function getStaticPaths() {
   return getDataFiles().map((f) => ({ params: { path: f.routePath }, props: { file: f } }));
@@ -25,7 +26,7 @@ const plugin = getPlugins().get(file.pluginId);
 const isDev = import.meta.env.DEV;
 // renderer 的絕對路徑只給 dev 的「以 VS Code 編輯 renderer」用；正式 build 不傳（會 inline 進 island props、洩漏本機路徑）
 const rendererPath = isDev && plugin ? path.join(plugin.dir, "renderer.tsx") : undefined;
-const vscodeHref = `vscode://file/${file.absPath.replace(/\\/g, "/").replace(/^\/+/, "")}`;
+const vscodeHref = toVscodeHref(file.absPath);
 
 // meta.backTo 已在 src/lib/plugins.ts 解析時驗證過（只接受站內路徑），頁面不再自己去挖 file.data.meta。
 const backTo = file.backTo;
