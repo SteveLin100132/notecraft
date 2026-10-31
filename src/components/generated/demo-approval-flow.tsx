@@ -131,12 +131,18 @@ export default function DemoApprovalFlow() {
                 : 'var(--wb-line)';
 
           return (
-            <div key={k + i} className="flex min-w-[86px] flex-1 items-start">
+            <div key={k + i} className="relative flex min-w-[86px] flex-1 justify-center">
+              {/* 連線：從上一步圓點的中心到這一步的中心（各扣掉圓點半徑 17px 與 4px 間隙），每段等長 */}
               {i > 0 && (
                 <span
                   aria-hidden="true"
-                  className="mt-[15px] h-0.5 min-w-2 flex-1 rounded-sm"
-                  style={{ background: lineColor, transition: tr ?? 'background 260ms ease-out' }}
+                  className="absolute top-4 h-0.5 rounded-sm"
+                  style={{
+                    left: 'calc(-50% + 21px)',
+                    right: 'calc(50% + 21px)',
+                    background: lineColor,
+                    transition: tr ?? 'background 260ms ease-out',
+                  }}
                 />
               )}
               <button
@@ -144,7 +150,7 @@ export default function DemoApprovalFlow() {
                 onClick={() => setSel(i)}
                 aria-pressed={isSel}
                 aria-label={`第 ${i + 1} 步 ${st[0]}`}
-                className="flex min-w-[86px] cursor-pointer flex-col items-center gap-1.5 rounded-md border-none bg-transparent px-1 focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-md border-none bg-transparent px-1 focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{ outlineColor: 'var(--wb-blue-l)', font: 'inherit' }}
               >
                 <span
