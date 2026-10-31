@@ -8,6 +8,7 @@
 // 會走到這裡的是「資料通過驗證、但渲染器自己 throw」。
 
 import { AlertTriangle, ExternalLink, RotateCw } from "lucide-react";
+import { toVscodeHref } from "@/lib/vscode-href.mjs";
 
 export interface PluginErrorCardProps {
   pluginId: string;
@@ -137,7 +138,7 @@ export default function PluginErrorCard({
       {isDev && (
         <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
           {rendererPath && (
-            <a style={btnStyle} href={`vscode://file/${rendererPath.replace(/^\/+/, "")}`}>
+            <a style={btnStyle} href={toVscodeHref(rendererPath)}>
               <ExternalLink size={13} aria-hidden /> 以 VS Code 開啟渲染器
             </a>
           )}

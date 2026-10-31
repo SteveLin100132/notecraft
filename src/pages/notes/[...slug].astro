@@ -23,6 +23,8 @@ import { getWorkbenchIndex, noteRelPath, promptPathOf } from "@/lib/workbench";
 import { notesFolderHref } from "@/lib/wb-routes";
 import { ROOT_GROUP } from "@/lib/wb-types";
 import { getDefIndex } from "@/lib/defs-state.mjs";
+import { noteAbsPath, toVscodeHref } from "@/lib/vscode-href.mjs";
+import path from "node:path";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -37,11 +39,9 @@ const pendingMarkers = markers.filter((m) => m.status !== "generated");
 const pendingIds = pendingMarkers.map((m) => m.id);
 const isDev = import.meta.env.DEV;
 const noteHasDeck = hasDeck(note.id);
-// Content Layer 的 entry.filePath 是相對於 cwd 的來源路徑；vscode:// 需要絕對正斜線路徑。
-const noteAbsPath = note.filePath
-  ? `${process.cwd()}/${note.filePath}`
-  : `${process.cwd()}/src/content/notes/${note.id}.mdx`;
-const vscodeHref = `vscode://file/${noteAbsPath.replace(/\\/g, "/").replace(/^\/+/, "")}`;
+// Content Layer 的 entry.filePath 平常是相對 cwd 的路徑，但 Windows 上 cwd 與筆記跨磁碟機時會是絕對路徑
+// （viewer 模式：app 在 C 槽、筆記在 D 槽），所以要 resolve、不可串接 cwd（見 lib/vscode-href.mjs）。
+const vscodeHref = toVscodeHref(noteAbsPath(note.filePath, note.id, process.cwd(), path));
 
 const allNotes = await getAllNotes();
 const stats = tagStats(allNotes).map((t) => ({ name: t.name, count: t.count }));
