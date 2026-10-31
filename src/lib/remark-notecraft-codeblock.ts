@@ -75,7 +75,6 @@ function icon(parts: IconPart[], size: number, strokeWidth: number, extraClass: 
     children,
   );
 }
-const codeIcon = () => icon(["m16 18 4-4-4-4", "m8 6-4 4 4 4", "m13 4-2 16"], 15, 2, "nc-cb__ico--code");
 const copyIcon = () =>
   icon([{ rect: { x: 9, y: 9, width: 11, height: 11, rx: 2 } }, "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"], 14, 1.9, "nc-cb__ico--copy");
 const checkIcon = () => icon(["M20 6 9 17l-5-5"], 14, 2.6, "nc-cb__ico--check");
@@ -86,10 +85,44 @@ function tok(text: string, cat: string): HastElement {
   return h("span", { className: ["nc-cb__t", `nc-cb__t--${cat}`] }, [t(text)]);
 }
 
-function tokenizeLine(line: string): HastNode[] {
-  return tokenizeLineParts(line).map((p) =>
-    p.kind === "tok" ? tok(p.text, p.cat) : p.kind === "space" ? t(p.text) : markerSpan(p.n),
-  );
+// 註解標記前面補上該語言的行尾註解符號（note-page §5.4）：讓 `(1)!` 看起來是一則註解，而不是程式碼的一部分。
+// 標記之前已經有註解 token（作者自己寫了 `// (1)!`）就不重複；不知道註解符號的語言（json、text…）不補
+const LINE_COMMENT: Record<string, string> = {
+  js: "//", jsx: "//", ts: "//", tsx: "//", mjs: "//", cjs: "//", javascript: "//", typescript: "//",
+  java: "//", kotlin: "//", swift: "//", go: "//", rust: "//", rs: "//", c: "//", cpp: "//", cs: "//", csharp: "//",
+  php: "//", scss: "//", less: "//", dart: "//", scala: "//", groovy: "//", jsonc: "//", astro: "//",
+  sh: "#", bash: "#", zsh: "#", shell: "#", console: "#", powershell: "#", ps1: "#", py: "#", python: "#",
+  rb: "#", ruby: "#", yaml: "#", yml: "#", toml: "#", ini: "#", dockerfile: "#", docker: "#", r: "#", perl: "#", makefile: "#",
+  sql: "--", lua: "--", haskell: "--", hs: "--",
+};
+
+function tokenizeLine(line: string, lang = ""): HastNode[] {
+  const parts = tokenizeLineParts(line);
+  const prefix = LINE_COMMENT[lang.toLowerCase()];
+  const out: HastNode[] = [];
+  let sawComment = false;
+  parts.forEach((p, i) => {
+    if (p.kind === "tok") {
+      if (p.cat === "comment") sawComment = true;
+      out.push(tok(p.text, p.cat));
+    } else if (p.kind === "space") {
+      out.push(t(p.text));
+    } else {
+      if (!sawComment && prefix) {
+        const prev = parts[i - 1];
+        const needSpace = i > 0 && !(prev?.kind === "space" && /\s$/.test(prev.text));
+        out.push(tok(`${needSpace ? " " : ""}${prefix} `, "comment"));
+        sawComment = true;
+      }
+      out.push(markerSpan(p.n));
+    }
+  });
+  return out;
+}
+
+/** diff 區塊：```diff 或 meta 帶 `diff`（例：```ts diff）。每行第一個字元 + / - / 空白決定類型 */
+function diffKind(line: string): "add" | "del" | "" {
+  return line.startsWith("+") ? "add" : line.startsWith("-") ? "del" : "";
 }
 
 // 複製鈕要給出「可直接執行」的原始碼，故把 `(n)!` sentinel（連同其前方空白）剔除；
@@ -121,20 +154,22 @@ function parseTitle(meta: string | null | undefined): string {
 
 function buildCodeBlock(node: MdNode): void {
   const raw = String(node.value ?? "");
-  const lines = raw.split("\n");
-  const lang = (node.lang || "").trim();
-  const label = (lang || "text").toUpperCase();
+  const rawLang = (node.lang || "").trim();
+  const isDiff = rawLang.toLowerCase() === "diff" || /(^|\s)diff(\s|$)/.test(node.meta || "");
+  // diff 的內容語言：```ts diff 取 ts；```diff 可用 lang=ts 指定
+  const lang = rawLang.toLowerCase() === "diff" ? (/\blang=(\S+)/.exec(node.meta || "")?.[1] ?? "") : rawLang;
+  const allLines = raw.split("\n");
+  const kinds = allLines.map((ln) => (isDiff ? diffKind(ln) : ""));
+  const lines = isDiff ? allLines.map((ln) => (/^[+\- ]/.test(ln) ? ln.slice(1) : ln)) : allLines;
+  const label = (isDiff && !lang ? "diff" : lang || "text").toUpperCase();
   const title = parseTitle(node.meta);
   const hl = parseHighlights(node.meta);
+  const copyText = (isDiff ? lines.join("\n") : raw).replace(ANNO_SENTINEL_RE, "");
 
-  // 標題列：語言標籤（+ 選填檔名）+ 複製鈕
-  const headerLeft: HastNode[] = [
-    h("span", { className: ["nc-cb__lang"] }, [
-      codeIcon(),
-      h("span", { className: ["nc-cb__lang-text"] }, [t(label)]),
-    ]),
-  ];
+  // 標題列（note-page §5.3）：檔名 → 語言 → 複製。經典主題以 CSS order 把語言移到最前面
+  const headerLeft: HastNode[] = [];
   if (title) headerLeft.push(h("span", { className: ["nc-cb__file"] }, [t(title)]));
+  headerLeft.push(h("span", { className: ["nc-cb__lang"] }, [h("span", { className: ["nc-cb__lang-text"] }, [t(label)])]));
   const header = h("div", { className: ["nc-cb__header"] }, [
     ...headerLeft,
     h(
@@ -142,7 +177,7 @@ function buildCodeBlock(node: MdNode): void {
       {
         type: "button",
         className: ["nc-cb__copy"],
-        "data-code": raw.replace(ANNO_SENTINEL_RE, ""),
+        "data-code": copyText,
         "aria-label": "複製程式碼",
       },
       [
@@ -154,11 +189,14 @@ function buildCodeBlock(node: MdNode): void {
   ]);
 
   // 行號欄
+  const rowClass = (base: string, i: number) => [base, ...(hl.has(i + 1) ? ["is-hl"] : []), ...(kinds[i] ? [`is-${kinds[i]}`] : [])];
   const gutter = h(
     "div",
     { className: ["nc-cb__gutter"], "aria-hidden": "true" },
     lines.map((_, i) =>
-      h("div", { className: hl.has(i + 1) ? ["nc-cb__ln", "is-hl"] : ["nc-cb__ln"] }, [t(String(i + 1))]),
+      h("div", { className: rowClass("nc-cb__ln", i) }, [
+        t(isDiff ? (kinds[i] === "add" ? "+" : kinds[i] === "del" ? "−" : "\u00a0") : String(i + 1)),
+      ]),
     ),
   );
 
@@ -167,7 +205,7 @@ function buildCodeBlock(node: MdNode): void {
     "code",
     { className: ["nc-cb__code"] },
     lines.map((ln, i) =>
-      h("div", { className: hl.has(i + 1) ? ["nc-cb__line", "is-hl"] : ["nc-cb__line"] }, tokenizeLine(ln)),
+      h("div", { className: rowClass("nc-cb__line", i) }, tokenizeLine(ln, lang)),
     ),
   );
   const pre = h("pre", { className: ["nc-cb__pre"] }, [code]);
@@ -179,7 +217,7 @@ function buildCodeBlock(node: MdNode): void {
   node.type = "ncCodeBlock";
   node.data = node.data || {};
   node.data.hName = "div";
-  node.data.hProperties = { className: ["nc-cb"], "data-lang": lang || "text" };
+  node.data.hProperties = { className: isDiff ? ["nc-cb", "nc-cb--diff"] : ["nc-cb"], "data-lang": isDiff ? "diff" : lang || "text" };
   node.data.hChildren = [header, body];
 }
 

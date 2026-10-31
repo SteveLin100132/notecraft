@@ -20,8 +20,10 @@ export interface Props {
   pagefindTitle?: boolean;
   /** 在 h1 上標 data-pagefind-body（資料檔頁：只索引標題與描述）。 */
   indexHeader?: boolean;
+  /** 標題平常隱藏，頁面捲過文內 H1 時由頁面 script 加 .is-shown（筆記頁） */
+  titleReveal?: boolean;
 }
-const { title, crumbs = [], pills = [], back, tabs = [], clampTwo = false, pagefindTitle = false, indexHeader = false } = Astro.props;
+const { title, crumbs = [], pills = [], back, tabs = [], clampTwo = false, pagefindTitle = false, indexHeader = false, titleReveal = false } = Astro.props;
 const isDev = import.meta.env.DEV;
 ---
 <header class="wb-hd">
@@ -40,7 +42,7 @@ const isDev = import.meta.env.DEV;
           <a class="wb-dw-x" href={withBase(back)} title="返回" aria-label="返回"><Icon name="arrowLeft" size={15} stroke={1.7} /></a>
         )}
         <h1
-          class:list={["wb-hd-title", { clamp2: clampTwo }]}
+          class:list={["wb-hd-title", { clamp2: clampTwo, reveal: titleReveal }]}
           title={title}
           data-pagefind-meta={pagefindTitle ? "title" : undefined}
           data-pagefind-body={indexHeader ? "" : undefined}

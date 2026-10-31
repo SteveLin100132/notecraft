@@ -16,6 +16,7 @@ import rehypeStringify from "rehype-stringify";
 import Slugger from "github-slugger";
 import remarkNotecraftDirectives from "../../../src/lib/remark-notecraft-directives.ts";
 import remarkNotecraftCodeblock from "../../../src/lib/remark-notecraft-codeblock.ts";
+import remarkNotecraftMark from "../../../src/lib/remark-notecraft-mark.ts";
 // 定義與引用：索引與 remark 核心都是 app 的同一份（不碰 Node API，瀏覽器可用）
 import { buildDefIndex } from "../../../src/lib/defs-index.mjs";
 import { createRemarkDefs } from "../../../src/lib/remark-notecraft-defs-core.ts";
@@ -59,7 +60,8 @@ export function rehypeHeadingIds(out: NcHeading[], prefix: string) {
  * idPrefix：同一頁有多個示範時，app 外掛各自從 0 起算的 nc-tab-0-0、nc-tip-0 這類 id 會重複，
  * 標題 id 也可能撞到文件本身的錨點，所以 DOM 上的 id 一律加前綴。
  */
-export const REMARK = [remarkGfm, remarkSmartypants, remarkDirective, remarkNotecraftDirectives, remarkNotecraftCodeblock];
+// 與 app 的 astro.config 同順序（數學公式在官網示範不渲染：KaTeX 只在 app 的筆記頁載入）
+export const REMARK = [remarkGfm, remarkSmartypants, remarkDirective, remarkNotecraftDirectives, remarkNotecraftMark, remarkNotecraftCodeblock];
 
 /** 跑一次渲染：收下 app 外掛用 console.warn 寫的 build log，並把 id 加上前綴。 */
 export function run(idPrefix: string, ext: "md" | "mdx", fn: (headings: NcHeading[]) => string): NcRendered {

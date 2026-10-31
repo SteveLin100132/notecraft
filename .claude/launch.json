@@ -200,6 +200,21 @@
       ],
       "port": 4372,
       "autoPort": false
+    },
+    {
+      "name": "note-page-fixture-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "node_modules/astro/astro.js",
+        "dev",
+        "--port",
+        "4345"
+      ],
+      "env": {
+        "NOTECRAFT_NOTES_DIR": "tmp/note-page-ws"
+      },
+      "port": 4345,
+      "autoPort": true
     }
   ]
 }

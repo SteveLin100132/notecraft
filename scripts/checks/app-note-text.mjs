@@ -2,7 +2,7 @@
 // 只有 .mdx 的 @ai-visualize 標記算數。由 check:wb 與 scripts/check-plugins.mjs 串接執行。
 
 import assert from "node:assert/strict";
-import { acceptsMarkers, excerpt, firstH1, parseMarkers, stripNonProse } from "../../src/lib/note-text.ts";
+import { acceptsMarkers, excerpt, firstH1, parseMarkers, readingMinutes, stripNonProse } from "../../src/lib/note-text.ts";
 
 const bash = "```bash\n# 安裝相依\nnpm i\n```";
 const tilde = "~~~python\n# 這是 Python 註解\nprint(1)\n~~~";
@@ -46,5 +46,11 @@ assert.deepEqual(
   parseMarkers(marker).map((m) => [m.id, m.type, m.status, m.prompt]),
   [["flow", "diagram", "pending", "# 不是標題"]],
 );
+
+// 閱讀時間：字數 / 450 四捨五入、至少 1；程式碼區塊不算
+assert.equal(readingMinutes(""), 1);
+assert.equal(readingMinutes("字".repeat(900)), 2);
+assert.equal(readingMinutes("字".repeat(900) + "\n```\n" + "x ".repeat(5000) + "\n```"), 2);
+assert.equal(readingMinutes("word ".repeat(1400)), 3);
 
 console.log("✓ app-note-text");

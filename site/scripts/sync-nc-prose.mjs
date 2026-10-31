@@ -67,6 +67,9 @@ export function syncNcProse() {
   const prose = global
     .slice(a, b)
     .replace(/\.nc-prose\b/g, ".ncp .nc-prose")
+    // 筆記頁的主題 class（.np-d／.np-o）在 app 是 #nc-scroll，官網是同一個 .ncp 示範框（筆記頁改版 §10、Q11：只用品牌）
+    .replace(/\.(np-[do]) \.ncp \.nc-prose/g, ".ncp.$1 .nc-prose")
+    .replace(/^\.(np-[do]) \{/gm, ".ncp.$1 {")
     .replace(/^:root\s*\{/gm, ".ncp {");
   const wb = /^:root\s*\{[\s\S]*?^\}/m.exec(workbench);
   if (!wb) throw new Error("sync-nc-prose：app 的 workbench.css 找不到 :root 區塊");

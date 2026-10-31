@@ -68,598 +68,491 @@ img { max-width: 100%; display: block; }
 }
 
 /* ── prose styles for MDX note bodies ── */
-.nc-prose { max-width: 760px; }
-.nc-prose h1 { font-size: var(--text-3xl); color: var(--blue-700); line-height: 1.25; font-weight: 700; margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--neutral-200); scroll-margin-top: 90px; }
-/* 內文第一個元素就是章標題時，頁首分隔線下方已有間距，不再疊 48px */
-.nc-prose > h1:first-child { margin-top: 8px; }
-.nc-prose h2 { font-size: var(--text-2xl); color: var(--text-strong); margin: 38px 0 14px; scroll-margin-top: 90px; }
-.nc-prose h3 { font-size: var(--text-xl); color: var(--text-strong); margin: 28px 0 10px; scroll-margin-top: 90px; }
-.nc-prose p { font-size: var(--text-md); color: var(--text-body); line-height: 1.85; margin: 0 0 16px; }
-.nc-prose ul, .nc-prose ol { margin: 0 0 18px; padding-left: 26px; color: var(--text-body); font-size: var(--text-md); line-height: 1.85; }
+/* 筆記閱讀頁改版（docs/notecraft-workbench-note-page.md §5；像素值照 design_handoff_note_page/prototype/note/np.css）。
+   - 共用規則不加前綴；品牌（.np-d）與經典（.np-o）的差異以捲動容器上的 class 為前綴，寫在本區段最後
+   - 尺寸一律 em，跟著 --md-fs（使用者字級倍率，寫在 #nc-scroll 的 style）縮放
+   - 起訖兩行註解是官網 site/scripts/sync-nc-prose.mjs 的抽取標記，不可改字 */
+:root { --md-fs: 16px; --md-lh: 1.85; }
+.nc-prose { max-width: 760px; font-size: var(--md-fs); line-height: var(--md-lh); color: var(--wb-ink-2); --md-hc: var(--wb-ink); }
+.nc-prose > :first-child { margin-top: 0; }
+.nc-prose p { margin: 0 0 1em; text-wrap: pretty; }
+.nc-prose strong { color: var(--wb-ink); font-weight: 700; }
+.nc-prose em { font-style: italic; }
+.nc-prose del { color: var(--wb-ink-3); text-decoration-thickness: 1px; }
+.nc-prose mark { background: color-mix(in srgb, var(--wb-gold) 30%, transparent); color: inherit; padding: 0 .15em; border-radius: 2px; }
+.nc-prose sup, .nc-prose sub { font-size: .72em; line-height: 0; }
+.nc-prose kbd {
+  display: inline-block; min-width: 1.6em; text-align: center;
+  font-family: var(--font-mono); font-size: .76em; line-height: 1.5; padding: 0 .4em;
+  border: 1px solid var(--wb-line); border-bottom-width: 2px; border-radius: 5px;
+  background: var(--wb-panel); color: var(--wb-ink-2); vertical-align: .08em;
+}
+.nc-prose :not(pre) > code {
+  font-family: var(--font-mono); font-size: .86em; padding: .1em .38em; border-radius: 4px;
+  background: var(--wb-bg); border: 1px solid var(--wb-line); color: var(--wb-ink);
+}
+.nc-prose a { color: var(--wb-blue-l); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--wb-blue-l) 40%, transparent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.nc-prose a:hover { text-decoration-color: currentColor; }
+
+/* 標題：H1 只在內文自己寫了 # 時出現（Q7：保留、比 H2 大一階）；錨點 .nc-anc 由筆記頁 script 插入 */
+.nc-prose :is(h1, h2, h3, h4, h5, h6) { position: relative; color: var(--md-hc); font-weight: 800; line-height: 1.4; scroll-margin-top: 24px; text-wrap: balance; }
+.nc-prose h1 { font-size: 1.7em; margin: 2.2em 0 .75em; }
+.nc-prose h1:not(.nc-viz *) { padding-bottom: .4em; border-bottom: 1px solid var(--wb-line); }
+.nc-prose h2 { font-size: 1.45em; margin: 2.3em 0 .7em; }
+.nc-prose h3 { font-size: 1.18em; margin: 1.8em 0 .55em; }
+.nc-prose h4 { font-size: 1.04em; margin: 1.5em 0 .45em; }
+.nc-prose h5 { font-size: .94em; margin: 1.4em 0 .4em; }
+.nc-prose h6 { font-size: .84em; margin: 1.3em 0 .4em; color: var(--wb-ink-3); letter-spacing: .04em; }
+.nc-prose > :is(h1, h2, h3):first-child { margin-top: 0; }
+.nc-prose .nc-anc { position: absolute; right: 100%; padding-right: .35em; opacity: 0; color: var(--wb-ink-3); text-decoration: none; font-weight: 500; transition: opacity 140ms; }
+.nc-prose :is(h1, h2, h3, h4, h5, h6):hover .nc-anc { opacity: 1; }
+.nc-prose .nc-anc:hover { color: var(--wb-blue-l); }
+
+/* 清單與待辦 */
+.nc-prose ul, .nc-prose ol { margin: 0 0 1.1em; padding-left: 1.5em; }
 .nc-prose ul { list-style: disc; }
 .nc-prose ol { list-style: decimal; }
 .nc-prose ul ul { list-style: circle; }
 .nc-prose ul ul ul { list-style: square; }
-.nc-prose li { margin: 0 0 7px; padding-left: 4px; }
-.nc-prose li::marker { color: var(--orange-500); }
-.nc-prose li > ul, .nc-prose li > ol { margin: 7px 0 0; }
-.nc-prose li > p { margin: 0 0 7px; }
-.nc-prose blockquote {
-  margin: 22px 0; padding: 14px 20px;
-  border-left: 4px solid var(--orange-500);
-  background: var(--orange-50);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  font-size: var(--text-md); color: var(--blue-900); font-weight: 500; line-height: 1.8;
+.nc-prose li { margin: .3em 0; }
+.nc-prose li > ul, .nc-prose li > ol { margin: .3em 0 0; }
+.nc-prose li > p { margin: 0 0 .3em; }
+.nc-prose ul > li::marker { color: var(--wb-ink-3); }
+.nc-prose ol > li::marker { color: var(--wb-ink-3); font-variant-numeric: tabular-nums; font-weight: 700; }
+.nc-prose ul.contains-task-list { list-style: none; padding-left: .1em; }
+.nc-prose li.task-list-item { list-style: none; }
+.nc-prose li.task-list-item > input[type="checkbox"],
+.nc-prose li.task-list-item > p > input[type="checkbox"] {
+  appearance: none; flex: none; display: inline-block; box-sizing: border-box;
+  width: 1.05em; height: 1.05em; margin: 0 .6em 0 0; vertical-align: -.15em;
+  border: 1.5px solid color-mix(in srgb, var(--wb-ink-3) 60%, var(--wb-line)); border-radius: 4px;
+  background: var(--wb-panel) center / 78% no-repeat; cursor: pointer;
 }
-.nc-prose blockquote p { margin: 0; font-size: inherit; color: inherit; }
-/* 裸 <pre>（極少數：MDX 原生 HTML，未走圍欄程式碼塊）沿用簡潔淺色樣式；
-   圍欄程式碼一律由 .nc-cb 程式碼塊接管（見下方 Code blocks 區）。 */
-.nc-prose pre:not(.nc-cb__pre) {
-  margin: 20px 0; padding: 16px 18px; overflow: auto;
-  font-family: var(--font-mono); font-size: 13px; line-height: 1.75;
-  color: var(--neutral-800); background: var(--neutral-50);
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-lg);
+.nc-prose li.task-list-item input[type="checkbox"]:checked {
+  border-color: var(--wb-blue-l);
+  background-color: var(--wb-blue-l);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
-.nc-prose pre:not(.nc-cb__pre) code { font-family: var(--font-mono); color: inherit; background: none; }
-.nc-prose :not(pre) > code {
-  font-family: var(--font-mono); font-size: 0.9em; padding: 2px 6px;
-  background: var(--neutral-100); color: var(--blue-800); border-radius: var(--radius-xs);
-}
+.nc-prose li.task-list-item input[type="checkbox"]:disabled { cursor: default; }
+.nc-prose li.task-list-item input[type="checkbox"]:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: 2px; }
+.nc-prose li.task-list-item:has(> input:checked, > p > input:checked) { color: var(--wb-ink-3); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--wb-ink-3) 60%, transparent); }
 
-/* ── Code blocks（design_handoff_mdx_codeblock）──────────────────
-   白底 + 固定行號欄 + 整行高亮 + 複製鈕。色彩全部對應 design-system token，不硬編色碼。
-   行高關鍵：行號欄與程式碼兩欄共用 line-height/height，確保逐行對齊。 */
+/* 分隔線、引言 */
+.nc-prose hr { border: none; height: 1px; background: var(--wb-line); margin: 2.4em 0; }
+.nc-prose blockquote { margin: 1.4em 0; padding: .1em 0 .1em 1.1em; border-left: 3px solid var(--wb-line); color: var(--wb-ink-2); }
+.nc-prose blockquote p { margin: 0 0 .6em; }
+.nc-prose blockquote > :last-child { margin-bottom: 0; }
+.nc-prose blockquote blockquote { margin: .7em 0 .4em; font-size: .95em; }
+.nc-prose blockquote cite { display: block; font-size: .8em; color: var(--wb-ink-3); font-style: normal; margin-top: .5em; }
+
+/* 表格（GFM 沒有外層容器：外框畫在 table 上，border-collapse 改 separate 圓角才會生效） */
+.nc-prose table {
+  width: 100%; margin: 1.4em 0; border-collapse: separate; border-spacing: 0;
+  font-size: .875em; line-height: 1.6; color: var(--wb-ink-2);
+  border: 1px solid var(--wb-line); border-radius: 8px; overflow: hidden;
+}
+.nc-prose th { text-align: left; font-weight: 700; color: var(--wb-ink); background: var(--wb-bg); padding: .6em .95em; border-bottom: 1px solid var(--wb-line); }
+.nc-prose td { padding: .6em .95em; border-bottom: 1px solid var(--wb-line-2); vertical-align: top; }
+.nc-prose tbody tr:last-child td { border-bottom: none; }
+.nc-prose :is(th, td)[align="right"] { text-align: right; font-variant-numeric: tabular-nums; }
+.nc-prose :is(th, td)[align="center"] { text-align: center; }
+
+/* 圖片與圖說；:::figures 兩欄 */
+.nc-prose img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--wb-line); background: var(--wb-bg); }
+.nc-prose figure { margin: 1.6em 0; }
+.nc-prose figure img { display: block; width: 100%; }
+.nc-prose figcaption { font-size: .8em; line-height: 1.6; color: var(--wb-ink-3); margin-top: .6em; }
+.nc-prose .nc-figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 1.6em 0; }
+.nc-prose .nc-figs .nc-fig { margin: 0; }
+
+/* 定義清單（:::dl） */
+.nc-prose .nc-dl { margin: 1.2em 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .55em 1.4em; }
+.nc-prose .nc-dl dt { font-weight: 700; color: var(--wb-ink); }
+.nc-prose .nc-dl dd { margin: 0; }
+.nc-prose .nc-dl dd > :last-child { margin-bottom: 0; }
+
+/* 數學（rehype-katex）：獨立公式置中、淡底；行內公式直接嵌在段落 */
+.nc-prose .katex-display { margin: 1.4em 0; padding: .9em 1em; overflow-x: auto; overflow-y: hidden; border-radius: 8px; background: var(--wb-bg); color: var(--wb-ink); }
+.nc-prose .katex-display > .katex { font-size: 1.12em; }
+.nc-prose .katex { color: var(--wb-ink); }
+
+/* 註腳（GFM；標題與返回鍵由 astro.config 的 remarkRehype 設定） */
+.nc-prose sup > a[data-footnote-ref] { color: var(--wb-blue-l); text-decoration: none; font-weight: 700; padding: 0 .12em; }
+.nc-prose sup > a[data-footnote-ref]::before { content: "["; }
+.nc-prose sup > a[data-footnote-ref]::after { content: "]"; }
+.nc-prose section[data-footnotes] { margin-top: 3em; padding-top: 1.2em; border-top: 1px solid var(--wb-line); font-size: .84em; line-height: 1.75; color: var(--wb-ink-3); }
+.nc-prose .nc-fns-h { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; color: var(--wb-ink-3); margin: 0 0 .6em; }
+.nc-prose section[data-footnotes] ol { margin: 0; padding-left: 1.4em; }
+.nc-prose section[data-footnotes] li { margin: .35em 0; scroll-margin-top: 24px; }
+.nc-prose section[data-footnotes] li > p { margin: 0; }
+.nc-prose a[data-footnote-backref] { color: var(--wb-blue-l); text-decoration: none; margin-left: .35em; }
+
+/* 裸 <pre>（極少數：MDX 原生 HTML，未走圍欄程式碼塊） */
+.nc-prose pre:not(.nc-cb__pre) {
+  margin: 1.4em 0; padding: 1em 1.1em; overflow: auto;
+  font-family: var(--font-mono); font-size: .8em; line-height: 1.75;
+  color: var(--wb-ink-2); background: var(--wb-bg); border: 1px solid var(--wb-line); border-radius: 8px;
+}
+.nc-prose pre:not(.nc-cb__pre) code { font-family: var(--font-mono); color: inherit; background: none; border: none; padding: 0; font-size: inherit; }
+
+/* ── Code blocks（remark-notecraft-codeblock；note-page §5.3）──────────────────
+   標頭（檔名 → 語言 → 複製）＋ 行號欄 ＋ 可橫捲程式碼。每列 min-height 讓行號與程式碼逐行對齊、空白列不塌陷。 */
 .nc-prose .nc-cb {
-  margin: 22px 0;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-lg);
-  background: var(--neutral-0);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  --cd-bg: var(--wb-bg); --cd-hbg: var(--wb-bg); --cd-line: var(--wb-line);
+  --cd-fg: var(--wb-ink-2); --cd-fg2: var(--wb-ink); --cd-mute: var(--wb-ink-3);
+  --cd-hl: color-mix(in srgb, var(--wb-gold) 13%, transparent);
+  --cd-add: color-mix(in srgb, var(--wb-ok) 13%, transparent);
+  --cd-del: color-mix(in srgb, var(--wb-danger) 11%, transparent);
+  --cd-kw: var(--wb-cd-kw); --cd-str: var(--wb-cd-str); --cd-com: var(--wb-cd-com);
+  --cd-num: var(--wb-cd-num); --cd-fn: var(--wb-cd-fn); --cd-key: var(--wb-cd-key);
+  position: relative; margin: 1.4em 0; border: 1px solid var(--cd-line); border-radius: 8px; background: var(--cd-bg); overflow: hidden;
 }
-/* 標題列 */
 .nc-prose .nc-cb__header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px 9px 14px;
-  background: var(--neutral-50);
-  border-bottom: 1px solid var(--neutral-200);
+  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--cd-line); background: var(--cd-hbg);
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1; color: var(--cd-mute);
 }
-.nc-prose .nc-cb__lang {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--orange-500);
-}
-.nc-prose .nc-cb__lang-text {
-  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--orange-600);
-}
-/* 選填檔名（與語言標籤並存，以 hairline 分隔） */
-.nc-prose .nc-cb__file {
-  padding-left: 10px; border-left: 1px solid var(--neutral-200);
-  font-family: var(--font-mono); font-size: 12px; color: var(--neutral-500);
-}
+.nc-prose .nc-cb__file { color: var(--cd-fg2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.nc-prose .nc-cb__lang { flex: none; }
+.nc-prose .nc-cb__lang-text { text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; }
 .nc-prose .nc-cb__ico { flex: none; }
-/* 複製鈕（pill） */
 .nc-prose .nc-cb__copy {
-  margin-left: auto;
-  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
-  padding: 5px 11px; border-radius: var(--radius-pill);
-  border: 1px solid var(--neutral-300);
-  background: var(--neutral-0); color: var(--neutral-600);
-  transition: background 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+  margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px;
+  border: none; border-radius: 5px; background: none; color: var(--cd-mute); font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background 140ms, color 140ms;
 }
-.nc-prose .nc-cb__copy:hover { background: var(--neutral-100); }
-.nc-prose .nc-cb__copy:focus-visible { outline: 2px solid var(--blue-300); outline-offset: 2px; }
+.nc-prose .nc-cb__copy:hover { background: color-mix(in srgb, var(--cd-fg) 8%, transparent); color: var(--cd-fg2); }
+.nc-prose .nc-cb__copy:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: 1px; }
 .nc-prose .nc-cb__copy .nc-cb__ico--check { display: none; }
-.nc-prose .nc-cb__copy.is-copied {
-  border-color: rgba(46, 158, 107, 0.45);
-  background: var(--success-50); color: var(--success-500);
-}
-.nc-prose .nc-cb__copy.is-copied:hover { background: var(--success-50); }
+.nc-prose .nc-cb__copy.is-copied { color: var(--wb-ok); }
 .nc-prose .nc-cb__copy.is-copied .nc-cb__ico--copy { display: none; }
 .nc-prose .nc-cb__copy.is-copied .nc-cb__ico--check { display: inline-flex; }
-/* 主體：固定行號欄 + 可橫捲程式碼 */
-.nc-prose .nc-cb__body {
-  display: flex; align-items: stretch;
-  font-family: var(--font-mono); font-size: 13.5px;
-}
-.nc-prose .nc-cb__gutter {
-  flex: none; text-align: right; user-select: none;
-  padding: 14px 0;
-  color: var(--neutral-400); background: var(--neutral-50);
-  border-right: 1px solid var(--neutral-200);
-}
-.nc-prose .nc-cb__ln {
-  line-height: 1.85; height: 1.85em;
-  padding: 0 14px 0 16px;
-}
-.nc-prose .nc-cb__ln.is-hl {
-  background: var(--orange-50);
-  box-shadow: inset 3px 0 0 var(--orange-400);
-  color: var(--orange-600); font-weight: 700;
-}
-.nc-prose .nc-cb__pre {
-  margin: 0; padding: 14px 0; overflow-x: auto;
-  flex: 1 1 auto; min-width: 0;
-  background: var(--neutral-0); border: 0; border-radius: 0;
-}
-.nc-prose .nc-cb__code { color: var(--neutral-800); background: none; font-family: var(--font-mono); }
-.nc-prose .nc-cb__line {
-  line-height: 1.85; height: 1.85em;
-  padding: 0 18px; white-space: pre;
-}
-.nc-prose .nc-cb__line.is-hl { background: var(--orange-50); }
-/* 語法 token 配色（CODE_TC）—— 全部對應 design-system token */
-.nc-prose .nc-cb__t--comment { color: var(--neutral-400); font-style: italic; }
-.nc-prose .nc-cb__t--string  { color: var(--success-500); }
-.nc-prose .nc-cb__t--number  { color: var(--orange-700); }
-.nc-prose .nc-cb__t--keyword { color: var(--blue-700); font-weight: 600; }
-.nc-prose .nc-cb__t--func    { color: var(--blue-500); }
-.nc-prose .nc-cb__t--type    { color: var(--orange-600); }
-.nc-prose .nc-cb__t--attr    { color: var(--sky-600); }
-.nc-prose .nc-cb__t--punct   { color: var(--neutral-400); }
-.nc-prose .nc-cb__t--plain   { color: var(--neutral-800); }
-@media (prefers-reduced-motion: reduce) {
-  .nc-prose .nc-cb__copy { transition: none; }
-}
+.nc-prose .nc-cb__body { display: grid; grid-template-columns: auto minmax(0, 1fr); font-family: var(--font-mono); font-size: .8em; line-height: 1.75; color: var(--cd-fg); }
+.nc-prose .nc-cb__gutter { padding: 12px 0; text-align: right; user-select: none; color: var(--cd-mute); border-right: 1px solid var(--cd-line); font-variant-numeric: tabular-nums; }
+.nc-prose .nc-cb__ln { padding: 0 12px 0 14px; min-height: 1.75em; }
+.nc-prose .nc-cb__pre { margin: 0; padding: 12px 0; overflow-x: auto; overflow-y: hidden; background: none; border: 0; border-radius: 0; }
+.nc-prose .nc-cb__code { display: block; min-width: max-content; color: var(--cd-fg); background: none; font-family: var(--font-mono); font-size: inherit; padding: 0; border: none; }
+.nc-prose .nc-cb__line { padding: 0 16px; white-space: pre; min-height: 1.75em; }
+.nc-prose :is(.nc-cb__line, .nc-cb__ln).is-hl { background: var(--cd-hl); }
+.nc-prose .nc-cb__ln.is-hl { box-shadow: inset 2px 0 0 var(--wb-gold); color: var(--cd-fg2); }
+.nc-prose :is(.nc-cb__line, .nc-cb__ln).is-add { background: var(--cd-add); }
+.nc-prose :is(.nc-cb__line, .nc-cb__ln).is-del { background: var(--cd-del); }
+.nc-prose .nc-cb__ln.is-add { color: var(--wb-ok); }
+.nc-prose .nc-cb__ln.is-del { color: var(--wb-danger); }
+/* 語法色（handoff 只定義 keyword／string／comment／number／function／key：type 併入 function、attr 併入 key、punct 用註解色不斜體） */
+.nc-prose .nc-cb__t--comment { color: var(--cd-com); font-style: italic; }
+.nc-prose .nc-cb__t--string  { color: var(--cd-str); }
+.nc-prose .nc-cb__t--number  { color: var(--cd-num); }
+.nc-prose .nc-cb__t--keyword { color: var(--cd-kw); font-weight: 600; }
+.nc-prose .nc-cb__t--func    { color: var(--cd-fn); }
+.nc-prose .nc-cb__t--type    { color: var(--cd-fn); }
+.nc-prose .nc-cb__t--attr    { color: var(--cd-key); }
+.nc-prose .nc-cb__t--punct   { color: var(--cd-com); }
+.nc-prose .nc-cb__t--plain   { color: var(--cd-fg); }
 
-.nc-prose a { color: var(--action-link); text-decoration: underline; text-underline-offset: 3px; }
-.nc-prose hr { margin: 32px 0; border: 0; border-top: 1px solid var(--neutral-200); }
-.nc-prose table {
-  width: 100%;
-  margin: 22px 0;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-  color: var(--text-body);
-  background: var(--surface-card, #fff);
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.nc-prose thead { background: var(--neutral-100); }
-.nc-prose th {
-  padding: 10px 14px;
-  text-align: left;
-  font-weight: var(--weight-bold);
-  color: var(--text-strong);
-  border-bottom: 1px solid var(--neutral-200);
-}
-.nc-prose td {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--neutral-200);
-  line-height: 1.7;
-  vertical-align: top;
-}
-.nc-prose tbody tr:last-child td { border-bottom: 0; }
-.nc-prose tbody tr:hover { background: var(--neutral-50, #fafafa); }
+/* ── Markdown 擴充語法（PRD §7.1）──────────────────────────────────────── */
 
-/* ── Markdown 擴充語法（PRD §7.1，tasks 14~16）─────────────────────────
-   Admonitions / Content tabs / Tooltips。色票 / 圓角 / 陰影 / 動效一律取自
-   設計 token，不硬編色碼。外觀對齊 trendlink-design 的 Alert / Tabs / Badge。 */
-
-/* 共用 tone tokens — Admonitions / Badge / Steps 共用同一套色票（PRD §1.8.0 Decided）。
+/* 共用 tone tokens — Badge 的 variant 共用同一套色票（PRD §1.8.0 Decided）。
    新增 variant 時務必同步擴充 BADGE_VARIANTS / ADMONITION_TYPES 與本區。 */
 .nc-prose {
-  --nc-tone-note-fg:    var(--blue-700);    --nc-tone-note-bg:    var(--blue-50);
-  --nc-tone-info-fg:    var(--info-500);    --nc-tone-info-bg:    var(--info-50);
-  --nc-tone-tip-fg:     var(--success-500); --nc-tone-tip-bg:     var(--success-50);
-  --nc-tone-success-fg: var(--success-500); --nc-tone-success-bg: var(--success-50);
-  --nc-tone-warning-fg: var(--orange-600);  --nc-tone-warning-bg: var(--warning-50);
-  --nc-tone-danger-fg:  var(--danger-500);  --nc-tone-danger-bg:  var(--danger-50);
-  --nc-tone-neutral-fg: var(--neutral-700); --nc-tone-neutral-bg: var(--neutral-100);
+  --nc-tone-note-fg:    var(--wb-blue-l);   --nc-tone-info-fg:    var(--wb-blue-l);
+  --nc-tone-tip-fg:     var(--wb-ok);       --nc-tone-success-fg: var(--wb-ok);
+  --nc-tone-warning-fg: var(--wb-warn);     --nc-tone-danger-fg:  var(--wb-danger);
+  --nc-tone-neutral-fg: var(--wb-gold);
 }
 
-/* Admonitions ─────────────────────────────────────────────── */
+/* Admonitions（:::note／tip／info／warning／danger／success；{collapsible} 為 <details>）──
+   類型色 --k；共用規則是經典的樣子，品牌的 C 樣式（白底＋標題列）在本區段最後 */
 .nc-prose .nc-adm {
-  --nc-adm-accent: var(--nc-tone-note-fg);
-  --nc-adm-tint: var(--nc-tone-note-bg);
-  margin: 22px 0;
-  border: 1px solid var(--border-subtle);
-  border-left: 4px solid var(--nc-adm-accent);
-  border-radius: var(--radius-md);
-  background: var(--surface-card, #fff);
-  overflow: hidden;
+  --k: var(--nc-tone-note-fg);
+  margin: 1.2em 0; padding: .8em 1em; border-radius: 8px;
+  background: color-mix(in srgb, var(--k) 7%, var(--wb-panel));
+  border: 1px solid color-mix(in srgb, var(--k) 26%, var(--wb-panel));
 }
-.nc-prose .nc-adm--note    { --nc-adm-accent: var(--nc-tone-note-fg);    --nc-adm-tint: var(--nc-tone-note-bg); }
-.nc-prose .nc-adm--info    { --nc-adm-accent: var(--nc-tone-info-fg);    --nc-adm-tint: var(--nc-tone-info-bg); }
-.nc-prose .nc-adm--tip     { --nc-adm-accent: var(--nc-tone-tip-fg);     --nc-adm-tint: var(--nc-tone-tip-bg); }
-.nc-prose .nc-adm--success { --nc-adm-accent: var(--nc-tone-success-fg); --nc-adm-tint: var(--nc-tone-success-bg); }
-.nc-prose .nc-adm--warning { --nc-adm-accent: var(--nc-tone-warning-fg); --nc-adm-tint: var(--nc-tone-warning-bg); }
-.nc-prose .nc-adm--danger  { --nc-adm-accent: var(--nc-tone-danger-fg);  --nc-adm-tint: var(--nc-tone-danger-bg); }
+.nc-prose .nc-adm--info    { --k: var(--nc-tone-info-fg); }
+.nc-prose .nc-adm--tip     { --k: var(--nc-tone-tip-fg); }
+.nc-prose .nc-adm--success { --k: var(--nc-tone-success-fg); }
+.nc-prose .nc-adm--warning { --k: var(--nc-tone-warning-fg); }
+.nc-prose .nc-adm--danger  { --k: var(--nc-tone-danger-fg); }
 .nc-prose .nc-adm__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--nc-adm-tint);
-  color: var(--nc-adm-accent);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  line-height: 1.4;
+  display: flex; align-items: center; gap: 6px; margin-bottom: .3em;
+  font-size: .8em; font-weight: 800; letter-spacing: .04em; line-height: 1.5;
+  color: color-mix(in srgb, var(--k) 68%, var(--wb-ink));
 }
-.nc-prose .nc-adm__icon { flex: none; }
-.nc-prose details.nc-adm > summary.nc-adm__title {
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-.nc-prose details.nc-adm > summary::-webkit-details-marker { display: none; }
-.nc-prose details.nc-adm > summary.nc-adm__title::after {
-  content: "";
-  margin-left: auto;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
-  transition: transform var(--duration-normal) var(--ease-out);
-}
-.nc-prose details.nc-adm[open] > summary.nc-adm__title::after { transform: rotate(225deg); }
-.nc-prose .nc-adm__body { padding: 14px 16px; }
+.nc-prose .nc-adm__icon { flex: none; width: 14px; height: 14px; }
+.nc-prose .nc-adm__label { flex: 1; min-width: 0; }
+.nc-prose .nc-adm__body { font-size: .94em; }
+.nc-prose .nc-adm__body p { margin: 0 0 .5em; }
 .nc-prose .nc-adm__body > :first-child { margin-top: 0; }
 .nc-prose .nc-adm__body > :last-child { margin-bottom: 0; }
-.nc-prose .nc-adm__body p { font-size: var(--text-base); }
+.nc-prose .nc-adm__body ul { margin: .2em 0 0; }
+.nc-prose details.nc-adm > summary.nc-adm__title { cursor: pointer; list-style: none; user-select: none; }
+.nc-prose details.nc-adm > summary::-webkit-details-marker { display: none; }
+.nc-prose details.nc-adm > summary.nc-adm__title::after {
+  content: ""; flex: none; width: 6px; height: 6px; margin: 0 4px 0 6px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: .8;
+  transform: rotate(-45deg); transition: transform 160ms var(--wb-np-ease);
+}
+.nc-prose details.nc-adm[open] > summary.nc-adm__title::after { transform: rotate(45deg); }
+.nc-prose details.nc-adm:not([open]) > summary.nc-adm__title { margin-bottom: 0; }
+.nc-prose details.nc-adm > summary:hover .nc-adm__label { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.nc-prose details.nc-adm > summary:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: 3px; border-radius: 4px; }
 
-/* Content tabs ────────────────────────────────────────────── */
-.nc-prose .nc-tabs {
-  margin: 22px 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-card, #fff);
-  overflow: hidden;
-}
+/* Content tabs（:::tabs）與程式碼分頁（:::code-group）──────────────── */
+.nc-prose .nc-tabs { margin: 1.4em 0; border: 1px solid var(--wb-line); border-radius: 8px; overflow: hidden; background: var(--wb-panel); }
 .nc-prose .nc-tabs__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px 8px 0;
-  background: var(--neutral-50);
-  border-bottom: 1px solid var(--border-subtle);
+  display: flex; gap: 2px; padding: 0 .6em; border-bottom: 1px solid var(--wb-line); background: var(--wb-bg);
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
+.nc-prose .nc-tabs__list::-webkit-scrollbar { display: none; }
 .nc-prose .nc-tabs__tab {
-  appearance: none;
-  margin-bottom: -1px;
-  padding: 8px 16px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  background: none;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-standard),
-    background var(--duration-fast) var(--ease-standard);
+  appearance: none; flex: none; height: 2.5em; padding: 0 .85em; margin-bottom: -1px;
+  border: none; border-bottom: 2px solid transparent; background: none;
+  font: inherit; font-size: .84em; color: var(--wb-ink-3); cursor: pointer;
 }
-.nc-prose .nc-tabs__tab:hover { color: var(--text-strong); background: var(--neutral-100); }
-.nc-prose .nc-tabs__tab[aria-selected="true"] {
-  background: var(--surface-card, #fff);
-  border-color: var(--border-subtle);
-  color: var(--blue-700);
-  font-weight: var(--weight-bold);
-  box-shadow: inset 0 2px 0 var(--orange-400);
-}
-.nc-prose .nc-tabs__panel { padding: 16px; }
+.nc-prose .nc-tabs__tab:hover { color: var(--wb-ink-2); }
+.nc-prose .nc-tabs__tab[aria-selected="true"] { color: var(--wb-blue-l); font-weight: 700; border-bottom-color: var(--wb-blue); }
+.nc-prose .nc-tabs__tab:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: -2px; }
+.nc-prose .nc-tabs__panel { padding: 1em 1.1em; font-size: .96em; outline: none; }
+.nc-prose .nc-tabs__panel:focus-visible { box-shadow: inset 0 0 0 2px var(--wb-blue-l); }
 .nc-prose .nc-tabs__panel > :first-child { margin-top: 0; }
 .nc-prose .nc-tabs__panel > :last-child { margin-bottom: 0; }
+.nc-prose .nc-tabs__panel :is(.nc-adm, table, blockquote) { margin: .9em 0; }
+.nc-prose .nc-tabs--code .nc-tabs__panel { padding: 0; font-size: 1em; }
+.nc-prose .nc-tabs--code .nc-tabs__panel .nc-cb { margin: 0; border: none; border-radius: 0; box-shadow: none; }
 /* 漸進增強：JS 未載入時隱藏（無作用的）tab 列、展開所有面板並標出分頁標籤，不遺失內容。 */
 .nc-prose .nc-tabs:not([data-enhanced]) .nc-tabs__list { display: none; }
 .nc-prose .nc-tabs:not([data-enhanced]) .nc-tabs__panel[data-nc-tab-label]::before {
-  content: attr(data-nc-tab-label);
-  display: block;
-  margin-bottom: 8px;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--text-muted);
+  content: attr(data-nc-tab-label); display: block; margin-bottom: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--wb-ink-3);
 }
-.nc-prose .nc-tabs:not([data-enhanced]) .nc-tabs__panel + .nc-tabs__panel {
-  border-top: 1px solid var(--border-subtle);
-}
+.nc-prose .nc-tabs--code:not([data-enhanced]) .nc-tabs__panel[data-nc-tab-label]::before { margin: 0; padding: 8px 14px 0; }
+.nc-prose .nc-tabs:not([data-enhanced]) .nc-tabs__panel + .nc-tabs__panel { border-top: 1px solid var(--wb-line); }
 
-/* Tooltips ────────────────────────────────────────────────── */
-.nc-prose .nc-tip {
-  position: relative;
-  border-bottom: 1px dashed var(--border-strong);
-  cursor: help;
-}
-/* 氣泡採 position:fixed + JS 定位（見 notes/[slug].astro 的 nc-tip 腳本）：
-   以 fixed 跳脫 table / tabs 的 overflow 裁切，並夾在內容區內、避免被 sidebar 遮蔽或溢出視窗。
-   JS 會寫入 inline 的 left / top 與 --nc-tip-arrow（箭頭水平位置）。 */
+/* 摺疊問答（:::details；連續的包成 .nc-dets） */
+.nc-prose .nc-dets { display: flex; flex-direction: column; gap: 8px; margin: 1.2em 0; }
+.nc-prose .nc-det { border: 1px solid var(--wb-line); border-radius: 8px; background: var(--wb-panel); }
+.nc-prose .nc-det__q { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; padding: .65em 1em; font-weight: 700; color: var(--wb-ink); font-size: .94em; }
+.nc-prose .nc-det__q::-webkit-details-marker { display: none; }
+.nc-prose .nc-det__cv { flex: none; color: var(--wb-ink-3); transition: transform 160ms var(--wb-np-ease); }
+.nc-prose .nc-det[open] .nc-det__cv { transform: rotate(90deg); }
+.nc-prose .nc-det__q:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: -2px; border-radius: 8px; }
+.nc-prose .nc-det__b { padding: 0 1em .85em 2.35em; font-size: .94em; }
+.nc-prose .nc-det__b > :last-child { margin-bottom: 0; }
+
+/* Tooltips（:tip）── 泡泡以 position:fixed + JS 定位（lib/nc-tip.ts），跳脫表格與分頁的 overflow 裁切 */
+.nc-prose .nc-tip { position: relative; border-bottom: 1px dotted var(--wb-ink-3); cursor: help; outline: none; }
+.nc-prose .nc-tip:focus-visible { box-shadow: 0 0 0 2px var(--wb-blue-l); border-radius: 2px; }
 .nc-prose .nc-tip__bubble {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 1000;
-  max-width: min(300px, calc(100vw - 32px));
-  width: max-content;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  background: var(--surface-inverse, var(--neutral-900));
-  color: var(--text-on-brand, #fff);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  line-height: 1.55;
-  box-shadow: var(--shadow-md);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity var(--duration-normal) var(--ease-out);
-}
-.nc-prose .nc-tip__bubble::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: var(--nc-tip-arrow, 50%);
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--surface-inverse, var(--neutral-900));
-}
-/* 氣泡置於觸發詞下方時，箭頭改朝上 */
-.nc-prose .nc-tip__bubble--below::after {
-  top: auto;
-  bottom: 100%;
-  border-top-color: transparent;
-  border-bottom-color: var(--surface-inverse, var(--neutral-900));
+  position: fixed; left: 0; top: 0; z-index: 1000;
+  width: max-content; max-width: min(240px, calc(100vw - 32px)); padding: 7px 10px; border-radius: 6px;
+  background: var(--wb-rail); color: var(--wb-np-tip-ink);
+  font-size: 12px; font-weight: 400; line-height: 1.6; letter-spacing: 0; text-decoration: none;
+  opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(3px);
+  transition: opacity 160ms ease-out, transform 160ms ease-out, visibility 160ms;
 }
 .nc-prose .nc-tip:hover .nc-tip__bubble,
 .nc-prose .nc-tip:focus .nc-tip__bubble,
-.nc-prose .nc-tip:focus-visible .nc-tip__bubble {
-  opacity: 1;
-  visibility: visible;
-}
+.nc-prose .nc-tip:focus-visible .nc-tip__bubble { opacity: 1; visibility: visible; transform: none; }
 
-/* Code annotations（PRD §7.1 / task-20）────────────────────────
-   標記由 EC 外掛把 `(n)!` 轉為 .nc-anno-marker；說明清單 .nc-anno-list 由 remark transform 標註。
-   漸進增強：未加 data-enhanced（JS 未載入）時，清單以一般有序清單依序顯示，內容不遺失。
-   樣式取自設計 token，不硬編色碼。 */
+/* Code annotations（:::annotate ＋ 程式碼中的 `(n)!`；note-page §5.4）──────
+   標記是行尾的編號圓圈（前面由 remark 補上該語言的註解符號）。清單在 JS 接管前照常顯示（無 JS 退路、pagefind 照常索引），
+   接管後（data-enhanced）每項變成點擊才出現的彈窗，由筆記頁 script 以 fixed 定位在圓圈下方 14px、往左 280px、夾在區塊寬度內 */
 .nc-prose .nc-anno-marker {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 1.3em; height: 1.3em; padding: 0 0.32em;
-  margin: 0 0.12em; vertical-align: middle;
-  border: none; border-radius: var(--radius-pill);
-  background: var(--orange-400); color: #fff;
-  font-family: var(--font-sans); font-size: 0.78em; font-weight: var(--weight-bold);
-  line-height: 1; cursor: pointer;
-  transition: background var(--duration-fast, 120ms) var(--ease-out);
+  display: inline-grid; place-items: center; box-sizing: border-box; position: relative; top: -.12em;
+  width: 1.75em; height: 1.75em; margin: 0; padding: 0; vertical-align: middle;
+  border: none; border-radius: 50%; background: var(--wb-gold); color: var(--wb-on);
+  font-family: var(--font-sans); font-size: .68em; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: transform 140ms var(--wb-np-ease), background 140ms;
 }
-.nc-prose .nc-anno-marker:hover { background: var(--orange-500); }
-.nc-prose .nc-anno-marker:focus-visible { outline: 2px solid var(--blue-300); outline-offset: 2px; }
-.nc-prose .nc-anno-marker[aria-expanded="true"] { background: var(--blue-700); }
-
-.nc-prose .nc-anno-list { margin: 12px 0 20px; }
+.nc-prose .nc-anno-marker:hover { transform: scale(1.12); }
+.nc-prose .nc-anno-marker:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: 1px; }
+.nc-prose .nc-anno-marker[aria-expanded="true"] { background: var(--wb-blue); }
+.nc-prose .nc-anno-list { margin: .8em 0 1.4em; }
 .nc-prose .nc-anno-item > :first-child { margin-top: 0; }
 .nc-prose .nc-anno-item > :last-child { margin-bottom: 0; }
-
-/* JS 接管後：清單項目改為點擊標記才浮現的氣泡（fixed 定位由 [slug].astro 腳本寫入） */
-.nc-prose .nc-annotate[data-enhanced] .nc-anno-list {
-  list-style: none; margin: 0; padding: 0;
-}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-list { list-style: none; margin: 0; padding: 0; }
 .nc-prose .nc-annotate[data-enhanced] .nc-anno-item {
-  position: fixed; left: 0; top: 0; z-index: 1000;
-  max-width: min(340px, calc(100vw - 32px)); width: max-content;
-  margin: 0; padding: 10px 14px 10px 12px;
-  border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
-  background: var(--surface-card, #fff); color: var(--text-body);
-  font-size: var(--text-sm); line-height: 1.6;
-  box-shadow: var(--shadow-md);
-  opacity: 0; visibility: hidden; pointer-events: none;
-  transition: opacity var(--duration-normal) var(--ease-out);
+  position: fixed; left: 0; top: 0; z-index: 1000; box-sizing: border-box;
+  width: 400px; max-width: calc(100vw - 32px); margin: 0; padding: 16px 20px 18px;
+  border: 1px solid var(--wb-line); border-radius: 8px; background: var(--wb-panel); box-shadow: var(--wb-np-shadow-ann);
+  font-size: .94em; line-height: 1.9; color: var(--wb-ink-2); white-space: normal; text-wrap: pretty;
+  opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(3px);
 }
+/* 只在打開時淡入：接管的那一刻清單項目從原位變成 fixed，若關閉也有過場，會在頁面左上角閃一下 */
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item.is-open { transition: opacity 160ms ease-out, transform 160ms ease-out; }
 .nc-prose .nc-annotate[data-enhanced] .nc-anno-item::before {
-  content: attr(data-anno);
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 1.3em; height: 1.3em; margin-right: 7px; padding: 0 0.32em;
-  border-radius: var(--radius-pill); background: var(--blue-700); color: #fff;
-  font-size: 0.78em; font-weight: var(--weight-bold); line-height: 1; vertical-align: middle;
+  content: attr(data-anno); display: inline-grid; place-items: center; position: relative; top: -.1em;
+  width: 1.75em; height: 1.75em; margin-right: .5em; border-radius: 50%; vertical-align: middle;
+  background: var(--wb-blue); color: var(--wb-on); font-size: .72em; font-weight: 800; line-height: 1;
 }
-.nc-prose .nc-annotate[data-enhanced] .nc-anno-item.is-open {
-  opacity: 1; visibility: visible; pointer-events: auto;
-}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item > p { display: inline; margin: 0; }
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
 .nc-prose .nc-annotate[data-enhanced] .nc-anno-item::marker { content: none; }
-@media (prefers-reduced-motion: reduce) {
-  .nc-prose .nc-anno-marker,
-  .nc-prose .nc-annotate[data-enhanced] .nc-anno-item { transition: none; }
-}
+.nc-prose .nc-annotate[data-enhanced] .nc-anno-item :not(pre) > code { background: var(--wb-bg); border-color: transparent; padding: .2em .5em; }
 
-/* Badge（PRD §1.8.0 / task-21）─────────────────────────────
-   variant 共用 --nc-tone-* 與 Admonitions 對齊；solid 為預設、outline 為旗標切換。 */
+/* Badge（:badge；PRD §1.8.0）── pill；neutral（預設）是金色，note／info 藍色，其餘沿用類型色 */
 .nc-prose .nc-badge {
   --nc-badge-fg: var(--nc-tone-neutral-fg);
-  --nc-badge-bg: var(--nc-tone-neutral-bg);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  vertical-align: baseline;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-sans);
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.02em;
-  line-height: 1;
-  white-space: nowrap;
-  text-decoration: none;
+  display: inline-flex; align-items: center; gap: .3em; height: 1.45em; padding: 0 .55em; vertical-align: .1em;
+  border-radius: 999px; font-family: var(--font-sans); font-weight: 700; line-height: 1; white-space: nowrap; text-decoration: none;
 }
 .nc-prose a.nc-badge:hover { filter: brightness(0.95); text-decoration: none; }
-.nc-prose .nc-badge--md { padding: 3px 9px; font-size: var(--text-xs, 0.75rem); }
-.nc-prose .nc-badge--sm { padding: 1px 7px; font-size: 0.6875rem; }
-.nc-prose .nc-badge--note    { --nc-badge-fg: var(--nc-tone-note-fg);    --nc-badge-bg: var(--nc-tone-note-bg); }
-.nc-prose .nc-badge--info    { --nc-badge-fg: var(--nc-tone-info-fg);    --nc-badge-bg: var(--nc-tone-info-bg); }
-.nc-prose .nc-badge--tip     { --nc-badge-fg: var(--nc-tone-tip-fg);     --nc-badge-bg: var(--nc-tone-tip-bg); }
-.nc-prose .nc-badge--success { --nc-badge-fg: var(--nc-tone-success-fg); --nc-badge-bg: var(--nc-tone-success-bg); }
-.nc-prose .nc-badge--warning { --nc-badge-fg: var(--nc-tone-warning-fg); --nc-badge-bg: var(--nc-tone-warning-bg); }
-.nc-prose .nc-badge--danger  { --nc-badge-fg: var(--nc-tone-danger-fg);  --nc-badge-bg: var(--nc-tone-danger-bg); }
-.nc-prose .nc-badge--neutral { --nc-badge-fg: var(--nc-tone-neutral-fg); --nc-badge-bg: var(--nc-tone-neutral-bg); }
-.nc-prose .nc-badge--solid {
-  background: var(--nc-badge-bg);
-  color: var(--nc-badge-fg);
-  border: 1px solid transparent;
-}
-.nc-prose .nc-badge--outline {
-  background: transparent;
-  color: var(--nc-badge-fg);
-  border: 1px solid currentColor;
-}
-.nc-prose .nc-badge__icon { flex: none; }
+.nc-prose .nc-badge--md { font-size: .76em; }
+.nc-prose .nc-badge--sm { font-size: .68em; }
+.nc-prose .nc-badge--note    { --nc-badge-fg: var(--nc-tone-note-fg); }
+.nc-prose .nc-badge--info    { --nc-badge-fg: var(--nc-tone-info-fg); }
+.nc-prose .nc-badge--tip     { --nc-badge-fg: var(--nc-tone-tip-fg); }
+.nc-prose .nc-badge--success { --nc-badge-fg: var(--nc-tone-success-fg); }
+.nc-prose .nc-badge--warning { --nc-badge-fg: var(--nc-tone-warning-fg); }
+.nc-prose .nc-badge--danger  { --nc-badge-fg: var(--nc-tone-danger-fg); }
+.nc-prose .nc-badge--solid { background: color-mix(in srgb, var(--nc-badge-fg) 16%, transparent); color: color-mix(in srgb, var(--nc-badge-fg) 58%, var(--wb-ink)); border: 1px solid transparent; }
+.nc-prose .nc-badge--note.nc-badge--solid, .nc-prose .nc-badge--info.nc-badge--solid { background: color-mix(in srgb, var(--nc-badge-fg) 12%, transparent); color: color-mix(in srgb, var(--nc-badge-fg) 70%, var(--wb-ink)); }
+.nc-prose .nc-badge--outline { background: transparent; color: color-mix(in srgb, var(--nc-badge-fg) 70%, var(--wb-ink)); border: 1px solid currentColor; }
+.nc-prose .nc-badge__icon { flex: none; width: 1.1em; height: 1.1em; }
 
-/* Steps（PRD §1.8.0 / task-22）─────────────────────────────
-   vertical（預設）/ horizontal 兩版型；< 640px 強制降級為 vertical。 */
-.nc-prose .nc-steps {
-  margin: 22px 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: nc-step;
-}
-.nc-prose .nc-step {
-  position: relative;
-  padding: 0;
-  margin: 0;
-}
+/* Steps（::::steps ＋ :::step{title status}；status：done／current／todo／err／skip）──────
+   標記 1.8em 圓（字級 .8em → 實際 1.44em）；沒寫 status 的步驟是藍框編號，寫了的才有狀態 pill（.is-set） */
+.nc-prose .nc-steps { margin: 1.4em 0; padding: 0; list-style: none; }
+.nc-prose .nc-step { position: relative; padding: 0; margin: 0; }
 .nc-prose .nc-step::marker { content: none; }
-
-/* 序號徽章共用樣式 */
 .nc-prose .nc-step__badge {
-  --nc-step-fg: var(--nc-tone-neutral-fg);
-  --nc-step-bg: var(--neutral-0, #fff);
-  --nc-step-border: var(--border-subtle);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-pill);
-  border: 1.5px solid var(--nc-step-border);
-  background: var(--nc-step-bg);
-  color: var(--nc-step-fg);
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  line-height: 1;
-  flex: none;
+  --sz: 1.8em;
+  flex: none; box-sizing: border-box; width: var(--sz); height: var(--sz); border-radius: 50%; position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-sans); font-size: .8em; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums;
+  background: var(--wb-panel); border: 1.5px solid var(--wb-blue-l); color: var(--wb-blue-l);
 }
-.nc-prose .nc-step--todo .nc-step__badge {
-  --nc-step-fg: var(--text-muted);
-  --nc-step-bg: var(--surface-card, #fff);
-  --nc-step-border: var(--border-subtle);
+.nc-prose .nc-step__check { display: block; width: 1em; height: 1em; }
+.nc-prose .nc-step__title { margin: 0; color: var(--wb-ink); font-weight: 700; line-height: inherit; }
+.nc-prose .nc-step__status {
+  display: inline-flex; align-items: center; height: 1.55em; margin-left: .55em; padding: 0 .6em; vertical-align: .12em;
+  border-radius: 999px; border: 1px solid var(--wb-line); background: var(--wb-bg); color: var(--wb-ink-3);
+  font-size: .72em; font-weight: 700; line-height: 1;
 }
-.nc-prose .nc-step--current .nc-step__badge {
-  --nc-step-fg: #fff;
-  --nc-step-bg: var(--blue-700);
-  --nc-step-border: var(--blue-700);
-}
-.nc-prose .nc-step--done .nc-step__badge {
-  --nc-step-fg: #fff;
-  --nc-step-bg: var(--success-500);
-  --nc-step-border: var(--success-500);
-}
-.nc-prose .nc-step__check { display: block; }
-
-.nc-prose .nc-step__title {
-  margin: 0 0 6px;
-  font-size: var(--text-base);
-  font-weight: var(--weight-bold);
-  color: var(--text-strong);
-  line-height: 1.4;
-}
-.nc-prose .nc-step__body > :first-child:not(.nc-step__title) { margin-top: 0; }
+.nc-prose .nc-step__body > :not(.nc-step__title) { color: var(--wb-ink-3); font-size: .92em; }
+.nc-prose .nc-step__body > p:not(.nc-step__title) { margin: 0 0 .3em; }
 .nc-prose .nc-step__body > :last-child { margin-bottom: 0; }
-
-/* Vertical 版型：左徽章 + 連接線、右內容 */
-.nc-prose .nc-steps--vertical {
-  display: grid;
-  row-gap: 20px;
+.nc-prose .nc-step--done .nc-step__badge { background: var(--wb-blue-l); border-color: var(--wb-blue-l); color: var(--wb-on); }
+.nc-prose .nc-step--done .nc-step__status { background: color-mix(in srgb, var(--wb-blue-l) 10%, transparent); border-color: transparent; color: color-mix(in srgb, var(--wb-blue-l) 75%, var(--wb-ink)); }
+.nc-prose .nc-step--current .nc-step__badge { border-color: var(--wb-gold); color: var(--wb-ink); box-shadow: 0 0 0 .3em color-mix(in srgb, var(--wb-gold) 22%, transparent); }
+.nc-prose .nc-step--current .nc-step__status { background: color-mix(in srgb, var(--wb-gold) 16%, transparent); border-color: transparent; color: color-mix(in srgb, var(--wb-gold) 58%, var(--wb-ink)); }
+.nc-prose .nc-step--todo.is-set .nc-step__badge { border-color: var(--wb-line); color: var(--wb-ink-3); }
+.nc-prose .nc-step--todo.is-set .nc-step__title-t { color: var(--wb-ink-2); font-weight: 500; }
+.nc-prose .nc-step--err .nc-step__badge { border-color: var(--wb-danger); background: color-mix(in srgb, var(--wb-danger) 10%, var(--wb-panel)); color: var(--wb-danger); }
+.nc-prose .nc-step--err .nc-step__status { background: color-mix(in srgb, var(--wb-danger) 10%, transparent); border-color: transparent; color: color-mix(in srgb, var(--wb-danger) 75%, var(--wb-ink)); }
+.nc-prose .nc-step--err .nc-step__body > :not(.nc-step__title) { color: color-mix(in srgb, var(--wb-danger) 70%, var(--wb-ink-2)); }
+.nc-prose .nc-step--skip .nc-step__badge { border-style: dashed; border-color: color-mix(in srgb, var(--wb-ink-3) 55%, var(--wb-line)); color: var(--wb-ink-3); }
+.nc-prose .nc-step--skip .nc-step__title-t { color: var(--wb-ink-3); font-weight: 500; text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--wb-ink-3) 50%, transparent); }
+/* 垂直：左標記＋連接線 */
+.nc-prose .nc-steps--vertical .nc-step { display: grid; grid-template-columns: 1.44em minmax(0, 1fr); column-gap: .95em; padding-bottom: 1.05em; }
+.nc-prose .nc-steps--vertical .nc-step__badge { margin-top: calc((var(--md-lh) * 1.25em - var(--sz)) / 2); }
+.nc-prose .nc-steps--vertical .nc-step::after {
+  content: ""; position: absolute; left: calc(.72em - 1px); top: calc((var(--md-lh) * 1em + 1.44em) / 2 + .2em); bottom: .2em;
+  width: 2px; border-radius: 2px; background: var(--wb-line);
 }
-.nc-prose .nc-steps--vertical .nc-step {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  column-gap: 14px;
-  align-items: start;
-}
-.nc-prose .nc-steps--vertical .nc-step::before {
-  content: "";
-  grid-column: 1;
-  grid-row: 2;
-  justify-self: center;
-  width: 2px;
-  height: 100%;
-  min-height: 16px;
-  margin-top: -6px;
-  margin-bottom: -14px;
-  background: var(--border-subtle);
-}
-.nc-prose .nc-steps--vertical .nc-step:last-child::before { display: none; }
-.nc-prose .nc-steps--vertical .nc-step__badge { grid-column: 1; grid-row: 1; }
-.nc-prose .nc-steps--vertical .nc-step__body { grid-column: 2; grid-row: 1 / span 2; padding-bottom: 4px; }
-
-/* Horizontal 版型：橫向排列；窄螢幕（< 640px）強制降級為 vertical */
-.nc-prose .nc-steps--horizontal {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  column-gap: 16px;
-  align-items: start;
-}
-.nc-prose .nc-steps--horizontal .nc-step {
-  display: grid;
-  grid-template-rows: 32px 1fr;
-  row-gap: 10px;
-  position: relative;
-}
+.nc-prose .nc-steps--vertical .nc-step:last-child { padding-bottom: 0; }
+.nc-prose .nc-steps--vertical .nc-step:last-child::after { display: none; }
+.nc-prose .nc-steps--vertical .nc-step--done::after { background: var(--wb-blue-l); }
+.nc-prose .nc-steps--vertical .nc-step--skip::after { background: none; border-left: 2px dashed var(--wb-line); width: 0; }
+/* 水平：每步至少 92px，放不下就橫捲 */
+.nc-prose .nc-steps--horizontal { display: flex; overflow-x: auto; overflow-y: hidden; padding: .4em 0; }
+.nc-prose .nc-steps--horizontal .nc-step { flex: 1 1 0; min-width: 92px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 .4em; }
 .nc-prose .nc-steps--horizontal .nc-step::after {
-  content: "";
-  position: absolute;
-  top: 15px;
-  left: calc(50% + 22px);
-  right: calc(-50% + 22px);
-  height: 2px;
-  background: var(--border-subtle);
+  content: ""; position: absolute; top: calc(.72em - 1px); left: calc(50% + 1.05em); right: calc(-50% + 1.05em);
+  height: 2px; border-radius: 2px; background: var(--wb-line);
 }
 .nc-prose .nc-steps--horizontal .nc-step:last-child::after { display: none; }
-.nc-prose .nc-steps--horizontal .nc-step__badge { justify-self: start; }
-.nc-prose .nc-steps--horizontal .nc-step__body { padding-right: 8px; }
-
-@media (max-width: 640px) {
-  .nc-prose .nc-steps--horizontal {
-    display: grid;
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    row-gap: 20px;
-    column-gap: 0;
-  }
-  .nc-prose .nc-steps--horizontal .nc-step {
-    display: grid;
-    grid-template-columns: 32px 1fr;
-    grid-template-rows: auto auto;
-    column-gap: 14px;
-    row-gap: 0;
-  }
-  .nc-prose .nc-steps--horizontal .nc-step::after { display: none; }
-  .nc-prose .nc-steps--horizontal .nc-step::before {
-    content: "";
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: center;
-    width: 2px;
-    min-height: 16px;
-    margin-top: -6px;
-    margin-bottom: -14px;
-    background: var(--border-subtle);
-  }
-  .nc-prose .nc-steps--horizontal .nc-step:last-child::before { display: none; }
-  .nc-prose .nc-steps--horizontal .nc-step__badge { grid-column: 1; grid-row: 1; }
-  .nc-prose .nc-steps--horizontal .nc-step__body { grid-column: 2; grid-row: 1 / span 2; padding-right: 0; }
-}
-
+.nc-prose .nc-steps--horizontal .nc-step--done::after { background: var(--wb-blue-l); }
+.nc-prose .nc-steps--horizontal .nc-step__body { margin-top: .55em; font-size: .92em; line-height: 1.5; }
+.nc-prose .nc-steps--horizontal .nc-step__title-t { display: block; }
+.nc-prose .nc-steps--horizontal .nc-step__status { display: flex; width: max-content; margin: .4em auto 0; }
+.nc-prose .nc-steps--horizontal .nc-step__body > :not(.nc-step__title) { margin-top: .25em; font-size: .88em; }
 /* :::steps 容器內非 :::step 子節點的安全網 */
-.nc-prose .nc-steps__stray {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
+.nc-prose .nc-steps__stray { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--wb-line); border-radius: 6px; color: var(--wb-ink-3); font-size: .875em; }
+
+/* 待生成的 @ai-visualize 標記（remark-notecraft-ai-markers；note-page §5.5） */
+.nc-prose .nc-aim { margin: 1.4em 0; border: 1px dashed color-mix(in srgb, var(--wb-gold) 60%, var(--wb-line)); border-radius: 8px; background: color-mix(in srgb, var(--wb-gold) 5%, var(--wb-panel)); overflow: hidden; }
+.nc-prose .nc-aim__h { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px dashed color-mix(in srgb, var(--wb-gold) 45%, var(--wb-line)); line-height: 1.4; }
+.nc-prose .nc-aim__ic { flex: none; color: var(--wb-gold); }
+.nc-prose .nc-aim__h code { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--wb-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: none; border: none; padding: 0; }
+.nc-prose .nc-aim__ty { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--wb-ink-3); }
+.nc-prose .nc-aim__st { flex: none; margin-left: auto; height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: color-mix(in srgb, var(--wb-gold) 18%, transparent); color: color-mix(in srgb, var(--wb-gold) 58%, var(--wb-ink)); }
+.nc-prose .nc-aim--failed .nc-aim__st { background: color-mix(in srgb, var(--wb-danger) 12%, transparent); color: color-mix(in srgb, var(--wb-danger) 75%, var(--wb-ink)); }
+.nc-prose .nc-aim__b { padding: 10px 14px 12px; font-size: .88em; line-height: 1.7; }
+.nc-prose .nc-aim__b p { margin: 0; white-space: pre-line; }
+.nc-prose .nc-aim__l { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: var(--wb-ink-3); margin-bottom: 2px; }
+.nc-prose .nc-aim__n { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: color-mix(in srgb, var(--wb-gold) 58%, var(--wb-ink)); }
+
+/* AI 視覺化與資料檔的外框（GeneratedFrame.astro；note-page §7）── 放大鈕與「複製提示詞」的外觀維持原樣（Q9） */
+.nc-viz { margin: 1.8em 0; border: 1px solid var(--wb-line); border-radius: 10px; background: var(--wb-panel); overflow: hidden; }
+.nc-viz__h { display: flex; align-items: center; gap: 7px; min-height: 36px; padding: 4px 8px 4px 12px; border-bottom: 1px solid var(--wb-line-2); font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: .08em; line-height: 1.3; color: var(--wb-ink-3); }
+.nc-viz__k { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--wb-blue-l); white-space: nowrap; }
+.nc-viz__ic { display: inline-flex; color: var(--wb-gold); }
+.nc-viz__ty { color: var(--wb-ink-3); font-weight: 500; text-transform: uppercase; }
+.nc-viz__f { margin-left: auto; min-width: 0; font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--wb-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: none; border: none; padding: 0; }
+.nc-viz__open { flex: none; display: inline-flex; align-items: center; gap: 3px; height: 24px; padding: 0 8px; border-radius: 5px; font-size: 11.5px; font-weight: 700; letter-spacing: 0; color: var(--wb-blue-l); text-decoration: none; white-space: nowrap; }
+.nc-viz__open:hover { background: var(--wb-bg); }
+.nc-viz__btn { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--wb-line); background: var(--wb-panel); color: var(--wb-ink-3); font-family: var(--font-sans); font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.nc-viz__btn:hover { border-color: var(--wb-blue-l); color: var(--wb-blue-l); }
+.nc-viz__open:focus-visible, .nc-viz__btn:focus-visible { outline: 2px solid var(--wb-blue-l); outline-offset: 1px; }
+.nc-viz__b { padding: 18px 18px 16px; }
+.nc-viz__c { padding: 0 18px 14px; font-size: 12px; line-height: 1.6; color: var(--wb-ink-3); }
+@media (max-width: 560px) { .nc-viz__f { display: none; } }
+
+/* ── 品牌主題（.np-d，預設）── 只改 H1／H2、提示框（C 樣式）、選中分頁 */
+.np-d { --md-h1: 32px; }
+.np-d .nc-prose { --md-hc: var(--wb-blue); }
+.np-d .nc-prose :is(h3, h4, h5) { color: var(--wb-ink); }
+/* 元件與資料檔外框（.nc-viz）裡的標題屬於元件自己，不套品牌的底線與金線 */
+.np-d .nc-prose h2:not(.nc-viz *) { font-size: 1.42em; margin-top: 2.4em; padding-bottom: .45em; border-bottom: 1px solid var(--wb-line); }
+.np-d .nc-prose :is(h1, h2):not(.nc-viz *)::after { content: ""; position: absolute; left: 0; bottom: -2px; width: 40px; height: 3px; border-radius: 2px; background: var(--wb-gold); }
+.np-d .nc-prose .nc-tabs__tab[aria-selected="true"] { color: var(--wb-blue); border-bottom-color: transparent; box-shadow: inset 0 -2px 0 var(--wb-blue); }
+.np-d .nc-prose .nc-adm { padding: 0; background: var(--wb-panel); border-color: color-mix(in srgb, var(--k) 40%, var(--wb-line)); overflow: hidden; }
+.np-d .nc-prose .nc-adm__title { margin: 0; padding: .4em .9em; background: color-mix(in srgb, var(--k) 10%, var(--wb-panel)); border-bottom: 1px solid color-mix(in srgb, var(--k) 22%, var(--wb-line)); font-size: .74em; letter-spacing: .1em; }
+.np-d .nc-prose .nc-adm__body { padding: .65em .95em .7em; }
+.np-d .nc-prose details.nc-adm:not([open]) > .nc-adm__title { border-bottom: none; }
+
+/* ── 經典主題（.np-o）── 頁面是 --wb-bg 灰底，程式碼、表格、分頁、問答、行內程式碼改白底才分得出層次 */
+.np-o { --md-h1: 30px; }
+.np-o .nc-prose p { margin-bottom: 16px; }
+.np-o .nc-prose h2:not(.nc-viz *) { font-size: 1.75em; color: var(--wb-blue); margin: 2.6em 0 .9em; padding-bottom: 10px; border-bottom: 1px solid var(--wb-line); }
+.np-o .nc-prose h1 { font-size: 2em; color: var(--wb-blue); }
+.np-o .nc-prose h3 { font-size: 1.4em; margin: 2.2em 0 .8em; }
+.np-o .nc-prose h4 { font-size: 1.16em; }
+.np-o .nc-prose li { margin: .45em 0; }
+.np-o .nc-prose blockquote { border-left: 4px solid var(--wb-gold); background: color-mix(in srgb, var(--wb-gold) 9%, var(--wb-panel)); border-radius: 0 8px 8px 0; padding: 14px 20px; font-weight: 500; color: var(--wb-ink); }
+.np-o .nc-prose blockquote blockquote { background: var(--wb-panel); border-left-width: 3px; }
+.np-o .nc-prose :is(:not(pre) > code, .katex-display, .nc-tabs__list, th, .nc-tabs, .nc-det) { background: var(--wb-panel); }
+.np-o .nc-prose table { border-radius: 12px; background: var(--wb-panel); }
+.np-o .nc-prose .nc-adm { border-radius: 12px; }
+.np-o .nc-prose hr { margin: 2.8em 0; }
+.np-o .nc-prose .nc-cb {
+  --cd-bg: var(--wb-panel); --cd-hbg: var(--wb-panel); --cd-hl: color-mix(in srgb, var(--wb-gold) 10%, transparent);
+  --cd-kw: var(--blue-700); --cd-str: var(--success-500); --cd-num: var(--orange-700); --cd-fn: var(--blue-500); --cd-key: var(--sky-600); --cd-com: var(--neutral-400);
+  border-radius: 12px; box-shadow: var(--wb-np-shadow-code);
+}
+.np-o .nc-prose .nc-cb__header { height: 40px; padding: 0 10px 0 14px; }
+.np-o .nc-prose .nc-cb__lang { order: -1; }
+.np-o .nc-prose .nc-cb__lang-text { color: color-mix(in srgb, var(--wb-gold) 72%, var(--wb-ink)); font-weight: 700; letter-spacing: .12em; font-size: 11px; }
+.np-o .nc-prose .nc-cb__copy { height: 26px; padding: 0 11px; border: 1px solid var(--wb-line); border-radius: 999px; background: var(--wb-panel); font-family: var(--font-sans); font-weight: 600; }
+.np-o .nc-prose .nc-cb__gutter { background: color-mix(in srgb, var(--wb-bg) 60%, var(--wb-panel)); }
+.np-o .nc-prose .nc-cb__ln.is-hl { box-shadow: inset 3px 0 0 var(--wb-gold); color: color-mix(in srgb, var(--wb-gold) 72%, var(--wb-ink)); font-weight: 700; }
+.np-o .nc-prose .nc-cb__body { line-height: 1.85; font-size: .84em; }
+.np-o .nc-prose :is(.nc-cb__line, .nc-cb__ln) { min-height: 1.85em; }
+.np-o .nc-prose .nc-tabs--code .nc-tabs__panel .nc-cb { box-shadow: none; }
+
+@media (max-width: 860px) {
+  .nc-prose .nc-anc { display: none; }
+  .nc-prose .nc-figs { grid-template-columns: minmax(0, 1fr); }
+  .nc-prose .nc-dl { grid-template-columns: minmax(0, 1fr); gap: .2em; }
+  .nc-prose .nc-dl dd { margin-bottom: .4em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nc-prose :is(.nc-cb__copy, .nc-anc, .nc-anno-marker, .nc-det__cv, .nc-tip__bubble),
+  .nc-prose details.nc-adm > summary.nc-adm__title::after,
+  .nc-prose .nc-annotate[data-enhanced] .nc-anno-item { transition: none; }
+  .nc-prose .nc-tip__bubble, .nc-prose .nc-annotate[data-enhanced] .nc-anno-item { transform: none; }
 }
 
 /* ── 定義與引用（docs/notecraft-workbench-define-ref.md §5、§11；像素值見 design_handoff_workbench_define_ref §1–§3）──

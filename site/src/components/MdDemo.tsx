@@ -127,7 +127,7 @@ export default function MdDemo({ id = "demo", file = "note.md", caption = "", to
                 <Rendered r={out.mdx ?? EMPTY} label=".mdx" />
               </>
             ) : (
-              <div className={`mdd-canvas ncp${toc ? " has-toc" : ""}`}>
+              <div className={`mdd-canvas ncp np-d${toc ? " has-toc" : ""}`}>
                 <Body r={out.md} />
                 {toc && <Toc headings={out.md.headings} prefix={prefix} />}
               </div>
@@ -165,7 +165,7 @@ function Body({ r }: { r: NcRendered }) {
 /** compare 模式的一格：左上角標出副檔名 */
 function Rendered({ r, label }: { r: NcRendered; label: string }) {
   return (
-    <div className={`mdd-canvas mdd-canvas--cmp ncp${r.error ? " is-error" : ""}`}>
+    <div className={`mdd-canvas mdd-canvas--cmp ncp np-d${r.error ? " is-error" : ""}`}>
       <span className="mdd-ext">{label}</span>
       <Body r={r} />
     </div>

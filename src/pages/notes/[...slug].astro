@@ -11,10 +11,11 @@ import DonePrompt from "@/components/islands/DonePrompt.tsx";
 import SeriesNav from "@/components/islands/SeriesNav.tsx";
 import RefLayer from "@/components/islands/RefLayer.tsx";
 import RefBacklinks from "@/components/wb/RefBacklinks.tsx";
-import AiMarkerCard from "@/components/AiMarkerCard.astro";
 import NoteSkeleton from "@/components/wb/NoteSkeleton.astro";
 import Icon from "@/components/Icon.astro";
 import { getAllNotes, noteMarkers, tagStats } from "@/lib/notes";
+import { readingMinutes } from "@/lib/note-text";
+import { applyNotePaint, notePaint } from "@/lib/note-theme-prepaint";
 import { loadSeries, seriesOf } from "@/lib/series";
 import { fmtDate } from "@/lib/dates";
 import { hasDeck } from "@/lib/decks";
@@ -25,6 +26,8 @@ import { ROOT_GROUP } from "@/lib/wb-types";
 import { getDefIndex } from "@/lib/defs-state.mjs";
 import { noteAbsPath, toVscodeHref } from "@/lib/vscode-href.mjs";
 import path from "node:path";
+// 數學公式（rehype-katex，note-page §5.2、Q4）：CSS 與字型只在筆記頁載入
+import "katex/dist/katex.min.css";
 
 export async function getStaticPaths() {
   const notes = await getAllNotes();
@@ -97,6 +100,13 @@ for (const d of pageDefs) {
 const backlinks = [...blMap.values()].sort((a, b) => b.ids.length - a.ids.length);
 const citedDefs = pageDefs.filter((d) => d.refs.length > 0).map((d) => ({ id: d.id, count: d.refs.length }));
 
+// 資訊列（note-page §3、Q8）：閱讀時間在 build 期算；系列連到 /notes?series=
+const readMins = readingMinutes(note.body);
+const seriesHref = seriesNavData ? withBase(`/notes?series=${encodeURIComponent(seriesNavData.id)}`) : "";
+// 主題與字級預繪（§4.3）：函式以原始碼內嵌
+const paintSrc = notePaint.toString();
+const applySrc = applyNotePaint.toString();
+
 // 目錄收 h1–h3，id 直接用 Astro 幫標題產生的 slug（與內文標題同一個函式，不會對不上）。
 // 嵌入的標題（::include）id 是 inc-<defId>-<slug>，TOC 前面加 icon（define-ref §6.1）
 const toc = headings
@@ -116,6 +126,9 @@ const toc = headings
   pills={[aiPill]}
   clampTwo
   pagefindTitle
+  titleReveal
+  flush
+  scrollClass="np-scroll np-d"
   tab={{ kind: "note", id: note.id, title: note.data.title, path: relPath, pending: pendingMarkers.length }}
 >
   <Fragment slot="actions">
@@ -135,35 +148,48 @@ const toc = headings
       />
     )}
   </Fragment>
+  {/* 主題與字級在第一次繪製前套上（note-page §4.3）；必須在主區結尾的捲動還原之前 */}
+  <script is:inline define:vars={{ paintSrc, applySrc }}>
+    try {
+      var sc = document.getElementById("nc-scroll");
+      var notePaint = new Function("return (" + paintSrc + ")")();
+      var applyNotePaint = new Function("return (" + applySrc + ")")();
+      if (sc) applyNotePaint(sc, notePaint(localStorage.getItem("nc-workbench-prefs-v1")));
+    } catch (e) {}
+  </script>
   {/* 骨架在內容之前，內容開頭一到就藏（loading-transitions §8.3） */}
   <div class="nc-body-wrap">
   <NoteSkeleton toc={toc.length > 0} />
-  <div class="wb-host nc-content">
-  <div class={`nc-note-grid ${toc.length ? "has-toc" : ""}`}>
-    <article class="nc-note-article" style="min-width:0;">
-      <div style="margin-bottom:14px;">
-        <TagEditor
-          client:load
-          slug={note.id}
-          initialTags={note.data.tags}
-          editable={isDev}
-          suggestions={stats}
-        />
-      </div>
-
-      <p style="font-size:var(--text-lg);color:var(--text-muted);line-height:1.7;margin:0 0 18px;">
-        {note.data.description}
-      </p>
-
-      <div
-        style="display:flex;flex-direction:column;gap:14px;padding-bottom:18px;margin-bottom:8px;border-bottom:1px solid var(--neutral-200);"
-      >
-        <div
-          style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-size:13px;color:var(--text-muted);"
-        >
-          <span style="display:inline-flex;align-items:center;gap:5px;">
-            <Icon name="clock" size={15} /> 更新於 {fmtDate(note.data.updatedAt)}
+  <div class="np-host nc-content">
+  <div class:list={["np-page", { "has-toc": toc.length > 0 }]}>
+    <article class="md-art">
+      <header class="md-head">
+        <div class="md-tags">
+          <TagEditor
+            client:load
+            slug={note.id}
+            initialTags={note.data.tags}
+            editable={isDev}
+            suggestions={stats}
+          />
+        </div>
+        <h1 class="md-h1" id="nc-note-title">{note.data.title}</h1>
+        {note.data.description && <p class="md-desc">{note.data.description}</p>}
+        <div class="md-meta">
+          <a class="mi" href={notesFolderHref(folderPath)}>
+            <Icon name="folder" size={13} /> {folderPath || ROOT_GROUP}
+          </a>
+          <span class="mi">
+            <Icon name="clock" size={13} /> 更新於 {fmtDate(note.data.updatedAt)}
           </span>
+          <span class="mi">
+            <Icon name="book" size={13} /> 約 {readMins} 分鐘
+          </span>
+          {seriesNavData && (
+            <a class="mi" href={seriesHref}>
+              <Icon name="layers" size={13} /> {seriesNavData.title} · {seriesNavData.currentIndex + 1}/{seriesNavData.chapters.length}
+            </a>
+          )}
           <ReadingControl client:idle slug={note.id} />
           {backlinks.length > 0 && (
             <button type="button" class="rf-bl-meta" data-nc-bl-open aria-haspopup="dialog" aria-expanded="false">
@@ -171,19 +197,9 @@ const toc = headings
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* 已生成的標記，其提示詞已由下方 GeneratedFrame 卡片（含複製按鈕）呈現，
-          這裡只保留尚未生成（pending / failed / locked）的標記提示，避免重複。 */}
-      {pendingMarkers.length > 0 && (
-        <div style="margin:18px 0 6px;">
-          {pendingMarkers.map((m) => (
-            <AiMarkerCard id={m.id} type={m.type} status={m.status} prompt={m.prompt} />
-          ))}
-        </div>
-      )}
-
-      <div class="nc-prose" data-pagefind-body>
+      <div class="md-flow nc-prose" data-pagefind-body>
         <Content />
       </div>
 
@@ -191,14 +207,12 @@ const toc = headings
 
       <DonePrompt client:visible slug={note.id} />
 
-      <div
-        style="margin-top:44px;padding-top:22px;border-top:1px solid var(--neutral-200);display:flex;justify-content:space-between;color:var(--text-muted);font-size:13px;"
-      >
-        <span>建立於 {fmtDate(note.data.createdAt)}</span>
-        <span style="font-family:var(--font-mono);">{relPath}</span>
-      </div>
+      {seriesNavData && <SeriesNav series={seriesNavData} />}
 
-      {seriesNavData && <SeriesNav client:visible series={seriesNavData} />}
+      <div class="md-foot">
+        <span>建立於 {fmtDate(note.data.createdAt)}</span>
+        <span class="mono">{relPath}</span>
+      </div>
     </article>
 
     {toc.length > 0 && (
@@ -209,262 +223,73 @@ const toc = headings
   </div>
   </div>
   </div>
+  <noscript><style>.wb-hd-title.reveal{opacity:1;visibility:visible;max-width:none}</style></noscript>
 </WorkbenchLayout>
 
-<style is:global>
-  /* 筆記頁內文滿版：解除 global.css 的 .nc-prose 760px 上限（PluginView 仍保留） */
-  .nc-note-article .nc-prose {
-    max-width: none;
-  }
-  .nc-note-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 40px;
-    align-items: start;
-  }
-  /* TOC 斷點（Task 74）：以「內文欄至少 640px」為準，不看視窗寬。
-     新殼吃掉 Rail 52 + Sidebar 240，同樣的視窗寬主區窄很多；平板時 Sidebar 又收成抽屜，
-     用視窗寬換算要算兩套。改用 container query 量 .wb-host 的內容寬：
-     640（內文）+ 40（gap）+ 220（TOC）= 900。桌面約落在視窗 1256、平板約 1016。 */
-  .wb-host {
-    container-type: inline-size;
-    container-name: wbhost;
-  }
-  @container wbhost (min-width: 900px) {
-    .nc-note-grid.has-toc {
-      grid-template-columns: 1fr 220px;
-    }
-    /* 讓目錄欄拉伸到整欄高度，sticky 才有可黏附的範圍 */
-    .nc-toc-col {
-      align-self: stretch;
-    }
-  }
-  /* 桌面：右側黏性目錄 */
-  .nc-toc {
-    position: sticky;
-    top: 8px;
-    /* 目錄過長時自己捲，不撐開頁面 */
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-  /* 標頭列：標題按鈕（窄版時負責折疊面板）＋「全部展開／收合」按鈕 */
-  .nc-toc-head {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-bottom: 12px;
-  }
-  .nc-toc-title {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 6px;
-    padding: 0;
-    border: none;
-    background: none;
-    font-family: var(--font-sans);
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    cursor: default;
-  }
-  .nc-toc-head-r {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .nc-toc-count {
-    font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 0;
-    text-transform: none;
-    font-variant-numeric: tabular-nums;
-  }
-  /* 桌面不需要折疊箭頭 */
-  .nc-toc-chevron {
-    display: none;
-  }
-
-  /* 扁平清單，用縮排表現層級：左 padding = 14 + depth × 12 */
-  .nc-toc-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    border-left: 2px solid var(--neutral-200);
-  }
-  /* 一列 = 連結 + 可選的展開鈕；連結不包在按鈕裡 */
-  .nc-toc-row {
-    display: flex;
-    align-items: center;
-  }
-  .nc-toc-row > .nc-toc-item {
-    flex: 1;
-    min-width: 0;
-  }
-  .nc-toc-twisty,
-  .nc-toc-all {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: color 140ms, background 140ms;
-  }
-  .nc-toc-twisty:hover,
-  .nc-toc-all:hover {
-    color: var(--blue-700);
-    background: var(--neutral-100);
-  }
-  .nc-toc-twisty:focus-visible,
-  .nc-toc-all:focus-visible {
-    outline: 2px solid var(--blue-700);
-    outline-offset: -2px;
-  }
-  .nc-toc-twisty svg {
-    transition: transform 200ms ease-out;
-  }
-  .nc-toc-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-left: -2px;
-    border-left: 2px solid transparent;
-    line-height: 1.5;
-    text-decoration: none;
-    transition: color 140ms, border-color 140ms;
-  }
-  .nc-toc-item.d0 {
-    padding: 5px 10px 5px 14px;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-  }
-  .nc-toc-item.d1 {
-    padding: 3px 10px 3px 26px;
-    font-size: 12.5px;
-    font-weight: 400;
-    color: var(--text-body);
-  }
-  .nc-toc-item.d2 {
-    padding: 3px 10px 3px 38px;
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-muted);
-    opacity: 0.85;
-  }
-  .nc-toc-mark {
-    flex: none;
-    background: var(--neutral-300);
-    transition: background 140ms;
-  }
-  .nc-toc-item.d1 .nc-toc-mark {
-    width: 4px;
-    height: 4px;
-    border-radius: 999px;
-  }
-  .nc-toc-item.d2 .nc-toc-mark {
-    width: 8px;
-    height: 1.5px;
-  }
-  .nc-toc-label {
-    min-width: 0;
-  }
-  /* 嵌入的內容（::include）的標題（define-ref §6.1） */
-  .nc-toc-inc {
-    display: inline-flex;
-    margin-right: 4px;
-    vertical-align: -1px;
-    color: var(--wb-ink-3);
-  }
-  .nc-toc-item:hover {
-    color: var(--blue-700);
-  }
-  /* 目前位置的祖先 */
-  .nc-toc-item.trail {
-    color: var(--blue-700);
-    font-weight: 600;
-    opacity: 1;
-  }
-  .nc-toc-item.on {
-    border-left-color: var(--orange-500);
-    color: var(--blue-700);
-    font-weight: 700;
-    opacity: 1;
-  }
-  /* 目前位置藏在收合的分支裡：看得到的最近祖先代為標橘色左緣 */
-  .nc-toc-item.proxy {
-    border-left-color: var(--orange-500);
-  }
-  .nc-toc-item.on .nc-toc-mark {
-    background: var(--orange-500);
-  }
-
-  /* 主區不夠寬：單欄 + 目錄改為可折疊面板置於內文上方 */
-  @container wbhost (max-width: 899.98px) {
-    .nc-note-grid {
-      gap: 0;
-    }
-    .nc-toc-col {
-      order: -1;
-      margin-bottom: 18px;
-    }
-    .nc-toc {
-      position: static;
-      max-height: none;
-      overflow: visible;
-      border: 1px solid var(--neutral-200);
-      border-radius: var(--radius-lg);
-      background: #fff;
-      padding: 12px 16px;
-      box-shadow: var(--shadow-xs);
-    }
-    .nc-toc-head {
-      margin-bottom: 0;
-    }
-    .nc-toc-head:has(> .nc-toc-title[aria-expanded="true"]) {
-      margin-bottom: 12px;
-    }
-    .nc-toc-title {
-      align-items: center;
-      cursor: pointer;
-    }
-    .nc-toc-chevron {
-      display: inline-flex;
-      transition: transform 200ms ease-out;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .nc-toc-chevron,
-    .nc-toc-item,
-    .nc-toc-mark,
-    .nc-toc-twisty,
-    .nc-toc-twisty svg,
-    .nc-toc-all {
-      transition: none;
-    }
-  }
-</style>
 
 <script>
   import { COPY_FAILED_MSG, writeClipboard } from "@/lib/clipboard";
   import { initAllTabs } from "@/lib/nc-tabs";
   import { initTips } from "@/lib/nc-tip";
 
+  import { applyNotePaint, notePaint } from "@/lib/note-theme-prepaint";
+  import { PREFS_EVENT, PREFS_KEY } from "@/lib/wb-prefs";
+
   // Content tabs 與 Tooltips 的初始化在 lib/nc-tabs.ts、lib/nc-tip.ts（預覽卡 RefLayer 也要用）
   initAllTabs(document);
   initTips(document);
+
+  // 標題錨點（note-page §5.1）：hover 時左側出現 #。在瀏覽器插入：不進 pagefind 索引、也不影響 build 期的目錄文字
+  document.querySelectorAll<HTMLElement>(".md-flow :is(h1, h2, h3, h4, h5, h6)[id]").forEach((h) => {
+    if (h.closest(".nc-viz") || h.querySelector(":scope > .nc-anc")) return;
+    const a = document.createElement("a");
+    a.className = "nc-anc";
+    a.href = `#${h.id}`;
+    a.textContent = "#";
+    a.setAttribute("aria-hidden", "true");
+    a.tabIndex = -1;
+    h.prepend(a);
+  });
+
+  // 待辦清單（§5.7）：GFM 輸出的 checkbox 是 disabled；在閱讀畫面可以勾，但只改畫面、不寫回檔案也不保存
+  document.querySelectorAll<HTMLInputElement>(".md-flow li.task-list-item input[type=checkbox]").forEach((cb) => {
+    cb.disabled = false;
+    const li = cb.closest("li");
+    const label = li?.textContent?.trim();
+    if (label) cb.setAttribute("aria-label", label);
+  });
+
+  // 主題與字級（note-page §4.2）：預繪已在第一次繪製前套上；這裡只接之後的變更（同分頁事件、其他分頁的 storage）
+  {
+    const sc = document.getElementById("nc-scroll");
+    const repaint = () => {
+      try {
+        if (sc) applyNotePaint(sc, notePaint(localStorage.getItem(PREFS_KEY)));
+      } catch {
+        /* localStorage 不可用：維持 SSR 的品牌主題 */
+      }
+    };
+    window.addEventListener(PREFS_EVENT, repaint);
+    window.addEventListener("storage", (e) => {
+      if (e.key === PREFS_KEY) repaint();
+    });
+  }
+
+  // 頁首標題（note-page §3.2、Q3）：文內 H1 還看得到時隱藏，捲過它之後才淡入
+  {
+    const sc = document.getElementById("nc-scroll");
+    const h1 = document.getElementById("nc-note-title");
+    const hd = document.querySelector<HTMLElement>(".wb-hd-title.reveal");
+    if (sc && h1 && hd && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        ([e]) => hd.classList.toggle("is-shown", !e.isIntersecting && e.boundingClientRect.top < (e.rootBounds?.top ?? 0)),
+        { root: sc, threshold: 0 },
+      );
+      io.observe(h1);
+    } else if (hd) {
+      hd.classList.add("is-shown");
+    }
+  }
   // meta 列的「被 N 篇筆記引用」→ RefBacklinks 開 Drawer（define-ref §8.1）
   document.querySelectorAll<HTMLElement>("[data-nc-bl-open]").forEach((b) =>
     b.addEventListener("click", () => window.dispatchEvent(new Event("nc-backlinks-open"))),
@@ -495,22 +320,19 @@ const toc = headings
       openMarker = null;
     };
 
+    // 彈窗位置（note-page §5.4）：圓圈下方 14px、往左 280px，夾在程式碼區塊的寬度內；下方放不下時改放上方
     const position = (item: HTMLElement, marker: HTMLElement) => {
       item.style.left = "0px";
       item.style.top = "0px";
       const tr = marker.getBoundingClientRect();
+      const box = (marker.closest(".nc-cb") ?? root).getBoundingClientRect();
       const bw = item.offsetWidth;
       const bh = item.offsetHeight;
-      const scroll = document.getElementById("nc-scroll");
-      const sr = scroll
-        ? scroll.getBoundingClientRect()
-        : ({ left: 8, right: window.innerWidth - 8 } as DOMRect);
-      const minX = Math.max(8, sr.left + 8);
-      const maxX = Math.min(window.innerWidth - 8, sr.right - 8);
-      let left = tr.left + tr.width / 2 - bw / 2;
-      left = Math.max(minX, Math.min(left, maxX - bw));
-      let top = tr.bottom + 8;
-      if (top + bh > window.innerHeight - 8) top = Math.max(8, tr.top - bh - 8);
+      const minX = Math.max(8, box.left + 8);
+      const maxX = Math.min(window.innerWidth - 8, box.right - 8);
+      const left = Math.max(minX, Math.min(tr.left - 280, maxX - bw));
+      let top = tr.bottom + 14;
+      if (top + bh > window.innerHeight - 8) top = Math.max(8, tr.top - bh - 14);
       item.style.left = `${Math.round(left)}px`;
       item.style.top = `${Math.round(top)}px`;
     };
@@ -545,13 +367,17 @@ const toc = headings
       });
     });
 
-    document.addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key === "Escape" && openMarker) {
+    // Esc 晚一拍處理：工作台的 wb-escape 也掛在 window，別人（Palette／Drawer）先處理了就讓位
+    window.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || !openMarker) return;
+      setTimeout(() => {
+        if (e.defaultPrevented || !openMarker) return;
         const m = openMarker;
         close();
         m.focus();
-      }
+      });
     });
+    document.getElementById("nc-scroll")?.addEventListener("scroll", () => openItem && close(), { passive: true });
     document.addEventListener("click", (e) => {
       if (openItem && !openItem.contains(e.target as Node)) close();
     });

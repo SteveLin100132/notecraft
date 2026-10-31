@@ -138,3 +138,18 @@ export function parseMarkers(body: string | undefined | null): AiMarker[] {
   }
   return out;
 }
+
+/**
+ * 閱讀時間（docs/notecraft-workbench-note-page.md §2.1）：字數 ÷ 450，四捨五入、至少 1 分鐘。
+ * 「字數」= CJK 字元數 + 其他文字的單字數；程式碼區塊與 MDX 註解不算（stripNonProse），import／export 行與 JSX 標籤也不算。
+ */
+export function readingMinutes(body: string | undefined | null): number {
+  const prose = stripNonProse(body ?? "")
+    .split("\n")
+    .filter((l) => !/^(import|export)\s/.test(l))
+    .join("\n")
+    .replace(/<[^>\n]+>/g, " ");
+  const cjk = prose.match(/[㐀-鿿豈-﫿぀-ヿ가-힯]/g)?.length ?? 0;
+  const words = prose.replace(/[㐀-鿿豈-﫿぀-ヿ가-힯]/g, " ").match(/[A-Za-z0-9][\w'-]*/g)?.length ?? 0;
+  return Math.max(1, Math.round((cjk + words) / 450));
+}

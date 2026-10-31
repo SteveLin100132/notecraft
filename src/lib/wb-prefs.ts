@@ -1,4 +1,4 @@
-// 工作台偏好（client-safe）。localStorage["nc-workbench-prefs-v1"]，形狀 { defaultView, groupBy, tocDefault }。
+// 工作台偏好（client-safe）。localStorage["nc-workbench-prefs-v1"]，形狀 { defaultView, groupBy, tocDefault, noteTheme, noteFontScale }。
 // 讀不到或值無效時一律回預設。設定頁寫、/notes 讀；在 Toolbar 切分組時也會回寫 groupBy；筆記頁的目錄讀 tocDefault。
 export type WbView = "list" | "board" | "table" | "timeline" | "graph";
 export type WbGroupBy = "folder" | "series" | "tag" | "month";
@@ -12,15 +12,24 @@ export const GROUP_LABEL: Record<WbGroupBy, string> = { folder: "資料夾", ser
 export const WB_TOC_DEFAULTS: readonly WbTocDefault[] = ["collapsed", "expanded"];
 export const TOC_DEFAULT_LABEL: Record<WbTocDefault, string> = { collapsed: "全部收合", expanded: "全部展開" };
 
+/** 筆記頁主題（docs/notecraft-workbench-note-page.md §4）：品牌（新）／經典（舊） */
+export type NoteTheme = "brand" | "classic";
+export const NOTE_THEMES: readonly NoteTheme[] = ["brand", "classic"];
+export const NOTE_THEME_LABEL: Record<NoteTheme, string> = { brand: "品牌（新）", classic: "經典（舊）" };
+/** 筆記字級倍率只接受這 5 段（Q10）；note-theme-prepaint.ts 有同一份清單 */
+export const NOTE_FONT_SCALES: readonly number[] = [0.9, 1, 1.1, 1.2, 1.25];
+
 export interface WbPrefs {
   defaultView: WbView;
   groupBy: WbGroupBy;
   tocDefault: WbTocDefault;
+  noteTheme: NoteTheme;
+  noteFontScale: number;
 }
 
 export const PREFS_KEY = "nc-workbench-prefs-v1";
 export const PREFS_EVENT = "nc-prefs-changed";
-export const DEFAULT_PREFS: WbPrefs = { defaultView: "list", groupBy: "folder", tocDefault: "collapsed" };
+export const DEFAULT_PREFS: WbPrefs = { defaultView: "list", groupBy: "folder", tocDefault: "collapsed", noteTheme: "brand", noteFontScale: 1 };
 
 export function isView(v: unknown): v is WbView {
   return typeof v === "string" && (WB_VIEWS as readonly string[]).includes(v);
@@ -42,6 +51,9 @@ export function readPrefs(): WbPrefs {
       defaultView: isView(o.defaultView) ? o.defaultView : DEFAULT_PREFS.defaultView,
       groupBy: isGroupBy(o.groupBy) ? o.groupBy : DEFAULT_PREFS.groupBy,
       tocDefault: isTocDefault(o.tocDefault) ? o.tocDefault : DEFAULT_PREFS.tocDefault,
+      noteTheme: o.noteTheme === "classic" ? "classic" : "brand",
+      noteFontScale:
+        typeof o.noteFontScale === "number" && NOTE_FONT_SCALES.includes(o.noteFontScale) ? o.noteFontScale : DEFAULT_PREFS.noteFontScale,
     };
   } catch {
     return { ...DEFAULT_PREFS };
