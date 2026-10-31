@@ -1,0 +1,146 @@
+---
+title: 視覺化互動元件
+description: 以 @ai-visualize 標記產生的互動計算器、流程模擬與圖表、待生成標記，以及以 renderer plugin 嵌入的資料檔。
+tags:
+  - MDX
+  - 視覺化
+  - Plugin
+category: guide
+createdAt: '2026-05-28'
+updatedAt: '2026-06-14'
+---
+import PluginView from "@/components/PluginView.astro";
+
+文字講不清楚的內容，可以在筆記中放一個 `@ai-visualize` 標記，描述想要的互動元件，再交給 AI 產生。本篇示範三種已生成的元件、待生成標記的樣貌，以及外掛提供的資料檔。
+
+## AI 視覺化標記
+
+標記寫在 MDX 註解裡，不會出現在發佈後的頁面。`id` 決定產生的檔名，`type` 為元件類型，`prompt` 描述需求，`status` 記錄生成狀態。
+
+```mdx
+{/* @ai-visualize
+id: my-leave-calculator
+type: free
+prompt: |
+  把特休年資級距做成可拖曳的計算器，顯示天數與級距說明。
+status: pending
+*/}
+```
+
+生成後，元件會以統一的外框呈現：左上為類型，右上為元件檔案路徑與放大按鈕。
+
+## 互動計算器
+
+拖曳滑桿或點長條，查看不同年資對應的 :ref[特別休假]{id="hr.term-annual-leave"} 天數。計算規則與「特休假規格與計算」的級距表一致。
+
+{/* @ai-visualize
+id: demo-leave-calculator
+type: free
+prompt: |
+  把特休年資級距做成可拖曳的計算器，顯示天數與級距說明。
+status: generated
+*/}
+import GeneratedFrame from '@/components/GeneratedFrame.astro'
+import DemoLeaveCalculator from '@/components/generated/demo-leave-calculator'
+
+<GeneratedFrame id="demo-leave-calculator" type="free" prompt={"把特休年資級距做成可拖曳的計算器，顯示天數與級距說明。"} caption="type: free — 拖曳滑桿或點長條。">
+  <DemoLeaveCalculator client:visible />
+</GeneratedFrame>
+
+## 流程模擬
+
+切換情境並按「下一步」，觀察不同請假長度的簽核路徑。適合呈現有分支、需要逐步說明的流程。
+
+{/* @ai-visualize
+id: demo-approval-flow
+type: motion
+prompt: |
+  以逐步動畫呈現不同請假長度的簽核路徑，可切換情境並按「下一步」推進。
+status: generated
+*/}
+import DemoApprovalFlow from '@/components/generated/demo-approval-flow'
+
+<GeneratedFrame id="demo-approval-flow" type="motion" prompt={"以逐步動畫呈現不同請假長度的簽核路徑，可切換情境並按「下一步」推進。"} caption="type: motion — 切換情境，按「下一步」推進。">
+  <DemoApprovalFlow client:visible />
+</GeneratedFrame>
+
+## 互動圖表
+
+點圖例可隱藏或顯示假別，滑過色塊顯示數值。
+
+{/* @ai-visualize
+id: demo-usage-chart
+type: chart
+prompt: |
+  以堆疊長條圖比較各部門 1–9 月的請假時數，圖例可切換假別。
+status: generated
+*/}
+import DemoUsageChart from '@/components/generated/demo-usage-chart'
+
+<GeneratedFrame id="demo-usage-chart" type="chart" prompt={"以堆疊長條圖比較各部門 1–9 月的請假時數，圖例可切換假別。"} caption="type: chart — 2026 年 1–9 月各部門請假時數（示範數據）。">
+  <DemoUsageChart client:visible />
+</GeneratedFrame>
+
+:::tip
+每個元件右上角都有放大按鈕，可以全螢幕操作；按 <kbd>Esc</kbd> 關閉。筆記轉成簡報時，已生成的元件也能在投影片中直接操作。
+:::
+
+## 待生成標記
+
+還沒生成的標記會以虛線框呈現，列出類型與 prompt，同時計入工作台的「AI 標記佇列」。
+
+{/* @ai-visualize
+id: demo-expiry-heatmap
+type: chart
+prompt: |
+  以月份 × 部門的熱度圖呈現即將到期的特休時數，顏色越深代表到期時數越多，點格子顯示員工名單。
+status: pending
+*/}
+
+{/* @ai-visualize
+id: demo-approval-sla
+type: free
+prompt: |
+  以儀表呈現各主管的平均簽核時間，超過 24 小時的區段標為警示色，可切換月份。
+status: pending
+*/}
+
+## Renderer Plugin
+
+AI 元件是為一篇筆記量身產生的；renderer plugin 則負責某一類**資料檔**，例如資料庫 schema 或 API 規格。資料檔更新後重新建置，所有用到它的地方都會跟著更新。
+
+### 對應資料檔
+
+在 `.notecraft/plugins.json` 以 glob 指定每個 plugin 負責哪些檔案。符合的檔案會自動產生獨立檢視頁，並出現在側欄的「Plugin」。
+
+```json title=".notecraft/plugins.json"
+{
+  "plugins": [
+    { "plugin": "er-diagram-renderer", "files": ["**/*.er.json"] },
+    { "plugin": "openapi-renderer", "files": ["**/*.openapi.json"] }
+  ]
+}
+```
+
+| Plugin | 負責的檔案 | 渲染結果 |
+| --- | --- | --- |
+| `er-diagram-renderer` | `**/*.er.json` | 把資料庫 schema JSON 渲染成 Schema／Table 導覽、Wiki 與可聚焦、可搜尋的實體關聯圖 |
+| `openapi-renderer` | `**/*.openapi.json` | 把 OpenAPI 3.x 規格渲染成依標籤分組的 API 文件與可複製的請求範例 |
+
+<p className="nc-tcap">表：目前安裝的 renderer plugin</p>
+
+### 嵌入筆記
+
+資料檔除了有自己的檢視頁，也可以用 `<PluginView>` 直接嵌入筆記，嵌入時由同一個 renderer 以精簡模式呈現；需要時可用 `options` 覆寫這一處的設定。
+
+```mdx
+import PluginView from "@/components/PluginView.astro";
+
+<PluginView src="schema-demo.er.json" />
+```
+
+<PluginView src="schema-demo.er.json" caption="er-diagram-renderer 嵌入模式：切換 Wiki 與關聯圖、點表格聚焦；右上角可開啟完整檢視頁或放大。" />
+
+:::note
+嵌入與檢視頁讀的是同一份資料檔，不會複製內容到筆記裡。系列也可以把資料檔當成一個章節，本系列的最後一章就是這份 ER 圖。
+:::

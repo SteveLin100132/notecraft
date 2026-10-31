@@ -139,7 +139,7 @@ export default function MdDemoFiles({ id = "demo", caption = "", presets = [] }:
             <FileTabs names={set?.titles ?? files.map((f) => f.name)} active={outIdx} onPick={setOutIdx} label="要看的筆記頁" />
           </div>
           <div className="mdd-outs">
-            <div ref={canvas} className="mdd-canvas ncp">
+            <div ref={canvas} className="mdd-canvas ncp np-d">
               {out?.error ? (
                 <div className="mdd-error" role="alert">
                   <p className="mdd-error-title">build 失敗</p>

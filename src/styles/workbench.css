@@ -29,6 +29,15 @@
   --wb-rail-ic: #8b98ab;        /* Rail 圖示 */
   --wb-rail-ic-hover: #dfe5ee;
 
+  /* ── 筆記閱讀頁（docs/notecraft-workbench-note-page.md §4.1；照 handoff np.css 原值）── */
+  --wb-cd-kw: #1b4f9c;  --wb-cd-str: #2a7a4f;  --wb-cd-com: #7d8aa0;
+  --wb-cd-num: #b25a0c; --wb-cd-fn: #7a4cb5;   --wb-cd-key: #1b4f9c;
+  --wb-np-tip-ink: #eef2f7;                     /* :tip 深色泡泡上的字 */
+  --wb-np-ease: cubic-bezier(.22,.7,.3,1);
+  --wb-np-shadow-pop: 0 12px 32px rgba(22,28,40,.16), 0 1px 3px rgba(22,28,40,.08);
+  --wb-np-shadow-ann: 0 10px 30px rgba(22,28,40,.1), 0 1px 2px rgba(22,28,40,.05);
+  --wb-np-shadow-code: 0 1px 3px rgba(27,79,156,.08), 0 4px 14px rgba(27,79,156,.06);
+
   /* ── Dashboard 總覽（規格 docs/notecraft-workbench-dashboard.md §7.2；照 handoff 原值，Q28 精神）── */
   --wb-dv-warn-n: #c47a12;        /* AI 待生成大數字 */
   --wb-dv-ai-ok: #23855a;         /* AI x/y 全部生成；系列卡綠勾勾 */
@@ -1242,8 +1251,8 @@ html[data-nc-vt="section"]::view-transition-new(nc-main){animation:wbVtFade var(
 .nc-sk-art{display:flex;flex-direction:column;min-width:0}
 /* 與 .nc-note-grid.has-toc 同一個 container query（內文 640 + gap 40 + 目錄 220） */
 @container wbhost (min-width:900px){.nc-sk-note.has-toc{grid-template-columns:minmax(0,1fr) 220px}.nc-sk-note.has-toc>.nc-sk-toc{display:flex}}
-.nc-sk-host{padding:26px 32px 60px;container-type:inline-size;container-name:wbhost}  /* 與 .wb-host 相同的內距；不共用 class，見 NoteSkeleton.astro */
-@media(max-width:860px){.nc-sk-host{padding:16px 4px 48px}}
+.nc-sk-host{padding:24px 40px 60px;container-type:inline-size;container-name:wbhost}  /* 與 .np-page 相同的內距（note-page §3.1）；不共用 class，見 NoteSkeleton.astro */
+@media(max-width:860px){.nc-sk-host{padding:20px 20px 48px}}
 
 /* /notes 首屏（§8.4）：有 query 或非預設偏好時，hydrate 前不再整塊藏起來，Body 改畫列表骨架。
    Body 的內容由 island 輸出、layout 插不進 DOM，所以用 Body 自己的偽元素：每 38px 一列、底線與三段條 */
@@ -1404,3 +1413,95 @@ html[data-wb-filtering] .wb-main .wb-body::before{content:"";position:absolute;l
   .wb-upd-spin{animation:none;border-right-color:currentColor;opacity:.45}
   .wb-upd-skel{animation:none;background-image:none}
 }
+
+/* ── 筆記閱讀頁（docs/notecraft-workbench-note-page.md §3、§6；像素值照 design_handoff_note_page 的 np.css）──
+   #nc-scroll 帶 .np-scroll 與主題 class（.np-d 品牌、.np-o 經典，第一次繪製前由 lib/note-theme-prepaint.ts 換好）。
+   版面以 .np-host 的內容寬判斷（container query），不看視窗寬：≥ 900 內文＋220 目錄；720–900 目錄 184；< 720 單欄、目錄收成一列按鈕。
+   內文（.nc-prose）的樣式在 global.css 的 prose 區段（官網要抽）。 */
+.np-scroll{scroll-behavior:auto}
+.wb-body.np-o{background:var(--wb-bg)}
+.np-host{container-type:inline-size;container-name:nphost}
+.np-page{padding:24px 40px 140px;display:grid;grid-template-columns:minmax(0,1fr);gap:48px;align-items:start}
+.np-o .np-page{padding-top:28px}
+.md-art{min-width:0;width:100%;box-sizing:border-box}
+.md-art .md-flow.nc-prose{max-width:none}
+@container nphost (min-width:900px){.np-page.has-toc{grid-template-columns:minmax(0,1fr) 220px}.np-page.has-toc>.nc-toc-col{align-self:stretch}}
+@container nphost (min-width:720px) and (max-width:899.98px){.np-page{gap:28px;padding-left:28px;padding-right:24px}.np-page.has-toc{grid-template-columns:minmax(0,1fr) 184px}.np-page.has-toc>.nc-toc-col{align-self:stretch}}
+@container nphost (max-width:719.98px){.np-page{gap:0;padding:20px 20px 150px}.np-page>.nc-toc-col{order:-1;margin-bottom:20px}.np-page{--md-h1:24px}.md-art :is(h1,h2,h3,h4,h5,h6)>.nc-anc{display:none}}
+
+/* 標頭：標籤 → H1 → 描述 → 資訊列 */
+.md-head .md-tags{margin-bottom:14px}
+.md-tag{height:22px;display:inline-flex;align-items:center;gap:3px;padding:0 10px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-panel);font-size:11.5px;line-height:1;color:var(--wb-ink-2);white-space:nowrap;transition:border-color 140ms,color 140ms}
+.md-tag.is-edit{padding-right:4px}
+.md-tag a{color:inherit;text-decoration:none}
+.md-tag:has(a):hover{border-color:var(--wb-blue-l);color:var(--wb-blue-l)}
+.md-tag a:focus-visible{outline:2px solid var(--wb-blue-l);outline-offset:3px;border-radius:999px}
+.md-h1{font-size:var(--md-h1,32px);font-weight:900;line-height:1.25;margin:0 0 10px;color:var(--wb-ink);letter-spacing:-.01em;text-wrap:balance}
+.np-d .md-h1{color:var(--wb-blue)}
+.md-desc{font-size:calc(var(--md-fs,16px) - 1px);line-height:1.75;color:var(--wb-ink-3);margin:0 0 18px;text-wrap:pretty}
+.md-meta{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding-bottom:16px;margin-bottom:26px;border-bottom:1px solid var(--wb-line);font-size:12px;color:var(--wb-ink-3)}
+.md-meta .mi{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:inherit;text-decoration:none}
+.md-meta a.mi:hover{color:var(--wb-blue-l)}
+.md-meta a.mi:focus-visible{outline:2px solid var(--wb-blue-l);outline-offset:2px;border-radius:4px}
+.md-meta .mi svg:first-child{color:var(--wb-ink-3)}
+.md-meta a.mi:first-child svg{color:var(--wb-blue-l)}
+.md-meta .rf-bl-meta{height:22px;font-size:12px;color:var(--wb-ink-3);margin:0 0 0 -8px}
+.md-foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--wb-line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--wb-ink-3)}
+.md-foot .mono{font-family:var(--font-mono)}
+
+/* 殼 Header 的標題：筆記頁捲過文內 H1 才淡入（§3.2、Q3）；visibility 讓它在隱藏時也離開無障礙樹 */
+.wb-hd-title.reveal{opacity:0;visibility:hidden;max-width:0;transition:opacity 180ms var(--wb-np-ease),visibility 180ms}
+.wb-hd-title.reveal.is-shown{opacity:1;visibility:visible;max-width:none}
+
+/* 目錄（Toc.tsx） */
+.np-toc{position:sticky;top:24px;max-height:calc(100vh - 170px);overflow-y:auto;overflow-x:hidden;padding-right:4px;min-width:0}
+.np-toc-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 8px;font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--wb-ink-3);margin-bottom:10px}
+.np-d .np-toc-h>span:first-child{color:var(--wb-blue)}
+.np-toc-cnt{font-size:11px;font-weight:500;letter-spacing:0;color:var(--wb-ink-3)}
+.np-toc-all{display:inline-flex;align-items:center;gap:4px;height:22px;margin:-4px 0 8px -4px;padding:0 6px 0 4px;border:none;border-radius:5px;background:none;font:inherit;font-size:11.5px;color:var(--wb-ink-3);cursor:pointer}
+.np-toc-all:hover{background:var(--wb-bg);color:var(--wb-blue-l)}
+.np-toc-all svg,.np-toc-cv svg,.np-toc-tg svg{transition:transform 160ms var(--wb-np-ease)}
+.np-toc-l{display:flex;flex-direction:column;gap:1px;border-left:2px solid var(--wb-line)}
+.np-toc-r{position:relative;display:flex;align-items:stretch}
+.np-toc-r a{flex:1;min-width:0;display:flex;gap:7px;margin-left:-2px;padding:4px 28px 4px 12px;border-left:2px solid transparent;font-size:12.5px;line-height:1.5;color:var(--wb-ink-2);text-decoration:none;transition:color 140ms,border-color 140ms}
+.np-toc-r a.d1{padding-left:24px;font-size:12px;color:var(--wb-ink-3)}
+.np-toc-r a.d2{padding-left:36px;font-size:12px;color:var(--wb-ink-3);opacity:.9}
+.np-toc-r a:hover{color:var(--wb-blue-l)}
+.np-toc-r a.tr{color:var(--wb-blue-l);font-weight:600;opacity:1}
+.np-toc-r a.on{color:var(--wb-blue-l);font-weight:700;border-left-color:var(--wb-gold);opacity:1}
+.np-d .np-toc-r a.on{background:color-mix(in srgb,var(--wb-blue-l) 9%,transparent);border-radius:0 6px 6px 0}
+.np-toc-r .lb{min-width:0}
+.np-toc-inc{display:inline-flex;margin-right:4px;vertical-align:-1px;color:var(--wb-ink-3)}
+.np-toc-cv{position:absolute;right:0;top:2px;height:22px;min-width:22px;display:inline-flex;align-items:center;justify-content:center;gap:2px;padding:0 3px;border:none;border-radius:5px;background:none;color:var(--wb-ink-3);cursor:pointer;font:inherit;font-size:10.5px}
+.np-toc-cv:hover{background:var(--wb-bg);color:var(--wb-ink)}
+.np-toc-cv.open svg{transform:rotate(90deg)}
+.np-toc-cv .k{font-weight:700}
+.np-toc-cv:focus-visible,.np-toc-all:focus-visible,.np-toc-tg:focus-visible,.np-toc-r a:focus-visible{outline:2px solid var(--wb-blue-l);outline-offset:1px}
+.np-toc-tg{display:none}
+@container nphost (max-width:719.98px){
+  .np-toc{position:static;max-height:none;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-panel);padding:0}
+  .np-toc-h{display:none}
+  .np-toc-tg{display:flex;width:100%;align-items:center;gap:8px;height:42px;padding:0 14px;border:none;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--wb-ink);cursor:pointer}
+  .np-toc-tg .cur{flex:1;min-width:0;text-align:left;font-weight:400;color:var(--wb-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .np-toc.open .np-toc-tg svg{transform:rotate(90deg)}
+  .np-toc-all{margin:0 0 6px 14px}
+  .np-toc.open .np-toc-l{padding:0 10px 12px 12px;margin:0 2px}
+}
+@media (prefers-reduced-motion:reduce){
+  .wb-hd-title.reveal,.np-toc-r a,.np-toc-all svg,.np-toc-cv svg,.np-toc-tg svg,.md-tag{transition:none}
+}
+
+/* 系列章節導覽（SeriesNav.tsx；handoff 的 .md-series） */
+.md-series{margin-top:40px;border:1px solid var(--wb-line);border-radius:8px;overflow:hidden;background:var(--wb-panel)}
+.md-series-h{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--wb-line);background:var(--wb-bg);font-size:12px;color:var(--wb-ink-3)}
+.md-series-h a{font-weight:700;color:var(--wb-ink-2);text-decoration:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md-series-h a:hover{color:var(--wb-blue-l)}
+.md-series-h .tnum{margin-left:auto;flex:none}
+.md-series-n{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.md-series-n a{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:12px 16px;text-align:left;text-decoration:none}
+.md-series-n a.r{align-items:flex-end;text-align:right;border-left:1px solid var(--wb-line)}
+.md-series-n small{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--wb-ink-3)}
+.md-series-n b{font-size:14px;color:var(--wb-ink);text-wrap:pretty}
+.md-series-n a:hover b{color:var(--wb-blue-l)}
+.md-series-n a:focus-visible,.md-series-h a:focus-visible{outline:2px solid var(--wb-blue-l);outline-offset:-2px}
+@container nphost (max-width:560px){.md-series-n{grid-template-columns:minmax(0,1fr)}.md-series-n a.r{border-left:none;border-top:1px solid var(--wb-line)}}

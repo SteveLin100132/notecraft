@@ -24,6 +24,10 @@ interface MdNode {
   children?: MdNode[];
   value?: string;
   data?: DirectiveData;
+  /** code 節點的語言與 meta、image 節點的 title */
+  lang?: string | null;
+  meta?: string | null;
+  title?: string | null;
 }
 interface VFileLike {
   path?: string;
@@ -69,7 +73,9 @@ const BADGE_VARIANTS = new Set([
   "neutral",
 ]);
 const BADGE_SIZES = new Set(["sm", "md"]);
-const STEP_STATUSES = new Set(["done", "current", "todo"]);
+const STEP_STATUSES = new Set(["done", "current", "todo", "err", "skip"]);
+/** 狀態 pill 的文字（note-page §5.2）：只有明確寫了 status 的步驟才顯示 pill */
+const STEP_STATUS_LABEL: Record<string, string> = { done: "已完成", current: "進行中", todo: "未開始", err: "需處理", skip: "已略過" };
 const STEPS_LAYOUTS = new Set(["vertical", "horizontal"]);
 
 /** Badge / Step 可用的 icon 名稱集合 — lucide 風格、以 path 描述。 */
@@ -403,11 +409,12 @@ function buildSteps(node: MdNode, file: VFileLike): void {
       );
       status = "todo";
     }
+    const explicit = typeof stepAttrs.status === "string" && stepAttrs.status.trim() !== "";
     const titleAttr = (stepAttrs.title || "").trim();
     const titleInline = takeDirectiveLabel(step);
     const title = titleAttr || titleInline || "";
     const n = start + i;
-    const num = String(n).padStart(2, "0");
+    const num = String(n);
 
     const badge =
       status === "done"
@@ -436,14 +443,17 @@ function buildSteps(node: MdNode, file: VFileLike): void {
         : el(
             "span",
             { className: ["nc-step__badge"], "aria-hidden": "true" },
-            [text(num)],
+            [text(status === "err" ? "!" : status === "skip" ? "–" : num)],
           );
 
     const bodyChildren: MdNode[] = [];
+    const pill = explicit ? [el("span", { className: ["nc-step__status"] }, [text(STEP_STATUS_LABEL[status])])] : [];
     if (title) {
       bodyChildren.push(
-        el("p", { className: ["nc-step__title"] }, [text(title)]),
+        el("p", { className: ["nc-step__title"] }, [el("span", { className: ["nc-step__title-t"] }, [text(title)]), ...pill]),
       );
+    } else if (pill.length) {
+      bodyChildren.push(el("p", { className: ["nc-step__title"] }, pill));
     }
     bodyChildren.push(...(step.children || []));
     const body = el("div", { className: ["nc-step__body"] }, bodyChildren);
@@ -453,8 +463,9 @@ function buildSteps(node: MdNode, file: VFileLike): void {
       data: {
         hName: "li",
         hProperties: {
-          className: ["nc-step", `nc-step--${status}`],
+          className: ["nc-step", `nc-step--${status}`, ...(explicit ? ["is-set"] : [])],
           "data-step": String(n),
+          ...(status === "current" ? { "aria-current": "step" } : {}),
         },
       },
       children: [badge, body],
@@ -478,6 +489,148 @@ function buildSteps(node: MdNode, file: VFileLike): void {
     start,
   };
   node.children = [...items, ...strayWrap];
+}
+
+/**
+ * 程式碼分頁（note-page §5.2）：`:::code-group` 內放多個圍欄程式碼，分頁名取 meta 的 `title="…"`，沒有則取語言。
+ * 結構與 :::tabs 相同（共用 lib/nc-tabs.ts），外層多 `nc-tabs--code` 讓內層程式碼貼齊分頁。
+ */
+function buildCodeGroup(node: MdNode, uid: number, file: VFileLike): void {
+  const codes = (node.children || []).filter((c) => c.type === "code");
+  const stray = (node.children || []).filter((c) => c.type !== "code");
+  if (!codes.length) {
+    console.warn(`[notecraft-directives] :::code-group 裡沒有程式碼區塊，已還原為字面文字${file.path ? `（${file.path}）` : ""}`);
+    revertDirective(node);
+    return;
+  }
+  if (stray.length) {
+    console.warn(`[notecraft-directives] :::code-group 只接受圍欄程式碼，其他 ${stray.length} 個節點放在分頁之後${file.path ? `（${file.path}）` : ""}`);
+  }
+  node.children = codes.map((c) => {
+    const title = (c.meta || "").match(/title=(?:"([^"]*)"|'([^']*)'|(\S+))/);
+    const label = (title && (title[1] ?? title[2] ?? title[3])) || c.lang || "code";
+    // 分頁名已經是檔名：內層程式碼的標頭只留語言，不重複顯示
+    if (title) c.meta = (c.meta || "").replace(title[0], "").trim() || null;
+    return { type: "containerDirective", name: "tab", attributes: { label }, children: [c] };
+  });
+  buildTabs(node, uid, file);
+  node.data = { ...node.data, hProperties: { className: ["nc-tabs", "nc-tabs--code"], "data-nc-tabs": "true" } };
+  if (stray.length) node.children = [...(node.children || []), ...stray];
+}
+
+/** 摺疊問答（§5.2）：`:::details[問題]{open}` 或 `{q="問題"}` → `<details class="nc-det">`；連續的由 groupDetails 包成群組 */
+function buildDetails(node: MdNode): void {
+  const attrs = node.attributes || {};
+  const q = (attrs.q || "").trim() || takeDirectiveLabel(node) || "詳細內容";
+  const open = attrs.open !== undefined && attrs.open !== null;
+  const chev = el(
+    "svg",
+    { className: ["nc-det__cv"], viewBox: "0 0 24 24", width: 13, height: 13, fill: "none", stroke: "currentColor", "stroke-width": 2.2, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
+    [el("path", { d: "M9 6l6 6-6 6" })],
+  );
+  node.data = node.data || {};
+  node.data.hName = "details";
+  node.data.hProperties = { className: ["nc-det"], ...(open ? { open: true } : {}) };
+  node.children = [
+    el("summary", { className: ["nc-det__q"] }, [chev, el("span", {}, [text(q)])]),
+    el("div", { className: ["nc-det__b"] }, node.children || []),
+  ];
+}
+
+/** 把同一層連續的 details 包成 `.nc-dets`（間距 8px 的一組卡片） */
+function groupDetails(parent: MdNode): void {
+  const kids = parent.children;
+  if (!kids || !kids.some(isDetails)) return;
+  const out: MdNode[] = [];
+  let run: MdNode[] = [];
+  const flush = () => {
+    if (run.length) out.push(el("div", { className: ["nc-dets"] }, run));
+    run = [];
+  };
+  for (const k of kids) {
+    if (isDetails(k)) run.push(k);
+    else {
+      flush();
+      out.push(k);
+    }
+  }
+  flush();
+  parent.children = out;
+}
+function isDetails(n: MdNode): boolean {
+  const cls = n.data?.hProperties?.className;
+  return n.data?.hName === "details" && Array.isArray(cls) && cls.includes("nc-det");
+}
+
+/** 並排圖片（§5.2）：`:::figures` 裡的每張圖片變成 `<figure>`，title 當 figcaption；兩欄，窄畫面單欄 */
+function buildFigures(node: MdNode, file: VFileLike): void {
+  const imgs: MdNode[] = [];
+  const collect = (n: MdNode) => {
+    if (n.type === "image") imgs.push(n);
+    else for (const c of n.children || []) collect(c);
+  };
+  collect(node);
+  if (!imgs.length) {
+    console.warn(`[notecraft-directives] :::figures 裡沒有圖片，已還原為字面文字${file.path ? `（${file.path}）` : ""}`);
+    revertDirective(node);
+    return;
+  }
+  node.data = node.data || {};
+  node.data.hName = "div";
+  node.data.hProperties = { className: ["nc-figs"] };
+  node.children = imgs.map((img) =>
+    el("figure", { className: ["nc-fig"] }, img.title ? [{ ...img, title: null }, el("figcaption", {}, [text(img.title)])] : [img]),
+  );
+}
+
+/**
+ * 定義清單（§5.2、Q5）：`:::dl` 內放一個清單，每項以開頭的粗體為 `<dt>`，其餘（去掉前導冒號）為 `<dd>`。
+ * 不符合形式的項目整項當作 `<dd>` 並 warn。
+ */
+function buildDl(node: MdNode, file: VFileLike): void {
+  const list = (node.children || []).find((c) => c.type === "list");
+  if (!list) {
+    console.warn(`[notecraft-directives] :::dl 需要一個清單，已還原為字面文字${file.path ? `（${file.path}）` : ""}`);
+    revertDirective(node);
+    return;
+  }
+  const rows: MdNode[] = [];
+  for (const item of list.children || []) {
+    const para = (item.children || [])[0];
+    const first = para?.type === "paragraph" ? (para.children || [])[0] : undefined;
+    if (!para || !first || first.type !== "strong") {
+      console.warn(`[notecraft-directives] :::dl 的項目沒有以粗體開頭，整項當作說明${file.path ? `（${file.path}）` : ""}`);
+      rows.push(el("dd", {}, item.children || []));
+      continue;
+    }
+    const rest = (para.children || []).slice(1);
+    if (rest[0]?.type === "text") rest[0] = { ...rest[0], value: (rest[0].value || "").replace(/^\s*[:：]\s*/, "") };
+    if (rest[0]?.type === "text" && rest[0].value === "") rest.shift();
+    rows.push(el("dt", {}, first.children || []));
+    const ddKids: MdNode[] = [];
+    if (rest.length) ddKids.push(el("span", {}, rest));
+    ddKids.push(...(item.children || []).slice(1));
+    rows.push(el("dd", {}, ddKids));
+  }
+  node.data = node.data || {};
+  node.data.hName = "dl";
+  node.data.hProperties = { className: ["nc-dl"] };
+  node.children = rows;
+}
+
+
+/**
+ * 圖說（note-page §5.2，handoff md-basics「圖片」）：段落只有一張圖片、下一行緊接一段斜體時，
+ * 整段變成 `<figure>`，斜體成為 `<figcaption>`。其他段落不動。
+ */
+function figureFromParagraph(node: MdNode): boolean {
+  const kids = (node.children || []).filter((c) => !(c.type === "text" && !(c.value || "").trim()));
+  if (kids.length !== 2 || kids[0].type !== "image" || kids[1].type !== "emphasis") return false;
+  const [img, cap] = kids;
+  node.type = "ncElement";
+  node.data = { hName: "figure", hProperties: { className: ["nc-fig"] } };
+  node.children = [img, el("figcaption", {}, cap.children || [])];
+  return true;
 }
 
 function buildTooltip(node: MdNode, uid: number, file: VFileLike): void {
@@ -561,6 +714,24 @@ export default function remarkNotecraftDirectives() {
           buildAdmonition(child);
           continue;
         }
+        if (child.type === "containerDirective" && child.name === "code-group") {
+          buildCodeGroup(child, counter++, file);
+          continue;
+        }
+        if (child.type === "containerDirective" && child.name === "details") {
+          walk(child);
+          buildDetails(child);
+          continue;
+        }
+        if (child.type === "containerDirective" && child.name === "figures") {
+          buildFigures(child, file);
+          continue;
+        }
+        if (child.type === "containerDirective" && child.name === "dl") {
+          walk(child);
+          buildDl(child, file);
+          continue;
+        }
         if (child.type === "containerDirective" && child.name === "annotate") {
           walk(child); // 處理清單項目內可能的巢狀指令（程式碼節點不受影響）
           buildAnnotate(child, counter++, file);
@@ -585,6 +756,7 @@ export default function remarkNotecraftDirectives() {
           buildBadge(child, file);
           continue;
         }
+        if (child.type === "paragraph" && figureFromParagraph(child)) continue;
         if (DIRECTIVE_TYPES.has(child.type)) {
           // 未處理的 directive（誤判的 `:中文`、未知類型、孤立的 :::tab 等）→ 還原為字面文字，避免掉字。
           revertDirective(child);
@@ -593,6 +765,7 @@ export default function remarkNotecraftDirectives() {
         }
         walk(child);
       }
+      groupDetails(parent);
     };
 
     walk(tree);

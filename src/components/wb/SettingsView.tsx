@@ -1,9 +1,12 @@
-// /settings（規格 §8.8）：設定（三項，存 localStorage）與關於（build 期資料）。Tab 寫進 ?tab=about。
+// /settings（規格 §8.8）：設定（五項，存 localStorage）與關於（build 期資料）。Tab 寫進 ?tab=about。
 import { useEffect, useState, type ComponentType } from "react";
 import { BookOpen, FileText, Layers, Plus, Search, Sparkles, Tag, type LucideProps } from "lucide-react";
 import {
   DEFAULT_PREFS,
   GROUP_LABEL,
+  NOTE_FONT_SCALES,
+  NOTE_THEME_LABEL,
+  NOTE_THEMES,
   readPrefs,
   TOC_DEFAULT_LABEL,
   VIEW_LABEL,
@@ -126,6 +129,18 @@ export default function SettingsView({
           <GroupHeader name="筆記" icon={BookOpen} gc="wb-gc-blue-l" />
           <SetRow k="目錄預設狀態" d="開啟筆記時，右側目錄的子項目要全部展開或全部收合；目錄標頭的按鈕仍可隨時切換">
             <Seg boxed label="目錄預設狀態" value={prefs.tocDefault} options={WB_TOC_DEFAULTS.map((t) => ({ value: t, label: TOC_DEFAULT_LABEL[t] }))} onChange={(t) => save({ tocDefault: t })} />
+          </SetRow>
+          <SetRow k="頁面主題" d="筆記閱讀頁的樣式：品牌是新版，經典保留改版前的樣子">
+            <Seg boxed label="頁面主題" value={prefs.noteTheme} options={NOTE_THEMES.map((t) => ({ value: t, label: NOTE_THEME_LABEL[t] }))} onChange={(t) => save({ noteTheme: t })} />
+          </SetRow>
+          <SetRow k="字級" d="筆記內文的字級倍率；程式碼、表格與圖說會一起縮放">
+            <Seg
+              boxed
+              label="字級"
+              value={String(prefs.noteFontScale)}
+              options={NOTE_FONT_SCALES.map((s) => ({ value: String(s), label: `${s}×` }))}
+              onChange={(s) => save({ noteFontScale: Number(s) })}
+            />
           </SetRow>
           <p style={{ margin: 0, padding: "12px 18px", fontSize: 11.5, color: "var(--wb-ink-3)" }}>設定儲存在這個瀏覽器，不會同步到其他裝置。</p>
         </div>

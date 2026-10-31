@@ -43,6 +43,10 @@ export interface Props {
   tabs?: HeaderTab[];
   /** Body 無 padding、白底（取代舊的 bleed） */
   flush?: boolean;
+  /** #nc-scroll 額外的 class（筆記頁的 np-scroll／np-d） */
+  scrollClass?: string;
+  /** 頁首標題平常隱藏，由頁面自己的 script 在捲過文內 H1 後顯示（筆記頁，note-page §3.2） */
+  titleReveal?: boolean;
   /** 頁首、工具列、Body 由頁內 island 自己渲染 */
   bare?: boolean;
   /** 頁首由 layout 靜態畫，工具列與 Body（含 #nc-scroll）由 island 輸出 */
@@ -64,6 +68,8 @@ const {
   back,
   tabs = [],
   flush = false,
+  scrollClass,
+  titleReveal = false,
   bare = false,
   bareBody = false,
   folderPath = "",
@@ -338,6 +344,7 @@ const railHintSrc = railHint.toString();
               clampTwo={clampTwo}
               pagefindTitle={pagefindTitle}
               indexHeader={indexHeader}
+              titleReveal={titleReveal}
             >
               <slot name="pills" slot="pills" />
               <slot name="actions" slot="actions" />
@@ -347,7 +354,7 @@ const railHintSrc = railHint.toString();
             ) : (
               <>
                 <slot name="toolbar" />
-                <div id="nc-scroll" class:list={["wb-body", { flush }]}>
+                <div id="nc-scroll" class:list={["wb-body", { flush }, scrollClass]}>
                   <slot />
                 </div>
               </>

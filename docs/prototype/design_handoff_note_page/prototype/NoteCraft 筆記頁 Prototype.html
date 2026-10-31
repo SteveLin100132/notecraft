@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoteCraft 筆記頁 — 交付 Prototype</title>
+<link rel="stylesheet" href="tokens/fonts.css">
+<link rel="stylesheet" href="tokens/colors.css">
+<link rel="stylesheet" href="tokens/typography.css">
+<link rel="stylesheet" href="tokens/spacing.css">
+<link rel="stylesheet" href="shell/pt.css">
+<link rel="stylesheet" href="plugin-er/er.css">
+<link rel="stylesheet" href="note/np.css">
+<style>a{color:var(--wb-blue-l)}a:hover{color:var(--wb-blue-d)}</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="16" fill="#1b4f9c"/><rect x="26" y="22" width="48" height="56" rx="4" fill="#fff"/><rect x="33" y="31" width="26" height="5" rx="2" fill="#1b4f9c"/><rect x="33" y="40" width="10" height="2" rx="1" fill="#ed9b26"/><rect x="33" y="47" width="34" height="3" rx="1.5" fill="#9fb3d1"/><rect x="33" y="54" width="30" height="3" rx="1.5" fill="#9fb3d1"/><rect x="33" y="62" width="34" height="9" rx="2" fill="#e8eef7"/></svg>
+</template>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="tokens/_ds_bundle.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="data/notes.jsx"></script>
+<script type="text/babel" src="data/datafiles.jsx"></script>
+<script type="text/babel" src="shell/pt-shell.jsx"></script>
+<script type="text/babel" src="shell/pt-data.jsx"></script>
+<script type="text/babel" src="data/defines.jsx"></script>
+<script type="text/babel" src="plugin-er/er-data.jsx"></script>
+<script type="text/babel" src="plugin-er/er-core.jsx"></script>
+<script type="text/babel" src="plugin-er/er-diagram.jsx"></script>
+<script type="text/babel" src="plugin-er/er-docs.jsx"></script>
+<script type="text/babel" src="note/np-md.jsx"></script>
+<script type="text/babel" src="note/np-viz.jsx"></script>
+<script type="text/babel" src="note/np-toc.jsx"></script>
+<script type="text/babel" src="note/notes/md-basics.jsx"></script>
+<script type="text/babel" src="note/notes/md-advanced.jsx"></script>
+<script type="text/babel" src="note/notes/md-viz.jsx"></script>
+<script type="text/babel" src="note/notes/annual-leave-spec.jsx"></script>
+<script type="text/babel" src="note/note-view.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

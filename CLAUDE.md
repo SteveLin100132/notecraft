@@ -9,6 +9,7 @@
 - **UI**：React（僅用於 AI 生成的互動元件）+ TailwindCSS
 - **動畫 / 互動**：`motion`（Framer Motion，npm 套件名即 `motion`，**勿與舊 motion.js 混淆**）
 - **圖表**：`recharts`（標準圖表）、`d3`（非標準）、手寫 SVG（流程 / 時序 / 架構圖優先）
+- **數學公式**：`remark-math` + `rehype-katex`（筆記內文的 `$…$`／`$$…$$`；KaTeX CSS 只在筆記頁載入，v1.14.0）
 - **搜尋**：`pagefind`（build 階段索引）
 - **部署**：Netlify 靜態部署，**無 Function、無執行時 API**
 - **Node ^22.x、TypeScript**
@@ -38,6 +39,8 @@ src/
 ├── lib/update-store.ts          檢查更新的狀態（模組單例、localStorage、fetch）；lib/update-prepaint.ts 是 Rail 圓點預繪（toString() 內嵌）；lib/update-env.ts 是 build 期環境
 ├── lib/wb-graph.ts              Graph 檢視的純函式（buildGraphEdges／deriveGraph／標籤樞紐／著色分組／高亮集合＋JS 端的數值常數）；lib/wb-graph-layout.ts 是佈局（力導向、群聚、符合視窗、邊的幾何）。兩者只能 import type、不碰 window，scripts/checks/wb-graph.mjs 斷言（併入 check:wb）
 ├── lib/wb-graph-worker.ts       佈局的 Web Worker（節點超過 150 時用；只能由 new Worker(new URL(…)) 載入）；lib/wb-graph-prefs.ts 是 Graph 偏好的 localStorage 讀寫
+├── lib/note-theme-prepaint.ts     筆記頁主題（np-d／np-o）與字級（--md-fs）的預繪；toString() 內嵌進 #nc-scroll 開頭的 inline script，必須自足，scripts/checks/note-theme-prepaint.mjs 斷言（併入 check:wb）
+├── lib/remark-notecraft-mark.ts   `==螢光==` → <mark>；lib/remark-notecraft-ai-markers.ts 把待生成／失敗的 @ai-visualize 標記在原位畫成提示卡。兩者由 scripts/checks/note-page-remark.mjs 斷言
 ├── lib/links-scan.mjs            站內連結的掃描器（原始碼 → 連結的原始 URL 與行號）；只 import defs-scan.mjs、**不可碰 Node API**，由 defs-index.mjs 在同一次讀檔裡呼叫（結果在 DefNote.links），scripts/checks/defs.mjs 斷言
 ├── lib/defs-scan.mjs             定義與引用的掃描器（原始碼 → define／include／ref 的 id 與位置）；零 import 的 .mjs，Astro、dev-api、CLI 共用，scripts/checks/defs.mjs 斷言（npm run check:defs）
 ├── lib/defs-index.mjs            定義索引的純計算（buildDefIndex、slug、相對路徑改寫）；只 import github-slugger 與 defs-scan.mjs，**不可碰 Node API**：官網的「筆記頁」示範在瀏覽器裡也用它
@@ -165,6 +168,12 @@ status: pending | generated | locked | failed
   換頁的目標（資料檔節點、標籤樞紐、「清除篩選」）是真的連結（Sidebar 的高亮是載入時畫的，island 內改網址不會更新它）；筆記節點是 `role="button"`，單擊走 `rowHandlers`、Enter／Space 等同單擊。標籤樞紐取全站前 8 個（＋篩選中的標籤），著色超過 8 組的歸灰色「其他」。
   偏好存 `nc-graph-prefs-v1`（模式、著色、邊的開關、孤島、圖例），不進網址。token 一律 `--wb-gr-*`、只寫亮色，`gr-` 規則必須在 860px 媒體規則之前；JS 也要用的數值（半徑、縮放門檻、淡出值、移動時長）在 `wb-graph.ts` 有同名常數，`check:wb` 對照兩邊。
   改了 `links-scan.mjs` 要**重啟 dev server**。整合驗證 `node scripts/fixtures/notes-graph-sample.mjs --build`（約 65 篇，邊與產生器記下的逐條比對；另有 `--n 300`、`--no-links`、`--out <dir>`）
+- **筆記閱讀頁**（v1.14.0，[docs/notecraft-workbench-note-page.md](docs/notecraft-workbench-note-page.md)）：`#nc-scroll` 帶 `np-scroll` 與主題 class（**`np-d` 品牌、預設**／`np-o` 經典），字級倍率寫成 `--md-fs`（16px × 0.9／1／1.1／1.2／1.25）；偏好是 `nc-workbench-prefs-v1` 的 `noteTheme`／`noteFontScale`，由 `lib/note-theme-prepaint.ts` 在第一次繪製前套上（必須在主區結尾的捲動還原之前）。
+  版面是 `.np-host`（container）＞ `.np-page`（內文＋目錄欄），斷點用 container query 量內容寬（≥ 900 目錄 220、720–900 目錄 184、< 720 單欄），不看視窗寬；H1／描述／資訊列在文內（`.md-head`），殼的頁首標題加 `titleReveal`、捲過文內 H1 才出現。
+  **內文樣式全部在 `global.css` 的 prose 區段、尺寸一律 em**（跟著 `--md-fs`）；共用規則不加前綴、主題差異以 `.np-d`／`.np-o` 前綴寫在區段最後；**沿用 `nc-*` class，不改成 handoff 的 `md-*`**。頁面殼、目錄、系列導覽在 `workbench.css` 結尾。
+  語法**不加 handoff 的別名**（`warning` 不是 `warn`、`{collapsible open}` 不是 `fold`、`<PluginView src>`）。新語法：`:::code-group`（分頁名取 `title=`）、`:::details[問題]{open}`（連續的包成 `.nc-dets`）、`:::figures`、`:::dl`（每項以粗體開頭）、`==螢光==`、` ```diff `（`lang=ts` 指定內容語言）、`$…$`；步驟多 `err`／`skip`，寫了 `status` 才有狀態 pill（`.is-set`）。
+  `.nc-viz`（GeneratedFrame）裡的標題屬於元件，不套品牌的底線與金線、不插錨點；**放大檢視（VizZoom）與「複製提示詞」維持原樣**。待生成標記在原位畫（`data-pagefind-ignore`），文首不再列。目錄**維持 H1–H3**。不做暗色模式。
+  改了 remark plugin 要重啟 dev server；驗收 fixture `node scripts/fixtures/note-page-sample.mjs --out tmp/note-page-ws`（再用 launch.json 的 `note-page-fixture-win`）或 `--build`
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）
@@ -284,6 +293,8 @@ trim 前後空白 → 過濾空字串 → 同篇內不分大小寫去重（保�
 判定方式：`import.meta.env.DEV`。（舊文件提到的 `LOCAL_EDIT=1` build 旗標在程式碼裡並不存在，2026-09-22 更正。）
 
 ## 工作慣例
+
+- **範例筆記**（2026-10-31）：`src/content/notes/` 只顯示 handoff 的 4 篇範例（`md-basics`、`md-advanced`、`md-viz`、`annual-leave-spec`），官網 Demo 也取自這裡；舊筆記仍在硬碟上、由 `.notecraft/ignore.json` 逐篇排除（拿掉該行即恢復），舊系列移到 `series.registry.ts` 的 `ARCHIVED_SERIES`。資料檔不排除
 
 - AI 視覺化**不在 CI 階段執行**，僅由作者於本機 Claude Code 對話觸發，產出隨原始碼一起 commit
 - Dashboard 統計於 `astro build` 階段透過 Content Collections 預計算為 JSON，**無執行時 API**

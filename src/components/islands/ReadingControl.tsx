@@ -37,8 +37,8 @@ export default function ReadingControl({ slug }: { slug: string }) {
       aria-label="閱讀進度"
       style={{
         display: "inline-flex",
-        gap: 3,
-        padding: 3,
+        gap: 2,
+        padding: 2,
         background: "var(--neutral-100)",
         borderRadius: 999,
       }}
@@ -53,14 +53,14 @@ export default function ReadingControl({ slug }: { slug: string }) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
-              height: 30,
-              padding: "0 12px",
+              gap: 4,
+              height: 22,
+              padding: "0 9px",
               border: "none",
               borderRadius: 999,
               cursor: "pointer",
               fontFamily: "var(--font-sans)",
-              fontSize: 12.5,
+              fontSize: 11.5,
               fontWeight: 700,
               background: on ? "#fff" : "transparent",
               color: on ? seg.color : "var(--text-muted)",
@@ -69,7 +69,7 @@ export default function ReadingControl({ slug }: { slug: string }) {
               transition: "color 140ms",
             }}
           >
-            <seg.Icon size={14} /> {seg.label}
+            <seg.Icon size={12} /> {seg.label}
           </button>
         );
       })}

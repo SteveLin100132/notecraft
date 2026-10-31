@@ -98,29 +98,14 @@ export default function TagEditor({ slug, initialTags, editable, suggestions }: 
   return (
     <div
       ref={wrapRef}
-      style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center", position: "relative" }}
+      style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", position: "relative" }}
     >
       {tags.map((tg) => (
-        <span
-          key={tg}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            padding: editable ? "5px 7px 5px 11px" : "5px 11px",
-            borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 600,
-            background: "var(--blue-50)",
-            color: "var(--blue-700)",
-            lineHeight: 1.4,
-            whiteSpace: "nowrap",
-          }}
-        >
+        <span key={tg} className={editable ? "md-tag is-edit" : "md-tag"}>
           {editable ? (
             <span>{tg}</span>
           ) : (
-            <a href={withBase(`/notes?tag=${encodeURIComponent(tg)}`)} style={{ color: "inherit", textDecoration: "none" }}>
+            <a href={withBase(`/notes?tag=${encodeURIComponent(tg)}`)}>
               {tg}
             </a>
           )}

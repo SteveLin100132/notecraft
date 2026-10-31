@@ -9,6 +9,10 @@ import remarkNotecraftDirectives from "./src/lib/remark-notecraft-directives.ts"
 import remarkNotecraftCodeblock from "./src/lib/remark-notecraft-codeblock.ts";
 import remarkNotecraftNotesAssets from "./src/lib/remark-notecraft-notes-assets.ts";
 import remarkNotecraftBase from "./src/lib/remark-notecraft-base.ts";
+import remarkNotecraftMark from "./src/lib/remark-notecraft-mark.ts";
+import remarkNotecraftAiMarkers from "./src/lib/remark-notecraft-ai-markers.ts";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { GENERATED_COMPONENT_PACKAGE_WHITELIST } from "./src/lib/generated-component-whitelist.ts";
 import devApi from "./src/dev-api/integration.ts";
 import notesAssets from "./src/lib/notes-assets-integration.ts";
@@ -105,6 +109,27 @@ export default defineConfig({
     // codeblock 最後改寫 code 節點（buildAnnotate 需在 code 仍為原始節點時讀值）。
     // notes-assets 只在 viewer 模式（有 NOTECRAFT_NOTES_DIR）下作用，重寫相對圖片路徑為 /notes-assets/*。
     // base 最後跑：有 NOTECRAFT_BASE 時替站內絕對連結補前綴（含 notes-assets 產生的）。
-    remarkPlugins: [remarkDirective, remarkNotecraftDefs, remarkNotecraftDirectives, remarkNotecraftCodeblock, remarkNotecraftNotesAssets, remarkNotecraftBase],
+    // 筆記頁改版（docs/notecraft-workbench-note-page.md §5）：remark-math 要在 directive 之前（`$` 先切成 math 節點，
+    // 不會被當成 directive 的文字）；mark 在 directives 之後只看剩下的 text；ai-markers 在 MDX 註解後插待生成卡片。
+    remarkPlugins: [
+      remarkMath,
+      remarkDirective,
+      remarkNotecraftDefs,
+      remarkNotecraftDirectives,
+      remarkNotecraftMark,
+      remarkNotecraftAiMarkers,
+      remarkNotecraftCodeblock,
+      remarkNotecraftNotesAssets,
+      remarkNotecraftBase,
+    ],
+    rehypePlugins: [[rehypeKatex, { strict: false, throwOnError: false }]],
+    // 註腳（§5.6）：標題改成不是 heading 的「註腳」小標，避免進目錄；返回鍵用 ↩
+    remarkRehype: {
+      footnoteLabel: "註腳",
+      footnoteLabelTagName: "p",
+      footnoteLabelProperties: { className: ["nc-fns-h"] },
+      footnoteBackLabel: (i) => `回到內文（註腳 ${i + 1}）`,
+      footnoteBackContent: "↩",
+    },
   },
 });
