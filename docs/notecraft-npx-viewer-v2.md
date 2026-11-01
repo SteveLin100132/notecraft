@@ -329,10 +329,12 @@ MDX 內 import 一個不存在的元件（例如作者刪了 tsx 但沒清掉 im
 繼承主專案：
 
 ```
-react, react-dom, motion, recharts, d3, lucide-react, clsx, tailwind-merge
+react, react-dom, motion, recharts, d3, lucide-react, clsx, tailwind-merge, three
 ```
 
 + 相對路徑（`./` `../`）與 alias（`@notes/*`）。
+
+比對以 **root package** 為準：`three/addons/controls/OrbitControls.js` → `three`、`motion/react` → `motion`。`vite.resolve.dedupe` 同樣以套件名比對，子路徑一併從 app root 解析（`scripts/fixtures/three-viewer.mjs` 驗證）。`three` 於 v1.15.0 加入，規格見 [notecraft-generated-three.md](notecraft-generated-three.md)。
 
 白名單檢查由 **component-generator Subagent** 執行（產出前 lint import statement）。viewer 端不做 runtime 檢查——若使用者手改元件加了白名單外套件，會在 rebuild 時 build fail，走同一 UX。
 
@@ -359,8 +361,11 @@ export const GENERATED_COMPONENT_PACKAGE_WHITELIST = [
   'lucide-react',
   'clsx',
   'tailwind-merge',
+  'three', // v1.15.0
 ] as const
 ```
+
+常數只放 root package；three 內部不可用的子路徑（`three/webgpu`、`three/tsl`、`three/src/*`）是 component-generator lint 的文字規則。
 
 - `astro.config.mjs` **直接 import**（見 §6.3 範例）
 - `scripts/sync-skill-template.mjs` **讀 constant → 產生 SKILL.md 內白名單段落**（取代原本硬編碼在 SKILL.md 的清單），確保 viewer 版 SKILL 永遠與 build 期實際能吃的套件一致

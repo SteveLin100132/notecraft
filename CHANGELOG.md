@@ -4,6 +4,23 @@
 
 格式依循 [Keep a Changelog 1.1.0](https://keepachangelog.com/zh-TW/1.1.0/)，版號依循 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
+## [1.15.0] - 2026-11-01
+
+<!-- 重點：AI 生成的互動元件可以用 three.js 做 3D 場景 -->
+
+### 新增
+
+- AI 生成的互動元件可以使用 three.js 做可旋轉、可點選的 3D 場景（設計文件 `docs/notecraft-generated-three.md`）。只建議用在「空間關係本身是重點」的圖，例如架構分層、平台拓撲；流程、比較、數值與時間軸仍以平面圖表呈現
+- 3D 元件不攔截頁面捲動（滾輪捲頁，縮放用按鈕），有逐步、播放與重設視角的按鈕可以只用鍵盤操作，系統設定「減少動態」時不播放動畫
+- 範例筆記「視覺化互動元件」新增一節 3D 場景
+- 外掛的 renderer 也可以使用 three.js
+
+### 內部
+
+- 新增依賴 `three`（`~0.187.0`）與開發依賴 `@types/three`；import 白名單以套件名比對，`three/addons/...` 子路徑一併允許
+- content-visualize skill 升到 `2.1.0-alpha.1`（新增「3D 元件（three）」規範與最小骨架）、content-present skill 升到 `1.1.1-alpha.1`；已用 `notecraftapp init-skill` 安裝 skill 的工作區，再跑一次即可更新
+- 新增 viewer 整合驗證 `scripts/fixtures/three-viewer.mjs`
+
 ## [1.14.0] - 2026-10-31
 
 <!-- 重點：筆記頁改版 —— 新的「品牌」主題、可調字級，所有 Markdown 與擴充語法都有了樣式 -->

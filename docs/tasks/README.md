@@ -844,3 +844,32 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - `#nc-scroll` 不可拿掉；預繪函式必須自足、在捲動還原之前執行
 > - 每條動畫都要有 reduced-motion 對應；Esc 走 `lib/wb-escape.ts`
 > - **每次 commit 只 add 本 Task 的檔案**
+
+## v1.26.0 追加功能（§8.1 Phase 4.30）— AI 生成元件支援 three.js（notecraftapp v1.15.0）✅ 已完成（2026-11-01）
+
+> **已完成（2026-11-01）**：Task 145–148 全部實作於 `feat/generated-three`。與規格不同之處與驗證結果回填於規格 §14。
+
+規格 [notecraft-generated-three.md](../notecraft-generated-three.md)。
+白名單加 `three`（含 `three/addons/...` 子路徑），讓「空間關係本身是重點」的視覺化可以做成可旋轉、可點選的 3D 元件；Skill／Subagent 補 3D 寫作規範與最小骨架。
+
+> **九題已全數確認（規格 §13）**：規範寫在 `.claude/` 來源、由 sync 帶進 skill-template（Q1）、`three ~0.187.0`（Q2）、接受 npx 多約 21 MB（Q3）、
+> plugin 也可用 three（Q4）、`@types/three` 放 devDependencies（Q5）、範例放 `md-viz`（Q6）、簡報只以 full-visual 沿用（Q7）、
+> **滾輪不縮放、改按鈕**（Q8）、範例元件即「實際生成」的驗收對象（Q9）。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 145](task-145-three-deps-whitelist.md) | 依賴與白名單常數、第一次 sync、主專案子路徑解析 | §3、§4.1–§4.3 | `package.json`、`generated-component-whitelist.ts`、sync 產物 |
+| [Task 146](task-146-three-skill-rules.md) | Skill／Subagent 的 3D 規範、最小骨架、skill 版號、第二次 sync | §4.2、§5、§7.2 | `.claude/skills/content-visualize/SKILL.md`、`.claude/agents/*.md`、`sync-skill-template.mjs` |
+| [Task 147](task-147-three-sample-generated.md) | 以四個 Subagent 實際生成範例元件、放進 md-viz、放大檢視 | §4.4、§6 V3／V5／V8 | `md-viz.mdx`、`src/components/generated/<id>.tsx` |
+| [Task 148](task-148-three-viewer-webgl-docs-release.md) | viewer 三模式 fixture、WebGL context 驗證、文件、發版 | §6 V4／V6／V7、§7 | `scripts/fixtures/three-viewer.mjs`、文件、CHANGELOG、v1.15.0 |
+
+**順序**：嚴格線性 —— 145 → 146 → 147 → 148（147 的生成要讀 146 的規範；148 要有 147 的元件）。
+
+> **交付節奏**：全程在 `feat/generated-three` 單一分支上，依 Task 逐步 commit，**Task 148 完成後開 PR 併回 main**。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build`；動到白名單或 skill 的再跑 `npm run sync-skill` 並檢查 diff，動到 plugin 相關的再跑 `npm run check-plugins`。
+>
+> **幾條貫穿整批的規則**：
+> - **`skill-template/` 不手改**，一律改 `.claude/` 來源再 sync；LF／CRLF 造成的「modified」不要 add、不要 git stash
+> - 白名單常數只放 root package；three 的禁用子路徑（`webgpu`／`tsl`／`src/*`）是 lint 文字規則
+> - 驗證用的 probe、骨架、暫時 deck **不 commit**
+> - **每次 commit 只 add 本 Task 的檔案**

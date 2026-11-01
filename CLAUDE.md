@@ -9,6 +9,7 @@
 - **UI**：React（僅用於 AI 生成的互動元件）+ TailwindCSS
 - **動畫 / 互動**：`motion`（Framer Motion，npm 套件名即 `motion`，**勿與舊 motion.js 混淆**）
 - **圖表**：`recharts`（標準圖表）、`d3`（非標準）、手寫 SVG（流程 / 時序 / 架構圖優先）
+- **3D**：`three`（~0.187.0，只用於「空間關係本身是重點」的生成元件；等角 Orthographic + OrbitControls，v1.15.0，[docs/notecraft-generated-three.md](docs/notecraft-generated-three.md)）
 - **數學公式**：`remark-math` + `rehype-katex`（筆記內文的 `$…$`／`$$…$$`；KaTeX CSS 只在筆記頁載入，v1.14.0）
 - **搜尋**：`pagefind`（build 階段索引）
 - **部署**：Netlify 靜態部署，**無 Function、無執行時 API**
@@ -99,7 +100,8 @@ status: pending | generated | locked | failed
 
 ### 元件白名單
 
-允許 import：`react`、`motion`、`recharts`、`d3`、`clsx`、`tailwind-merge`、`lucide-react`（圖示）、專案內相對路徑。其他套件**先在對話中徵詢作者**。
+允許 import：`react`、`react-dom`、`motion`、`recharts`、`d3`、`clsx`、`tailwind-merge`、`lucide-react`（圖示）、`three`（含 `three/addons/...`）、專案內相對路徑。其他套件**先在對話中徵詢作者**。
+唯一來源是 `src/lib/generated-component-whitelist.ts`（只放 root package，子路徑以 root package 比對）；改完跑 `npm run sync-skill`。**`skill-template/` 是 sync 的產物，不要手改**——Skill／Agent 的規範一律改 `.claude/` 再 sync，改了內容要升 `sync-skill-template.mjs` 的 `VERSION`（`init-skill --check` 靠它判斷過期）。
 
 ### 視覺化選型（決策樹要點）
 
@@ -110,6 +112,7 @@ status: pending | generated | locked | failed
 | 時間軸 / Gantt | 手寫 SVG |
 | 含豐富欄位的比較表 | Tailwind `<table>`，不要做成 SVG |
 | 動畫 / 互動 / scroll-driven | `motion`（Framer Motion） |
+| 空間關係本身是重點（層疊、拓撲遠近） | `three` 等角 3D（規範與骨架在 content-visualize SKILL.md「3D 元件（three）」；先問「畫成等角 SVG 會不會損失資訊」） |
 | 複合需求 | 組合上述，不要二選一 |
 
 ### 樣式規範

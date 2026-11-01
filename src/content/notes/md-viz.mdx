@@ -7,11 +7,11 @@ tags:
   - Plugin
 category: guide
 createdAt: '2026-05-28'
-updatedAt: '2026-06-14'
+updatedAt: '2026-11-01'
 ---
 import PluginView from "@/components/PluginView.astro";
 
-文字講不清楚的內容，可以在筆記中放一個 `@ai-visualize` 標記，描述想要的互動元件，再交給 AI 產生。本篇示範三種已生成的元件、待生成標記的樣貌，以及外掛提供的資料檔。
+文字講不清楚的內容，可以在筆記中放一個 `@ai-visualize` 標記，描述想要的互動元件，再交給 AI 產生。本篇示範四種已生成的元件、待生成標記的樣貌，以及外掛提供的資料檔。
 
 ## AI 視覺化標記
 
@@ -79,6 +79,25 @@ import DemoUsageChart from '@/components/generated/demo-usage-chart'
 
 <GeneratedFrame id="demo-usage-chart" type="chart" prompt={"以堆疊長條圖比較各部門 1–9 月的請假時數，圖例可切換假別。"} caption="type: chart — 2026 年 1–9 月各部門請假時數（示範數據）。">
   <DemoUsageChart client:visible />
+</GeneratedFrame>
+
+## 3D 場景
+
+當「誰疊在誰上面、誰離誰近」本身就是重點時，可以做成可旋轉的 3D 場景。拖曳旋轉視角、點方塊查看說明，或用按鈕逐步追蹤一筆請假申請經過的元件。流程、比較與數值仍以平面圖表呈現較清楚。
+
+{/* @ai-visualize
+id: demo-platform-layers
+type: free
+prompt: |
+  以等角 3D 呈現請假系統的三層架構：最上層「介面」（請假表單、簽核 App），中層「服務」（假別規則、簽核流程、通知），
+  最下層「資料」（員工資料、假勤紀錄）。每層是一塊薄板、板上放該層的元件方塊，跨層以連線表示呼叫關係。
+  可拖曳旋轉、點方塊在旁邊顯示說明；按鈕可逐步高亮「送出一筆請假申請」依序經過的元件。
+status: generated
+*/}
+import DemoPlatformLayers from '@/components/generated/demo-platform-layers'
+
+<GeneratedFrame id="demo-platform-layers" type="free" prompt={"以等角 3D 呈現請假系統的三層架構：最上層「介面」（請假表單、簽核 App），中層「服務」（假別規則、簽核流程、通知），\n最下層「資料」（員工資料、假勤紀錄）。每層是一塊薄板、板上放該層的元件方塊，跨層以連線表示呼叫關係。\n可拖曳旋轉、點方塊在旁邊顯示說明；按鈕可逐步高亮「送出一筆請假申請」依序經過的元件。"} caption="type: free — 請假系統的三層架構（示範）。拖曳旋轉，或按「送出一筆請假申請」逐步追蹤。">
+  <DemoPlatformLayers client:visible />
 </GeneratedFrame>
 
 :::tip
