@@ -43,7 +43,7 @@ model: sonnet
 - 一律 default export Functional Component
 - 完整 TS 型別，沒有 `any`（除非註解中說明理由）
 - 不接受 required props
-- import 僅限 SKILL.md 列舉的白名單（<!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`<!-- END:whitelist -->）+ 專案相對路徑。**由工作流程 step 3 的 import lint 把關**——這條白名單同時是 `astro.config.mjs` 的 `vite.resolve.dedupe` 清單，違反會在 rollup 端 build fail
+- import 僅限 SKILL.md 列舉的白名單（<!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`、`three`<!-- END:whitelist -->）+ 專案相對路徑。**由工作流程 step 3 的 import lint 把關**——這條白名單同時是 `astro.config.mjs` 的 `vite.resolve.dedupe` 清單，違反會在 rollup 端 build fail
 - **禁止使用任何 emoji 字元**（🚀 ✅ ⚠️ 等 Unicode emoji）。需要圖示時一律 `import { Check, TriangleAlert, ArrowRight, ... } from 'lucide-react'`；icon 大小用 `size` prop、顏色透過 Tailwind class 與 `currentColor` 控制。若在程式碼中偵測到 emoji，視為驗證失敗的一種，須立即替換為對應的 lucide icon
 - 樣式採 Tailwind utility class；色彩、間距、圓角等優先使用 `trendlink-design` 提供的 token 或 class
 - SVG 設定 `viewBox` 與 `width="100%"`

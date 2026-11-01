@@ -144,7 +144,7 @@ function PainpointPage({ dark, live, area }: CustomSlideProps) {
 - `@/lib/decks`（型別）
 - `@/components/deck/scale`、`@/components/deck/theme`、`@/components/deck/blocks`、`@/components/deck/SlideChrome`（`toneColor`）
 - `@notes/components/<id>`（筆記既有的生成元件）
-- 套件：<!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`<!-- END:whitelist -->
+- 套件：<!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`、`three`<!-- END:whitelist -->
 
 **禁止**：白名單外的套件（先在對話中徵詢作者）、`@/components/deck/SlideFrame` 與版型元件（那些由 present 頁自行套用）。
 

@@ -11,6 +11,12 @@
 //   a. 改本檔常數
 //   b. 到 package.json dependencies 加對應套件
 //   c. 跑 `npm run sync-skill`，兩個 markdown 檔會自動刷新
+//
+// 只放 root package：子路徑以 root package 比對（`three/addons/controls/OrbitControls.js`
+// → `three`、`motion/react` → `motion`）。three 內部不可用的子路徑（webgpu／tsl／src/*）
+// 是 component-generator lint 的文字規則，不在這裡表達。
+//
+// 此清單也是 plugin renderer 的白名單（bin/install-plugin.mjs、scripts/check-plugins.mjs）。
 export const GENERATED_COMPONENT_PACKAGE_WHITELIST = [
   "react",
   "react-dom",
@@ -20,6 +26,7 @@ export const GENERATED_COMPONENT_PACKAGE_WHITELIST = [
   "lucide-react",
   "clsx",
   "tailwind-merge",
+  "three",
 ] as const;
 
 export type GeneratedComponentPackage =

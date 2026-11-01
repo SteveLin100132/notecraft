@@ -250,7 +250,7 @@ function ArchPage({ dark, live, play, area, outerScale }: CustomSlideProps) {
 
 ### import 白名單
 
-`custom` 頁允許：`@/lib/decks`（型別）、`@/components/deck/*`（原子層）、`@notes/components/<id>`（筆記既有元件），以及套件 <!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`<!-- END:whitelist -->。
+`custom` 頁允許：`@/lib/decks`（型別）、`@/components/deck/*`（原子層）、`@notes/components/<id>`（筆記既有元件），以及套件 <!-- BEGIN:whitelist -->`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`、`three`<!-- END:whitelist -->。
 
 其他套件**先在對話中徵詢作者**。動畫遵守專案規則：200–400ms ease-out、用 `useReducedMotion()`，且**只在 `live === true` 時啟動**（縮覽側欄會同時掛十幾頁，`live: false` 時啟動動畫會拖垮整頁）。
 
