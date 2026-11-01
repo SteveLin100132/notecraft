@@ -260,12 +260,12 @@ V6(a) 需要一份含該元件的 deck；若 §12 Q7 決定 deck 不碰 3D，改
 
 ## 9. 實作順序
 
-1. 依賴 + 白名單常數 → sync（V1）→ build（V2）
-2. 範例元件 + 掛進筆記 → build、V3、V8
-3. viewer fixture → V4
-4. 寫 §5 規範到 `.claude/` → 第二次 sync → 檢查 skill-template diff
-5. V5（實際生成）、V6、V7
-6. 文件、CHANGELOG、版本號
+對應 Task 145–148（`docs/tasks/README.md` v1.26.0 一節）。Q9 定案範例元件由 component-generator 生成，因此規範要先於範例：
+
+1. Task 145：依賴 + 白名單常數 → 第一次 sync（V1）→ 主專案子路徑 build（V2）
+2. Task 146：寫 §5 規範與骨架到 `.claude/` → skill 版號 → 第二次 sync
+3. Task 147：以四個 Subagent 生成範例元件進 md-viz（V5）→ V3、V8
+4. Task 148：viewer fixture（V4）→ V6、V7 → 文件、CHANGELOG、版本號
 
 ---
 
