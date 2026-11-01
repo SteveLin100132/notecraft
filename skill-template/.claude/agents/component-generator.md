@@ -61,7 +61,7 @@ model: sonnet
 - 隨需渲染（`controls` 的 `change` 事件排幀），不跑常駐 rAF；IntersectionObserver 離開可視範圍不排幀；`setPixelRatio(Math.min(devicePixelRatio, 2))`；陰影預設關、開也 ≤ 1024
 - 寬度以 ResizeObserver 跟版面、高度寫死在元件內並在 SSR 佔位；raycaster 以 `getBoundingClientRect()` 換算座標，位移 < 4px 才算點選
 - `OrbitControls`：`enablePan = false`、`enableZoom = false`（滾輪留給頁面）、polar 角限制約 20°–70°；縮放由按鈕調 `camera.zoom`
-- 無障礙：容器 `role="img"` + 描述畫面的 `aria-label`；canvas 外的 HTML 資訊面板（`aria-live="polite"`）；`<div role="group">` 按鈕列含上一步／下一步／播放／暫停／縮小／放大／重設視角，每顆都有 `aria-label`
+- 無障礙：容器 `role="img"` + 描述畫面的 `aria-label`；canvas 外的 HTML 資訊面板（`aria-live="polite"`，文字長短不一時給 `min-h-*`，按鈕列才不會跳動）；`<div role="group">` 按鈕列含上一步／下一步／播放／暫停／縮小／放大／重設視角，每顆都有 `aria-label`
 - `useReducedMotion()` 為 true：關阻尼、不補間，只重繪終態
 - 傳給 three 的顏色集中成檔內常數、逐一註明 trendlink-design token；`alpha: true` 透明底、無外框；禁 bloom／glow／fog／後處理／3D 文字；標籤用 HTML overlay
 - `WebGLRenderer` 建立包 `try/catch`，失敗只顯示一行說明，按鈕與面板照常可用

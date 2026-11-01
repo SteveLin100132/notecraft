@@ -184,7 +184,7 @@ import <PascalCaseId> from '@/components/generated/<id>'
 ### 無障礙
 
 - 容器 `role="img"` + **描述畫面內容**的 `aria-label`（寫出看到什麼、關係是什麼；不要寫「3D 場景」這種空話）；canvas 容器 `aria-hidden`
-- 資訊放在 canvas 外的 HTML 面板（目前選中的物件名稱與說明），`aria-live="polite"`
+- 資訊放在 canvas 外的 HTML 面板（目前選中的物件名稱與說明），`aria-live="polite"`；說明文字長短不一時給面板 `min-h-*`（以最長的一則為準），否則切換時按鈕列會跳動、點不到
 - **一定要有按鈕操作**：上一步、下一步、播放／暫停、縮小、放大、重設視角，按鈕列包在 `<div role="group" aria-label="…">`；點 3D 物件只是捷徑，所有資訊都要能只用按鈕走完
 - 每顆圖示按鈕都要 `aria-label`；不在 canvas 或 window 掛全域 keydown（筆記頁、簡報頁都有自己的快捷鍵）
 
