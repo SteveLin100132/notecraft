@@ -845,7 +845,9 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 每條動畫都要有 reduced-motion 對應；Esc 走 `lib/wb-escape.ts`
 > - **每次 commit 只 add 本 Task 的檔案**
 
-## v1.26.0 追加功能（§8.1 Phase 4.30 待補）— AI 生成元件支援 three.js（notecraftapp v1.15.0）
+## v1.26.0 追加功能（§8.1 Phase 4.30）— AI 生成元件支援 three.js（notecraftapp v1.15.0）✅ 已完成（2026-11-01）
+
+> **已完成（2026-11-01）**：Task 145–148 全部實作於 `feat/generated-three`。與規格不同之處與驗證結果回填於規格 §14。
 
 規格 [notecraft-generated-three.md](../notecraft-generated-three.md)。
 白名單加 `three`（含 `three/addons/...` 子路徑），讓「空間關係本身是重點」的視覺化可以做成可旋轉、可點選的 3D 元件；Skill／Subagent 補 3D 寫作規範與最小骨架。

@@ -68,3 +68,10 @@
 ## 依賴
 
 Task 145。
+
+## 實作記錄（2026-11-01）
+
+- 骨架約 250 行（規格估 120 行），原樣嵌進 SKILL.md「3D 元件（three）」末；暫存元件＋暫時筆記驗過 tsc（40）、build（30 頁，含暫時筆記）、dev 下可旋轉／點選
+- 滾輪：`enableZoom = false` 時 OrbitControls 在 `preventDefault` 前 return，window 收到的 wheel `defaultPrevented = false`；內建瀏覽器的合成滾輪在 canvas 上不穩定（非 canvas 區域也會失敗），判定為工具限制
+- `VERSION` → `2.1.0-alpha.1`、`PRESENT_VERSION` → `1.1.1-alpha.1`，第二次 sync 的 skill-template diff 與 `.claude/` 一一對應
+- `init-skill --check` 未另外實測（版本比對邏輯未改，只升了常數）

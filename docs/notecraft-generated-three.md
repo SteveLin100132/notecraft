@@ -1,9 +1,9 @@
 Project Name: NoteCraft — AI 生成元件支援 three.js（3D 場景）
 文件類型: Design Document
-文件版本: v0.2.0
+文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 新增依賴 `three`（0.187.x）與 `@types/three`；其餘沿用既有技術棧
-文件狀態: 已確認，待實作 —— §12 的 9 題已於 2026-11-01 確認（紀錄見 §13）
+文件狀態: 已實作（notecraftapp v1.15.0，Task 145–148，2026-11-01）—— §12 的 9 題已確認（紀錄見 §13）；實作後回填見 §14
 文件作者: 建宇
 建立日期: 2026-11-01
 更新日期: 2026-11-01
@@ -322,3 +322,37 @@ Q1–Q9 全部採建議：
 | Q7 | 簡報 custom 頁不新寫 3D；既有 3D 元件以 full-visual 沿用 |
 | Q8 | OrbitControls `enableZoom = false`，按鈕列加＋／－縮放（`camera.zoom` 夾在 `minZoom`／`maxZoom`） |
 | Q9 | md-viz 的範例元件就是 V5 的實際生成對象（標記 → 四個 Subagent）；SKILL.md 的骨架另外手寫 |
+
+---
+
+## 14. 實作記錄（2026-11-01）
+
+Task 145–148 全部實作於 `feat/generated-three`，依 Task 逐筆 commit。
+
+### 14.1 與規格不同之處
+
+| 項目 | 規格 | 實際 | 理由 |
+| --- | --- | --- | --- |
+| 範例位置（§4.4、Q6） | md-viz 末段 | md-viz「互動圖表」之後的新一節「3D 場景」 | 末段是 Renderer Plugin 的完整敘事（接系列最後一章），放在其他已生成範例旁邊較順；開頭「三種已生成的元件」改為四種 |
+| 範例題材（§4.4） | 三層平台拓撲 | 請假系統的三層架構（介面／服務／資料，7 個元件、7 步走查） | 沿用整篇筆記的請假主題 |
+| 骨架長度（§5.8） | 約 120 行 | 約 250 行 | 規範要求的按鈕列、overlay、IntersectionObserver 與完整 cleanup 全放進去後無法再短 |
+| 資訊面板 | 未規定高度 | 新規則：說明長短不一時給 `min-h-*` | 實測切換說明時按鈕列會上下跳動、點不到；已補進 SKILL.md 與 component-generator（生成後唯一的手動修改） |
+| `PRESENT_VERSION` | 有實質變更才升 | `1.1.0-alpha.1` → `1.1.1-alpha.1` | content-present 與 slide-generator 加了 3D 段落 |
+
+### 14.2 驗證結果
+
+- **V1**：只改常數跑 sync，8 個檔（主專案 4 個 host、skill-template 4 個）每檔只有白名單段落多了 `` `three` ``
+- **V2**：tsc 錯誤數維持 40（既有），沒有任何錯誤指向新檔；主 repo build 29 頁
+- **V3**：改動前後 `dist/` 比對——舊頁面 HTML 的差異只有版號（`1.15.0`）與共用 CSS 的 hash（新增 Tailwind class）；JS 只多了 `demo-platform-layers` chunk 與一個共用的 `pause` 圖示 chunk（因此 `PresentApp` 換了 hash）；除 md-viz 外沒有頁面載入 three
+- **V4**：`scripts/fixtures/three-viewer.mjs --build` 通過（元件在 `.notecraft/components/`、工作區沒有 node_modules，`three/addons/...` 由 dedupe 從 app root 解析成功）；`view` 與 `serve` 皆可顯示並互動，`serve` 改元件存檔後背景 rebuild、頁面自動 reload。`astro.config.mjs` **不需要**加 alias
+- **V5**：四個 Subagent 實際生成：visualize-planner 選 three 並寫出 Why not SVG；component-generator 一次通過 lint／tsc／build，並逐條回報 3D 自查清單皆符合
+- **V6**：以 `getContext` 計數——(a) 簡報翻頁讓元件 mount／unmount 32 次：建立 32、釋放 32，同時最多 1 個 canvas；(b) dev 熱重載 40 次：建立 40、釋放 39（剩目前那 1 個）；(c) 放大檢視開關 20 次：不新增 context、關閉後寬度復原。三者都沒有「Too many active WebGL contexts」
+- **V7**：未能在瀏覽器實測（內建瀏覽器無法模擬 `prefers-reduced-motion`）；以程式碼確認：`enableDamping = !reduce`、無補間與 autoRotate、狀態改變只排一幀
+- **V8**：放大檢視（CSS `scale` 0.97）下以滑鼠點選方塊命中正確
+- **滾輪**：`enableZoom = false` 時 OrbitControls 在 `preventDefault` 之前就 return（原始碼確認），window 收到的 wheel 事件 `defaultPrevented = false`。內建瀏覽器的合成滾輪在 canvas 上不一定捲得動，但在非 canvas 區域也同樣不穩，判定為工具限制
+- **發版檢查**：`npm run check:upd`、`npm run check-plugins` 通過
+- **bundle**：範例元件 chunk（含 three 與 OrbitControls）約 550 KB、gzip 約 138 KB，只有用到 3D 元件的頁面下載
+
+### 14.3 fixture 的環境限制（與 three 無關）
+
+`three-viewer.mjs` 沿用 `plugin-empty-states.mjs` 的做法：打包後把 `node_modules` 以 junction 指回主 repo。這樣跑出來的產物**沒有任何 CSS**（改動前的 commit `6c343f1` 以同樣方式跑也是 0 個 CSS 檔；本機真實安裝的 `~/.notecraft/app-1.14.0/` 則有），所以 fixture 的頁面沒有樣式，只用來驗 three 的解析、打包與 hydrate。另外 Astro 的 content 快取在共用的 `node_modules/.astro/`，記著最後一次 build 的工作區，換工作區後直接 `serve` 會以 `content-layer-deferred-module … fileName=<舊路徑>` 失敗，先 `build --rebuild` 一次即可。兩者都寫在 fixture 檔頭。

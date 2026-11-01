@@ -66,3 +66,14 @@ status: pending
 ## 依賴
 
 Task 146。
+
+## 實作記錄（2026-11-01）
+
+- 標記放在「互動圖表」之後的新一節「3D 場景」（不放末段，避免切開 Renderer Plugin 的敘事），id `demo-platform-layers`，主題沿用請假系統
+- 四個 Subagent：planner 規劃書含 Why not SVG、7 步走查、顏色 token；generator 一次通過 lint／tsc（40）／build，自查清單逐條符合；mdx-writer 寫回 `client:visible`
+- 對照規格 §5：全數符合。唯一手動修改：資訊面板加 `min-h-10`（說明從兩行變一行時按鈕列會往上跳），並把這條補進 SKILL.md 與 component-generator
+- dev 驗證：逐步走查、點選方塊、放大檢視內點選（CSS scale 下命中正確）、放大檢視開關 20 次無新增 context
+- 熱重載 40 次：建立 40 個 context、釋放 39（剩目前那個），無「Too many active WebGL contexts」
+- V3：舊頁面只差版號與共用 CSS hash；除 md-viz 外沒有頁面載入 three
+- dev server 在裝了 three 之後首次載入時，Vite 重新預打包依賴導致整頁 island 報「Cannot read properties of null (reading 'useState')」，重啟 dev server 即恢復（不是元件問題）
+- reduced motion 未能在瀏覽器實測（無法模擬），以程式碼確認

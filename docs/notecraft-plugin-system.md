@@ -268,9 +268,9 @@ plugin 隨包附一份標準 `schema.json`（Q7b）。選它而非 zod 的理由
 
 ### 6.4 import 白名單
 
-plugin renderer 與 `@ai-visualize` 生成元件走**同一份白名單**（`src/lib/generated-component-whitelist.ts`）：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge` + 相對路徑 + `@notes/*`。
+plugin renderer 與 `@ai-visualize` 生成元件走**同一份白名單**（`src/lib/generated-component-whitelist.ts`）：`react`、`react-dom`、`motion`、`recharts`、`d3`、`lucide-react`、`clsx`、`tailwind-merge`、`three`（app v1.15.0 起）+ 相對路徑 + `@notes/*`。子路徑以 root package 比對（`three/addons/...` → `three`）。
 
-不開放擴充（Q11）。理由是技術現實而非潔癖：外部 tsx 靠 `vite.resolve.dedupe` 從 app 的 `node_modules` 解析，不在清單裡的套件一律 rollup build fail；開放等於每裝一個 plugin 就要動 `~/.notecraft/app-<v>/` 的 `node_modules`。這七個套件已足以畫出 ER 圖這種複雜度。
+不開放擴充（Q11）。理由是技術現實而非潔癖：外部 tsx 靠 `vite.resolve.dedupe` 從 app 的 `node_modules` 解析，不在清單裡的套件一律 rollup build fail；開放等於每裝一個 plugin 就要動 `~/.notecraft/app-<v>/` 的 `node_modules`。這些套件已足以畫出 ER 圖這種複雜度。
 
 白名單外的 import **在安裝時就擋**（§9.6），不拖到 build。
 

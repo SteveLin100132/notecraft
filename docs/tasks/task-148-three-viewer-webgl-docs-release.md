@@ -77,3 +77,11 @@
 ## 依賴
 
 Task 147。
+
+## 實作記錄（2026-11-01）
+
+- `three-viewer.mjs --build` 通過：`three/addons/...` 由 dedupe 從 app root 解析，`astro.config.mjs` 不需要 alias；Git Bash 下 GNU tar 會把 `C:\…` 的冒號當遠端主機，改為只傳檔名
+- view／serve 以工作區內的 wrapper 啟動打包出來的 CLI 實測：3D 元件掛上、可互動；serve 改元件存檔 → 背景 rebuild → 自動 reload
+- 環境限制（與 three 無關，寫在 fixture 檔頭）：junction 共用 node_modules 時產物沒有 CSS（改動前的 `6c343f1` 同樣如此，真實安裝的 app-1.14.0 有）；共用的 `node_modules/.astro/` content 快取會記著上一個工作區
+- 簡報翻頁（暫時 deck，未 commit）mount／unmount 32 次：建立 32、釋放 32，無 WebGL 警告
+- 文件：npx-viewer-v2 §6.5／§6.6、plugin-system §6.4、CLAUDE.md（技術棧、元件白名單、選型表）、PRD Phase 4.30（v1.26.0）、CHANGELOG 1.15.0；`check:upd`、`check-plugins` 通過

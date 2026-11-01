@@ -72,3 +72,10 @@ viewer 模式（dedupe 是否涵蓋子路徑）在 Task 148 的 fixture 驗；�
 ## 依賴
 
 無。
+
+## 實作記錄（2026-11-01）
+
+- `npm install` 預設寫成 `^0.187.0`，手動改成 `~0.187.0` 後重跑 install；lockfile 只多了 three、@types/three 及後者的型別依賴
+- 第一次 sync：8 個檔各只有白名單段落多了 `` `three` ``（`git diff --word-diff` 確認）
+- probe 元件的 tsc 錯誤數維持 40；子路徑的 build 驗證併入 Task 146 的骨架 build（同一個 import），build 通過且產物有 three chunk
+- `check-plugins -- --skip-build` 通過
