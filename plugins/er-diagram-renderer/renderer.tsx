@@ -473,6 +473,7 @@ export default function ErDiagramRenderer({
           ) : (
             <ErDiagram
               data={data}
+              D={D}
               opts={opts}
               fill
               wide={wide}

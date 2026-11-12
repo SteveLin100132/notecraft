@@ -26,10 +26,13 @@ import type {
   ViewState,
 } from './types'
 import { matchTable } from './derive'
+import type { ErDerived } from './derive'
 import { FIT_PAD, MAX_ZOOM, MIN_ZOOM, TIP_HALF, ZOOM_STEP, clampZoom } from './types'
 
 export interface ErDiagramProps {
   data: ErDiagramData
+  /** 資料推導（renderer.tsx 算好傳入）。關聯一律取自 D.edges，畫布不自己由 fk 推 */
+  D: ErDerived
   /** 已合併三層來源的設定（見 renderer.tsx） */
   opts: ErOptions
   /** 範圍內的表名；null = 全部 */
@@ -53,6 +56,7 @@ export interface ErDiagramProps {
 
 export function ErDiagram({
   data,
+  D,
   opts,
   fill,
   wide,
@@ -82,14 +86,10 @@ export function ErDiagram({
     [data.layout.columns, scope, tables],
   )
   /** 一端在範圍內、一端在範圍外的外鍵：不畫，但要說有幾條，免得讀者以為沒有關聯 */
-  const crossEdges = useMemo(() => {
-    if (!scope) return 0
-    const all = new Set(allTables.map((t) => t.name))
-    return allTables.reduce(
-      (n, t) => n + t.columns.filter((c) => c.fk && all.has(c.fk) && scope.has(t.name) !== scope.has(c.fk)).length,
-      0,
-    )
-  }, [allTables, scope])
+  const crossEdges = useMemo(
+    () => (scope ? D.edges.filter((e) => scope.has(e.child) !== scope.has(e.parent)).length : 0),
+    [D.edges, scope],
+  )
 
   const groupLabel = useMemo(
     () => Object.fromEntries(data.groups.map((g) => [g.key, g.label])),
@@ -97,21 +97,10 @@ export function ErDiagram({
   )
   const byName = useMemo(() => new Map(tables.map((t) => [t.name, t])), [tables])
 
-  /* 關聯由欄位的 fk 推導，不存進資料檔 —— 存了就會有兩份真相，改一邊忘另一邊。 */
+  /* 關聯只有一份真相：derive.ts 的 D.edges。這裡只取兩端都在範圍內的 */
   const edges = useMemo<Edge[]>(
-    () =>
-      tables.flatMap((t) =>
-        t.columns
-          .filter((c) => c.fk && tables.some((x) => x.name === c.fk))
-          .map((c) => ({
-            id: `${t.name}.${c.name}`,
-            child: t.name,
-            parent: c.fk as string,
-            col: c.name,
-            self: c.fk === t.name,
-          })),
-      ),
-    [tables],
+    () => D.edges.filter((e) => byName.has(e.child) && byName.has(e.parent)),
+    [D.edges, byName],
   )
 
   /* hub 表：被極多張表指向的共用表（例：選項主檔）。它的連線預設收起來，

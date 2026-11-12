@@ -37,3 +37,9 @@ Diagram 的縮放、fit、量測是 v1.1 花最多時間調的部分。**先在�
 ## 依賴
 
 Task 149。
+
+## 實作記錄（2026-11-12）
+
+- `ErDiagram` 新增 `D` prop（renderer 已算好的 `erDerive(data)`）；`edges` 改為 `D.edges` 中兩端都在範圍內的，`crossEdges` 改由 `D.edges` 計算
+- 等價性以腳本驗證，沒有用截圖：舊算法與新算法在 3 份範例＋`src/content/notes` 底下全部 `.er.json`、每個 schema 範圍（共 16 組）上，edge 清單（含順序）與跨範圍連線數完全相同
+- tsc 錯誤數維持 40；`astro build`、`check-plugins --skip-build` 通過
