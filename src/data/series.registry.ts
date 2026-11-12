@@ -16,7 +16,7 @@ export const SERIES: SeriesDef[] = [
     description: "從標準 Markdown 到 NoteCraft 的 MDX 擴充語法與互動元件，依序讀完就能寫出結構完整的筆記。",
     accent: "blue",
     icon: "code",
-    slugs: ["md-basics", "md-advanced", "md-viz", "view:schema-demo.er"],
+    slugs: ["md-basics", "md-advanced", "md-viz", "view:testing/er-diagram/showcase.er"],
   },
   {
     id: "hr-spec",
