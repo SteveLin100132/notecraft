@@ -1,0 +1,1185 @@
+{
+  "$schema": "../../../../../plugins/er-diagram-renderer/schema.json",
+  "meta": {
+    "title": "ER Diagram 功能展示（v1.3）",
+    "source": "er-diagram-renderer 1.3.0 的功能展示資料；題材是一個線上課程平台",
+    "backTo": "/notes/md-viz",
+    "description": "這份資料檔把 **er-diagram-renderer 1.3.0** 支援的功能都用上一次，題材是一個線上課程平台。每張表的說明都寫了它示範什麼，可以從左側導覽逐張看。\n\n## 先看哪裡\n\n1. 切到 **Diagram**：線的兩端是多重性符號，縮放列的「圖例」可以隨時查；勾「收合中間表」看多對多\n\n2. 回到 **Wiki**，開 `course`：參照／被參照清單有 `N:1`、`1:N（可選）`、「至少一筆」等文字，下方有多對多區塊\n\n3. 開 `certificate`：複合外鍵參照的是 `enrollment` 的唯一鍵，不是主鍵\n\n## 功能對照\n\n- **多重性推導**：可否為 null 看欄位的 `nullable`，再看必填性語彙（本份的「可空」「條件」標了 `nullable: true`）\n\n- **1:1**：`member_profile` 的主鍵就是外鍵；`refund.payment_id` 有唯一約束\n\n- **明確指定**：`lesson` 是「每門課至少一堂」、`member_profile` 是「每位會員恰好一筆」\n\n- **複合主鍵與複合外鍵**：`lesson`、`lesson_resource`、`certificate`\n\n- **參照主鍵以外的欄位**：`code_item.type_code` 參照 `code_type.code`；`orders.coupon_code` 參照 `coupon.code`\n\n- **多對多**：`course_tag`（主鍵自動判斷）、`org_member`（唯一鍵自動判斷）、`enrollment`（明確標示）、`member_follow`（自我多對多）；`order_item` 標了 `junction: false`\n\n- **自我參照**：`category.parent_id`、`member.referrer_id`\n\n- **同一對表多條外鍵**：`course.author_id` 與 `course.reviewer_id` 都指向 `member`，Diagram 上兩條線會錯開\n\n- **hub 表**：`code_item` 被很多欄位指向，Diagram 預設收起它的連線\n\n## Wiki 內文\n\n反引號裡剛好是表名會自動連過去（例如 `orders`），剛好是 schema key 會連到 Schema 頁（例如 `commerce`）。兩者撞名時可以寫前綴：`table:course`、`schema:catalog`。一般連結也可以，例如 [NoteCraft 的視覺化筆記](/notes/md-viz)。\n\n> 資料問題（外鍵指向不存在的表、欄數對不上…）不在這份展示裡：它們會在 build log 印警告，詳見 plugin 的 README。"
+  },
+  "options": {
+    "defaultRows": 5,
+    "hubTables": [
+      "code_item"
+    ],
+    "sectionPrefix": "§",
+    "hint": "點一張表可聚焦它的關聯，其餘變淡；再點一次、點空白處或按 Esc 取消。",
+    "searchPlaceholder": "搜尋表名或欄位名（例：lesson、member_id）"
+  },
+  "requirement": [
+    {
+      "key": "required",
+      "label": "必填",
+      "marker": "solid"
+    },
+    {
+      "key": "condition",
+      "label": "條件",
+      "marker": "half",
+      "title": "條件必填，條件見說明；資料庫層可為 null",
+      "nullable": true
+    },
+    {
+      "key": "nullable",
+      "label": "可空",
+      "marker": "hollow",
+      "nullable": true
+    },
+    {
+      "key": "system",
+      "label": "系統",
+      "marker": "muted",
+      "title": "系統維護，應用層不可寫入"
+    }
+  ],
+  "flags": [
+    {
+      "key": "pk",
+      "badge": "PK",
+      "tone": "danger",
+      "label": "主鍵"
+    },
+    {
+      "key": "fk",
+      "badge": "FK",
+      "tone": "info",
+      "label": "外鍵"
+    },
+    {
+      "key": "unique",
+      "badge": "UQ",
+      "tone": "success",
+      "label": "唯一"
+    },
+    {
+      "key": "index",
+      "badge": "IX",
+      "tone": "neutral",
+      "label": "索引"
+    }
+  ],
+  "derivations": [
+    {
+      "key": "generated",
+      "badge": "GEN",
+      "label": "資料庫計算欄"
+    },
+    {
+      "key": "trigger",
+      "badge": "TRG",
+      "label": "由 trigger 維護"
+    },
+    {
+      "key": "encrypted",
+      "badge": "ENC",
+      "label": "加密儲存"
+    }
+  ],
+  "schemas": [
+    {
+      "key": "account",
+      "label": "會員與組織",
+      "description": "會員、會員補充資料、追蹤關係與企業帳號。\n\n- `member_profile` 是 **1:1**\n- `member_follow` 是**自我多對多**\n- `org_member` 是以唯一鍵自動判斷的中間表"
+    },
+    {
+      "key": "catalog",
+      "label": "課程",
+      "description": "課程、單元與標籤。`lesson` 以 (course_id, lesson_no) 為**複合主鍵**，`lesson_resource` 以同一組欄位**複合外鍵**參照它。"
+    },
+    {
+      "key": "commerce",
+      "label": "交易與學習",
+      "description": "訂單、付款、退款與選課紀錄。`enrollment` 明確標示為中間表；`order_item` 雖然長得像中間表，但標了 `junction: false`。"
+    },
+    {
+      "key": "core",
+      "label": "共用主檔",
+      "description": "選項主檔。`code_item` 是 hub 表，Diagram 預設收起它的連線。"
+    }
+  ],
+  "groups": [
+    {
+      "key": "member",
+      "label": "會員",
+      "schema": "account",
+      "description": "會員本體與補充資料。"
+    },
+    {
+      "key": "org",
+      "label": "企業帳號",
+      "schema": "account"
+    },
+    {
+      "key": "course",
+      "label": "課程內容",
+      "schema": "catalog"
+    },
+    {
+      "key": "taxonomy",
+      "label": "分類與標籤",
+      "schema": "catalog"
+    },
+    {
+      "key": "order",
+      "label": "訂單與付款",
+      "schema": "commerce"
+    },
+    {
+      "key": "learning",
+      "label": "學習紀錄",
+      "schema": "commerce"
+    },
+    {
+      "key": "dict",
+      "label": "選項主檔",
+      "schema": "core"
+    },
+    {
+      "key": "unused",
+      "label": "保留分群",
+      "schema": "core",
+      "description": "沒有任何表的分群：Wiki 的 Schema 頁照樣列出；Diagram 在「全部」範圍照畫空框，切到 `core` 範圍時不畫。"
+    }
+  ],
+  "layout": {
+    "columns": [
+      {
+        "key": "c1",
+        "groups": [
+          "member",
+          "org"
+        ]
+      },
+      {
+        "key": "c2",
+        "groups": [
+          "course",
+          "taxonomy"
+        ]
+      },
+      {
+        "key": "c3",
+        "groups": [
+          "order",
+          "learning"
+        ]
+      },
+      {
+        "key": "c4",
+        "groups": [
+          "dict",
+          "unused"
+        ]
+      }
+    ]
+  },
+  "tables": [
+    {
+      "name": "member",
+      "label": "會員",
+      "section": "1.1",
+      "group": "member",
+      "description": "平台的使用者，學員與講師都是會員。\n\n示範：\n- **自我參照**：`referrer_id` 指向推薦人，可為 null，所以父端是「零或一」\n- **個資欄位**：`email`、`phone` 標了 `pii`（目前渲染器不顯示，資料先記著）\n- **hub 表的外鍵**：`gender_id` 指向 `code_item`",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "required": "required",
+          "unique": true,
+          "pii": true,
+          "note": "登入帳號"
+        },
+        {
+          "name": "display_name",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "顯示名稱"
+        },
+        {
+          "name": "phone",
+          "type": "varchar(30)",
+          "required": "nullable",
+          "pii": true,
+          "derivation": "encrypted",
+          "note": "手機，加密儲存"
+        },
+        {
+          "name": "gender_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "code_item",
+          "note": "性別，type_code＝gender"
+        },
+        {
+          "name": "referrer_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "member",
+          "index": true,
+          "note": "推薦人（自我參照）"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "註冊時間"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "required": "system",
+          "derivation": "trigger",
+          "note": "最後更新時間，trigger 維護"
+        }
+      ]
+    },
+    {
+      "name": "member_profile",
+      "label": "會員補充資料",
+      "section": "1.1",
+      "group": "member",
+      "description": "與 `member` **一對一**：主鍵就是外鍵。\n\n註冊時就一併建立，所以在 `foreignKeys` 明確寫了 `cardinality.child: one`——「每位會員恰好一筆」，這是約束推不出來的業務規則。",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "note": "所屬會員；同時是主鍵"
+        },
+        {
+          "name": "bio",
+          "type": "text",
+          "required": "nullable",
+          "note": "自我介紹"
+        },
+        {
+          "name": "avatar_url",
+          "type": "varchar(300)",
+          "required": "nullable",
+          "note": "頭像"
+        },
+        {
+          "name": "birthday",
+          "type": "date",
+          "required": "nullable",
+          "pii": true,
+          "note": "生日"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "required": "system",
+          "derivation": "trigger",
+          "note": "最後更新時間，trigger 維護"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_profile_member",
+          "columns": [
+            "member_id"
+          ],
+          "references": {
+            "table": "member"
+          },
+          "cardinality": {
+            "child": "one"
+          },
+          "note": "註冊時一併建立，每位會員恰好一筆"
+        }
+      ]
+    },
+    {
+      "name": "member_follow",
+      "label": "追蹤關係",
+      "section": "1.2",
+      "group": "member",
+      "description": "**自我多對多**：兩條外鍵都指向 `member`，合起來是主鍵，所以自動判斷為中間表。收合後在 Diagram 上是一條從 `member` 繞回 `member` 的線。",
+      "columns": [
+        {
+          "name": "follower_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "member",
+          "note": "追蹤者"
+        },
+        {
+          "name": "followee_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "member",
+          "index": true,
+          "note": "被追蹤者"
+        },
+        {
+          "name": "followed_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "開始追蹤的時間"
+        }
+      ]
+    },
+    {
+      "name": "org",
+      "label": "企業",
+      "section": "1.3",
+      "group": "org",
+      "description": "購買企業方案的公司。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "name",
+          "type": "varchar(120)",
+          "required": "required",
+          "index": true,
+          "note": "公司名稱"
+        },
+        {
+          "name": "tax_id",
+          "type": "char(8)",
+          "required": "nullable",
+          "unique": true,
+          "note": "統一編號"
+        },
+        {
+          "name": "seats",
+          "type": "integer",
+          "required": "required",
+          "default": "10",
+          "note": "授權人數"
+        }
+      ]
+    },
+    {
+      "name": "org_member",
+      "label": "企業成員",
+      "section": "1.3",
+      "group": "org",
+      "description": "企業與會員的多對多。用**代理主鍵**加上唯一鍵 `uq_org_member`，沒寫 `junction`，一樣會被自動判斷為中間表（條件：剛好兩條外鍵、合起來是唯一鍵、都不可為 null）。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "org_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "org",
+          "note": "企業"
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "member",
+          "index": true,
+          "note": "會員"
+        },
+        {
+          "name": "role",
+          "type": "varchar(20)",
+          "required": "required",
+          "default": "'learner'",
+          "note": "admin 管理者／learner 學員"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_org_member",
+          "columns": [
+            "org_id",
+            "member_id"
+          ],
+          "unique": true,
+          "note": "同一位會員在同一家企業只有一筆"
+        }
+      ]
+    },
+    {
+      "name": "course",
+      "label": "課程",
+      "section": "2.1",
+      "group": "course",
+      "description": "平台上的一門課。\n\n示範**同一對表的多條外鍵**：`author_id` 與 `reviewer_id` 都指向 `member`，Diagram 上兩條線上下錯開；`reviewer_id` 可為 null，那條線的父端是「零或一」。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "slug",
+          "type": "varchar(80)",
+          "required": "required",
+          "unique": true,
+          "note": "網址代稱"
+        },
+        {
+          "name": "title",
+          "type": "varchar(120)",
+          "required": "required",
+          "index": true,
+          "note": "課程名稱"
+        },
+        {
+          "name": "author_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "member",
+          "index": true,
+          "note": "講師"
+        },
+        {
+          "name": "reviewer_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "member",
+          "note": "審核人；審核前為空"
+        },
+        {
+          "name": "category_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "category",
+          "index": true,
+          "note": "分類"
+        },
+        {
+          "name": "level_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "code_item",
+          "note": "難度，type_code＝level"
+        },
+        {
+          "name": "price",
+          "type": "numeric(10,0)",
+          "required": "required",
+          "default": "0",
+          "note": "售價；0 為免費課"
+        },
+        {
+          "name": "lesson_count",
+          "type": "smallint",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "單元數，由 lesson 異動時維護"
+        },
+        {
+          "name": "published_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "上架時間"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "required": "system",
+          "derivation": "trigger",
+          "note": "最後更新時間，trigger 維護"
+        }
+      ]
+    },
+    {
+      "name": "lesson",
+      "label": "單元",
+      "section": "2.2",
+      "group": "course",
+      "description": "課程底下的每一堂課，以 (course_id, lesson_no) 為**複合主鍵**。\n\n每門課**至少一堂**：在 `foreignKeys` 明確寫 `cardinality.child: one-or-many`。",
+      "columns": [
+        {
+          "name": "course_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "note": "所屬課程"
+        },
+        {
+          "name": "lesson_no",
+          "type": "smallint",
+          "required": "required",
+          "pk": true,
+          "note": "單元序號，同一門課內由 1 起編"
+        },
+        {
+          "name": "title",
+          "type": "varchar(120)",
+          "required": "required",
+          "note": "單元名稱"
+        },
+        {
+          "name": "duration_sec",
+          "type": "integer",
+          "required": "required",
+          "note": "影片長度（秒）"
+        },
+        {
+          "name": "is_preview",
+          "type": "boolean",
+          "required": "required",
+          "default": "false",
+          "note": "免費試看"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_lesson_course",
+          "columns": [
+            "course_id"
+          ],
+          "references": {
+            "table": "course"
+          },
+          "cardinality": {
+            "child": "one-or-many"
+          },
+          "note": "每門課至少一堂"
+        }
+      ]
+    },
+    {
+      "name": "lesson_resource",
+      "label": "單元附件",
+      "section": "2.2",
+      "group": "course",
+      "description": "以 (course_id, lesson_no) **複合外鍵**參照 `lesson`。`references.columns` 沒寫，所以預設用父表的複合主鍵。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "course_id",
+          "type": "bigint",
+          "required": "required",
+          "note": "所屬課程"
+        },
+        {
+          "name": "lesson_no",
+          "type": "smallint",
+          "required": "required",
+          "note": "所屬單元"
+        },
+        {
+          "name": "file_name",
+          "type": "varchar(255)",
+          "required": "required",
+          "note": "原始檔名"
+        },
+        {
+          "name": "object_uri",
+          "type": "text",
+          "required": "required",
+          "note": "儲存位置"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_resource_lesson",
+          "columns": [
+            "course_id",
+            "lesson_no"
+          ],
+          "references": {
+            "table": "lesson"
+          },
+          "note": "一個單元可以有多個附件"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "course_id",
+            "lesson_no"
+          ],
+          "note": "依單元列出附件"
+        }
+      ]
+    },
+    {
+      "name": "category",
+      "label": "分類",
+      "section": "2.3",
+      "group": "taxonomy",
+      "description": "課程分類，兩層。**自我參照**：`parent_id` 指向上層分類。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "name",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "分類名稱"
+        },
+        {
+          "name": "parent_id",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "category",
+          "note": "上層分類；第一層為空"
+        },
+        {
+          "name": "sort_order",
+          "type": "smallint",
+          "required": "required",
+          "default": "0",
+          "note": "排序"
+        }
+      ]
+    },
+    {
+      "name": "tag",
+      "label": "標籤",
+      "section": "2.3",
+      "group": "taxonomy",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "name",
+          "type": "varchar(40)",
+          "required": "required",
+          "unique": true,
+          "note": "標籤名稱"
+        }
+      ]
+    },
+    {
+      "name": "course_tag",
+      "label": "課程標籤",
+      "section": "2.3",
+      "group": "taxonomy",
+      "description": "課程與標籤的多對多。兩條外鍵合起來就是**複合主鍵**，沒有其他欄位——最典型的中間表，自動判斷。",
+      "columns": [
+        {
+          "name": "course_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "course",
+          "note": "課程"
+        },
+        {
+          "name": "tag_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "tag",
+          "index": true,
+          "note": "標籤"
+        }
+      ]
+    },
+    {
+      "name": "orders",
+      "label": "訂單",
+      "section": "3.1",
+      "group": "order",
+      "description": "一次結帳一筆訂單。\n\n示範：\n- **參照非主鍵欄位**：`coupon_code` 以 `fk: \"coupon.code\"` 參照 `coupon` 的唯一欄位 `code`\n- **條件必填**：`coupon_code` 的必填性是「條件」，語彙標了 `nullable: true`，所以父端是「零或一」",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "order_no",
+          "type": "varchar(20)",
+          "required": "system",
+          "unique": true,
+          "derivation": "generated",
+          "note": "訂單編號"
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "member",
+          "index": true,
+          "note": "購買人"
+        },
+        {
+          "name": "coupon_code",
+          "type": "varchar(20)",
+          "required": "condition",
+          "fk": "coupon.code",
+          "note": "使用的折價券；有用券才填"
+        },
+        {
+          "name": "status_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "code_item",
+          "note": "訂單狀態，type_code＝order_status"
+        },
+        {
+          "name": "total",
+          "type": "numeric(10,0)",
+          "required": "system",
+          "derivation": "trigger",
+          "note": "由明細加總"
+        },
+        {
+          "name": "ordered_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "下單時間"
+        }
+      ]
+    },
+    {
+      "name": "order_item",
+      "label": "訂單明細",
+      "section": "3.1",
+      "group": "order",
+      "description": "訂單買了哪些課。兩條外鍵合起來是主鍵，長得像中間表，但它有自己的價格與折扣、是**有內容的明細**，所以標了 `junction: false` 關掉自動判斷。Wiki 不會把 `orders` 與 `course` 列成多對多。",
+      "junction": false,
+      "columns": [
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "orders",
+          "note": "訂單"
+        },
+        {
+          "name": "course_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "course",
+          "index": true,
+          "note": "課程"
+        },
+        {
+          "name": "list_price",
+          "type": "numeric(10,0)",
+          "required": "required",
+          "note": "原價"
+        },
+        {
+          "name": "discount",
+          "type": "numeric(10,0)",
+          "required": "required",
+          "default": "0",
+          "note": "折扣"
+        },
+        {
+          "name": "net_price",
+          "type": "numeric(10,0)",
+          "required": "system",
+          "derivation": "generated",
+          "note": "實付＝原價 − 折扣"
+        }
+      ]
+    },
+    {
+      "name": "coupon",
+      "label": "折價券",
+      "section": "3.2",
+      "group": "order",
+      "description": "`code` 有唯一約束，所以可以被 `orders.coupon_code` 參照。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "code",
+          "type": "varchar(20)",
+          "required": "required",
+          "unique": true,
+          "note": "券碼"
+        },
+        {
+          "name": "amount",
+          "type": "numeric(10,0)",
+          "required": "required",
+          "note": "折抵金額"
+        },
+        {
+          "name": "expires_on",
+          "type": "date",
+          "required": "nullable",
+          "note": "到期日；空白為不過期"
+        }
+      ]
+    },
+    {
+      "name": "payment",
+      "label": "付款",
+      "section": "3.3",
+      "group": "order",
+      "description": "一筆訂單可以分次付款。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "orders",
+          "index": true,
+          "note": "訂單"
+        },
+        {
+          "name": "method_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "code_item",
+          "note": "付款方式，type_code＝pay_method"
+        },
+        {
+          "name": "amount",
+          "type": "numeric(10,0)",
+          "required": "required",
+          "note": "金額"
+        },
+        {
+          "name": "gateway_ref",
+          "type": "varchar(60)",
+          "required": "nullable",
+          "derivation": "encrypted",
+          "note": "金流交易序號，加密儲存"
+        },
+        {
+          "name": "paid_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "付款時間"
+        }
+      ]
+    },
+    {
+      "name": "refund",
+      "label": "退款",
+      "section": "3.3",
+      "group": "order",
+      "description": "一筆付款最多退一次：`payment_id` 有唯一約束，所以是 **1:1**（父端「恰好一筆」、子端「零或一筆」）。\n\n`approved_by` 示範**欄位層的 nullable**：它的必填性是「系統」（語彙沒標 nullable），但核准前是空的，所以在欄位上寫 `nullable: true`，父端就成了「零或一」。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "payment_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "payment",
+          "unique": true,
+          "note": "被退的付款"
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "required": "required",
+          "note": "退款原因"
+        },
+        {
+          "name": "approved_by",
+          "type": "bigint",
+          "required": "system",
+          "fk": "member",
+          "nullable": true,
+          "note": "核准人，系統於核准時寫入；核准前為空"
+        },
+        {
+          "name": "requested_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "申請時間"
+        }
+      ]
+    },
+    {
+      "name": "enrollment",
+      "label": "選課紀錄",
+      "section": "4.1",
+      "group": "learning",
+      "description": "會員與課程的多對多，以 `junction: true` **明確標示**為中間表（其實也符合自動判斷的條件）。它還帶著學習進度，收合時這些欄位看不到，點小卡聚焦就會畫回真實結構。",
+      "junction": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "member",
+          "note": "學員"
+        },
+        {
+          "name": "course_id",
+          "type": "bigint",
+          "required": "required",
+          "fk": "course",
+          "index": true,
+          "note": "課程"
+        },
+        {
+          "name": "progress_pct",
+          "type": "smallint",
+          "required": "system",
+          "default": "0",
+          "derivation": "trigger",
+          "note": "完成百分比"
+        },
+        {
+          "name": "enrolled_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "開始上課時間"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_enrollment",
+          "columns": [
+            "member_id",
+            "course_id"
+          ],
+          "unique": true,
+          "note": "同一門課只會選一次"
+        }
+      ]
+    },
+    {
+      "name": "certificate",
+      "label": "結業證書",
+      "section": "4.2",
+      "group": "learning",
+      "description": "以 (member_id, course_id) **複合外鍵**參照 `enrollment`，`references.columns` 明確寫出——參照的是 `enrollment` 的**唯一鍵** `uq_enrollment`，不是它的主鍵 `id`。\n\n本表對同一組欄位也有唯一約束，所以是 **1:1**：一筆選課最多發一張證書。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "member_id",
+          "type": "bigint",
+          "required": "required",
+          "note": "學員"
+        },
+        {
+          "name": "course_id",
+          "type": "bigint",
+          "required": "required",
+          "note": "課程"
+        },
+        {
+          "name": "serial_no",
+          "type": "varchar(20)",
+          "required": "system",
+          "unique": true,
+          "derivation": "generated",
+          "note": "證書編號"
+        },
+        {
+          "name": "issued_at",
+          "type": "timestamptz",
+          "required": "system",
+          "default": "now()",
+          "note": "發證時間"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_certificate_enrollment",
+          "columns": [
+            "member_id",
+            "course_id"
+          ],
+          "references": {
+            "table": "enrollment",
+            "columns": [
+              "member_id",
+              "course_id"
+            ]
+          },
+          "note": "完成課程後發證"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_certificate",
+          "columns": [
+            "member_id",
+            "course_id"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "name": "code_type",
+      "label": "選項集合",
+      "section": "5.1",
+      "group": "dict",
+      "description": "選項的集合，主鍵是代理 `id`，但 `code` 有唯一約束，所以 `code_item.type_code` 可以參照它。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "code",
+          "type": "varchar(30)",
+          "required": "required",
+          "unique": true,
+          "note": "集合代碼：gender、level、order_status、pay_method"
+        },
+        {
+          "name": "label",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "顯示名稱"
+        }
+      ]
+    },
+    {
+      "name": "code_item",
+      "label": "選項",
+      "section": "5.1",
+      "group": "dict",
+      "description": "所有下拉選項的共用主檔，被很多欄位指向，是 **hub 表**（`options.hubTables`），Diagram 預設收起它的連線。\n\n示範：\n- `type_code` 以 `fk: \"code_type.code\"` 參照**非主鍵欄位**\n- **複合唯一鍵**：`(type_code, code)` 寫在 `indexes`，`code` 本身不標 UQ（單看那一欄並不唯一）",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "type_code",
+          "type": "varchar(30)",
+          "required": "required",
+          "fk": "code_type.code",
+          "index": true,
+          "note": "所屬集合"
+        },
+        {
+          "name": "code",
+          "type": "varchar(30)",
+          "required": "required",
+          "note": "選項代碼；同一集合內唯一"
+        },
+        {
+          "name": "label",
+          "type": "varchar(60)",
+          "required": "required",
+          "note": "顯示名稱"
+        },
+        {
+          "name": "sort_order",
+          "type": "smallint",
+          "required": "required",
+          "default": "0",
+          "note": "排序"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_code_item",
+          "columns": [
+            "type_code",
+            "code"
+          ],
+          "unique": true
+        }
+      ]
+    }
+  ]
+}

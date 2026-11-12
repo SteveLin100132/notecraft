@@ -2,7 +2,7 @@
 description: 用 er-diagram-renderer 把資料庫 schema JSON 畫成有導覽樹、Wiki 與關聯圖的資料庫文件，也能嵌進筆記內文。
 ---
 
-ER Diagram Renderer（id `er-diagram-renderer`，目前版本 1.2.0）把一份描述資料表、欄位與外鍵的 JSON，畫成三部分：左側導覽樹、Wiki 文件頁，以及可縮放的實體關聯圖。需要 NoteCraftApp 0.6.0 以上。
+ER Diagram Renderer（id `er-diagram-renderer`，目前版本 1.3.0）把一份描述資料表、欄位與外鍵的 JSON，畫成三部分：左側導覽樹、Wiki 文件頁，以及可縮放的實體關聯圖。需要 NoteCraftApp 0.6.0 以上。
 
 ## 安裝與映射
 
@@ -85,7 +85,7 @@ npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
 | `schemas` | | 導覽的第一層，例如 `crm`、`sales`。沒寫時導覽直接從分群開始 |
 | `groups` | ✓ | 模組分群：`key`、`label`，選填 `schema`、`description` |
 | `layout` | ✓ | `columns` 決定關聯圖的欄與每欄由上而下放哪些分群，也決定導覽裡分群的順序 |
-| `tables` | ✓ | 資料表：`name`、`label`、`group`、`columns`，選填 `section`、`description` |
+| `tables` | ✓ | 資料表：`name`、`label`、`group`、`columns`，選填 `section`、`description`、`foreignKeys`、`indexes`、`junction`（見下方〈關聯：外鍵、多重性與多對多〉） |
 
 ### 欄位（tables[].columns）
 
@@ -94,17 +94,58 @@ npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
 | `name` | ✓ | 欄位名 |
 | `type` | ✓ | 型別，原樣顯示 |
 | `required` | ✓ | 填 `requirement` 裡的某個 `key` |
-| `pk`、`unique`、`index` | | 布林值，顯示對應的徽章 |
-| `fk` | | 父表的 `name`。關聯線由它推導；指向不存在的表時略過那條線 |
+| `nullable` | | 這一欄可否為 null，用來推導多重性；不寫時看 `requirement` 項目的 `nullable`，再不行當作不可為 null |
+| `pk`、`unique`、`index` | | 布林值，顯示對應的徽章。好幾欄都寫 `pk: true` 就是複合主鍵 |
+| `fk` | | 單欄外鍵的簡寫：寫父表的 `name` 時參照它的主鍵，寫 `表名.欄位名` 時參照指定欄位。指向不存在的表時略過那條線，並在 build log 提示 |
 | `default` | | 預設值 |
 | `note` | | 欄位說明 |
 | `derivation` | | 填 `derivations` 裡的某個 `key` |
 
+`requirement` 的項目可以加 `"nullable": true`，表示這個必填性在資料庫層可為 null（例如「可空」「條件必填」），省得每個欄位都寫。
+
 <Callout>
-關聯不用另外寫一份 `edges`，全部由 `columns[].fk` 推導；索引清單、衍生欄清單、父表與子表數也一樣。schema 不允許多餘的欄位，打錯鍵名 build 會失敗並指出位置。
+關聯不用另外寫一份 `edges`，全部由 `tables[].foreignKeys` 與 `columns[].fk` 推導；索引清單、衍生欄清單、父表與子表數也一樣。schema 不允許多餘的欄位，打錯鍵名 build 會失敗並指出位置。
 </Callout>
 
-完整規格見 repo 裡的 [schema.json](https://github.com/SteveLin100132/notecraft/blob/main/plugins/er-diagram-renderer/schema.json)，含 3 個 schema、14 張表的範例見 [example/schema.json](https://github.com/SteveLin100132/notecraft/blob/main/plugins/er-diagram-renderer/example/schema.json)。
+完整規格見 repo 裡的 [schema.json](https://github.com/SteveLin100132/notecraft/blob/main/plugins/er-diagram-renderer/schema.json)，含 3 個 schema、17 張表的範例（1:1、可選外鍵、複合主鍵與外鍵、參照非 `id` 欄位、多對多中間表都有）見 [example/schema.json](https://github.com/SteveLin100132/notecraft/blob/main/plugins/er-diagram-renderer/example/schema.json)。
+
+### 關聯：外鍵、多重性與多對多
+
+單欄外鍵寫在欄位的 `fk` 就好。複合外鍵、參照主鍵以外的唯一欄位、或要明確指定多重性時，寫在表的 `foreignKeys`：
+
+```json
+"foreignKeys": [
+  {
+    "name": "fk_delivery_item",
+    "columns": ["contract_id", "line_no"],
+    "references": { "table": "contract_item" },
+    "cardinality": { "child": "one-or-many" },
+    "note": "一筆明細可分多次交付"
+  }
+],
+"indexes": [
+  { "name": "uq_option_item_code", "columns": ["type_code", "code"], "unique": true }
+]
+```
+
+- `references.columns` 不寫時用父表的主鍵（含複合主鍵）；寫了就必須是父表的主鍵或唯一鍵
+- 欄位的 `fk` 和 `foreignKeys` 寫同一欄時，以 `foreignKeys` 為準
+- `indexes` 是表層的索引與唯一約束，可以多欄；`unique: true` 的組合會用來推導 1:1
+
+關聯線兩端畫 crow's foot 符號：`||` 恰好一筆、`o|` 零或一筆、`|<` 一筆以上、`o<` 零或多筆。靠父表那端是「每筆子資料對到幾筆父資料」，靠子表那端是「每筆父資料有幾筆子資料」。不寫也會推導：
+
+| 端 | 推導 |
+| :-- | :-- |
+| 父端 | 外鍵欄位都不可為 null 時「恰好一筆」，否則「零或一筆」 |
+| 子端 | 外鍵欄位包含本表的主鍵或某個唯一鍵時「零或一筆」（1:1），否則「零或多筆」 |
+
+「一筆以上」這種業務規則約束表達不了，只能在 `cardinality.child` 明確寫。明確寫的值一律優先。
+
+**多對多**：表上寫 `junction: true` 就是中間表；不寫時，剛好兩條外鍵、兩者的欄位合起來是主鍵或唯一鍵、而且都不可為 null，會自動當成中間表（`junction: false` 可以關掉）。Diagram 可以把中間表收合成一條多對多的線，Wiki 的表頁會列出「多對多（經由某張表）」。
+
+外鍵指向不存在的表或欄位、欄數對不上、參照的不是唯一鍵、`junction` 條件不成立時，build log 與開發模式的瀏覽器 console 會印出提示，**不會讓 build 失敗**。
+
+1.2.0 以前的資料檔不用改：沒有 `nullable` 資訊時父端一律是「恰好一筆」，子端依欄位上的 `unique` 推導。
 
 ### Wiki 說明可用的 Markdown
 
@@ -122,6 +163,7 @@ npx notecraftapp install-plugin er-diagram-renderer --apply "**/*.er.json"
 | `defaultRows` | `6` | 關聯圖卡片預設顯示幾個欄位；主鍵與外鍵一律顯示、不計入 |
 | `hubTables` | `[]` | 被極多張表指向的共用表名稱，它們的連線預設收起 |
 | `canvasHeight` | 依情境 | 關聯圖畫布高度（px），最小 240 |
+| `collapseJunctions` | `false` | 關聯圖一開始就收合中間表 |
 | `sectionPrefix` | `§` | 表的 `section` 前面加的符號 |
 | `hint` | 一段操作說明 | 關聯圖上方的提示文字 |
 | `searchPlaceholder` | `搜尋表名或欄位名` | 關聯圖搜尋框的提示字 |
@@ -142,7 +184,7 @@ Schema → 分群 → 資料表三層，可以收合。上方的篩選框比對�
 | :-- | :-- |
 | 總覽 | 標題、統計（schemas、表、欄位、外鍵數）、`meta.description`、各 schema 卡片、這份資料用到的語彙 |
 | Schema | schema 說明，以及每個分群的說明與資料表清單 |
-| Table | 表說明、欄位表（外鍵可以點到父表）、局部關聯圖（父表 ← 本表 ← 子表，各最多 8 張）、參照與被參照清單、索引與唯一鍵、衍生欄 |
+| Table | 表說明、欄位表（外鍵寫出參照的父表欄位，可以點到父表）、局部關聯圖（父表 ← 本表 ← 子表，各最多 8 張，兩端畫多重性）、參照與被參照清單（附 `N:1`、`1:N（可選）`、`1:1` 等多重性文字）、多對多、索引與唯一鍵、衍生欄 |
 
 `description` 全部選填，沒寫的地方顯示空狀態。
 
@@ -154,6 +196,8 @@ Schema → 分群 → 資料表三層，可以收合。上方的篩選框比對�
 - **展開欄位**：卡片只顯示 `defaultRows` 個欄位，點「展開全部 N 欄」看完整欄位
 - **範圍**：有寫 `schemas` 時，可以只畫某個 schema 的表；跨範圍的連線不畫，但會註明有幾條
 - **共用表連線**：`hubTables` 的連線預設收起，有一個開關可以顯示
+- **多重性與圖例**：線的兩端畫 crow's foot 符號，縮放列的「圖例」可以隨時查
+- **收合中間表**：有中間表時多一個開關，收合後中間表只剩標題列，兩端的表之間改畫一條多對多的線；點那張小卡會畫回它真正的兩條外鍵
 
 Wiki 與 Diagram 互相跳轉：Table 頁有「在 Diagram 聚焦」，聚焦列有「開啟 Wiki」。
 
@@ -171,6 +215,8 @@ import PluginView from "@/components/PluginView.astro";
 <PluginView src="planning/orders.er.json" caption="訂單模組的資料表關聯" />
 ```
 
+`src` 是資料檔相對於**筆記資料夾**的路徑，與 `plugins.json` 的 `files` 同一個基準，不是相對於這篇筆記。筆記在 `sales/overview.mdx`、資料檔在 `planning/orders.er.json` 時，一樣寫 `src="planning/orders.er.json"`。
+
 內嵌和 `/view/` 頁的差別：
 
 | | `/view/` 頁 | 內嵌 |
@@ -180,7 +226,7 @@ import PluginView from "@/components/PluginView.astro";
 | 全寬 | — | 「展開全寬」攤開整個外殼，「回到本文」收回 |
 
 - 內嵌和 `/view/` 頁各自記住上次的位置，互不影響
-- `options` 可以逐處覆寫，例如 `options={{ defaultRows: 10 }}`
+- `options` 可以逐處覆寫，例如 `options={{ defaultRows: 10 }}`、`options={{ collapseJunctions: true }}`
 - `anchor` 對這個 plugin 沒有作用，因為它不讀網址 hash
 - 外框的「開啟完整檢視頁」與放大檢視由 NoteCraftApp 提供，見[映射規則 plugins.json](/docs/guides/plugin-mapping/)
 

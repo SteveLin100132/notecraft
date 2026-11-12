@@ -239,6 +239,16 @@ repo 根目錄的 `plugins/`，隨 GitHub 發佈 —— **推上預設分支就�
 - **plugin 以 `<style>{CSS}</style>` 注入樣式時，CSS 字串不可含 `< > & " '`**：React SSR 會把它們跳脫成實體，`<style>` 裡不會解回來，選擇器壞掉且 hydration 失敗（ER plugin 由 `scripts/checks/er-styles.mjs`、OpenAPI plugin 由 `oar-styles.mjs` 把關）
 - **資料檔 `meta.description` 允許 Markdown**：app 端的 `ResolvedDataFile.description` 已是第一段純文字、`descriptionIndex` 是全文純文字（`src/lib/strip-markdown.ts`）；不要在 app 端直接輸出 `data.meta.description`
 
+### ER Diagram Renderer v1.3（官方 plugin：多重性、複合 FK、多對多）
+
+[docs/notecraft-er-cardinality.md](docs/notecraft-er-cardinality.md)。定位是**通用 ER**：資料格式與 UI 文案不出現任何 ORM、框架或資料庫產品的用語。
+
+- **關聯只在 `derive.ts` 推導**（`foreignKeys[]` 與欄位 `fk` 正規化成 `Edge`，含 `cols`／`refCols`／兩端 `card`）；畫面一律讀 `D.edges`／`D.fksOfColumn`，**不要再直接讀 `c.fk`**（v1.2 的 Diagram 自己重算過一份，Task 150 已收掉）
+- nullable：欄位 `nullable` > `requirement[].nullable` > 不可為 null（不依語彙名稱猜）；子端是「外鍵欄位**包含**某個唯一鍵」才是 1:1；明確 `cardinality` 一律優先、與約束矛盾也不警告
+- 線一律從子表畫到父表：**子端是 `markerStart`、父端是 `markerEnd`**（`orient="auto-start-reverse"`）；marker 每種「形狀 × 色調」一個、id 以 `useId()` 加前綴，同頁多個內嵌才不會互相引用
+- 資料問題（10 種代碼）只提示不擋 build：SSR 每檔印一次（build log）、dev 瀏覽器印一次；官方範例必須零診斷（`er-derive.mjs`）
+- 舊版範例 `example/schema.v1.1.json`、`example/schema.v1.2.json` 一個欄位都不准改，三份範例都用最新的 `schema.json` 驗
+
 ### OpenAPI Renderer（官方 plugin，v1.0.0／app v1.6.0）
 
 [docs/notecraft-openapi-renderer.md](docs/notecraft-openapi-renderer.md)；像素級規格在 `docs/prototype/design_handoff_openapi_renderer/`。

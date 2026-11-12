@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { BookOpen, Expand, PanelLeft, Workflow } from 'lucide-react'
-import { erDerive } from './derive'
+import { erDerive, formatDiagnostics } from './derive'
 import type { ErDerived } from './derive'
 import { ErDiagram } from './diagram'
 import { ErNav } from './nav'
@@ -33,6 +33,8 @@ type Tab = 'wiki' | 'diagram'
 
 /** 已印過 dev 警告的資料檔（file.path） */
 const warned = new Set<string>()
+/** SSR（build 與 dev 的伺服器端）已印過資料問題的資料檔 —— 同一檔被內嵌好幾次也只印一次 */
+const warnedServer = new Set<string>()
 
 /** 外殼寬度 ≤ 此值時導覽改為覆蓋在內容上（與 styles.ts 的 container query 同值） */
 const NARROW = 760
@@ -69,11 +71,23 @@ export default function ErDiagramRenderer({
 
   const D = useMemo(() => erDerive(data), [data])
 
+  /* 參照錯誤（父表或欄位不存在、欄數不同、中間表條件不成立…）也印在 SSR，也就是 build log：
+     用工具產生資料檔後直接 build 的人看不到 dev console。不 throw、不讓 build 失敗（v1.2 起「指向不存在的表時略過」就是既定行為）。
+     做法與 openapi-renderer 對 Swagger 2.0 的提示相同。 */
+  if (typeof window === 'undefined' && !warnedServer.has(file.path)) {
+    warnedServer.add(file.path)
+    const msg = formatDiagnostics(file.path, D.diagnostics)
+    /* 開頭換行：Astro 的進度輸出（└─ /notes/…）不換行，直接接在後面會黏成一行 */
+    if (msg) console.warn(`\n${msg}`)
+  }
+
   /* 資料有瑕疵時不 throw（整頁白掉比少一個分群糟），但 dev 下要讓作者知道。
-     SSR 期不印，免得 build log 與瀏覽器各一次；同一個檔只印一次（多個內嵌、HMR 重掛）。 */
+     這幾則在瀏覽器印；同一個檔只印一次（多個內嵌、HMR 重掛）。 */
   useEffect(() => {
     if (!import.meta.env?.DEV || warned.has(file.path)) return
     warned.add(file.path)
+    const msg = formatDiagnostics(file.path, D.diagnostics)
+    if (msg) console.warn(msg)
     if (D.orphanGroups.length) {
       console.warn(
         `[er-diagram-renderer] ${file.path}：${D.orphanGroups.length} 個 group 的 schema 缺漏或無效，已歸入 "${D.schemas[0].key}"：${D.orphanGroups.join(', ')}`,
@@ -99,6 +113,8 @@ export default function ErDiagramRenderer({
   /* Diagram 的搜尋字串與 hub 開關放在外殼：Diagram 切走時會卸載，這兩個要跨分頁保留（不持久化） */
   const [dgQuery, setDgQuery] = useState('')
   const [showHubEdges, setShowHubEdges] = useState(false)
+  /* 收合中間表：初始值取設定（資料檔 < plugins.json < <PluginView options>），之後由使用者切換；切 Wiki 再切回來要保留 */
+  const [collapseJunctions, setCollapseJunctions] = useState(opts.collapseJunctions === true)
 
   const scopeSet = useMemo(
     () => (scope ? new Set(data.tables.filter((t) => D.schemaOfTable(t.name) === scope).map((t) => t.name)) : null),
@@ -473,6 +489,7 @@ export default function ErDiagramRenderer({
           ) : (
             <ErDiagram
               data={data}
+              D={D}
               opts={opts}
               fill
               wide={wide}
@@ -484,6 +501,8 @@ export default function ErDiagramRenderer({
               onQueryChange={setDgQuery}
               showHubEdges={showHubEdges}
               onShowHubEdgesChange={setShowHubEdges}
+              collapseJunctions={collapseJunctions}
+              onCollapseJunctionsChange={setCollapseJunctions}
               escapeRef={dgEscape}
             />
           )}

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="236" viewBox="0 0 640 236" font-family="ui-sans-serif, system-ui, 'Noto Sans TC', sans-serif" font-size="13">
+  <title>ER Diagram Renderer 多重性圖例</title>
+  <defs>
+    <style>
+      .ln { fill: none; stroke: #6b8fc7; stroke-width: 1.6; stroke-linecap: round; }
+      .ci { fill: #ffffff; stroke: #6b8fc7; stroke-width: 1.6; }
+      .card { fill: #ffffff; stroke: #c9d3e3; }
+      .head { fill: #1d4f91; }
+      .t { fill: #1f2937; }
+      .m { fill: #6b7280; font-size: 12px; }
+      .w { fill: #ffffff; font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="640" height="236" fill="#f7f9fc" rx="10"/>
+
+  <!-- 四種符號：線從左邊進來，右緣是卡片 -->
+  <g transform="translate(24 22)">
+    <text class="t" x="0" y="0" font-weight="700">四種符號（右邊是卡片）</text>
+    <g transform="translate(0 20)">
+      <path class="ln" d="M0 8 H56 M50 2 V14 M53 2 V14"/><rect x="56" y="0" width="6" height="16" fill="#c9d3e3"/>
+      <text class="t" x="74" y="12">one　恰好一筆</text>
+    </g>
+    <g transform="translate(0 46)">
+      <path class="ln" d="M0 8 H56 M53 2 V14"/><circle class="ci" cx="45" cy="8" r="3.5"/><rect x="56" y="0" width="6" height="16" fill="#c9d3e3"/>
+      <text class="t" x="74" y="12">zero-or-one　零或一筆</text>
+    </g>
+    <g transform="translate(0 72)">
+      <path class="ln" d="M0 8 H56 M46 2 V14 M49 8 L56 2 M49 8 L56 14"/><rect x="56" y="0" width="6" height="16" fill="#c9d3e3"/>
+      <text class="t" x="74" y="12">one-or-many　一筆以上</text>
+    </g>
+    <g transform="translate(0 98)">
+      <path class="ln" d="M0 8 H56 M49 8 L56 2 M49 8 L56 14"/><circle class="ci" cx="44" cy="8" r="3.5"/><rect x="56" y="0" width="6" height="16" fill="#c9d3e3"/>
+      <text class="t" x="74" y="12">zero-or-many　零或多筆</text>
+    </g>
+  </g>
+
+  <!-- 父端／子端 -->
+  <g transform="translate(300 22)">
+    <text class="t" x="0" y="0" font-weight="700">兩端各讀哪一個方向</text>
+    <rect class="card" x="0" y="20" width="110" height="44" rx="6"/>
+    <rect class="head" x="0" y="20" width="110" height="20" rx="6"/>
+    <text class="w" x="10" y="35">contract</text>
+    <text class="m" x="10" y="57">子表（有外鍵）</text>
+    <rect class="card" x="206" y="20" width="110" height="44" rx="6"/>
+    <rect class="head" x="206" y="20" width="110" height="20" rx="6"/>
+    <text class="w" x="216" y="35">customer</text>
+    <text class="m" x="216" y="57">父表（被參照）</text>
+    <path class="ln" d="M110 42 H206"/>
+    <!-- 子端 o< -->
+    <path class="ln" d="M110 36 L117 42 M110 48 L117 42"/><circle class="ci" cx="122" cy="42" r="3.5"/>
+    <!-- 父端 || -->
+    <path class="ln" d="M196 36 V48 M200 36 V48"/>
+    <text class="m" x="0" y="96">靠子表那端（o&lt;）：每筆 customer 有 0..N 筆 contract</text>
+    <text class="m" x="0" y="118">靠父表那端（||）：每筆 contract 對應 1 筆 customer</text>
+    <text class="m" x="0" y="148">外鍵可為 null → 父端變 o|（零或一）</text>
+    <text class="m" x="0" y="170">外鍵包含本表的唯一鍵 → 子端變 o|（1:1）</text>
+  </g>
+</svg>

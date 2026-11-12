@@ -42,6 +42,15 @@ export const CSS = `
 .erd-root .erd-zbtn:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
 .erd-root .erd-zval { min-width: 42px; text-align: center; font-family: var(--font-mono); font-size: 11.5px; font-weight: var(--weight-bold); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .erd-root .erd-zsep { width: 1px; height: 16px; margin: 0 3px; background: var(--border-subtle); }
+.erd-root .erd-lgbtn { height: 26px; padding: 0 9px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--text-muted); font: inherit; font-size: 11.5px; font-weight: var(--weight-bold); cursor: pointer; }
+.erd-root .erd-lgbtn:hover, .erd-root .erd-lgbtn[aria-expanded=true] { background: var(--blue-50); color: var(--blue-700); }
+.erd-root .erd-lgbtn:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.erd-root .erd-lgpanel { position: absolute; right: 12px; bottom: 52px; z-index: 5; width: 232px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-card); border: 1px solid var(--border-default); box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-body); cursor: default; }
+.erd-root .erd-lgpanel-h { margin-bottom: 4px; font-size: 11px; font-weight: var(--weight-bold); letter-spacing: var(--tracking-wide); color: var(--blue-700); }
+.erd-root .erd-lgrow { display: flex; align-items: center; gap: 8px; height: 22px; }
+.erd-root .erd-lgsvg { flex: none; overflow: visible; }
+.erd-root .erd-lgsvg path { fill: none; stroke: var(--blue-300); stroke-width: 1.3; }
+.erd-root .erd-lgpanel-note { margin: 6px 0 0; font-size: 11px; line-height: 1.55; color: var(--text-muted); }
 .erd-root .erd-svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .erd-root .erd-cols { position: relative; display: grid; gap: 34px; align-items: start; }
 .erd-root .erd-col { display: flex; flex-direction: column; gap: 26px; }
@@ -56,6 +65,12 @@ export const CSS = `
 .erd-root .erd-card--hit { border-color: var(--orange-300); }
 .erd-root .erd-cardhead { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 4px 10px; width: 100%; white-space: nowrap; text-align: left; border: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; background: var(--blue-700); color: var(--neutral-0); padding: 6px 9px; cursor: pointer; font-family: inherit; }
 .erd-root .erd-card--focus .erd-cardhead { background: var(--gradient-accent); color: var(--blue-950); }
+/* 收合的中間表：只剩標題列（Task 153） */
+.erd-root .erd-card--junction { min-width: 0; }
+.erd-root .erd-card--junction .erd-cardhead { align-items: center; border-radius: var(--radius-md); }
+.erd-root .erd-mnbadge { flex: none; padding: 0 6px; border: 1px solid currentColor; border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 10px; line-height: 16px; font-weight: var(--weight-bold); }
+.erd-root .erd-mnhits { flex: none; font-size: 10.5px; color: var(--orange-300); }
+.erd-root .erd-card--focus .erd-mnhits { color: var(--orange-700); }
 .erd-root .erd-cardhead:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .erd-root .erd-tname { font-family: var(--font-mono); font-size: 12.5px; font-weight: var(--weight-bold); }
 .erd-root .erd-tlabel { font-size: 11px; opacity: .88; }
@@ -83,8 +98,14 @@ export const CSS = `
 .erd-root .erd-more:hover { background: var(--blue-50); }
 .erd-root .erd-edge path { fill: none; stroke: var(--blue-300); stroke-width: 1.1; transition: opacity var(--duration-fast) var(--ease-out), stroke-width var(--duration-fast) var(--ease-out); }
 .erd-root .erd-edge text { font-family: var(--font-mono); font-size: 9.5px; fill: var(--orange-700); paint-order: stroke; stroke: var(--neutral-0); stroke-width: 3px; }
-.erd-root marker path { fill: var(--blue-300); }
-.erd-root .erd-head--on { fill: var(--orange-500); }
+/* 多重性 marker（markers.tsx）。marker 不是 .erd-edge 的子孫，色調靠各自的 class；
+   選擇器帶 marker 元素名，特異度才壓得過 .erd-local-svg path */
+.erd-root marker.erd-mk path, .erd-root marker.erd-mk circle { fill: none; stroke: var(--blue-300); stroke-width: 1.3; stroke-linecap: round; }
+.erd-root marker.erd-mk circle { fill: var(--surface-page); }
+.erd-root marker.erd-mk--on path, .erd-root marker.erd-mk--on circle { stroke: var(--orange-500); stroke-width: 1.6; }
+.erd-root marker.erd-mk--opt path, .erd-root marker.erd-mk--opt circle { stroke: var(--neutral-300); }
+.erd-root marker.erd-mk--local path, .erd-root marker.erd-mk--local circle { stroke: var(--blue-400); }
+.erd-root marker.erd-mk--local circle { fill: var(--surface-card); }
 .erd-root .erd-edge--base path { opacity: .55; }
 .erd-root .erd-edge--opt path { stroke: var(--neutral-300); }
 .erd-root .erd-edge--dim path { opacity: .18; }
@@ -285,6 +306,11 @@ export const CSS = `
 .erd-root .erd-rel-r code { color: var(--neutral-800); }
 .erd-root .erd-rel-r code.erd-to { font-weight: 600; color: var(--blue-700); }
 .erd-root .erd-rel-r em { flex: none; white-space: nowrap; padding: 0 6px; border-radius: var(--radius-pill); background: var(--neutral-100); font-size: 10.5px; font-style: normal; color: var(--neutral-600); }
+.erd-root .erd-rel-r .erd-cardt, .erd-root .erd-cardt { flex: none; padding: 0 7px; border-radius: var(--radius-pill); background: var(--orange-50); color: var(--orange-700); font-family: var(--font-mono); font-size: 11px; font-weight: var(--weight-bold); white-space: nowrap; }
+.erd-root .erd-rel-note { flex-basis: 100%; font-size: 11.5px; color: var(--text-muted); }
+.erd-root .erd-rel--mn .erd-lede { margin: 0 0 6px; }
+.erd-root .erd-fkcomp { margin-left: 4px; font-size: 10.5px; font-style: normal; color: var(--text-muted); }
+.erd-root .erd-vocab-null { margin-left: 6px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--neutral-100); font-size: 10.5px; font-style: normal; color: var(--neutral-600); }
 .erd-root .erd-kv { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
 .erd-root .erd-kv-r { display: grid; grid-template-columns: minmax(140px, 180px) auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--border-subtle); font-size: 12.5px; }
 .erd-root .erd-kv-r:first-child { border-top: 0; }
@@ -307,7 +333,7 @@ export const CSS = `
 .erd-root .erd-local { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0 72px; padding: 16px 18px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background-color: var(--surface-page); background-image: radial-gradient(circle, color-mix(in srgb, var(--text-muted) 20%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
 .erd-root .erd-local-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .erd-root .erd-local-svg path { fill: none; stroke: var(--blue-300); stroke-width: 1.3; }
-.erd-root .erd-local-svg .erd-local-head { fill: var(--blue-400); stroke: none; }
+.erd-root .erd-ln-tag { align-self: flex-start; margin-top: 3px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--orange-50); color: var(--orange-700); font-family: var(--font-mono); font-size: 10px; line-height: 16px; white-space: nowrap; }
 .erd-root .erd-local-col { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .erd-root .erd-local-col--p { align-items: flex-start; }
 .erd-root .erd-local-col--me { align-items: center; }

@@ -12,10 +12,10 @@ import PluginView from "@/components/PluginView.astro";
 
 ## 內嵌的資料表關聯圖
 
-下面這張圖來自 `schema-demo.er.json`，由 `er-diagram-renderer` 渲染。內文只有 760px，所以包在外框卡片裡，右上角可以放大檢視。
+下面這張圖來自 `testing/er-diagram/showcase.er.json`，由 `er-diagram-renderer` 渲染。內文只有 760px，所以包在外框卡片裡，右上角可以放大檢視。
 
-<PluginView src="schema-demo.er.json" caption="測試用的資料表關聯圖：36 張表、297 個欄位、69 條外鍵" />
+<PluginView src="testing/er-diagram/showcase.er.json" caption="ER Diagram 功能展示：20 張表、29 條外鍵、4 張中間表" />
 
 ## 對應的獨立頁
 
-同一份資料檔也有全寬的獨立頁：[/view/schema-demo.er](/view/schema-demo.er)。那一頁的頁首應該要有「回到來源筆記」，連回 `/notes/testing/資料檔內嵌測試`。
+同一份資料檔也有全寬的獨立頁：[/view/testing/er-diagram/showcase.er](/view/testing/er-diagram/showcase.er)。那一頁的頁首應該要有「回到來源筆記」，連回 `/notes/md-viz`（資料檔的 `meta.backTo`）。
