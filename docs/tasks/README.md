@@ -873,3 +873,46 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 白名單常數只放 root package；three 的禁用子路徑（`webgpu`／`tsl`／`src/*`）是 lint 文字規則
 > - 驗證用的 probe、骨架、暫時 deck **不 commit**
 > - **每次 commit 只 add 本 Task 的檔案**
+
+## 官方 plugin：ER Diagram Renderer v1.3 — 多重性、複合 FK、參照欄位、多對多（plugin v1.3.0；app 不升版）
+
+規格 [notecraft-er-cardinality.md](../notecraft-er-cardinality.md) **v1.0.0**（11 項決策已於 2026-11-12 定案，全部採用建議，紀錄見該文件 §13）。
+
+補強 `er-diagram-renderer` 表達「資料表關聯」的能力：線的兩端畫 crow's foot（預設由 nullable、PK、唯一約束推導，可明確覆寫）、
+表層 `foreignKeys[]`（複合 FK、參照 PK 以外的唯一鍵）、`indexes[]`（含複合唯一鍵）、中間表（明確標示或自動判斷）與 Diagram 的收合開關、
+參照錯誤的診斷（dev console 與 build log，不擋 build）。定位是**通用 ER Diagram**，不帶任何 ORM、框架或資料庫產品的欄位與用語。
+
+| Task | 功能 | 規格 | 主要改動 |
+| --- | --- | --- | --- |
+| [Task 149](task-149-er-schema-v13-examples.md) | 資料格式 v1.3、保留 v1.2 範例、v1.3 範例 | §3、§7.2、§8 | `schema.json`、`types.ts`、`example/schema.json`、`example/schema.v1.2.json`、`registry.json` |
+| [Task 150](task-150-er-diagram-edges-refactor.md) | Diagram 改用 `D.edges`（純重構、零行為變更） | §1.2 | `diagram.tsx`、`renderer.tsx` |
+| [Task 151](task-151-er-derive-cardinality.md) | 推導：FK 正規化、nullable、唯一鍵、多重性、中間表、診斷 | §4、§11.1 | `types.ts`、`derive.ts`、`scripts/checks/er-derive.mjs` |
+| [Task 152](task-152-er-crowfoot-markers.md) | crow's foot marker、線、卡片徽章、圖例 | §5.1–§5.4、§5.6 | 新增 `markers.tsx`；`diagram.tsx`、`styles.ts` |
+| [Task 153](task-153-er-junction-collapse.md) | 收合中間表 | §4.6、§5.5 | `diagram.tsx`、`renderer.tsx`、`styles.ts` |
+| [Task 154](task-154-er-wiki-local-cardinality.md) | Wiki 與 local diagram：參照欄位、多重性文字、多對多 | §5.7、§6 | `wiki.tsx`、`local-diagram.tsx`、`styles.ts` |
+| [Task 155](task-155-er-diagnostics-output.md) | 診斷輸出：dev console 與 build log | §4.8 | `derive.ts`、`renderer.tsx` |
+| [Task 156](task-156-er-cardinality-docs-release.md) | README、版號 1.3.0、官網指南、瀏覽器驗收、回填 | §9、§11.2、§15 | manifest、registry、README、`plugin-er.mdx`、CHANGELOG、CLAUDE.md |
+
+**順序**：149 → 150 → 151 → 152 → 153；154 依賴 152（共用 `markers.tsx`），可與 153 並行；155 只依賴 151，可與 152–154 並行；156 最後。
+
+```
+149 ─ 150 ─ 151 ─┬─ 152 ─┬─ 153 ─┐
+                 │       └─ 154 ─┤
+                 └─ 155 ─────────┴─ 156
+```
+
+> **交付節奏**：全程在 `feat/er-cardinality` 單一分支上，依 Task 逐步 commit，**Task 156 完成後開 PR 併回 main**（推上預設分支就等於發佈）。
+> 每個 commit 都要能通過 `npx tsc --noEmit && npx astro build && npm run check-plugins`（Node 22.6+；本機 shell 預設 Node 16，先 `nvm use`）。
+>
+> **幾條貫穿整批的規則**：
+> - **v1.1、v1.2 資料零修改可渲染**。`example/schema.v1.1.json`、`example/schema.v1.2.json` 一個欄位都不准改；三份範例都用最新的 `schema.json` 驗
+> - **新屬性一律選填、都要有 `description`**；`additionalProperties: false` 維持
+> - **推導只在 `derive.ts`**，畫面不再讀 `c.fk`；`derive.ts`／`types.ts` 只能有 `import type`、不能有 JSX
+> - **每新增一個 plugin 檔就登記到 `registry.json` 的 `files`**
+> - **CSS 字串不可含 `< > & " '`**、規則以 `.erd-root` 起頭（`er-styles.mjs` 把關）；不出現色碼字面值
+> - 不加任何 ORM、框架或資料庫產品專屬的欄位或用語
+> - 驗畫面前確認 Browser pane **可見**，否則 `client:visible` 的內嵌不會 hydrate
+> - **每次 commit 只 add 本 Task 的檔案**
+
+> **本批最大風險**：[Task 150](task-150-er-diagram-edges-refactor.md) 與 [Task 152](task-152-er-crowfoot-markers.md) —— Diagram 的量測與縮放最容易微妙地壞掉而 build 全綠，兩者都附並排比對。
+> 其次是**父端／子端搞反**：符號整個顛倒也不容易一眼看出，由 Task 151 的斷言與 Task 152 的驗收逐條對照。

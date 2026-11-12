@@ -559,7 +559,7 @@ plugin 沒有用到新的 app 功能，`engines.notecraftapp` 維持 `>=0.6.0`�
 | 用語彙標 nullable | `requirement` 的 `nullable`、`condition` 加上 `nullable: true` |
 | 可選 FK（N:1 可選） | `contract.case_id → biz_case`（nullable） |
 | 1:1（PK 就是 FK） | 新增 `customer_profile`：PK `customer_id`，同時 `fk: "customer"` |
-| 1:1（FK 有 unique） | `employee` 新增 `user_account_id`（unique、nullable）→ 1:1（可選） |
+| 1:1（FK 有 unique） | `contract.quotation_id → quotation` 加 `unique`（一份報價最多成交一份合約；本來就可為 null）→ 1:1（可選） |
 | 非 `id` 的參照欄位 | `option_item.type_code` 改成 `fk: "option_type.code"`（修正範例裡現有的錯誤） |
 | 複合 PK | `contract_item` 的 PK 改為 `(contract_id, line_no)` |
 | 複合 FK | 新增 `delivery`：`foreignKeys: [{ columns: ["contract_id", "line_no"], references: { table: "contract_item" } }]`（參照欄位不寫，示範用父表的複合 PK） |
@@ -659,18 +659,18 @@ README 要補：
 
 | Task | 內容 | 章節 |
 | :-- | :-- | :-- |
-| 149 | 資料格式：`schema.json`、`types.ts`、`example/schema.v1.2.json`、v1.3 範例、registry `files` | §3、§7.2、§8 |
-| 150 | `derive.ts`：FK 正規化、nullable、唯一鍵、多重性、中間表、診斷；`er-derive.mjs` 斷言 | §4、§11.1 |
-| 151 | Diagram 改用 `D.edges`（**純重構、零行為變更**），並排截圖比對 | §1.2 |
-| 152 | marker 與 Diagram 的線：兩端 marker、色調、自我參照迴圈、多條線錯開、卡片徽章、圖例面板 | §5.1–5.4、§5.6 |
-| 153 | 收合中間表 | §5.5 |
-| 154 | Wiki 與 local diagram | §5.7、§6 |
-| 155 | 診斷輸出（dev 瀏覽器、SSR build log） | §4.8 |
-| 156 | README、版號 1.3.0、registry、官網指南、CHANGELOG、CLAUDE.md、瀏覽器驗收、本文回填 | §9、§11.2 |
+| [149](tasks/task-149-er-schema-v13-examples.md) | 資料格式：`schema.json`、`types.ts`、`example/schema.v1.2.json`、v1.3 範例、registry `files` | §3、§7.2、§8 |
+| [150](tasks/task-150-er-diagram-edges-refactor.md) | Diagram 改用 `D.edges`（**純重構、零行為變更**），並排截圖比對 | §1.2 |
+| [151](tasks/task-151-er-derive-cardinality.md) | `derive.ts`：FK 正規化、nullable、唯一鍵、多重性、中間表、診斷；`er-derive.mjs` 斷言 | §4、§11.1 |
+| [152](tasks/task-152-er-crowfoot-markers.md) | marker 與 Diagram 的線：兩端 marker、色調、自我參照迴圈、多條線錯開、卡片徽章、圖例面板 | §5.1–5.4、§5.6 |
+| [153](tasks/task-153-er-junction-collapse.md) | 收合中間表 | §5.5 |
+| [154](tasks/task-154-er-wiki-local-cardinality.md) | Wiki 與 local diagram | §5.7、§6 |
+| [155](tasks/task-155-er-diagnostics-output.md) | 診斷輸出（dev 瀏覽器、SSR build log） | §4.8 |
+| [156](tasks/task-156-er-cardinality-docs-release.md) | README、版號 1.3.0、registry、官網指南、CHANGELOG、CLAUDE.md、瀏覽器驗收、本文回填 | §9、§11.2 |
 
-依賴：`149 → 150 → 151 → 152 → 153`；`154` 依賴 150（可與 151–153 並行）；`155` 依賴 150；`156` 最後。
+依賴：`149 → 150 → 151 → 152 → 153`；`154` 依賴 152（共用 `markers.tsx`，可與 153 並行）；`155` 依賴 151（可與 152–154 並行）；`156` 最後。
 
-**Task 151 刻意不改行為**：Diagram 是 v1.1 花最多時間調的部分，先把推導搬到 `derive.ts` 並確認畫面完全一樣，之後的 diff 才看得出是 marker 還是推導出了問題。
+**重構排在推導之前（Task 150）**：`Edge` 型別在 Task 151 會擴充，若 Diagram 還在自己組 `Edge` 物件，改推導時就得同時改 Diagram。先在 v1.2 語意下把 Diagram 的來源換成 `D.edges`、確認畫面完全一樣，之後的 diff 才分得出是推導還是 marker 出了問題。Diagram 是 v1.1 花最多時間調的部分，這一步刻意不改行為。
 
 ---
 
