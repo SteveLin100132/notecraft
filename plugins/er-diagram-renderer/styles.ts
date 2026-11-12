@@ -306,6 +306,11 @@ export const CSS = `
 .erd-root .erd-rel-r code { color: var(--neutral-800); }
 .erd-root .erd-rel-r code.erd-to { font-weight: 600; color: var(--blue-700); }
 .erd-root .erd-rel-r em { flex: none; white-space: nowrap; padding: 0 6px; border-radius: var(--radius-pill); background: var(--neutral-100); font-size: 10.5px; font-style: normal; color: var(--neutral-600); }
+.erd-root .erd-rel-r .erd-cardt, .erd-root .erd-cardt { flex: none; padding: 0 7px; border-radius: var(--radius-pill); background: var(--orange-50); color: var(--orange-700); font-family: var(--font-mono); font-size: 11px; font-weight: var(--weight-bold); white-space: nowrap; }
+.erd-root .erd-rel-note { flex-basis: 100%; font-size: 11.5px; color: var(--text-muted); }
+.erd-root .erd-rel--mn .erd-lede { margin: 0 0 6px; }
+.erd-root .erd-fkcomp { margin-left: 4px; font-size: 10.5px; font-style: normal; color: var(--text-muted); }
+.erd-root .erd-vocab-null { margin-left: 6px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--neutral-100); font-size: 10.5px; font-style: normal; color: var(--neutral-600); }
 .erd-root .erd-kv { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
 .erd-root .erd-kv-r { display: grid; grid-template-columns: minmax(140px, 180px) auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--border-subtle); font-size: 12.5px; }
 .erd-root .erd-kv-r:first-child { border-top: 0; }
@@ -328,7 +333,7 @@ export const CSS = `
 .erd-root .erd-local { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0 72px; padding: 16px 18px; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background-color: var(--surface-page); background-image: radial-gradient(circle, color-mix(in srgb, var(--text-muted) 20%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
 .erd-root .erd-local-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .erd-root .erd-local-svg path { fill: none; stroke: var(--blue-300); stroke-width: 1.3; }
-.erd-root .erd-local-svg .erd-local-head { fill: var(--blue-400); stroke: none; }
+.erd-root .erd-ln-tag { align-self: flex-start; margin-top: 3px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--orange-50); color: var(--orange-700); font-family: var(--font-mono); font-size: 10px; line-height: 16px; white-space: nowrap; }
 .erd-root .erd-local-col { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .erd-root .erd-local-col--p { align-items: flex-start; }
 .erd-root .erd-local-col--me { align-items: center; }

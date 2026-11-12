@@ -177,6 +177,37 @@ const sameSet = (a: readonly string[], b: readonly string[]): boolean =>
 const within = (a: readonly string[], b: readonly string[]): boolean => a.every((x) => b.includes(x))
 const list = (cols: readonly string[]): string => (cols.length === 1 ? cols[0] : `(${cols.join(', ')})`)
 
+/** 欄位組合的顯示：單欄 `a`、多欄 `(a, b)`；解析不出來的參照欄位是 `?` */
+export const colsLabel = (cols: readonly string[] | null): string => (cols ? list(cols) : '?')
+
+const RANGE: Record<ErChildCardinality, string> = {
+  'zero-or-many': '0..N',
+  'one-or-many': '1..N',
+  'zero-or-one': '0..1',
+  one: '1',
+}
+
+export interface CardinalityText {
+  /** 例：N:1、1:N（可選）、1:1 */
+  label: string
+  /** 子端是 one-or-many 或 one：每筆父資料至少一筆子資料 */
+  atLeastOne: boolean
+  /** hover 用的完整句子 */
+  sentence: string
+}
+
+/** Wiki 與局部關聯圖的多重性文字。side 是「這一頁的表」在這條外鍵裡的角色：child 寫 N:1、parent 寫 1:N。
+ *  （可選）固定表示外鍵可為 null（父端 zero-or-one） */
+export function cardinalityText(e: Edge, side: 'child' | 'parent'): CardinalityText {
+  const many = e.card.child === 'zero-or-many' || e.card.child === 'one-or-many'
+  const ratio = many ? (side === 'child' ? 'N:1' : '1:N') : '1:1'
+  return {
+    label: `${ratio}${e.card.parent === 'zero-or-one' ? '（可選）' : ''}`,
+    atLeastOne: e.card.child === 'one-or-many' || e.card.child === 'one',
+    sentence: `每筆 ${e.parent} 有 ${RANGE[e.card.child]} 筆 ${e.child}；每筆 ${e.child} 對應 ${e.card.parent === 'one' ? '1' : '0..1'} 筆 ${e.parent}`,
+  }
+}
+
 interface ErKeys {
   pkOf: (table: string) => string[]
   uniqueKeysOf: (table: string) => string[][]

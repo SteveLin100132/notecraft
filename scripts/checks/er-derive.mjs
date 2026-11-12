@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { erDerive, matchTable, IMPLICIT_SCHEMA_KEY, UNGROUPED_KEY } from "../../plugins/er-diagram-renderer/derive.ts";
+import { erDerive, matchTable, cardinalityText, colsLabel, IMPLICIT_SCHEMA_KEY, UNGROUPED_KEY } from "../../plugins/er-diagram-renderer/derive.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const load = (rel) => JSON.parse(readFileSync(path.join(root, "plugins/er-diagram-renderer", rel), "utf-8"));
@@ -340,6 +340,25 @@ check("⑲ v1.3 範例：零診斷、各種關聯都推得出來", () => {
   assert.deepEqual(byId(D, "contract.quotation_id").card, { parent: "zero-or-one", child: "zero-or-one" });
   assert.equal(byId(D, "contract.case_id").card.parent, "zero-or-one");
   assert.deepEqual(D.uniqueKeysOf("option_item"), [["id"], ["type_code", "code"]]);
+});
+
+check("⑳ 多重性文字：參照 N:1／被參照 1:N、（可選）、至少一筆、1:1", () => {
+  const D = erDerive(v13());
+  const t = (id, side) => cardinalityText(byId(D, id), side);
+  assert.equal(t("contract.customer_id", "child").label, "N:1");
+  assert.equal(t("contract.customer_id", "parent").label, "1:N");
+  assert.equal(t("contract.case_id", "child").label, "N:1（可選）");
+  assert.equal(t("contract.case_id", "parent").label, "1:N（可選）");
+  assert.equal(t("contract.quotation_id", "child").label, "1:1（可選）");
+  assert.equal(t("customer_profile.customer_id", "parent").label, "1:1");
+  const item = cardinalityText(D.edges.find((e) => e.child === "contract_item" && e.parent === "contract"), "parent");
+  assert.equal(item.label, "1:N");
+  assert.equal(item.atLeastOne, true);
+  assert.equal(item.sentence, "每筆 contract 有 1..N 筆 contract_item；每筆 contract_item 對應 1 筆 contract");
+  assert.equal(t("contract.customer_id", "child").atLeastOne, false);
+  assert.equal(colsLabel(["a"]), "a");
+  assert.equal(colsLabel(["a", "b"]), "(a, b)");
+  assert.equal(colsLabel(null), "?");
 });
 
 let failed = 0;

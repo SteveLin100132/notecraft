@@ -3,17 +3,27 @@
  * 三欄：父表 ← 本表 ← 子表。箭頭一律指向父表（與 FK 方向相同：子 → 父）。
  * 固定版面、不縮放；連線量測 DOM 後以 SVG 直角折線（圓角轉折）繪製，容器尺寸變動（含字型晚到）時重算。
  *
+ * 每條外鍵一條線（v1.3）：同一對表有好幾條外鍵時上下錯開 6px，超過 4 條只畫 1 條並在節點標 ×N。
+ * 兩端掛多重性 marker；同一側的線在本表共用出發點，符號不一致時那一側不畫（疊在一起會變成誤導的組合）。
+ * 節點上一律寫多重性文字（同一對表多條外鍵時寫第一條並加 ×N）；窄版（上下三列）整列共用一條主幹，不畫 marker。
+ *
  * 父／子表各最多畫 8 張：hub 表（例：選項主檔）的子表可能上百張，全畫會把頁面拉到數千 px。
  * 超過的以「另有 N 張」chip 帶到下方清單 —— 清單永遠列全部。
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { cardinalityText } from './derive'
 import type { ErDerived } from './derive'
+import { ErMarkers, markerUid, markerUrl, shapeOf } from './markers'
+import type { MarkerShape, MarkerTone } from './markers'
 
 /** 每欄最多畫幾張 */
 const LOCAL_MAX = 8
 /** 容器寬度小於此值時改為上下三列 */
 const VERTICAL_BELOW = 560
+/** 同一對表最多畫幾條平行線 */
+const LINE_MAX = 4
+const LOCAL_TONES: readonly MarkerTone[] = ['local']
 
 export interface ErLocalDiagramProps {
   D: ErDerived
@@ -24,6 +34,9 @@ export interface ErLocalDiagramProps {
 interface Line {
   id: string
   d: string
+  /** 起點（子表）與終點（父表）的 marker；窄版的主幹沒有 */
+  ms?: MarkerShape
+  me?: MarkerShape
 }
 
 /** 折線轉角的圓角半徑上限 */
@@ -59,6 +72,10 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
   const shownP = parents.slice(0, LOCAL_MAX)
   const shownC = children.slice(0, LOCAL_MAX)
   const t = D.byName.get(name)
+  const uid = markerUid(useId())
+  /** 本表 → 父表 p 的外鍵、子表 c → 本表的外鍵 */
+  const toParent = (p: string) => D.parentsOf(name).filter((e) => e.parent === p)
+  const fromChild = (c: string) => D.childrenOf(name).filter((e) => e.child === c)
 
   const measure = useCallback(() => {
     const box = boxRef.current
@@ -93,9 +110,40 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
     } else {
       const pMid = P.length ? (M.l + Math.max(...P.map(([, r]) => r.r))) / 2 : 0
       const cMid = C.length ? (M.r + Math.min(...C.map(([, r]) => r.l))) / 2 : 0
-      for (const [p, r] of P) out.push({ id: `p:${p}`, d: elbowH(M.l, M.cy, r.r, r.cy, pMid) })
-      for (const [c, r] of C) out.push({ id: `c:${c}`, d: elbowH(r.l, r.cy, M.r, M.cy, cMid) })
+      /* 每條外鍵一條線；同一對表的多條線上下錯開、主幹也跟著錯開，維持平行 */
+      const spread = (n: number, i: number) => (n > 1 ? (i - (n - 1) / 2) * 6 : 0)
+      for (const [p, r] of P) {
+        const es = toParent(p)
+        const draw = es.length > LINE_MAX ? es.slice(0, 1) : es
+        draw.forEach((e, i) => {
+          const o = spread(draw.length, i)
+          out.push({
+            id: `p:${e.id}`,
+            d: elbowH(M.l, M.cy + o, r.r, r.cy + o, pMid + o),
+            ms: shapeOf(e.card.child),
+            me: shapeOf(e.card.parent),
+          })
+        })
+      }
+      /* 同一側的線在本表共用一個出發點：符號不一致時疊在一起會變成誤導的組合，那一側就不畫，改看節點上的文字 */
+      const pLines = out.filter((l) => l.id.startsWith('p:'))
+      if (new Set(pLines.map((l) => l.ms)).size > 1) for (const l of pLines) l.ms = undefined
+      for (const [c, r] of C) {
+        const es = fromChild(c)
+        const draw = es.length > LINE_MAX ? es.slice(0, 1) : es
+        draw.forEach((e, i) => {
+          const o = spread(draw.length, i)
+          out.push({
+            id: `c:${e.id}`,
+            d: elbowH(r.l, r.cy + o, M.r, M.cy + o, cMid + o),
+            ms: shapeOf(e.card.child),
+            me: shapeOf(e.card.parent),
+          })
+        })
+      }
     }
+    const cLines = out.filter((l) => l.id.startsWith('c:'))
+    if (new Set(cLines.map((l) => l.me)).size > 1) for (const l of cLines) l.me = undefined
     setLines(out)
     // shownP／shownC 由 name 與 D 決定
   }, [name, D])
@@ -125,7 +173,20 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
     page?.querySelector(`[data-erd-rel="${which}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }
 
-  const node = (n: string, key: string) => (
+  /** 節點上的小標：多重性文字（從本表看）、同一對表多條外鍵時 ×N、中間表寫 M:N → 另一端 */
+  const tags = (n: string, side: 'p' | 'c'): string[] => {
+    const es = side === 'p' ? toParent(n) : fromChild(n)
+    const out: string[] = []
+    if (es.length) out.push(cardinalityText(es[0], side === 'p' ? 'child' : 'parent').label)
+    if (es.length > 1) out.push(`×${es.length}`)
+    const j = side === 'c' ? D.junctions.get(n) : undefined
+    if (j && (j.a.parent === name || j.b.parent === name)) {
+      out.push(`M:N → ${j.a.parent === name ? j.b.parent : j.a.parent}`)
+    }
+    return out
+  }
+
+  const node = (n: string, key: string, side: 'p' | 'c') => (
     <button
       type="button"
       key={key}
@@ -138,6 +199,11 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
     >
       <span className="erd-root erd-ln-n">{n}</span>
       <span className="erd-root erd-ln-l">{D.byName.get(n)?.label}</span>
+      {tags(n, side).map((x) => (
+        <span key={x} className="erd-root erd-ln-tag">
+          {x}
+        </span>
+      ))}
     </button>
   )
 
@@ -151,18 +217,19 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
   return (
     <div className={`erd-root erd-local${vertical ? ' erd-local--v' : ''}`} ref={boxRef}>
       <svg className="erd-root erd-local-svg" aria-hidden>
-        <defs>
-          <marker id="erd-la" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 z" className="erd-root erd-local-head" />
-          </marker>
-        </defs>
+        <ErMarkers uid={uid} tones={LOCAL_TONES} />
         {lines.map((l) => (
-          <path key={l.id} d={l.d} markerEnd="url(#erd-la)" />
+          <path
+            key={l.id}
+            d={l.d}
+            markerStart={l.ms ? markerUrl(uid, l.ms, 'local') : undefined}
+            markerEnd={l.me ? markerUrl(uid, l.me, 'local') : undefined}
+          />
         ))}
       </svg>
       <div className="erd-root erd-local-col erd-local-col--p">
         <div className="erd-root erd-local-h">父表 {parents.length}</div>
-        {shownP.length ? shownP.map((p) => node(p, `p:${p}`)) : <div className="erd-root erd-local-empty">無</div>}
+        {shownP.length ? shownP.map((p) => node(p, `p:${p}`, 'p')) : <div className="erd-root erd-local-empty">無</div>}
         {more(parents.length, 'parents')}
       </div>
       <div className="erd-root erd-local-col erd-local-col--me">
@@ -181,7 +248,7 @@ export function ErLocalDiagram({ D, name, onOpen }: ErLocalDiagramProps) {
       </div>
       <div className="erd-root erd-local-col erd-local-col--c">
         <div className="erd-root erd-local-h">子表 {children.length}</div>
-        {shownC.length ? shownC.map((c) => node(c, `c:${c}`)) : <div className="erd-root erd-local-empty">無</div>}
+        {shownC.length ? shownC.map((c) => node(c, `c:${c}`, 'c')) : <div className="erd-root erd-local-empty">無</div>}
         {more(children.length, 'children')}
       </div>
     </div>

@@ -9,9 +9,10 @@ import { ArrowRight, ChevronRight, Workflow } from 'lucide-react'
 import { stripMarkdown } from './markdown-text'
 import type { LinkTargets } from './markdown-text'
 import { ErMarkdown } from './markdown'
+import { cardinalityText, colsLabel } from './derive'
 import type { ErDerived, ErTreeGroup, ErTreeSchema } from './derive'
 import { ErLocalDiagram } from './local-diagram'
-import type { ErColumn, ErDiagramData, ErOptions, ErTable, Route } from './types'
+import type { Edge, ErColumn, ErDiagramData, ErOptions, ErTable, Route } from './types'
 
 export interface ErWikiProps {
   data: ErDiagramData
@@ -82,6 +83,11 @@ function Overview({ data, D, go, targets }: ErWikiProps & { targets: LinkTargets
         <span>
           <b>{D.edges.length}</b> 條外鍵
         </span>
+        {D.junctions.size ? (
+          <span>
+            <b>{D.junctions.size}</b> 組多對多
+          </span>
+        ) : null}
         {data.meta?.source ? <span className="erd-root erd-meta-src">來源：{data.meta.source}</span> : null}
       </div>
       <ErMarkdown src={data.meta?.description} targets={targets} onLink={go} />
@@ -146,7 +152,10 @@ function Overview({ data, D, go, targets }: ErWikiProps & { targets: LinkTargets
             <div key={r.key} className="erd-root erd-vocab-row">
               <i className={`erd-root erd-dot erd-dot--${r.marker}`} />
               <b>{r.label}</b>
-              <span>{r.title ?? ''}</span>
+              <span>
+                {r.title ?? ''}
+                {r.nullable ? <em className="erd-root erd-vocab-null">資料庫可為 null</em> : null}
+              </span>
             </div>
           ))}
         </div>
@@ -246,6 +255,69 @@ function SchemaPage({ s, D, go, toDiagram, targets }: ErWikiProps & { s: ErTreeS
 
 /* ── Table 頁 ─────────────────────────────────────────── */
 
+/** 欄位表說明欄的外鍵參照：逐欄配對（複合外鍵各寫自己對到的那一欄）；父表不存在時灰色顯示原字串 */
+function FkRefs({ t, c, D, open }: { t: ErTable; c: ErColumn; D: ErDerived; open: (n: string) => void }) {
+  const fks = D.fksOfColumn(t.name, c.name)
+  if (fks.length) {
+    return (
+      <>
+        {fks.map((e) => {
+          const ref = e.refCols?.[e.cols.indexOf(c.name)] ?? '?'
+          return (
+            <a
+              key={e.id}
+              href={`#table:${e.parent}`}
+              className="erd-root erd-fkref"
+              onClick={(ev) => {
+                ev.preventDefault()
+                open(e.parent)
+              }}
+            >
+              <ArrowRight size={11} aria-hidden />
+              <code>
+                {e.parent}.{ref}
+              </code>
+              {e.cols.length > 1 ? <em className="erd-root erd-fkcomp">複合外鍵{e.name ? ` ${e.name}` : ''}</em> : null}
+            </a>
+          )
+        })}
+      </>
+    )
+  }
+  if (!c.fk) return null
+  return (
+    <span className="erd-root erd-fkref erd-fkref--missing" title="父表或欄位不在這份資料檔裡">
+      <ArrowRight size={11} aria-hidden />
+      <code>{c.fk}</code>
+    </span>
+  )
+}
+
+/** 參照／被參照清單的一列。side 是本頁的表在這條外鍵裡的角色 */
+function RelRow({ e, side, hub, onOpen }: { e: Edge; side: 'child' | 'parent'; hub: boolean; onOpen: () => void }) {
+  const ct = cardinalityText(e, side)
+  const explicit = e.cardFrom.parent === 'explicit' || e.cardFrom.child === 'explicit'
+  return (
+    <button type="button" className="erd-root erd-rel-r" onClick={onOpen} title={ct.sentence}>
+      <code className={side === 'parent' ? 'erd-root erd-to' : undefined}>
+        {e.child}.{colsLabel(e.cols)}
+      </code>
+      <ArrowRight size={12} aria-hidden />
+      <code className={side === 'child' ? 'erd-root erd-to' : undefined}>
+        {e.parent}.{colsLabel(e.refCols)}
+      </code>
+      <b className="erd-root erd-cardt">{ct.label}</b>
+      {/* 「至少一筆」描述的是父表那一側（每筆父資料至少一筆子資料），只在被參照清單寫，免得在子表頁被讀成反方向 */}
+      {ct.atLeastOne && side === 'parent' ? <em>至少一筆</em> : null}
+      {e.cols.length > 1 ? <em>複合</em> : null}
+      {explicit ? <em>指定</em> : null}
+      {e.self ? <em>自我參照</em> : null}
+      {hub ? <em>hub</em> : null}
+      {e.note ? <span className="erd-root erd-rel-note">{e.note}</span> : null}
+    </button>
+  )
+}
+
 function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & { t: ErTable; targets: LinkTargets }) {
   const g = D.groupByKey.get(t.group)
   const schemaKey = D.schemaOfTable(t.name)
@@ -253,7 +325,30 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
   const parents = D.parentsOf(t.name)
   const children = D.childrenOf(t.name)
   const selfRefs = D.edges.filter((e) => e.self && e.child === t.name)
-  const keyed = t.columns.filter((c) => c.pk || c.unique || c.index)
+  const pk = D.pkOf(t.name)
+  /* 索引與唯一鍵：複合主鍵算一列；欄位上的 unique／index；表層 indexes[] 每項一列 */
+  const keyed: { key: string; cols: string[]; flags: Partial<ErColumn>; text: string }[] = []
+  if (pk.length > 1) keyed.push({ key: '@pk', cols: pk, flags: { pk: true }, text: '主鍵（複合）' })
+  for (const c of t.columns) {
+    const soloPk = !!c.pk && pk.length === 1
+    if (!soloPk && !c.unique && !c.index) continue
+    keyed.push({
+      key: c.name,
+      cols: [c.name],
+      flags: { pk: soloPk, unique: c.unique, index: c.index },
+      text: [soloPk && '主鍵', c.unique && '唯一', c.index && '一般索引'].filter(Boolean).join('、'),
+    })
+  }
+  ;(t.indexes ?? []).forEach((ix, i) => {
+    keyed.push({
+      key: `@ix${i}`,
+      cols: ix.columns,
+      flags: ix.unique ? { unique: true } : { index: true },
+      text: `${[ix.unique ? '唯一' : '一般索引', ix.name].filter(Boolean).join('・')}${ix.note ? `　${ix.note}` : ''}`,
+    })
+  })
+  const mn = D.manyToManyOf(t.name)
+  const asJunction = D.junctions.get(t.name)
   const derived = t.columns.filter((c) => c.derivation)
   const der = (k: string | undefined) => data.derivations.find((d) => d.key === k)
   const req = (k: string) => data.requirement.find((r) => r.key === k)
@@ -299,6 +394,12 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
         <span>
           <b>{D.childTables(t.name).length}</b> 張子表
         </span>
+        {asJunction ? (
+          <span>
+            中間表：<code>{asJunction.a.parent}</code> ↔ <code>{asJunction.b.parent}</code>
+            {asJunction.auto ? '（自動判斷）' : ''}
+          </span>
+        ) : null}
       </div>
       {t.description ? (
         <ErMarkdown src={t.description} targets={targets} onLink={go} />
@@ -343,26 +444,7 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
                   <FlagBadges data={data} col={c} />
                 </td>
                 <td className="erd-root erd-cnote">
-                  {c.fk ? (
-                    D.byName.has(c.fk) ? (
-                      <a
-                        href={`#table:${c.fk}`}
-                        className="erd-root erd-fkref"
-                        onClick={(ev) => {
-                          ev.preventDefault()
-                          open(c.fk as string)
-                        }}
-                      >
-                        <ArrowRight size={11} aria-hidden />
-                        <code>{c.fk}.id</code>
-                      </a>
-                    ) : (
-                      <span className="erd-root erd-fkref erd-fkref--missing" title="父表不在這份資料檔裡">
-                        <ArrowRight size={11} aria-hidden />
-                        <code>{c.fk}.id</code>
-                      </span>
-                    )
-                  ) : null}
+                  <FkRefs t={t} c={c} D={D} open={open} />
                   {c.note}
                 </td>
               </tr>
@@ -380,15 +462,7 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
           <h4>參照（本表 → 父表）</h4>
           {parents.length || selfRefs.length ? (
             [...parents, ...selfRefs].map((e) => (
-              <button type="button" key={e.id} className="erd-root erd-rel-r" onClick={() => open(e.parent)}>
-                <code>
-                  {t.name}.{e.col}
-                </code>
-                <ArrowRight size={12} aria-hidden />
-                <code className="erd-root erd-to">{e.parent}.id</code>
-                {e.self ? <em>自我參照</em> : null}
-                {hub.has(e.parent) ? <em>hub</em> : null}
-              </button>
+              <RelRow key={e.id} e={e} side="child" hub={hub.has(e.parent)} onOpen={() => open(e.parent)} />
             ))
           ) : (
             <p className="erd-root erd-empty">沒有外鍵欄位。</p>
@@ -397,31 +471,63 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
         <div data-erd-rel="children">
           <h4>被參照（子表 → 本表）</h4>
           {children.length ? (
-            children.map((e) => (
-              <button type="button" key={e.id} className="erd-root erd-rel-r" onClick={() => open(e.child)}>
-                <code className="erd-root erd-to">
-                  {e.child}.{e.col}
-                </code>
-                <ArrowRight size={12} aria-hidden />
-                <code>{t.name}.id</code>
-              </button>
-            ))
+            children.map((e) => <RelRow key={e.id} e={e} side="parent" hub={false} onOpen={() => open(e.child)} />)
           ) : (
             <p className="erd-root erd-empty">沒有其他表指向這張表。</p>
           )}
         </div>
       </div>
 
+      {mn.length || asJunction ? (
+        <>
+          <SectionHead id="mn" count={asJunction ? undefined : mn.length}>
+            多對多
+          </SectionHead>
+          <div className="erd-root erd-rel erd-rel--mn">
+            {asJunction ? (
+              <div>
+                <p className="erd-root erd-lede">
+                  這張表是中間表{asJunction.auto ? '（自動判斷：恰好兩條外鍵、合起來是主鍵或唯一鍵）' : ''}，連接：
+                </p>
+                {[asJunction.a, asJunction.b].map((e) => (
+                  <button key={e.id} type="button" className="erd-root erd-rel-r" onClick={() => open(e.parent)}>
+                    <code className="erd-root erd-to">{e.parent}</code>
+                    <span className="erd-root erd-muted">經由 {colsLabel(e.cols)}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {mn.length ? (
+              <div>
+                {mn.map((j) => {
+                  const peer = j.a.parent === t.name ? j.b.parent : j.a.parent
+                  return (
+                    <button key={j.table} type="button" className="erd-root erd-rel-r" onClick={() => open(peer)}>
+                      <code className="erd-root erd-to">{peer}</code>
+                      <b className="erd-root erd-cardt">M:N</b>
+                      <span className="erd-root erd-muted">
+                        經由 <code>{j.table}</code>
+                      </span>
+                      {j.auto ? <em>自動判斷</em> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+
       <SectionHead id="idx" count={keyed.length}>
         索引與唯一鍵
       </SectionHead>
       {keyed.length ? (
         <div className="erd-root erd-kv">
-          {keyed.map((c) => (
-            <div key={c.name} className="erd-root erd-kv-r">
-              <code className="erd-root erd-cname">{c.name}</code>
-              <FlagBadges data={data} col={{ pk: c.pk, unique: c.unique, index: c.index }} />
-              <span>{[c.pk && '主鍵', c.unique && '唯一', c.index && '一般索引'].filter(Boolean).join('、')}</span>
+          {keyed.map((r) => (
+            <div key={r.key} className="erd-root erd-kv-r">
+              <code className="erd-root erd-cname">{colsLabel(r.cols)}</code>
+              <FlagBadges data={data} col={r.flags} />
+              <span>{r.text}</span>
             </div>
           ))}
         </div>

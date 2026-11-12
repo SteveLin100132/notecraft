@@ -69,3 +69,14 @@
 ## 依賴
 
 Task 152。
+
+## 實作記錄（2026-11-12）
+
+- 多重性文字放在 `derive.ts`（`cardinalityText`、`colsLabel`），`er-derive.mjs` 加 ⑳ 斷言
+- Wiki：新增 `FkRefs`（欄位表的逐欄參照，複合外鍵加「複合外鍵 name」）與 `RelRow`（參照／被參照清單）；多對多區塊；頁首「中間表：A ↔ B（自動判斷）」；索引與唯一鍵改用推導（複合主鍵一列、`indexes[]` 每項一列）；總覽「N 組多對多」、語彙標「資料庫可為 null」
+- **「至少一筆」只出現在被參照清單**：它描述的是父表那一側，放在子表的參照清單裡容易被讀成反方向（實測 `contract_item` 頁時發現）
+- local diagram 與規格的差異：
+  - **節點上一律寫多重性文字**（規格原本只在窄版寫）
+  - 寬版的線在本表共用出發點，同一側的符號不一致時（例：`contract` 對 `quotation` 是 1:1、對其他父表是 N:1），疊在一起會變成誤導的組合符號，所以**那一側不畫 marker**，改看節點文字；遠端（父表／子表節點）的 marker 照畫
+  - 同一對表多條外鍵時，節點一律標 `×N`（規格原本只在超過 4 條時標）
+- 實測：`delivery`（複合外鍵逐欄配對）、`option_item`（`option_type.code`、複合唯一鍵 `uq_option_item_code`）、`case_member`（中間表）、`biz_case`（多對多 employee、`case_member` 節點標「M:N → employee」）、`contract_item`（複合主鍵）、窄版 375px（`.erd-local--v`、無 marker、節點有文字）
