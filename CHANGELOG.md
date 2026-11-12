@@ -10,7 +10,7 @@
 
 ### 新增
 
-- 官方外掛 **er-diagram-renderer 1.3.0**（設計文件 `docs/notecraft-er-cardinality.md`）。推上 GitHub 即發佈，已安裝的工作區執行 `npx notecraftapp install-plugin er-diagram-renderer --force` 更新
+- **（已發佈）** 官方外掛 **er-diagram-renderer 1.3.0**（設計文件 `docs/notecraft-er-cardinality.md`）。官方外掛不隨 npm 發佈，併回 GitHub 預設分支即生效，這一條不必等下一個 app 版本；已安裝的工作區執行 `npx notecraftapp install-plugin er-diagram-renderer --force` 更新
   - 關聯線兩端畫 crow's foot 多重性（恰好一筆、零或一筆、一筆以上、零或多筆），不寫也會由「可否為 null」與主鍵、唯一鍵推導，明確寫的值優先；縮放列有「圖例」
   - 資料格式新增（全部選填，1.2 的資料檔不用改）：表層 `foreignKeys`（複合外鍵、參照指定欄位、明確多重性）與 `indexes`（含複合唯一鍵）、欄位與必填性語彙的 `nullable`、`fk` 可寫 `表名.欄位名`、中間表 `junction`、選項 `collapseJunctions`
   - 多對多：中間表可明確標示或自動判斷，關聯圖可收合中間表、改畫一條多對多的線；Wiki 表頁列出「多對多（經由某張表）」
