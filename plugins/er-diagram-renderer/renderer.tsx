@@ -99,6 +99,8 @@ export default function ErDiagramRenderer({
   /* Diagram 的搜尋字串與 hub 開關放在外殼：Diagram 切走時會卸載，這兩個要跨分頁保留（不持久化） */
   const [dgQuery, setDgQuery] = useState('')
   const [showHubEdges, setShowHubEdges] = useState(false)
+  /* 收合中間表：初始值取設定（資料檔 < plugins.json < <PluginView options>），之後由使用者切換；切 Wiki 再切回來要保留 */
+  const [collapseJunctions, setCollapseJunctions] = useState(opts.collapseJunctions === true)
 
   const scopeSet = useMemo(
     () => (scope ? new Set(data.tables.filter((t) => D.schemaOfTable(t.name) === scope).map((t) => t.name)) : null),
@@ -485,6 +487,8 @@ export default function ErDiagramRenderer({
               onQueryChange={setDgQuery}
               showHubEdges={showHubEdges}
               onShowHubEdgesChange={setShowHubEdges}
+              collapseJunctions={collapseJunctions}
+              onCollapseJunctionsChange={setCollapseJunctions}
               escapeRef={dgEscape}
             />
           )}

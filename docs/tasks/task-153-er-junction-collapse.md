@@ -61,3 +61,14 @@ Wiki、local diagram、總覽的外鍵數**不受開關影響**。
 ## 依賴
 
 Task 152。
+
+## 實作記錄（2026-11-12）
+
+- `ErDiagram` 新增 `collapseJunctions`／`onCollapseJunctionsChange`；renderer 以 `opts.collapseJunctions === true` 為初始值（`plugins.json` 傳來的值未必是 boolean）
+- 路徑資料改為帶 `startShape`／`endShape`（與可選的 `via`），外鍵與 M:N 線共用同一套渲染、`edgeState`、hub 判斷
+- M:N 線的端點側：與一般外鍵相同、看卡片中心誰在左；**同一欄（左右重疊）時兩端都走右側、往右繞**。範例的 `biz_case` 與 `case_member` 同在「案件與派案」欄，最初版本會從 `biz_case` 右側繞回 `case_member` 左側，實測後補上這條規則
+- 收合時聚焦端點：聚焦列多一句「與 employee 多對多（經由 case_member）」，`case_member` 與 `employee` 都不淡化；點小卡聚焦中間表時改畫兩條真實外鍵（實測 2 條亮起、沒有 M:N 線）
+- 搜尋 `role`：小卡加 `erd-card--hit`、顯示「1 欄命中」，不展開
+- 取消勾選：回到 23 條線、沒有小卡
+- 用 notecraftapp build（`NOTECRAFTAPP_DEV=1 notecraftapp serve tmp/er-ws`）驗內嵌：`<PluginView options={{ collapseJunctions: true }}>` 一開始就是收合；同頁兩個內嵌的 marker id 前綴不同（`erdr26r0`、`erdr28r1`）
+- dev server 以 `astro dev --root <worktree>` 加外部 notesDir 啟動時，筆記頁會報 `UnknownContentCollectionError`（`/view` 頁正常）。這是驗收環境的問題、不是本 Task 造成，之後一律用 notecraftapp build 驗筆記內嵌

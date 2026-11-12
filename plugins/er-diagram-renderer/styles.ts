@@ -65,6 +65,12 @@ export const CSS = `
 .erd-root .erd-card--hit { border-color: var(--orange-300); }
 .erd-root .erd-cardhead { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 4px 10px; width: 100%; white-space: nowrap; text-align: left; border: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; background: var(--blue-700); color: var(--neutral-0); padding: 6px 9px; cursor: pointer; font-family: inherit; }
 .erd-root .erd-card--focus .erd-cardhead { background: var(--gradient-accent); color: var(--blue-950); }
+/* 收合的中間表：只剩標題列（Task 153） */
+.erd-root .erd-card--junction { min-width: 0; }
+.erd-root .erd-card--junction .erd-cardhead { align-items: center; border-radius: var(--radius-md); }
+.erd-root .erd-mnbadge { flex: none; padding: 0 6px; border: 1px solid currentColor; border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 10px; line-height: 16px; font-weight: var(--weight-bold); }
+.erd-root .erd-mnhits { flex: none; font-size: 10.5px; color: var(--orange-300); }
+.erd-root .erd-card--focus .erd-mnhits { color: var(--orange-700); }
 .erd-root .erd-cardhead:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .erd-root .erd-tname { font-family: var(--font-mono); font-size: 12.5px; font-weight: var(--weight-bold); }
 .erd-root .erd-tlabel { font-size: 11px; opacity: .88; }
