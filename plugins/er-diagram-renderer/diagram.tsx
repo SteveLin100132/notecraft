@@ -121,9 +121,13 @@ export function ErDiagram({
     [opts, scope],
   )
 
-  /* 中間表：範圍內的才算；收合時它的兩條外鍵改畫成一條 M:N 線（聚焦中間表本身時例外，照畫真實結構） */
+  /* 中間表：它與兩端的表都在範圍內才算 —— 有一端在範圍外時 M:N 線畫不出來，收合只會把真實的外鍵也藏掉。
+     收合時它的兩條外鍵改畫成一條 M:N 線（聚焦中間表本身時例外，照畫真實結構） */
   const junctionsInScope = useMemo(
-    () => [...D.junctions.values()].filter((j) => byName.has(j.table)),
+    () =>
+      [...D.junctions.values()].filter(
+        (j) => byName.has(j.table) && byName.has(j.a.parent) && byName.has(j.b.parent),
+      ),
     [D.junctions, byName],
   )
   const collapsedSet = useMemo(
@@ -136,10 +140,8 @@ export function ErDiagram({
   )
   const mnList = useMemo(
     () =>
-      junctionsInScope.filter(
-        (j) => collapsedSet.has(j.table) && focus !== j.table && byName.has(j.a.parent) && byName.has(j.b.parent),
-      ),
-    [junctionsInScope, collapsedSet, focus, byName],
+      junctionsInScope.filter((j) => collapsedSet.has(j.table) && focus !== j.table),
+    [junctionsInScope, collapsedSet, focus],
   )
 
   const requirementOf = useCallback(
@@ -153,7 +155,7 @@ export function ErDiagram({
 
   /* 預設顯示：主鍵、全部外鍵（含表層 foreignKeys 的欄位），再補一般欄位到 defaultRows 為止 */
   const isKeyCol = useCallback(
-    (t: ErTable, c: ErColumn) => !!c.pk || D.fksOfColumn(t.name, c.name).length > 0,
+    (t: ErTable, c: ErColumn) => !!c.pk || !!c.fk || D.fksOfColumn(t.name, c.name).length > 0,
     [D],
   )
   const defaultColumns = useCallback(
@@ -173,7 +175,7 @@ export function ErDiagram({
   /** 欄位徽章：fk 看推導（含複合、表層），其餘看欄位上的屬性 */
   const flagOn = useCallback(
     (t: ErTable, c: ErColumn, key: 'pk' | 'fk' | 'unique' | 'index') =>
-      key === 'fk' ? D.fksOfColumn(t.name, c.name).length > 0 : !!c[key],
+      key === 'fk' ? !!c.fk || D.fksOfColumn(t.name, c.name).length > 0 : !!c[key],
     [D],
   )
   const flagTitle = useCallback(

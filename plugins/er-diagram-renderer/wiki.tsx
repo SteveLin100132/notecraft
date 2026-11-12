@@ -277,7 +277,11 @@ function FkRefs({ t, c, D, open }: { t: ErTable; c: ErColumn; D: ErDerived; open
               <code>
                 {e.parent}.{ref}
               </code>
-              {e.cols.length > 1 ? <em className="erd-root erd-fkcomp">複合外鍵{e.name ? ` ${e.name}` : ''}</em> : null}
+              {e.cols.length > 1 ? (
+                <em className="erd-root erd-fkcomp" title={`複合外鍵 ${e.name ?? colsLabel(e.cols)}`}>
+                  複合
+                </em>
+              ) : null}
             </a>
           )
         })}
@@ -441,7 +445,8 @@ function TablePage({ t, data, D, opts, go, toDiagram, targets }: ErWikiProps & {
                 </td>
                 <td>{c.default ? <code className="erd-root erd-ctype">{c.default}</code> : <span className="erd-root erd-na">—</span>}</td>
                 <td>
-                  <FlagBadges data={data} col={c} />
+                  {/* FK 徽章看推導（含表層 foreignKeys 的欄位）；父表不存在的 fk 也照標，說明欄會以灰色顯示 */}
+                  <FlagBadges data={data} col={{ ...c, fk: D.fksOfColumn(t.name, c.name).length || c.fk ? 'y' : undefined }} />
                 </td>
                 <td className="erd-root erd-cnote">
                   <FkRefs t={t} c={c} D={D} open={open} />
