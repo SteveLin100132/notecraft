@@ -145,12 +145,55 @@ export const DEFAULT_OPTIONS: ErOptions = {
   collapseJunctions: false,
 }
 
+/** 一條外鍵（單欄或複合），由 derive.ts 從 tables[].foreignKeys 與 columns[].fk 正規化而來 */
 export interface Edge {
+  /** 欄位層簡寫：`${child}.${col}`（與 v1.2 相同）；表層：`${child}.fk:${name ?? columns.join('+')}` */
   id: string
   child: string
   parent: string
+  /** 子表欄位 */
+  cols: string[]
+  /** 父表欄位，與 cols 逐一配對；解析不出來時是 null（父表沒有主鍵、又沒寫參照欄位） */
+  refCols: string[] | null
+  /** 顯示用：cols.join(', ') */
   col: string
   self: boolean
+  card: { parent: ErParentCardinality; child: ErChildCardinality }
+  /** 各端是明確指定還是推導來的 */
+  cardFrom: { parent: 'explicit' | 'derived'; child: 'explicit' | 'derived' }
+  /** 父端是 zero-or-one（外鍵可為 null，或明確指定） */
+  optional: boolean
+  name?: string
+  note?: string
+  origin: 'column' | 'table'
+}
+
+/** 中間表：兩條外鍵把 a.parent 與 b.parent 連成多對多 */
+export interface ErJunction {
+  table: string
+  a: Edge
+  b: Edge
+  /** 自動判斷出來的（資料沒寫 junction: true） */
+  auto: boolean
+}
+
+export type ErDiagnosticCode =
+  | 'fk-missing-table'
+  | 'fk-missing-column'
+  | 'ref-missing-column'
+  | 'fk-arity'
+  | 'ref-no-pk'
+  | 'ref-not-unique'
+  | 'fk-duplicate'
+  | 'fk-maybe-composite'
+  | 'junction-invalid'
+  | 'junction-not-unique'
+
+/** 資料問題。只提示、不讓 build 失敗 */
+export interface ErDiagnostic {
+  code: ErDiagnosticCode
+  table: string
+  message: string
 }
 
 /* 無限畫布的縮放範圍。下限 0.2 讓 36 張表的全圖能一眼看完，

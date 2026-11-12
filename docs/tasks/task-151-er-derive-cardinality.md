@@ -85,3 +85,12 @@ edge id：欄位層 `${child}.${col}`（與 v1.2 相同）；表層 `${child}.fk
 ## 依賴
 
 Task 150。
+
+## 實作記錄（2026-11-12）
+
+- `derive.ts` 新增 `deriveKeys`／`deriveEdges`／`deriveJunctions` 三支內部函式，另匯出 `parseFkRef`；仍只有 `import type`
+- edge id 若撞名（例：兩條表層 FK 同欄位、沒寫 `name`），後者加 `#2`、`#3`，避免 React key 重複
+- `ref-not-unique` 只在參照欄位都存在、欄數也對得上時才判斷，避免同一個錯誤同時報 `fk-arity`／`ref-missing-column` 又報一次
+- 中間表的判斷條件 3 用推導後的 `card.parent === 'one'`（明確指定 `parent: one` 也算）
+- `er-derive.mjs`：`v12()` 改讀 `example/schema.v1.2.json`、新增 `v13()`；斷言 ⑪–⑲ 用小型合成資料逐條驗規則，⑪ 另以舊算法逐條比對 v1.1、v1.2 範例的 edge id
+- v1.3 範例：35 條外鍵、1 張中間表（`case_member`）、零診斷。tsc 錯誤數維持 40
