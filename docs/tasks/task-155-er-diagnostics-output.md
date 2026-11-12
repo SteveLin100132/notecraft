@@ -53,3 +53,12 @@
 ## 依賴
 
 Task 151。
+
+## 實作記錄（2026-11-12）
+
+- `derive.ts` 新增 `formatDiagnostics(filePath, diagnostics, perCode = 10)`；`er-derive.mjs` 加 ㉑
+- SSR 那則前面多一個換行：Astro 的進度輸出（`└─ /notes/…`）不換行，直接接上去會黏成一行
+- 實測（`tmp/er-ws` 放一份刻意寫壞的資料、一篇筆記內嵌它兩次）：
+  - `astro build` 成功，build log 只出現一則「4 個資料問題」（fk-missing-table、ref-missing-column、fk-arity、junction-invalid）。同一檔在兩個內嵌與 `/view` 頁都有渲染，只印一次
+  - dev 瀏覽器 console 印出同一則
+- `npm run check-plugins` 的 build log 沒有任何 er-diagram-renderer 的資料問題（三份官方範例都是零診斷）

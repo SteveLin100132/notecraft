@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { erDerive, matchTable, cardinalityText, colsLabel, IMPLICIT_SCHEMA_KEY, UNGROUPED_KEY } from "../../plugins/er-diagram-renderer/derive.ts";
+import { erDerive, matchTable, cardinalityText, colsLabel, formatDiagnostics, IMPLICIT_SCHEMA_KEY, UNGROUPED_KEY } from "../../plugins/er-diagram-renderer/derive.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const load = (rel) => JSON.parse(readFileSync(path.join(root, "plugins/er-diagram-renderer", rel), "utf-8"));
@@ -359,6 +359,20 @@ check("⑳ 多重性文字：參照 N:1／被參照 1:N、（可選）、至少�
   assert.equal(colsLabel(["a"]), "a");
   assert.equal(colsLabel(["a", "b"]), "(a, b)");
   assert.equal(colsLabel(null), "?");
+});
+
+check("㉑ formatDiagnostics：空的回 null、依代碼分組、每組最多 N 筆", () => {
+  assert.equal(formatDiagnostics("a.er.json", []), null);
+  assert.equal(formatDiagnostics("a.er.json", erDerive(v13()).diagnostics), null);
+  const diags = [
+    ...Array.from({ length: 12 }, (_, i) => ({ code: "fk-missing-table", table: "t", message: `m${i}` })),
+    { code: "fk-arity", table: "u", message: "x" },
+  ];
+  const out = formatDiagnostics("erd/s.er.json", diags).split("\n");
+  assert.equal(out[0], "[er-diagram-renderer] erd/s.er.json：13 個資料問題");
+  assert.equal(out.filter((l) => l.endsWith("（fk-missing-table）")).length, 10);
+  assert.ok(out.includes("- 另有 2 筆 fk-missing-table"));
+  assert.equal(out.at(-1), "- x（fk-arity）");
 });
 
 let failed = 0;

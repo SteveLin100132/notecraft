@@ -441,6 +441,23 @@ function deriveJunctions(
   return out
 }
 
+/** 資料問題的輸出文字（dev console 與 build log 共用）。依代碼分組、每組最多 perCode 筆；沒有問題回 null */
+export function formatDiagnostics(filePath: string, diagnostics: readonly ErDiagnostic[], perCode = 10): string | null {
+  if (!diagnostics.length) return null
+  const groups = new Map<ErDiagnosticCode, ErDiagnostic[]>()
+  for (const d of diagnostics) {
+    const g = groups.get(d.code)
+    if (g) g.push(d)
+    else groups.set(d.code, [d])
+  }
+  const lines = [`[er-diagram-renderer] ${filePath}：${diagnostics.length} 個資料問題`]
+  for (const [code, items] of groups) {
+    for (const d of items.slice(0, perCode)) lines.push(`- ${d.message}（${code}）`)
+    if (items.length > perCode) lines.push(`- 另有 ${items.length - perCode} 筆 ${code}`)
+  }
+  return lines.join('\n')
+}
+
 export interface TableMatch {
   hit: boolean
   /** 表名或表 label 命中 */
