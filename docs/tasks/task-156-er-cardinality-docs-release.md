@@ -66,3 +66,28 @@
 ## 依賴
 
 Task 149–155。
+
+## 實作記錄（2026-11-12）
+
+- 版號：manifest 與 registry 1.3.0；registry `files` 加 `cardinality-legend.svg`（`markers.tsx`、`example/schema.v1.2.json` 在先前的 Task 已登記）
+- README：差異表、多重性（圖例 SVG、推導規則表、nullable 與參照欄位的判定順序、Wiki 文字規則）、多對多、資料問題代碼表、`PluginView` 內嵌寫法與 `src` 基準（notesDir）。README 的 jsonc 範例去掉註解後以 `schema.json` 驗證通過；README、schema 都沒有 ORM 或資料庫產品名詞
+- 官網 `plugin-er.mdx`：版本、欄位表、新增〈關聯：外鍵、多重性與多對多〉、選項表、Diagram 功能、內嵌的 `src` 基準；以 `@mdx-js/mdx` 編譯確認語法
+- CHANGELOG：plugin 不隨 npm 發佈，寫在 `## [Unreleased]`（`check:upd` 允許）
+- CLAUDE.md：Plugin System 段落加「ER Diagram Renderer v1.3」小節
+- 驗收中發現並修正：
+  - 收合中間表在範圍只含一端時（例：`crm` 範圍沒有 `employee`），會把 `case_member → biz_case` 的真實外鍵也藏掉、M:N 線又畫不出來 → 改成中間表與兩端都在範圍內才可收合
+  - Wiki 欄位表的「標示」欄沒有為複合外鍵的欄位標 FK（還在讀 `c.fk`）→ 改看推導；「複合外鍵 name」太長被截斷 → 縮成「複合」，名稱放 title
+- 瀏覽器驗收：以 `NOTECRAFTAPP_DEV=1 notecraftapp serve tmp/er-ws --rebuild`（notecraftapp build＋靜態服務）看 page 與 embed 兩種模式。截圖 11 張放在 `tmp/er-shots/`（不 commit）：
+  1. page Diagram：聚焦 `contract`、圖例面板
+  2. page Diagram：收合中間表、聚焦 `biz_case`（聚焦列「與 employee 多對多（經由 case_member）」）
+  3. page Wiki `biz_case`：局部關聯圖（每條外鍵一條線、兩端 marker、`case_member` 節點標「M:N → employee」）
+  4. page Wiki `biz_case`：多對多區塊、索引與唯一鍵
+  5. page Wiki `delivery`：複合外鍵逐欄配對
+  6. page Wiki `option_item`：`type_code → option_type.code`
+  7. page Wiki `option_item`：複合唯一鍵 `uq_option_item_code`
+  8. embed Diagram（預設）
+  9. embed Diagram（`options={{ collapseJunctions: true }}`，一開始就收合）
+  10. embed Wiki `case_member`：窄版局部關聯圖（無 marker、節點有多重性文字）
+  11. page Diagram：v1.2 範例，聚焦 `contract` 的 7 條線全是「子端 o< ／父端 ||」，沒有收合開關
+- 沒有 hydration 警告。筆記頁另有一個 400（`notecraftapp serve` 拒絕 `_...slug_.astro_astro_type_script…js`），與本批無關，記在規格 §15〈仍未做的〉
+- 最終：`npx tsc --noEmit`（40，未增加）、`npx astro build`、`npm run check-plugins` 全部通過

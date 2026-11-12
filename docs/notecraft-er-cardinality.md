@@ -4,7 +4,7 @@ Project Name: NoteCraft — ER Diagram Renderer v1.3（多重性、複合 FK、�
 文件版本: v1.0.0
 開發模式: Waterfall
 技術選型: 確定（沿用 plugin 既有技術棧：React + TypeScript + lucide-react，不新增 runtime 套件）
-文件狀態: 已定案、待實作 —— §13 的 11 題已於 2026-11-12 逐題確認，全部採用建議；實作後回填見 §15
+文件狀態: 已實作（plugin v1.3.0，Task 149–156，2026-11-12）—— §13 的 11 題已逐題確認、全部採用建議；實作後回填見 §15
 文件作者: 建宇
 建立日期: 2026-11-12
 更新日期: 2026-11-12
@@ -444,7 +444,7 @@ marker 的內容不是 `.erd-edge` 的子孫，吃不到 `.erd-edge--on path` �
 
 ### 5.5 收合中間表
 
-工具列多一個開關「收合 N 張中間表」，與 hub 開關並排；**這個範圍內有中間表時才顯示**。狀態放在外殼（`renderer.tsx`，與 `showHubEdges` 相同），初始值取 `opts.collapseJunctions`，切到 Wiki 再切回來會保留。
+工具列多一個開關「收合 N 張中間表」，與 hub 開關並排；**中間表與它兩端的表都在目前範圍內時才算**（有一端在範圍外時 M:N 線畫不出來，收合只會把真實外鍵也藏掉），沒有這種中間表就不顯示開關。狀態放在外殼（`renderer.tsx`，與 `showHubEdges` 相同），初始值取 `opts.collapseJunctions`，切到 Wiki 再切回來會保留。
 
 收合時：
 
@@ -460,7 +460,7 @@ marker 的內容不是 `.erd-edge` 的子孫，吃不到 `.erd-edge--on path` �
 | 聚焦 A | M:N 線亮起，B 與中間表算相關表、不淡化；聚焦列寫「與 B 多對多（經由 J）」 |
 | 點小卡 | 聚焦中間表本身：暫時改畫它真正的兩條 FK，看得到實際結構 |
 | 搜尋命中中間表的欄位 | 小卡高亮並顯示命中數，**不自動展開**（展開會改變版面） |
-| scope | A、B、J 都在範圍內才畫 M:N 線；否則依原本兩條 FK 計入「跨 schema 連線」 |
+| scope | A、B、J 都在範圍內才可收合；否則照實際結構畫，依原本的 FK 計入「跨 schema 連線」 |
 | A 或 B 是 hub 表 | M:N 線跟著 hub 開關收起，色調用 `opt` |
 
 展開時就是現在的樣子，只是兩端多了 marker。
@@ -479,7 +479,9 @@ marker 的內容不是 `.erd-edge` 的子孫，吃不到 `.erd-edge--on path` �
 ### 5.7 local diagram
 
 - **寬版**：節點仍是每張表一個，但**每條 FK 一條線**。同一對表有多條 FK 時，線在節點中線上下各錯開 6px（最多畫 4 條，超過就畫 1 條並在節點上標 `×N`）。兩端 marker 用 `local` 色調
-- **窄版**（上下三列）：維持整列一條主幹，不畫 marker；改在每個父／子表節點上加一個多重性文字小標（例如 `N:1`、`1:1`）。主幹是好幾條線共用的，畫上 marker 會表達錯
+- **窄版**（上下三列）：維持整列一條主幹，不畫 marker。主幹是好幾條線共用的，畫上 marker 會表達錯
+- **節點一律寫多重性文字小標**（例如 `N:1`、`1:1`；同一對表多條外鍵時寫第一條並加 `×N`），寬版窄版都寫
+- 寬版同一側的線在本表共用出發點：那一側的符號不一致時（例：`contract` 對 `quotation` 是 1:1、對其他父表是 N:1）不畫本表那端的 marker，免得疊成誤導的組合符號；遠端照畫
 - 中間表照實際結構畫（中間表是子表）；本表是 M:N 的一端時，中間表節點加一個小標「M:N → B」
 
 ---
@@ -499,7 +501,7 @@ marker 的內容不是 `.erd-edge` 的子孫，吃不到 `.erd-edge--on path` �
 | 中間表收合的 M:N | M:N（經由 J） | — |
 
 - 「（可選）」固定表示 **FK 可為 null**（父端是 `zero-or-one`）
-- 子端是 `one-or-many` 或 `one` 時再加「至少一筆」
+- 子端是 `one-or-many` 或 `one` 時，**被參照清單**再加「至少一筆」（它描述父表那一側；放在參照清單容易被讀成反方向）
 - 明確指定的值加一個「指定」小標，與推導來的區分
 - hover 顯示完整句子：「每筆 customer 有 0..N 筆 contract；每筆 contract 對應 1 筆 customer」
 
@@ -740,4 +742,31 @@ README 要補：
 
 ## 15. 實作後回填
 
-（實作完成後填寫：待驗證項的結論、實作中新增的決定、仍未做的。）
+### 待驗證項的結論
+
+- **path 的 `opacity` 會連 marker 一起淡化**（Chrome 實測），`dim`／`off` 不另做色調；Safari、Firefox 未實測
+- **VizZoom 放大檢視下的 marker 位置**：marker 用 `userSpaceOnUse`、跟著 SVG 座標走，畫布 20%–250% 縮放實測位置正確；放大檢視未另外實測
+- **同頁多個內嵌**：marker id 以 `useId()` 加前綴，兩個內嵌的前綴不同（`erdr26r0`、`erdr28r1`），互不干擾
+
+### 實作中新增的決定
+
+- 實作順序調整：Diagram 改用 `D.edges` 的純重構（Task 150）排在推導（Task 151）之前
+- 範例：`case_member` 放進「案件與派案」分群，沒有另開一欄；`contract_item` 拿掉代理 `id`；`quotation` 多一個複合唯一鍵 `(case_id, version)`；1:1（FK 有 unique）改用 `contract.quotation_id`
+- M:N 線在中間表與端點同一欄時往右繞（§5.5）；中間表與兩端都在範圍內才可收合（§5.5）
+- local diagram 節點一律寫多重性文字、本表那側符號不一致時不畫那側 marker（§5.7）
+- 「至少一筆」只出現在被參照清單（§6.1）
+- 卡片與 Wiki 的 FK 徽章：推導出的外鍵欄位**或**欄位上有 `fk`（父表不存在時也照標，Wiki 說明欄以灰色顯示原字串）
+- SSR 的資料問題訊息前面加一個換行，避免黏在 Astro 的進度輸出後面
+- README 圖例用 `cardinality-legend.svg`（隨 store 發佈），不放 PNG 截圖
+
+### 順手修的既有問題
+
+- `option_item.type_code` 在 v1.2 範例裡被顯示成參照 `option_type.id`，v1.3 範例改寫成 `fk: "option_type.code"`
+- hub 邊的箭頭原本沿用藍色，現在跟線一樣是灰色
+
+### 仍未做的
+
+- Safari、Firefox 未實測 marker 與 opacity
+- 用 `astro dev --root <worktree>` 搭配外部 notesDir 時筆記頁會報 `UnknownContentCollectionError`（`/view` 頁正常），驗收改用 notecraftapp build；沒有追原因
+- `notecraftapp serve` 對 `_...slug_.astro_astro_type_script…js` 回 400（筆記頁的一支 script），與本次變更無關，未處理
+- 三元以上的關聯不做收合（非目標）

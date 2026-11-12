@@ -874,7 +874,9 @@ npx viewer 沒安裝任何外掛時，`/plugins` 仍列出 ER Diagram 與 API �
 > - 驗證用的 probe、骨架、暫時 deck **不 commit**
 > - **每次 commit 只 add 本 Task 的檔案**
 
-## 官方 plugin：ER Diagram Renderer v1.3 — 多重性、複合 FK、參照欄位、多對多（plugin v1.3.0；app 不升版）
+## 官方 plugin：ER Diagram Renderer v1.3 — 多重性、複合 FK、參照欄位、多對多（plugin v1.3.0；app 不升版） ✅ 已完成（2026-11-12）
+
+> **已完成（2026-11-12）**：Task 149–156 全部實作並逐 Task commit 於 `feat/er-cardinality`。與規格不同之處與驗證結果回填於規格 §15；各 Task 檔末有「實作記錄」。
 
 規格 [notecraft-er-cardinality.md](../notecraft-er-cardinality.md) **v1.0.0**（11 項決策已於 2026-11-12 定案，全部採用建議，紀錄見該文件 §13）。
 
