@@ -21,6 +21,35 @@ export interface PluginRendererProps<T> {
 /** 徽章可以掛在哪些欄位屬性上。fk 是字串（父表名），其餘是 boolean，兩者都以 truthy 判定。 */
 type ErFlagKey = 'pk' | 'fk' | 'unique' | 'index'
 
+/** 父端：每筆子資料對到幾筆父資料。v1.3 */
+export type ErParentCardinality = 'one' | 'zero-or-one'
+/** 子端：每筆父資料有幾筆子資料。v1.3 */
+export type ErChildCardinality = 'zero-or-many' | 'one-or-many' | 'zero-or-one' | 'one'
+
+/** 表層外鍵。v1.3 */
+export interface ErForeignKey {
+  /** 約束名稱。顯示在 Wiki、也用於 edge id；不寫時以欄位名組合代替 */
+  name?: string
+  /** 子表（本表）上的欄位，順序與 references.columns 逐一配對 */
+  columns: string[]
+  references: {
+    table: string
+    /** 父表上的欄位。不寫時用父表的 PK（含複合 PK） */
+    columns?: string[]
+  }
+  /** 明確指定的多重性，優先於推導結果；只寫一端時另一端照推導 */
+  cardinality?: { parent?: ErParentCardinality; child?: ErChildCardinality }
+  note?: string
+}
+
+/** 表層索引與唯一約束。v1.3 */
+export interface ErIndex {
+  name?: string
+  columns: string[]
+  unique?: boolean
+  note?: string
+}
+
 export interface ErColumn {
   name: string
   type: string
@@ -28,8 +57,10 @@ export interface ErColumn {
   required: string
   default?: string
   note?: string
-  /** 父表名；有值即為外鍵 */
+  /** 單欄外鍵的簡寫："表名" 或 "表名.欄位名"（v1.3 起可帶欄位名），推導時轉成表層外鍵 */
   fk?: string
+  /** 是否可為 null。v1.3；不寫時看 requirement[].nullable，再不行當作不可為 null */
+  nullable?: boolean
   pk?: boolean
   unique?: boolean
   index?: boolean
@@ -49,6 +80,12 @@ export interface ErTable {
   columns: ErColumn[]
   /** Table Wiki 頁的表說明（Markdown）。v1.2 */
   description?: string
+  /** 表層外鍵。v1.3 */
+  foreignKeys?: ErForeignKey[]
+  /** 表層索引與唯一約束。v1.3 */
+  indexes?: ErIndex[]
+  /** 中間表：true 明確標示、false 關掉自動判斷、不寫自動判斷。v1.3 */
+  junction?: boolean
 }
 
 /** 導覽第一層。v1.2；沒有時所有 group 歸在單一隱含 schema 下 */
@@ -79,13 +116,15 @@ export interface ErOptions {
   searchPlaceholder: string
   /** 畫布高度（px）。不給就依 mode 取預設：內嵌 560、獨立頁依視窗算 */
   canvasHeight?: number
+  /** Diagram 預設是否收合中間表。v1.3 */
+  collapseJunctions: boolean
 }
 
 export interface ErDiagramData {
   meta?: { title?: string; description?: string; source?: string; backTo?: string }
   options?: Partial<ErOptions>
   /** 必填性語彙。marker 對應 CSS 的圓點樣式：solid / half / hollow / muted */
-  requirement: { key: string; label: string; marker: string; title?: string }[]
+  requirement: { key: string; label: string; marker: string; title?: string; nullable?: boolean }[]
   /** 欄位徽章。tone 對應配色：danger / info / success / neutral / warning */
   flags: { key: ErFlagKey; badge: string; tone?: string; label?: string }[]
   /** 衍生欄徽章，一律 warning 色 */
@@ -103,6 +142,7 @@ export const DEFAULT_OPTIONS: ErOptions = {
   sectionPrefix: '§',
   hint: '點一張表可聚焦它的關聯，其餘變淡；再點一次、點空白處或按 Esc 取消。欄位右側的圖示 hover 可看該欄說明。',
   searchPlaceholder: '搜尋表名或欄位名',
+  collapseJunctions: false,
 }
 
 export interface Edge {

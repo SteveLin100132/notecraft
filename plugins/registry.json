@@ -22,6 +22,7 @@
         "schema.json",
         "README.md",
         "example/schema.json",
+        "example/schema.v1.2.json",
         "example/schema.v1.1.json"
       ],
       "tags": [

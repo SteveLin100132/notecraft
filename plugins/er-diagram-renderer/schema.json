@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/SteveLin100132/notecraft/main/plugins/er-diagram-renderer/schema.json",
   "title": "ER Diagram data",
-  "description": "一份資料庫 schema 的表、欄位與外鍵關聯，以及各層的 Wiki 說明。關聯由欄位的 fk 推導，不要另外存一份 edges。v1.2 新增 schemas 層與 description（皆選填，v1.1 資料檔不改也合法）。",
+  "description": "一份資料庫 schema 的表、欄位與外鍵關聯，以及各層的 Wiki 說明。關聯由欄位的 fk 與表的 foreignKeys 推導，不要另外存一份 edges。v1.2 新增 schemas 層與 description；v1.3 新增多重性、複合外鍵、參照欄位、索引與中間表（皆選填，舊版資料檔不改也合法）。",
   "type": "object",
   "required": [
     "requirement",
@@ -69,6 +69,10 @@
           "type": "integer",
           "minimum": 240,
           "description": "畫布高度（px）。不給就依情境取預設：內嵌 560、獨立頁依視窗高度計算。"
+        },
+        "collapseJunctions": {
+          "type": "boolean",
+          "description": "Diagram 預設是否收合中間表（v1.3）。收合時中間表只剩標題列，兩端的表之間畫一條多對多的線；預設 false（展開）。"
         }
       }
     },
@@ -103,6 +107,10 @@
           "title": {
             "type": "string",
             "description": "hover 說明，沒寫就用 label"
+          },
+          "nullable": {
+            "type": "boolean",
+            "description": "這個必填性在資料庫層是否可為 null（v1.3）。欄位沒寫 nullable 時採用這裡的值；用來推導外鍵父端的多重性。兩處都沒寫時當作不可為 null。"
           }
         }
       }
@@ -314,7 +322,7 @@
                 },
                 "fk": {
                   "type": "string",
-                  "description": "父表名。指向不存在的表時該條連線會被略過"
+                  "description": "單欄外鍵的簡寫：寫「表名」時參照父表的主鍵，寫「表名.欄位名」時參照指定欄位（v1.3）。整串剛好是表名時當表名，否則從最後一個 . 切開。指向不存在的表時不畫線，並在開發模式與 build log 提示。"
                 },
                 "pk": {
                   "type": "boolean"
@@ -332,9 +340,127 @@
                 "pii": {
                   "type": "boolean",
                   "description": "個資標示。v1.2 渲染器仍不顯示，保留讓資料先記著"
+                },
+                "nullable": {
+                  "type": "boolean",
+                  "description": "這一欄是否可為 null（v1.3）。優先於 requirement[].nullable；外鍵欄位可為 null 時，父端多重性是「零或一」。"
                 }
               }
             }
+          },
+          "foreignKeys": {
+            "type": "array",
+            "description": "表層外鍵（v1.3）。複合外鍵、參照父表主鍵以外的唯一鍵、或要明確指定多重性時使用；單欄外鍵也可以只在欄位上寫 fk。與欄位 fk 描述同一欄時以這裡為準。",
+            "items": {
+              "type": "object",
+              "required": [
+                "columns",
+                "references"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "約束名稱，顯示在 Wiki"
+                },
+                "columns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "本表的欄位，順序與 references.columns 逐一配對"
+                },
+                "references": {
+                  "type": "object",
+                  "required": [
+                    "table"
+                  ],
+                  "additionalProperties": false,
+                  "description": "被參照的父表與欄位",
+                  "properties": {
+                    "table": {
+                      "type": "string",
+                      "description": "父表名"
+                    },
+                    "columns": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "父表上被參照的欄位，必須是父表的主鍵或唯一鍵。不寫時用父表的主鍵（含複合主鍵）"
+                    }
+                  }
+                },
+                "cardinality": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "明確指定的多重性，優先於推導結果；只寫一端時另一端照推導。",
+                  "properties": {
+                    "parent": {
+                      "enum": [
+                        "one",
+                        "zero-or-one"
+                      ],
+                      "description": "父端：每筆子資料對到幾筆父資料。推導：外鍵欄位都不可為 null 時 one，否則 zero-or-one。"
+                    },
+                    "child": {
+                      "enum": [
+                        "zero-or-many",
+                        "one-or-many",
+                        "zero-or-one",
+                        "one"
+                      ],
+                      "description": "子端：每筆父資料有幾筆子資料。推導：外鍵欄位包含本表的唯一鍵時 zero-or-one（1:1），否則 zero-or-many。one-or-many 與 one 無法由約束推導，只能在這裡寫。"
+                    }
+                  }
+                },
+                "note": {
+                  "type": "string",
+                  "description": "說明，顯示在 Wiki 的關聯清單"
+                }
+              }
+            }
+          },
+          "indexes": {
+            "type": "array",
+            "description": "表層索引與唯一約束（v1.3），可含多個欄位。unique: true 的組合會用來推導 1:1。單欄的也可以直接在欄位上寫 unique／index。",
+            "items": {
+              "type": "object",
+              "required": [
+                "columns"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "索引或約束名稱，顯示在 Wiki"
+                },
+                "columns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "依序列出的欄位"
+                },
+                "unique": {
+                  "type": "boolean",
+                  "description": "是否為唯一約束；不寫視為一般索引"
+                },
+                "note": {
+                  "type": "string",
+                  "description": "說明，顯示在 Wiki"
+                }
+              }
+            }
+          },
+          "junction": {
+            "type": "boolean",
+            "description": "中間表（v1.3）。true：明確標示這張表把兩張表連成多對多；false：關掉自動判斷；不寫：恰好兩組外鍵、合起來是主鍵或唯一鍵、且都不可為 null 時自動視為中間表。"
           },
           "description": {
             "type": "string",

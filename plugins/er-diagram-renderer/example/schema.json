@@ -4,7 +4,7 @@
     "title": "TrendMile 業務系統 schema",
     "source": "業務系統規格書 v3.2 §2",
     "backTo": "/notes/trendmile/spec",
-    "description": "業務系統的資料庫結構，涵蓋**客戶經營 → 報價簽約 → 開票收款**的完整流程，以及各模組共用的選項與組織主檔。\n\n## 閱讀順序\n1. 先看 `crm`：客戶與案件是所有業務資料的起點\n2. 再看 `sales`：合約從案件或報價轉入，發票掛在合約下\n3. `core` 是共用主檔，被幾乎每張表指向，Diagram 預設收起它的連線\n\n## 命名慣例\n- 主鍵一律 `id bigint identity`，外鍵以 `<父表>_id` 命名\n- 金額欄一律 `numeric(12,0)`，新台幣不留小數\n- 軟刪除用 `archived_at`，不做實體刪除\n\n> 2026-09-01 決議：行政區不做，縣市層即可。"
+    "description": "業務系統的資料庫結構，涵蓋**客戶經營 → 報價簽約 → 開票收款**的完整流程，以及各模組共用的選項與組織主檔。\n\n## 閱讀順序\n1. 先看 `crm`：客戶與案件是所有業務資料的起點\n2. 再看 `sales`：合約從案件或報價轉入，發票掛在合約下\n3. `core` 是共用主檔，被幾乎每張表指向，Diagram 預設收起它的連線\n\n## 命名慣例\n- 主鍵一律 `id bigint identity`，外鍵以 `<父表>_id` 命名\n- 金額欄一律 `numeric(12,0)`，新台幣不留小數\n- 軟刪除用 `archived_at`，不做實體刪除\n\n> 2026-09-01 決議：行政區不做，縣市層即可。\n\n## 關聯的畫法\n線的兩端是多重性（crow's foot）：靠父表那端是「每筆子資料對到幾筆父資料」，靠子表那端是「每筆父資料有幾筆子資料」。這份範例刻意涵蓋了各種情況：\n- **1:1**：`customer_profile` 的主鍵就是外鍵；`contract.quotation_id` 有唯一約束\n- **可選的外鍵**：`contract.case_id` 可為 null，父端是「零或一」\n- **複合主鍵與複合外鍵**：`contract_item` 以 (contract_id, line_no) 為主鍵，`delivery` 以同一組欄位參照它\n- **參照主鍵以外的欄位**：`option_item.type_code` 參照的是 `option_type.code`\n- **明確指定**：每份合約至少一筆明細（`contract_item` 的子端是「一筆以上」）\n- **多對多**：`case_member` 把案件與員工連成多對多，Diagram 可收合成一條線"
   },
   "options": {
     "defaultRows": 6,
@@ -25,12 +25,14 @@
       "key": "condition",
       "label": "條件",
       "marker": "half",
-      "title": "條件必填，條件見說明"
+      "title": "條件必填，條件見說明",
+      "nullable": true
     },
     {
       "key": "nullable",
       "label": "可空",
-      "marker": "hollow"
+      "marker": "hollow",
+      "nullable": true
     },
     {
       "key": "system",
@@ -354,6 +356,48 @@
       ]
     },
     {
+      "name": "customer_profile",
+      "label": "客戶補充資料",
+      "section": "2.1",
+      "group": "customer",
+      "description": "與 `customer` **一對一**：主鍵就是外鍵，每位客戶最多一筆補充資料。拆表是因為這些欄位很少用、又常常整批更新。",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "customer",
+          "note": "所屬客戶；同時是主鍵"
+        },
+        {
+          "name": "website",
+          "type": "varchar(200)",
+          "required": "nullable",
+          "note": "官方網站"
+        },
+        {
+          "name": "founded_on",
+          "type": "date",
+          "required": "nullable",
+          "note": "成立日"
+        },
+        {
+          "name": "capital",
+          "type": "numeric(14,0)",
+          "required": "nullable",
+          "note": "資本額"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "required": "system",
+          "derivation": "trigger",
+          "note": "最後更新時間，trigger 維護"
+        }
+      ]
+    },
+    {
       "name": "biz_case",
       "label": "案件主檔",
       "section": "2.12",
@@ -432,6 +476,46 @@
           "required": "system",
           "derivation": "trigger",
           "note": "最後更新時間，trigger 維護"
+        }
+      ]
+    },
+    {
+      "name": "case_member",
+      "label": "案件成員",
+      "section": "2.12",
+      "group": "case",
+      "description": "案件與員工的**多對多**中間表：一個案件可以有好幾位成員，一位員工也會參與好幾個案件。\n\n主鍵是兩個外鍵的組合，所以會被自動判斷成中間表；`role` 是這段關係自己的屬性，收合時看不到，但點小卡聚焦就會展開真實結構。",
+      "columns": [
+        {
+          "name": "case_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "biz_case",
+          "note": "案件"
+        },
+        {
+          "name": "employee_id",
+          "type": "bigint",
+          "required": "required",
+          "pk": true,
+          "fk": "employee",
+          "index": true,
+          "note": "成員"
+        },
+        {
+          "name": "role",
+          "type": "varchar(20)",
+          "required": "required",
+          "default": "'協辦'",
+          "note": "在案件中的角色：主辦、協辦、技術支援"
+        },
+        {
+          "name": "joined_on",
+          "type": "date",
+          "required": "required",
+          "default": "current_date",
+          "note": "加入日"
         }
       ]
     },
@@ -515,7 +599,7 @@
           "type": "smallint",
           "required": "required",
           "default": "1",
-          "note": "版次；(case_id, version) 唯一"
+          "note": "版次"
         },
         {
           "name": "valid_until",
@@ -536,6 +620,17 @@
           "required": "condition",
           "fk": "employee",
           "note": "核准主管；金額超過 50 萬時必填"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_quotation_version",
+          "columns": [
+            "case_id",
+            "version"
+          ],
+          "unique": true,
+          "note": "同一案件的報價以版次區分"
         }
       ]
     },
@@ -582,7 +677,8 @@
           "type": "bigint",
           "required": "nullable",
           "fk": "quotation",
-          "note": "依據的報價單"
+          "note": "依據的報價單；一份報價最多成交一份合約",
+          "unique": true
         },
         {
           "name": "sign_item_id",
@@ -635,20 +731,18 @@
       "group": "contract",
       "columns": [
         {
-          "name": "id",
-          "type": "bigint",
-          "required": "system",
-          "default": "identity",
-          "pk": true,
-          "note": "代理主鍵"
-        },
-        {
           "name": "contract_id",
           "type": "bigint",
           "required": "required",
-          "fk": "contract",
-          "index": true,
-          "note": "所屬合約"
+          "note": "所屬合約",
+          "pk": true
+        },
+        {
+          "name": "line_no",
+          "type": "smallint",
+          "required": "required",
+          "pk": true,
+          "note": "行號，同一合約內由 1 起編"
         },
         {
           "name": "service_id",
@@ -676,6 +770,93 @@
           "required": "system",
           "derivation": "generated",
           "note": "qty × unit_price"
+        }
+      ],
+      "description": "合約的每一行項目，以 (contract_id, line_no) 為複合主鍵。\n\n每份合約**至少一筆**明細：這是業務規則、資料庫約束表達不出來，所以在 `foreignKeys` 明確指定子端是「一筆以上」。",
+      "foreignKeys": [
+        {
+          "name": "fk_contract_item_contract",
+          "columns": [
+            "contract_id"
+          ],
+          "references": {
+            "table": "contract"
+          },
+          "cardinality": {
+            "child": "one-or-many"
+          },
+          "note": "每份合約至少一筆明細"
+        }
+      ]
+    },
+    {
+      "name": "delivery",
+      "label": "交付紀錄",
+      "section": "2.2",
+      "group": "contract",
+      "description": "合約明細的每一次交付。以 (contract_id, line_no) **複合外鍵**參照 `contract_item`；`references.columns` 沒寫，所以預設用父表的複合主鍵。",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "required": "system",
+          "default": "identity",
+          "pk": true,
+          "note": "代理主鍵"
+        },
+        {
+          "name": "contract_id",
+          "type": "bigint",
+          "required": "required",
+          "note": "所屬合約"
+        },
+        {
+          "name": "line_no",
+          "type": "smallint",
+          "required": "required",
+          "note": "所屬明細行號"
+        },
+        {
+          "name": "delivered_on",
+          "type": "date",
+          "required": "required",
+          "note": "交付日"
+        },
+        {
+          "name": "qty",
+          "type": "integer",
+          "required": "required",
+          "default": "1",
+          "note": "本次交付數量"
+        },
+        {
+          "name": "accepted_by",
+          "type": "bigint",
+          "required": "nullable",
+          "fk": "employee",
+          "note": "驗收人；尚未驗收時為空"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "name": "fk_delivery_item",
+          "columns": [
+            "contract_id",
+            "line_no"
+          ],
+          "references": {
+            "table": "contract_item"
+          },
+          "note": "一筆明細可分多次交付"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "contract_id",
+            "line_no",
+            "delivered_on"
+          ]
         }
       ]
     },
@@ -932,7 +1113,7 @@
           "name": "type_code",
           "type": "varchar(40)",
           "required": "required",
-          "fk": "option_type",
+          "fk": "option_type.code",
           "index": true,
           "note": "所屬選項集合"
         },
@@ -940,8 +1121,7 @@
           "name": "code",
           "type": "varchar(40)",
           "required": "required",
-          "unique": true,
-          "note": "選項代碼"
+          "note": "選項代碼；同一集合內唯一"
         },
         {
           "name": "label",
@@ -961,6 +1141,17 @@
           "type": "smallint",
           "required": "nullable",
           "note": "排序"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_option_item_code",
+          "columns": [
+            "type_code",
+            "code"
+          ],
+          "unique": true,
+          "note": "選項代碼只需在同一集合內唯一"
         }
       ]
     }

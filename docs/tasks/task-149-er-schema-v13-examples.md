@@ -84,3 +84,15 @@
 ## 依賴
 
 無。
+
+## 實作記錄（2026-11-12）
+
+- `schema.json` 以腳本改寫（維持 `JSON.stringify(…, 2)` 格式）；`tables[]` 的新屬性放在 `columns` 之後、`description` 之前。v1.3 新增的屬性逐一確認都有 `description`
+- v1.3 範例共 17 張表：
+  - 新增 `customer_profile`（customer 群）、`case_member`（case 群，排在 `biz_case` 之後）、`delivery`（contract 群，排在 `contract_item` 之後）
+  - `case_member` 沒有另開一欄放在 `biz_case` 與 `employee` 之間，而是放進「案件與派案」分群（語意剛好吻合，也不必動 `layout.columns`）
+  - `contract_item` 拿掉代理 `id`，改以 `(contract_id, line_no)` 為主鍵；`contract_id` 的欄位 `fk` 移到表層 `foreignKeys`（帶 `cardinality.child: one-or-many`）
+  - 另把 `quotation` 備註裡的「(case_id, version) 唯一」寫成 `indexes[]`，多一個複合唯一鍵的例子
+  - `requirement` 的 `nullable`、`condition` 標 `nullable: true`
+- `example/schema.v1.2.json` 與上一個 commit 的 `example/schema.json` 逐位元相同
+- `npm run check-plugins`：3 份範例都通過 schema、一次 build 成功；tsc 錯誤數維持 40
