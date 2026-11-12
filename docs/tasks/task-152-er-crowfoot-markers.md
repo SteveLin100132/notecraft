@@ -75,3 +75,15 @@
 ## 依賴
 
 Task 151。
+
+## 實作記錄（2026-11-12）
+
+- `markers.tsx`：`ErMarkers`、`markerUid`、`markerUrl`、`shapeOf`、`SHAPE_LABEL`；Diagram 用 `base`／`on`／`opt` 三種色調（12 個 marker），`local` 留給 Task 154
+- marker 加 `overflow="visible"`，卡片邊緣（x = 16）上的筆畫才不會被切掉一半
+- 樣式選擇器寫成 `.erd-root marker.erd-mk…`，特異度才壓得過 `.erd-local-svg path`
+- **path 的 `opacity` 會連 marker 一起淡化**（Chrome 實測：在同一頁疊一張放大 5 倍的測試 SVG，對 path 設 opacity 0.12，兩端 marker 一起變淡），所以 `dim`／`off` 不另做色調。Safari、Firefox 未實測
+- 形狀與方向：同一張測試 SVG 確認四種形狀正確、`auto-start-reverse` 讓起點端朝向子表卡片
+- 圖例做成縮放列最左邊的「圖例」文字鈕（不另開浮動按鈕），面板開在縮放列上方；Esc、點畫布空白處都會關閉；按住面板不會開始平移
+- 卡片 FK 徽章的 title 多一行參照目標（`→ contract_item.line_no（複合外鍵）`）
+- 實作中踩到：`measure` 裡新加的計數變數取名 `k`，蓋掉了外層的縮放倍率 `k`，座標全變 Infinity。已改名為 `nth`
+- 驗收用 fixture（不 commit）：`tmp/er-ws`（v1.3 範例、v1.2 範例、一篇內嵌兩次的筆記），dev server 以 `astro dev --root <worktree>`、`NOTECRAFT_NOTES_DIR=tmp/er-ws` 啟動

@@ -19,6 +19,7 @@
         "markdown-text.ts",
         "wiki.tsx",
         "local-diagram.tsx",
+        "markers.tsx",
         "schema.json",
         "README.md",
         "example/schema.json",

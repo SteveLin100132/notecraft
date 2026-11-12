@@ -9,6 +9,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -26,6 +27,8 @@ import type {
   ViewState,
 } from './types'
 import { matchTable } from './derive'
+import { ErMarkers, MARKER_SHAPES, SHAPE_LABEL, markerUid, markerUrl, shapeOf } from './markers'
+import type { MarkerTone } from './markers'
 import type { ErDerived } from './derive'
 import { FIT_PAD, MAX_ZOOM, MIN_ZOOM, TIP_HALF, ZOOM_STEP, clampZoom } from './types'
 
@@ -53,6 +56,8 @@ export interface ErDiagramProps {
   /** 外殼按 Esc 時先問畫布：有聚焦或 tooltip 可退就退並回 true */
   escapeRef: MutableRefObject<(() => boolean) | null>
 }
+
+const DIAGRAM_TONES: readonly MarkerTone[] = ['base', 'on', 'opt']
 
 export function ErDiagram({
   data,
@@ -119,11 +124,15 @@ export function ErDiagram({
     [data.derivations],
   )
 
-  /* 預設顯示：主鍵、全部外鍵，再補一般欄位到 defaultRows 為止 */
+  /* 預設顯示：主鍵、全部外鍵（含表層 foreignKeys 的欄位），再補一般欄位到 defaultRows 為止 */
+  const isKeyCol = useCallback(
+    (t: ErTable, c: ErColumn) => !!c.pk || D.fksOfColumn(t.name, c.name).length > 0,
+    [D],
+  )
   const defaultColumns = useCallback(
     (t: ErTable): ErColumn[] => {
-      const keyCols = t.columns.filter((c) => c.pk || c.fk)
-      const rest = t.columns.filter((c) => !c.pk && !c.fk)
+      const keyCols = t.columns.filter((c) => isKeyCol(t, c))
+      const rest = t.columns.filter((c) => !isKeyCol(t, c))
       const out = [...keyCols]
       for (const c of rest) {
         if (out.length >= opts.defaultRows) break
@@ -131,14 +140,42 @@ export function ErDiagram({
       }
       return t.columns.filter((c) => out.includes(c))
     },
-    [opts.defaultRows],
+    [opts.defaultRows, isKeyCol],
+  )
+
+  /** 欄位徽章：fk 看推導（含複合、表層），其餘看欄位上的屬性 */
+  const flagOn = useCallback(
+    (t: ErTable, c: ErColumn, key: 'pk' | 'fk' | 'unique' | 'index') =>
+      key === 'fk' ? D.fksOfColumn(t.name, c.name).length > 0 : !!c[key],
+    [D],
+  )
+  const flagTitle = useCallback(
+    (t: ErTable, c: ErColumn, key: 'pk' | 'fk' | 'unique' | 'index', label: string | undefined): string | undefined => {
+      if (key === 'fk') {
+        const refs = D.fksOfColumn(t.name, c.name).map((e) => {
+          const i = e.cols.indexOf(c.name)
+          const ref = e.refCols?.[i] ?? '?'
+          return `→ ${e.parent}.${ref}${e.cols.length > 1 ? '（複合外鍵）' : ''}`
+        })
+        return [label, ...refs].filter(Boolean).join('\n')
+      }
+      if (key === 'pk') {
+        const pk = D.pkOf(t.name)
+        if (pk.length > 1) return `${label ?? '主鍵'}：複合主鍵 (${pk.join(', ')})`
+      }
+      return label
+    },
+    [D],
   )
 
   const [hover, setHover] = useState<string | null>(null)
+  const [legendOpen, setLegendOpen] = useState(false)
+  /** marker id 的前綴：同一頁有多個 ER 內嵌時各自獨立 */
+  const uid = markerUid(useId())
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [tip, setTip] = useState<TipState | null>(null)
   const [paths, setPaths] = useState<
-    { id: string; d: string; child: string; parent: string; col: string; mx: number; my: number }[]
+    { id: string; d: string; child: string; parent: string; col: string; mx: number; my: number; edge: Edge }[]
   >([])
 
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -262,7 +299,7 @@ export function ErDiagram({
   const onPanStart = useCallback((ev: React.PointerEvent<HTMLDivElement>) => {
     if (ev.button !== 0) return
     const el = ev.target as HTMLElement
-    if (!ev.altKey && el.closest('.erd-card, button, a, input, label')) return
+    if (!ev.altKey && el.closest('.erd-card, .erd-lgpanel, button, a, input, label')) return
     const cur = viewRef.current
     panRef.current = { px: ev.clientX, py: ev.clientY, ox: cur.x, oy: cur.y, moved: false }
     setPanning(true)
@@ -351,7 +388,13 @@ export function ErDiagram({
       h: grid ? grid.scrollHeight : canvas.clientHeight,
     })
     const next: typeof paths = []
+    /* 同一對表之間的第 k 條線，兩端上下錯開：0、+6、−6、+12… —— v1.2 的多條線會完全重疊 */
+    const pairCount = new Map<string, number>()
     for (const e of edges) {
+      const pairKey = e.child < e.parent ? `${e.child}\u0000${e.parent}` : `${e.parent}\u0000${e.child}`
+      const nth = pairCount.get(pairKey) ?? 0
+      pairCount.set(pairKey, nth + 1)
+      const off = nth === 0 ? 0 : (nth % 2 ? 1 : -1) * Math.ceil(nth / 2) * 6
       const a = cardRefs.current.get(e.child)
       const b = cardRefs.current.get(e.parent)
       if (!a || !b) continue
@@ -361,24 +404,26 @@ export function ErDiagram({
       const bx0 = (rb.left - base.left) / k
       const aw = ra.width / k
       const bw = rb.width / k
-      const ay = (ra.top - base.top) / k + Math.min(ra.height / k / 2, 26)
-      const by = (rb.top - base.top) / k + Math.min(rb.height / k / 2, 26)
+      const ay = (ra.top - base.top) / k + Math.min(ra.height / k / 2, 26) + off
+      const by = (rb.top - base.top) / k + Math.min(rb.height / k / 2, 26) + off
       let x1: number
       let x2: number
       let c1: number
       let c2: number
       if (e.self) {
+        /* 兩端各掛一個 12px 高的 marker：端點上下各 14px、切線水平，兩個符號才不會疊在一起 */
         x1 = ax0 + aw
         x2 = x1
-        const d = 26
+        const d = 52
         next.push({
           id: e.id,
-          d: `M ${x1} ${ay - 8} C ${x1 + d} ${ay - 22}, ${x1 + d} ${ay + 22}, ${x2} ${ay + 8}`,
+          d: `M ${x1} ${ay - 14} C ${x1 + d} ${ay - 14}, ${x1 + d} ${ay + 14}, ${x2} ${ay + 14}`,
           child: e.child,
           parent: e.parent,
           col: e.col,
-          mx: x1 + d,
-          my: ay,
+          mx: x1 + d * 0.75,
+          my: ay - 14,
+          edge: e,
         })
         continue
       }
@@ -402,6 +447,7 @@ export function ErDiagram({
         col: e.col,
         mx: (x1 + x2) / 2,
         my: (ay + by) / 2,
+        edge: e,
       })
     }
     setPaths(next)
@@ -428,6 +474,10 @@ export function ErDiagram({
      這裡只回報「有沒有東西可退」—— 有才吃掉這次 Esc，沒有就交給外殼收導覽或全寬。 */
   useEffect(() => {
     escapeRef.current = () => {
+      if (legendOpen) {
+        setLegendOpen(false)
+        return true
+      }
       if (!focus && !tip) return false
       onFocusChange(null)
       setTip(null)
@@ -436,7 +486,7 @@ export function ErDiagram({
     return () => {
       escapeRef.current = null
     }
-  }, [focus, tip, onFocusChange, escapeRef])
+  }, [focus, tip, legendOpen, onFocusChange, escapeRef])
 
   /* 指標位於畫布上時 + − 0 生效。不綁全域，免得在搜尋框裡打「-」也被吃掉。 */
   const onViewportKey = useCallback(
@@ -638,13 +688,16 @@ export function ErDiagram({
         tabIndex={0}
         role="application"
         aria-label="關聯圖畫布，可拖曳平移，⌘/Ctrl 加滾輪縮放"
-        onPointerDown={onPanStart}
+        onPointerDown={(ev) => {
+          if (legendOpen && !(ev.target as HTMLElement).closest('.erd-lgpanel, .erd-lgbtn')) setLegendOpen(false)
+          onPanStart(ev)
+        }}
         onPointerMove={onPanMove}
         onPointerUp={onPanEnd}
         onPointerCancel={onPanEnd}
         onKeyDown={onViewportKey}
         onDoubleClick={(ev) => {
-          if ((ev.target as HTMLElement).closest('.erd-card, button, a, input, label')) return
+          if ((ev.target as HTMLElement).closest('.erd-card, .erd-lgpanel, button, a, input, label')) return
           resetView()
         }}
       >
@@ -671,21 +724,20 @@ export function ErDiagram({
             viewBox={`0 0 ${canvasSize.w || 1} ${canvasSize.h || 1}`}
             aria-hidden
           >
-            <defs>
-              <marker id="erd-arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-                <path d="M0,0 L7,3 L0,6 z" />
-              </marker>
-              <marker id="erd-arrow-on" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
-                <path d="M0,0 L7,3 L0,6 z" className="erd-root erd-head--on" />
-              </marker>
-            </defs>
+            <ErMarkers uid={uid} tones={DIAGRAM_TONES} />
             {paths.map((p) => {
               const hubEdge = hubTables.has(p.parent)
               const state = edgeState(p)
               if (hubEdge && !showHubEdges && state !== 'on') return null
+              const tone: MarkerTone = state === 'on' ? 'on' : hubEdge ? 'opt' : 'base'
               return (
                 <g key={p.id} className={`erd-root erd-edge erd-edge--${state}${hubEdge ? ' erd-edge--opt' : ''}`}>
-                  <path d={p.d} markerEnd={state === 'on' ? 'url(#erd-arrow-on)' : 'url(#erd-arrow)'} />
+                  {/* 線從子表畫到父表：起點是子端、終點是父端 */}
+                  <path
+                    d={p.d}
+                    markerStart={markerUrl(uid, shapeOf(p.edge.card.child), tone)}
+                    markerEnd={markerUrl(uid, shapeOf(p.edge.card.parent), tone)}
+                  />
                   {state === 'on' ? (
                     <text x={p.mx} y={p.my - 5} textAnchor="middle">
                       {p.col}
@@ -763,11 +815,11 @@ export function ErDiagram({
                                   <span className="erd-root erd-ftype">{c.type}</span>
                                   <span className="erd-root erd-keys">
                                     {data.flags.map((f) =>
-                                      c[f.key] ? (
+                                      flagOn(t, c, f.key) ? (
                                         <b
                                           className={`erd-root erd-k erd-k--${f.tone ?? 'neutral'}`}
                                           key={f.key}
-                                          title={f.label}
+                                          title={flagTitle(t, c, f.key, f.label)}
                                         >
                                           {f.badge}
                                         </b>
@@ -838,7 +890,32 @@ export function ErDiagram({
         </div>
         </div>
 
+        {legendOpen ? (
+          <div className="erd-root erd-lgpanel" id={`${uid}-legend`} role="group" aria-label="多重性圖例">
+            <div className="erd-root erd-lgpanel-h">多重性</div>
+            {MARKER_SHAPES.map((shape) => (
+              <div className="erd-root erd-lgrow" key={shape}>
+                <svg className="erd-root erd-lgsvg" width="46" height="14" aria-hidden>
+                  <path d="M2 7 H44" markerEnd={markerUrl(uid, shape, 'base')} />
+                </svg>
+                {SHAPE_LABEL[shape]}
+              </div>
+            ))}
+            <p className="erd-root erd-lgpanel-note">靠父表那端：每筆子資料對到幾筆父資料；靠子表那端：每筆父資料有幾筆子資料。</p>
+          </div>
+        ) : null}
+
         <div className="erd-root erd-zoombar">
+          <button
+            type="button"
+            className="erd-root erd-lgbtn"
+            aria-expanded={legendOpen}
+            aria-controls={legendOpen ? `${uid}-legend` : undefined}
+            onClick={() => setLegendOpen((v) => !v)}
+          >
+            圖例
+          </button>
+          <span className="erd-root erd-zsep" aria-hidden />
           <button
             type="button"
             className="erd-root erd-zbtn"

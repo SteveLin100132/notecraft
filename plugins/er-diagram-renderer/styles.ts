@@ -42,6 +42,15 @@ export const CSS = `
 .erd-root .erd-zbtn:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
 .erd-root .erd-zval { min-width: 42px; text-align: center; font-family: var(--font-mono); font-size: 11.5px; font-weight: var(--weight-bold); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .erd-root .erd-zsep { width: 1px; height: 16px; margin: 0 3px; background: var(--border-subtle); }
+.erd-root .erd-lgbtn { height: 26px; padding: 0 9px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--text-muted); font: inherit; font-size: 11.5px; font-weight: var(--weight-bold); cursor: pointer; }
+.erd-root .erd-lgbtn:hover, .erd-root .erd-lgbtn[aria-expanded=true] { background: var(--blue-50); color: var(--blue-700); }
+.erd-root .erd-lgbtn:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.erd-root .erd-lgpanel { position: absolute; right: 12px; bottom: 52px; z-index: 5; width: 232px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-card); border: 1px solid var(--border-default); box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-body); cursor: default; }
+.erd-root .erd-lgpanel-h { margin-bottom: 4px; font-size: 11px; font-weight: var(--weight-bold); letter-spacing: var(--tracking-wide); color: var(--blue-700); }
+.erd-root .erd-lgrow { display: flex; align-items: center; gap: 8px; height: 22px; }
+.erd-root .erd-lgsvg { flex: none; overflow: visible; }
+.erd-root .erd-lgsvg path { fill: none; stroke: var(--blue-300); stroke-width: 1.3; }
+.erd-root .erd-lgpanel-note { margin: 6px 0 0; font-size: 11px; line-height: 1.55; color: var(--text-muted); }
 .erd-root .erd-svg { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .erd-root .erd-cols { position: relative; display: grid; gap: 34px; align-items: start; }
 .erd-root .erd-col { display: flex; flex-direction: column; gap: 26px; }
@@ -83,8 +92,14 @@ export const CSS = `
 .erd-root .erd-more:hover { background: var(--blue-50); }
 .erd-root .erd-edge path { fill: none; stroke: var(--blue-300); stroke-width: 1.1; transition: opacity var(--duration-fast) var(--ease-out), stroke-width var(--duration-fast) var(--ease-out); }
 .erd-root .erd-edge text { font-family: var(--font-mono); font-size: 9.5px; fill: var(--orange-700); paint-order: stroke; stroke: var(--neutral-0); stroke-width: 3px; }
-.erd-root marker path { fill: var(--blue-300); }
-.erd-root .erd-head--on { fill: var(--orange-500); }
+/* 多重性 marker（markers.tsx）。marker 不是 .erd-edge 的子孫，色調靠各自的 class；
+   選擇器帶 marker 元素名，特異度才壓得過 .erd-local-svg path */
+.erd-root marker.erd-mk path, .erd-root marker.erd-mk circle { fill: none; stroke: var(--blue-300); stroke-width: 1.3; stroke-linecap: round; }
+.erd-root marker.erd-mk circle { fill: var(--surface-page); }
+.erd-root marker.erd-mk--on path, .erd-root marker.erd-mk--on circle { stroke: var(--orange-500); stroke-width: 1.6; }
+.erd-root marker.erd-mk--opt path, .erd-root marker.erd-mk--opt circle { stroke: var(--neutral-300); }
+.erd-root marker.erd-mk--local path, .erd-root marker.erd-mk--local circle { stroke: var(--blue-400); }
+.erd-root marker.erd-mk--local circle { fill: var(--surface-card); }
 .erd-root .erd-edge--base path { opacity: .55; }
 .erd-root .erd-edge--opt path { stroke: var(--neutral-300); }
 .erd-root .erd-edge--dim path { opacity: .18; }
