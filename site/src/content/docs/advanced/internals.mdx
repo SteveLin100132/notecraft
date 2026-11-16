@@ -1,5 +1,5 @@
 ---
-description: notecraftapp 把自己裝在哪、build 快取放在哪、什麼情況下會重新 build，以及怎麼清掉重來。
+description: notecraftapp 把自己裝在哪、build 快取與執行目錄放在哪、什麼情況下會重新 build、怎麼同時開多個筆記資料夾，以及怎麼清掉重來。
 ---
 
 NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資料夾交給它：`view` 跑 Astro dev server，`build` 與 `serve` 跑 `astro build`，再用 pagefind 建全文索引。你的筆記資料夾不會被複製，也不會多出 `node_modules`。
@@ -9,13 +9,21 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 | 位置 | 用途 |
 | :-- | :-- |
 | `~/.notecraft/app-<version>/` | 套件的執行位置，每個版本一份 |
-| `~/.notecraft/cache/<hash>/` | 每個筆記資料夾一份 build 快取 |
+| `~/.notecraft/cache/<hash>/` | 每個筆記資料夾一份 build 快取與執行目錄 |
 
 ### 套件執行位置
 
 第一次執行某個版本時，CLI 會把套件複製到 `~/.notecraft/app-<version>/`、在那裡跑一次 `npm install`，之後都從這個位置啟動。這樣不會在 npm 或 npx 的快取目錄裡跑 build，之後啟動也不必再裝一次。
 
 `npm install` 失敗時，半成品目錄會被刪掉，下次執行重新安裝。
+
+### 執行目錄
+
+從 1.16.0 起，Astro 不直接在 `app-<version>/` 裡跑，而是在每個筆記資料夾自己的 `~/.notecraft/cache/<hash>/app/`。CLI 啟動時把套件的程式碼複製一份過去（約 3 MB），`node_modules` 則是連回 `app-<version>/` 的連結（Windows 用 junction，不需要系統管理員權限），不會重複安裝。
+
+這樣做是因為 Astro 會把筆記內容的中間檔寫在專案根目錄底下。1.15 以前所有筆記資料夾共用同一個根目錄，同時開兩個時會互相覆寫，畫面上出現另一個資料夾的筆記。
+
+執行目錄只在第一次、升級版本後，或 `app-<version>/` 被刪掉時重新建立，平常直接沿用。
 
 ### build 快取
 
@@ -26,6 +34,8 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 | `dist/` | `build` 的產物，`serve` 服務的就是它；`dist/pagefind/` 是全文索引 |
 | `meta.json` | 上次 build 的時間、檔案計數，以及當時的 notecraftapp 版本、`NOTECRAFT_BASE` 與執行資料夾 |
 | `dist.next/` | rebuild 進行中的暫存輸出，成功後換成 `dist/` |
+| `app/` | 執行目錄（1.16.0 起，見上一節）；Astro 與 Vite 的快取在其中的 `.nc-state/` |
+| `run.lock.json` | 這個筆記資料夾正在執行的 `view`／`serve`／`build`（網址與 pid），結束時刪除 |
 
 `build` 結束時終端機會印出 `dist` 的完整路徑，要部署到別處就從那裡複製。
 
@@ -41,6 +51,7 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 | notecraftapp 版本跟上次 build 不同，或快取是 1.8.1 以前的版本建的 | 升級或換版本之後 |
 | `NOTECRAFT_BASE` 跟上次 build 不同 | 設定、改掉或拿掉[子路徑](/docs/guides/deploy/#部署到子路徑) |
 | 執行的資料夾跟上次 build 不同 | `.notecraft/` 從執行的資料夾讀，換資料夾可能拿到另一份設定 |
+| 快取是 1.16.0 以前建的 | 那時同時開兩個筆記資料夾可能讓快取混入另一個資料夾的筆記，升級後一律重建一次 |
 | 任一 `.md`／`.mdx` 比上次 build 新 | 改了筆記 |
 | `.notecraft/` 第一層任一 `.json` 比上次 build 新 | 改了 `series.json`、`plugins.json`、`ignore.json` |
 | `.md`／`.mdx` 的數量變了 | 新增或刪除筆記 |
@@ -59,6 +70,29 @@ NoteCraftApp 本身是一個 Astro 專案。CLI 做的事是把你的筆記資�
 上表的版本、`NOTECRAFT_BASE`、執行資料夾三條從 1.8.1 起才有。用更早的版本時，升級或改了子路徑之後要加 `--rebuild`，見[升級](/docs/resources/upgrade/)。
 
 從 repo 直接執行（見[參與開發](/docs/resources/contributing/)）時，版本還會加上 git 的 commit：commit 之後快取才會失效，還沒 commit 的改動要加 `--rebuild` 才看得到。
+</Callout>
+
+## 同時開多個筆記資料夾
+
+1.16.0 起，不同的筆記資料夾可以同時執行，`view`、`serve`、`build` 任意組合都行，只要 port 不同：
+
+```bash
+# 終端機 1
+npx notecraftapp view ./work-notes --port 4321
+# 終端機 2
+npx notecraftapp view ./side-project/docs --port 4322
+```
+
+**同一個**筆記資料夾只能有一個在跑。重複啟動時 CLI 會告訴你它已經在哪個網址執行並結束：
+
+```text
+[notecraftapp] 這個筆記資料夾已經在 http://127.0.0.1:4321/ 執行中（view，pid 12345）。要同時開，請先關掉它。
+```
+
+上次是被強制結束（例如直接關掉終端機視窗）也不影響，CLI 發現那個 pid 已經不存在，就會直接啟動。
+
+<Callout type="warn">
+從 repo 直接執行（見[參與開發](/docs/resources/contributing/)）時不使用執行目錄，改了程式碼才會立即生效，所以這種模式仍然不能同時開多個筆記資料夾。
 </Callout>
 
 ## 強制重新 build

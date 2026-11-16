@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findLocalPath, localPathNeedles } from "./local-path.ts";
+import { getAppRoot } from "./notes-ignore-state.mjs";
 
 /**
  * 護欄：build 完掃 outDir 的 .html／.json，含本機絕對路徑就讓 build 失敗。
@@ -9,7 +10,8 @@ import { findLocalPath, localPathNeedles } from "./local-path.ts";
  * `/wb-index.json` 早就有 assertNoAbsolutePath，但 island props（例：PluginHost 的 rendererPath）
  * 與其他頁面不經過它，曾經悄悄把 plugin 目錄寫進正式頁面。這裡從產物端兜底，不管是哪個欄位帶進來的。
  *
- * 找的是 app 根（cwd）、使用者專案根（NOTECRAFT_USER_CWD）與 notesDir —— 與 assertNoAbsolutePath 同一組。
+ * 找的是 astro 的 cwd（viewer 的執行目錄或主 repo）、app 本體（node_modules 連結的真實位置，
+ * docs/notecraft-multi-instance.md §5.6）、使用者專案根（NOTECRAFT_USER_CWD）與 notesDir —— 與 assertNoAbsolutePath 同一組。
  * dev 不跑（astro:build:done 只在 build 觸發）；dev-only 的 vscode:// 連結由 findLocalPath 放行。
  */
 /** @returns {import("astro").AstroIntegration} */
@@ -19,6 +21,8 @@ export default function noLocalPath() {
     hooks: {
       "astro:build:done": async ({ dir, logger }) => {
         const roots = [process.cwd()];
+        const appRoot = getAppRoot();
+        if (appRoot !== process.cwd()) roots.push(appRoot);
         if (process.env.NOTECRAFT_USER_CWD) roots.push(path.resolve(process.env.NOTECRAFT_USER_CWD));
         roots.push(
           process.env.NOTECRAFT_NOTES_DIR

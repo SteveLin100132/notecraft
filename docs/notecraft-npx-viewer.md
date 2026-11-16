@@ -40,7 +40,7 @@ Project Name: NoteCraft NPX Viewer
 | # | 決策 | 選項 |
 | :-- | :-- | :-- |
 | 1 | 執行模式 | **astro build + 快取靜態產物**，非 astro dev |
-| 2 | 執行位置 | **複製到 `~/.notecraft/app-<version>/`** 後執行，不污染 npm cache |
+| 2 | 執行位置 | **複製到 `~/.notecraft/app-<version>/`** 後執行，不污染 npm cache（1.16.0 起 astro 改在每個筆記資料夾一份的執行目錄 `~/.notecraft/cache/<hash>/app/` 跑，見 [notecraft-multi-instance.md](notecraft-multi-instance.md)） |
 | 3 | 寫入能力 | **v1 直接包含寫入**，不做「先唯讀」中間版本 |
 | 4 | 路徑對應 | **保留階層**（catchall route，`[...slug].astro`）——實作階段調整，見 §6 |
 | 5 | Frontmatter 缺欄位 | **靜默補預設值**，使用者無感 |

@@ -126,6 +126,7 @@ npx notecraftapp install-plugin
 ```
 
 首次執行會複製套件到 `~/.notecraft/app-<version>/` 並跑一次 `npm install`（約 30 秒），之後每次啟動秒開。
+不同的筆記資料夾可以同時開，各用一個 port（例如 `--port 4322`）；同一個資料夾重複啟動時，CLI 會告訴你它已經在哪個網址執行。
 五個子命令與全部參數見 [CLI 參考](https://stevelin100132.github.io/notecraft/docs/reference/cli/)。
 
 ---

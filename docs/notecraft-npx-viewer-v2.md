@@ -47,7 +47,7 @@ v1 的五條主決策 v2 全部沿用，v2 只在其上疊加。逐條標記狀�
 | # | v1 定案 | v2 處理 |
 | :-- | :-- | :-- |
 | 1 | astro build + 快取靜態產物 | ✅ 沿用，快取失效條件擴充（見 §7.1） |
-| 2 | 執行位置 `~/.notecraft/app-<v>/` | ✅ 沿用，不變 |
+| 2 | 執行位置 `~/.notecraft/app-<v>/` | ✅ 沿用，不變（1.16.0 起 astro 的 cwd 改為每個筆記資料夾一份的執行目錄，見 [notecraft-multi-instance.md](notecraft-multi-instance.md)） |
 | 3 | v1 直接包含寫入 | ✅ 沿用，寫入端擴充「AI 元件也走同套路徑安全」 |
 | 4 | 保留階層 `[...slug].astro` | ✅ 沿用，不變 |
 | 5 | Frontmatter 靜默補預設 | ✅ 沿用，不變 |

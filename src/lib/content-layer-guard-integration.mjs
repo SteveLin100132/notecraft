@@ -25,7 +25,7 @@ export default function contentLayerGuard() {
           throw new Error(
             `[content-layer-guard] 產物根目錄含 Astro content layer 的內部檔：${hits.join("、")}。\n` +
               `  data-store.json 含筆記原文與本機路徑，不得部署。常見成因：--outDir 不在 astro 的 cwd 底下，` +
-              `Astro 會經 <cwd>/.astro/ 中轉而把它們一起複製進來（CLI 應 build 到 app 根底下的 staging 目錄）。`,
+              `Astro 會經 <cwd>/.astro/ 中轉而把它們一起複製進來（CLI 應 build 到 astro cwd 底下的 staging 目錄：viewer 是執行目錄的 .nc-state/build/，主 repo 是 node_modules/.notecraft-build/）。`,
           );
         }
         logger.info("產物未含 content layer 內部檔");

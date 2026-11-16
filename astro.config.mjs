@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
@@ -40,6 +41,15 @@ const userCwd = process.env.NOTECRAFT_USER_CWD
   : null;
 const notecraftDir = resolveNotecraftDir(process.env, process.cwd());
 
+// 執行目錄（docs/notecraft-multi-instance.md §5.4）：viewer CLI 在每個筆記資料夾一份的 ~/.notecraft/cache/<hash>/app/
+// 跑 astro，node_modules 是連到共用 app 的連結。只在 CLI 設了 NOTECRAFT_RUN_ROOT=1 時：
+// - cacheDir／vite.cacheDir 指到執行目錄自己的 .nc-state/（預設的 node_modules/.astro、.vite 會穿過連結、又變成共用）
+// - fs.allow 加連結的真實路徑：Vite 把 node_modules 的模組解析成 ~/.notecraft/app-<v>/node_modules/…，
+//   不在 allow 清單會 403（dev toolbar 的 entrypoint 就會）
+// 沒有這個變數（主 repo 的 npm run dev、check-plugins）時，下面的設定與以前完全相同。
+const runRoot = process.env.NOTECRAFT_RUN_ROOT === "1";
+const sharedNodeModules = runRoot ? fs.realpathSync(path.resolve("node_modules")) : null;
+
 // 部署在子路徑時（例：GitHub Pages 的 /notecraft/demo）以 NOTECRAFT_BASE 指定；站內連結經 src/lib/base.ts 的 withBase() 組出。
 const base = process.env.NOTECRAFT_BASE || undefined;
 const basePrefix = base ? base.replace(/\/+$/, "") : "";
@@ -47,6 +57,7 @@ const basePrefix = base ? base.replace(/\/+$/, "") : "";
 export default defineConfig({
   output: "static",
   base,
+  ...(runRoot && { cacheDir: "./.nc-state/astro" }),
   // 舊網址轉址（Workbench Q20）：build 時替每個舊網址產生只含 meta refresh 的極小 HTML。
   // 不綁平台（Netlify、viewer 的 serve、任何靜態主機都有效），所以不另外在 netlify.toml 寫 301。
   // /view/<路徑> 資料檔渲染頁維持原網址，只有 /view 列表頁本身轉址。
@@ -74,6 +85,7 @@ export default defineConfig({
     defsWatch(),
   ],
   vite: {
+    ...(runRoot && { cacheDir: "./.nc-state/vite" }),
     // Windows：viewer app 與筆記在不同磁碟時修正 content entry 與 @notes glob 的路徑（見檔頭說明）
     plugins: [crossDriveContent()],
     server: {
@@ -83,7 +95,11 @@ export default defineConfig({
       // 緊接著開新筆記會拋 UnknownContentCollectionError。等檔案大小穩定再發事件，兩個事件就折成一個。
       watch: { awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 } },
       // fs.allow：notesDir、userCwd 都要允許（dev server 才能讀專案根外的 tsx / mdx）
-      ...(notesDir && { fs: { allow: [process.cwd(), notesDir, ...(userCwd ? [userCwd] : [])] } }),
+      ...(notesDir && {
+        fs: {
+          allow: [process.cwd(), notesDir, ...(userCwd ? [userCwd] : []), ...(sharedNodeModules ? [sharedNodeModules] : [])],
+        },
+      }),
     },
     resolve: {
       alias: { "@notes": notecraftDir },
