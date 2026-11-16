@@ -51,3 +51,17 @@ Task 157 備好了執行目錄與鎖，這一步讓三個子命令真的在各�
 - [ ] 主 repo 的 `npm run dev` 與 `notecraftapp view`：行為與改動前相同，`node_modules/.astro`、`node_modules/.vite` 照舊使用
 - [ ] 刻意讓產物含 `~/.notecraft/app-<v>/` 的路徑（暫時改一個欄位）：build 失敗並指出該路徑；改回後通過
 - [ ] `npm run check-plugins` 通過；`npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-11-16）
+
+- `prepareRoot()` 先 `acquireLock` 再 `ensureRunRoot`（鎖在執行目錄外，見 Task 157）；`displayUrl()` 抽出來給鎖與 serve 的啟動訊息共用
+- `astroEnv(cwd)`：執行目錄設 `NOTECRAFT_RUN_ROOT=1`，主 repo 明確設成空字串（不從外層 shell 繼承）
+- `buildStageDir`：`cwd !== packageRoot` 時是 `<runRoot>/.nc-state/build/`
+- 指紋多 `runRootLayout`，`shouldRebuild` 的訊息：「執行目錄配置從（無）變成 1」
+- app 本體路徑：`notes-ignore-state.mjs` 新增 `getAppRoot()`（`node_modules` 真實路徑的上一層），`no-local-path-integration.mjs` 與 `workbench.ts` 共用。第一版直接寫在 `workbench.ts` 會讓 tsc 多一個 `process` 的錯誤
+- 驗收結果：
+  - Task 159 的 fixture 涵蓋前三項，全部通過
+  - 瀏覽器：筆記頁 console 無錯誤，dev toolbar 的 entrypoint 200
+  - 主 repo：`npx astro build` 通過，仍使用 `node_modules/.astro`；`npm run check-plugins` 通過
+  - 護欄：筆記內文寫入 app 本體路徑 → `build` 失敗，`[workbench] /wb-index.json 的輸出含本機絕對路徑（…）`
+  - tsc：45 → 40（與修改前的 HEAD 比對，無新增）

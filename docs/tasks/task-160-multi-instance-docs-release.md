@@ -43,3 +43,10 @@
 - [ ] `npm run check-plugins` 通過（`prepublishOnly` 會跑）
 - [ ] `npm pack --dry-run` 含 `bin/run-root.mjs`、`CHANGELOG.md`，不含 `plugins/`
 - [ ] `npx tsc --noEmit && npx astro build` 通過，tsc 錯誤數不增加
+
+## 實作記錄（2026-11-16）
+
+- CHANGELOG：原本 Unreleased 裡已發佈的 er-diagram-renderer 1.3.0 一併收進 `## [1.16.0] - 2026-11-16`，Unreleased 留空
+- 官網：`advanced/internals.mdx` 新增「執行目錄」與「同時開多個筆記資料夾」兩節、快取內容表加 `app/` 與 `run.lock.json`、重新 build 條件加一列；`resources/faq.mdx` 新增一題；`resources/upgrade.mdx` 加 1.16.0 列；`resources/contributing.mdx` 說明主 repo 與 `NOTECRAFTAPP_DEV=1` 的差異；`install.mdx`、`project-structure.mdx` 的快取說明改成「build 快取與執行目錄」
+- `package.json`、`package-lock.json` 版號 1.16.0（**未發佈到 npm**）
+- 驗收結果：`check:upd`、`check-plugins` 通過；`npm pack` 含 `bin/run-root.mjs`、`CHANGELOG.md`，不含 `plugins/`；tsc 無新增錯誤

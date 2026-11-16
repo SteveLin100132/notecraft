@@ -5,6 +5,7 @@
 // dev 期間 ignore.json 變動由 notes-ignore-integration.mjs 先 reset 再重啟 dev server；
 // CLI serve 的背景 rebuild 是子行程，每次都重新載入。
 
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -35,6 +36,19 @@ export function getNotesDir() {
 
 export function getNotecraftDir() {
   return resolveNotecraftDir(process.env, process.cwd());
+}
+
+/**
+ * app 本體的位置（docs/notecraft-multi-instance.md §5.6）。viewer 在執行目錄（~/.notecraft/cache/<hash>/app/）
+ * 跑 astro 時 cwd 不是 app 本體，node_modules 是連到 ~/.notecraft/app-<v>/ 的連結 —— 取它真實路徑的上一層。
+ * 主 repo 與 node_modules 不是連結時就是 cwd。給「產物不可含本機絕對路徑」的護欄用（.ts 端不碰 node:*）。
+ */
+export function getAppRoot() {
+  try {
+    return path.dirname(fs.realpathSync(path.resolve(process.cwd(), "node_modules")));
+  } catch {
+    return process.cwd();
+  }
 }
 
 /**

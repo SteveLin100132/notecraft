@@ -52,3 +52,10 @@
 - [ ] `bin/run-root.mjs` 以 `node -e "import('./bin/run-root.mjs')"` 載入時不建立任何檔案、不印任何東西
 - [ ] `npm pack --dry-run` 的清單包含 `bin/run-root.mjs`（`files` 已含 `bin/`，確認即可）
 - [ ] `npx tsc --noEmit` 錯誤數不增加
+
+## 實作記錄（2026-11-16）
+
+- **鎖檔改放執行目錄外**：`~/.notecraft/cache/<hash>/run.lock.json`，`acquireLock(cacheDir, …)`。要先拿到鎖才能重建執行目錄，而重建會整個刪掉 `app/`
+- `runRootEntries` 另外排除 `skill-template/`（只有 CLI 的 `init-skill` 用），並一律收 `package.json`（不在 `files` 裡，但 `workbench.ts` 以 cwd 讀它取版本）
+- 戳記檔 `.nc-run.json`：`{ layout, appVersion, appRoot }`；`release()` 只刪自己 pid 的鎖（被當成過期覆寫後不刪到別人的）
+- 驗收結果：`npm run check:run-root` 10 組通過；`import('./bin/run-root.mjs')` 無副作用；`npm pack` 內含 `bin/run-root.mjs`；tsc 無新增錯誤

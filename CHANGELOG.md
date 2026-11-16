@@ -6,16 +6,33 @@
 
 ## [Unreleased]
 
-<!-- 重點：ER 圖畫出多重性，支援複合外鍵、參照非 id 欄位與多對多 -->
+## [1.16.0] - 2026-11-16
+
+<!-- 重點：不同的筆記資料夾可以同時開，不會再看到另一個資料夾的筆記 -->
+
+### 修正
+
+- 同時開兩個筆記資料夾（即使 port 不同）時，畫面會顯示另一個資料夾的筆記、筆記頁變成 404，或 `serve`／`build` 的產物混入另一個資料夾的筆記全文（設計文件 `docs/notecraft-multi-instance.md`）。現在每個筆記資料夾各自獨立，`view`、`serve`、`build` 可以任意組合同時執行
+
+### 變更
+
+- 每個筆記資料夾第一次啟動時，會在 `~/.notecraft/cache/<hash>/app/` 建立自己的執行目錄（約 3 MB，`node_modules` 以連結共用，不會重複安裝），並重新 build 一次，清掉以前同時開兩個資料夾時可能被污染的快取
 
 ### 新增
 
+- 同一個筆記資料夾重複啟動時，CLI 會顯示它已經在哪個網址執行並結束；`view` 或 `serve` 執行中對同一個資料夾跑 `build` 也會被擋下。上次被強制結束留下的紀錄不影響下次啟動
 - **（已發佈）** 官方外掛 **er-diagram-renderer 1.3.0**（設計文件 `docs/notecraft-er-cardinality.md`）。官方外掛不隨 npm 發佈，併回 GitHub 預設分支即生效，這一條不必等下一個 app 版本；已安裝的工作區執行 `npx notecraftapp install-plugin er-diagram-renderer --force` 更新
   - 關聯線兩端畫 crow's foot 多重性（恰好一筆、零或一筆、一筆以上、零或多筆），不寫也會由「可否為 null」與主鍵、唯一鍵推導，明確寫的值優先；縮放列有「圖例」
   - 資料格式新增（全部選填，1.2 的資料檔不用改）：表層 `foreignKeys`（複合外鍵、參照指定欄位、明確多重性）與 `indexes`（含複合唯一鍵）、欄位與必填性語彙的 `nullable`、`fk` 可寫 `表名.欄位名`、中間表 `junction`、選項 `collapseJunctions`
   - 多對多：中間表可明確標示或自動判斷，關聯圖可收合中間表、改畫一條多對多的線；Wiki 表頁列出「多對多（經由某張表）」
   - Wiki 的外鍵寫出實際參照的父表欄位（以前一律寫成 `.id`），參照／被參照清單附多重性文字；局部關聯圖每條外鍵一條線
   - 外鍵指向不存在的表或欄位、欄數不同、參照的不是唯一鍵、中間表條件不成立時，開發模式與 build log 會提示，不會讓 build 失敗
+
+### 內部
+
+- 執行目錄與鎖檔在 `bin/run-root.mjs`，斷言 `npm run check:run-root`；整合驗證 `node scripts/fixtures/multi-instance.mjs [--build]`
+- `astro.config.mjs` 只在 CLI 設了 `NOTECRAFT_RUN_ROOT=1` 時把 `cacheDir`／`vite.cacheDir` 指到執行目錄的 `.nc-state/`，並讓 Vite 讀得到 `node_modules` 連結的真實路徑；主 repo 的 `npm run dev` 不受影響
+- 「產物不可含本機絕對路徑」的兩道檢查加入 app 本體的路徑（執行目錄裡 cwd 不再是它）
 
 ## [1.15.0] - 2026-11-01
 

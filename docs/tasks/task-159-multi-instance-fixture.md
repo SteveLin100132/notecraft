@@ -45,3 +45,14 @@
 - [ ] 在 Task 158 之前的 commit 上跑會失敗（證明腳本確實測到這個問題），結果記在下方實作記錄
 - [ ] Windows 實機項目全部通過，記錄 Node 與 Windows 版本
 - [ ] `node scripts/fixtures/ignore-dev.mjs` 通過
+
+## 實作記錄（2026-11-16）
+
+- `HOME`／`USERPROFILE` 指到暫存資料夾；POSIX 以 process group 起子行程，結束時連 astro 一起收（Windows 用 `taskkill /T /F`）；SIGKILL 的過期鎖情境在 Windows 略過
+- 鎖檔實際在 `cache/<hash>/run.lock.json`（Task 157），斷言 6 改看這個位置
+- 本機的 worktree 曾因 `node_modules` 過舊（缺 `ignore`、`three`）讓 CLI 在 import 時就失敗，`npm install` 後正常；與本功能無關
+- 驗收結果（macOS，Node 22.16）：
+  - `node scripts/fixtures/multi-instance.mjs --build`：8 項全過
+  - 在修正前的 commit（`295c896`，只拿掉「打包內容要有 `bin/run-root.mjs`」那行斷言）跑：**4 項失敗** —— A 的頁面缺 `MARKER-A-1`（顯示 B 的筆記）、A 的存檔沒反映、重複啟動沒被擋、view 中 build 沒被擋。證明腳本確實測到這個問題
+  - `node scripts/fixtures/ignore-dev.mjs`：16 項全過。§13.3 的繞法（觸碰 `ignore.json` 強制重新同步）保留：它跑在主 repo 模式，那裡仍共用一個 root
+  - **Windows 實機尚未驗證**（junction、`fs.allow`、跨磁碟）

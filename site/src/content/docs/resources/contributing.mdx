@@ -34,7 +34,9 @@ npm run viewer:view -- <dir>
 
 `viewer:build`、`viewer:serve` 也有對應的 script。
 
-CLI 偵測到套件目錄有 `.git` 時，會跳過複製到 `~/.notecraft/app-<version>/` 這一步，直接從 repo 執行，改完程式碼重跑就生效。設定環境變數 `NOTECRAFTAPP_DEV=1` 有同樣效果。
+CLI 偵測到套件目錄有 `.git` 時，會跳過複製到 `~/.notecraft/app-<version>/` 這一步，直接從 repo 執行，改完程式碼重跑就生效。這種模式也不使用[執行目錄](/docs/advanced/internals/#執行目錄)，所以不能同時開多個筆記資料夾。
+
+設定環境變數 `NOTECRAFTAPP_DEV=1` 也會跳過複製，但仍使用執行目錄，而且每次啟動都重新同步。它是給 `npm pack` 出的套件做驗證用的（例如 `node scripts/fixtures/multi-instance.mjs`）。
 
 要在本機測 `init-skill`，先執行 `npm run sync-skill` 產生安裝用的 skill 範本。
 

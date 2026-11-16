@@ -19,6 +19,7 @@ import chokidar from "chokidar";
 import { localhostOnly, resetHandlersIgnore, tryHandleAssetsRequest } from "../src/dev-api/handlers.mjs";
 import { createNotesIgnore, IGNORE_FILE, loadNotesIgnore, toNotesRel, walkNotesAsync } from "../src/lib/notes-ignore.mjs";
 import { installPlugin, listStore, removePlugin } from "./install-plugin.mjs";
+import { RUN_ROOT_LAYOUT, acquireLock, ensureRunRoot, formatLockMessage } from "./run-root.mjs";
 
 // ── .notecraft/ignore.json（docs/notecraft-ignore-config.md §5.4）────────────────
 // 快取失效判斷與 serve 的 watcher 都只看沒被排除的檔：被排除的檔改了不觸發 rebuild、不計入檔數。
@@ -158,6 +159,51 @@ function log(...args) {
   console.log("[notecraftapp]", ...args);
 }
 
+// ── 執行目錄與鎖（docs/notecraft-multi-instance.md §5–§7）─────────────────────
+// Astro 的 content layer 狀態（.astro/data-store.json、node_modules/.astro/）放在 root 底下、不分筆記資料夾；
+// 所有筆記資料夾共用 app 根當 root 時，同時執行的 view／serve 會互相覆寫內容。viewer 改在每個筆記資料夾
+// 一份的執行目錄（~/.notecraft/cache/<hash>/app/）跑 astro，node_modules 以連結共用。
+// 主 repo（packageRoot 有 .git）不用：作者在改 src，要改了就 HMR（Q5）。
+
+function usesRunRoot() {
+  return !existsSync(path.join(packageRoot, ".git"));
+}
+
+// 給 astro 子行程的環境變數：astro.config.mjs 看到 NOTECRAFT_RUN_ROOT=1 才把 cacheDir／vite.cacheDir 指到
+// 執行目錄自己的 .nc-state/（預設的 node_modules/.astro、node_modules/.vite 會穿過連結落回共用的 app）。
+function astroEnv(cwd) {
+  return { NOTECRAFT_RUN_ROOT: cwd !== packageRoot ? "1" : "" };
+}
+
+function displayUrl(host, port) {
+  return `http://${host === "0.0.0.0" ? "localhost" : host}:${port}/`;
+}
+
+// 取得這個筆記資料夾的鎖、準備執行目錄，回傳 astro 的 cwd。
+// 鎖要先拿：重建執行目錄會整個刪掉 app/，不能刪到正在執行的那一份（同一個筆記資料夾重複啟動，Q3／Q4）。
+function prepareRoot(notesDir, command, url) {
+  if (!usesRunRoot()) {
+    log("主 repo 模式：不支援多個筆記資料夾同時執行（docs/notecraft-multi-instance.md §7）");
+    return packageRoot;
+  }
+  const cacheDir = cacheDirFor(notesDir);
+  const lock = acquireLock(cacheDir, { command, url });
+  if (!lock.ok) {
+    console.error(`[notecraftapp] ${formatLockMessage(lock.lock)}`);
+    process.exit(1);
+  }
+  process.on("exit", lock.release);
+  const runRoot = ensureRunRoot({
+    appRoot: packageRoot,
+    cacheDir,
+    appVersion: pkgJson.version,
+    devPackage: process.env.NOTECRAFTAPP_DEV === "1",
+    log,
+  });
+  log(`run root   : ${runRoot}`);
+  return runRoot;
+}
+
 function resolveNotesDirArg(dirArg) {
   const notesDir = path.resolve(process.cwd(), dirArg || ".");
   if (!existsSync(notesDir)) {
@@ -188,6 +234,9 @@ function buildFingerprint(userCwd) {
     tool: `notecraftapp@${pkgJson.version}${head ? `+${head}` : ""}`,
     base: process.env.NOTECRAFT_BASE || "",
     userCwd: userCwd ? path.resolve(userCwd) : "",
+    // 執行目錄配置（docs/notecraft-multi-instance.md §8，Q7）：1.16.0 以前多開時可能被另一個筆記資料夾污染的
+    // 快取，靠這一項全部重建一次；日後執行目錄的配置再變也會重建
+    runRootLayout: RUN_ROOT_LAYOUT,
   };
 }
 
@@ -224,6 +273,9 @@ async function shouldRebuild(cacheDir, notesDir, force, userCwd) {
   }
   if (meta.userCwd === undefined || meta.userCwd !== fp.userCwd) {
     return { should: true, why: `執行資料夾從 ${meta.userCwd || "（未記錄）"} 變成 ${fp.userCwd}（.notecraft/ 設定從這裡讀）` };
+  }
+  if (meta.runRootLayout !== fp.runRootLayout) {
+    return { should: true, why: `執行目錄配置從 ${meta.runRootLayout ?? "（無）"} 變成 ${fp.runRootLayout}（每個筆記資料夾一份執行目錄）` };
   }
   const lastBuildMs = new Date(meta.lastBuildAt).getTime();
 
@@ -378,7 +430,7 @@ async function countMdx(notesDir, userCwd) {
   return (await scanNotes(notesDir, cliIgnore(notesDir, userCwd), MDX_RE)).count;
 }
 
-// outDir 必須在 cwd（app 根）底下。Astro 5 的 static build 遇到 cwd 外的 outDir 時，SSR 中間產物改寫到
+// outDir 必須在 astro 的 cwd（執行目錄；主 repo 是 app 根）底下。Astro 5 的 static build 遇到 cwd 外的 outDir 時，SSR 中間產物改寫到
 // <cwd>/.astro/，最後整包 cp 進 outDir 再刪掉（core/build/common.js 的 getOutDirWithinCwd）；
 // 但 <cwd>/.astro/ 同時是 content layer 的 dotAstroDir，data-store.json（每篇筆記的原文與本機路徑）、
 // content-assets.mjs、content-modules.mjs、collections/ 會跟著進產物（1.10.1 修正）。
@@ -386,13 +438,13 @@ async function countMdx(notesDir, userCwd) {
 async function runAstroBuild(cwd, notesDir, outDir, userCwd) {
   const rel = path.relative(cwd, outDir);
   if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
-    throw new Error(`outDir 必須在 app 根（${cwd}）底下，否則 Astro 會把 .astro/ 的內部檔帶進產物：${outDir}`);
+    throw new Error(`outDir 必須在 astro 的 cwd（${cwd}）底下，否則 Astro 會把 .astro/ 的內部檔帶進產物：${outDir}`);
   }
   return new Promise((resolve, reject) => {
     const astroBin = path.join(cwd, "node_modules", "astro", "astro.js");
     const proc = spawn(process.execPath, [astroBin, "build", "--outDir", outDir], {
       cwd,
-      env: { ...process.env, NOTECRAFT_NOTES_DIR: notesDir, NOTECRAFT_USER_CWD: userCwd },
+      env: { ...process.env, ...astroEnv(cwd), NOTECRAFT_NOTES_DIR: notesDir, NOTECRAFT_USER_CWD: userCwd },
       stdio: "inherit",
     });
     proc.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`astro build exited with code ${code}`))));
@@ -568,9 +620,14 @@ function sseSend(res, payload) {
 }
 
 // ── v2: 原子 rebuild（build 到 dist.next → rename 交換） ─────────────
-// 實際的 astro build 輸出在 app 根底下的 staging 目錄（見 runAstroBuild 上方說明），
-// 放 node_modules/ 裡：git、npm pack、tsc、tailwind 都不會掃到。以快取 hash 命名，不同筆記資料夾可並行。
+// 實際的 astro build 輸出在 astro cwd 底下的 staging 目錄（見 runAstroBuild 上方說明）。
+// - 執行目錄（viewer）：<runRoot>/.nc-state/build/。不同筆記資料夾能並行，靠的是各自一份執行目錄
+//   （Astro 的 .astro/、node_modules/.astro/ 都在 root 底下、不分筆記資料夾；docs/notecraft-multi-instance.md §2）；
+//   不放 node_modules/ 底下，因為那是連到共用 app 的連結。
+// - 主 repo：放 node_modules/ 裡（git、npm pack、tsc、tailwind 都不會掃到），以快取 hash 命名。
+//   主 repo 仍共用一個 root，不支援多個筆記資料夾同時執行（§7，Q5）。
 function buildStageDir(cwd, cacheDir) {
+  if (cwd !== packageRoot) return path.join(cwd, ".nc-state", "build");
   return path.join(cwd, "node_modules", ".notecraft-build", path.basename(cacheDir));
 }
 
@@ -669,7 +726,7 @@ async function startStaticServer(cwd, notesDir, distDir, port, host, openBrowser
   });
 
   server.listen(port, host, () => {
-    const url = `http://${host === "0.0.0.0" ? "localhost" : host}:${port}/`;
+    const url = displayUrl(host, port);
     log("");
     log(`  ➜  Local:   ${url}`);
     log(`  ➜  Mode:    serve${watch ? "（背景 rebuild + auto reload）" : "（純靜態、唯讀）"}`);
@@ -727,14 +784,15 @@ const viewCmd = defineCommand({
   async run({ args }) {
     const notesDir = resolveNotesDirArg(args.dir);
     const userCwd = process.cwd();
+    const runRoot = prepareRoot(notesDir, "view", displayUrl(args.host, args.port));
     log(`spawn astro dev`);
     log(`notes dir  : ${notesDir}`);
     log(`user cwd   : ${userCwd}`);
     log(`port       : ${args.port}`);
     const astroBin = path.join(packageRoot, "node_modules", "astro", "astro.js");
     const proc = spawn(process.execPath, [astroBin, "dev", "--port", String(args.port), "--host", args.host], {
-      cwd: packageRoot,
-      env: { ...process.env, NOTECRAFT_NOTES_DIR: notesDir, NOTECRAFT_USER_CWD: userCwd },
+      cwd: runRoot,
+      env: { ...process.env, ...astroEnv(runRoot), NOTECRAFT_NOTES_DIR: notesDir, NOTECRAFT_USER_CWD: userCwd },
       stdio: "inherit",
     });
     const shutdown = () => proc.kill("SIGTERM");
@@ -755,7 +813,8 @@ const buildCmd = defineCommand({
     const cacheDir = cacheDirFor(notesDir);
     log(`notes dir  : ${notesDir}`);
     log(`cache dir  : ${cacheDir}`);
-    const result = await ensureBuild(packageRoot, notesDir, cacheDir, args.rebuild, process.cwd());
+    const runRoot = prepareRoot(notesDir, "build", null);
+    const result = await ensureBuild(runRoot, notesDir, cacheDir, args.rebuild, process.cwd());
     if (!result.ok) {
       log(`build failed: ${result.error}`);
       process.exit(1);
@@ -801,7 +860,8 @@ const serveCmd = defineCommand({
     log(`notes dir  : ${notesDir}`);
     log(`cache dir  : ${cacheDir}`);
     log(`watch mode : ${watch ? "on（chokidar + SSE + atomic rebuild）" : "off"}`);
-    const initial = await ensureBuild(packageRoot, notesDir, cacheDir, args.rebuild, userCwd);
+    const runRoot = prepareRoot(notesDir, "serve", displayUrl(args.host, args.port));
+    const initial = await ensureBuild(runRoot, notesDir, cacheDir, args.rebuild, userCwd);
     if (!initial.ok) {
       log(`⚠ 首次 build 失敗；server 仍上線，watcher 待修好後自動 rebuild`);
       log(`  錯誤：${initial.error}`);
@@ -817,7 +877,7 @@ const serveCmd = defineCommand({
     );
     if (watch) {
       startBackgroundRebuild({
-        cwd: packageRoot,
+        cwd: runRoot,
         notesDir,
         cacheDir,
         userCwd,

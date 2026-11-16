@@ -385,5 +385,5 @@ handler 每次請求都重讀 `ignore.json` 很便宜，但與 Content Layer 的
 
 ### 13.3 已知限制
 
-- 同一個 app 根底下有另一個 astro 行程同時在跑（例如作者在 repo 開著 `npm run dev`，又跑 `ignore-dev.mjs`）時，兩者共用 `.astro/data-store.json`，新起的 dev server 可能讀到另一個專案的筆記，直到下一次重新同步（既有行為，與 ignore 無關；依序切換筆記資料夾時 Astro 會偵測設定變更而清空 store，不受影響）。`ignore-dev.mjs` 遇到時會觸碰 `ignore.json` 強制重新同步
+- **（1.16.0 已修正，見 `docs/notecraft-multi-instance.md`；主 repo 模式仍存在）** 同一個 app 根底下有另一個 astro 行程同時在跑（例如作者在 repo 開著 `npm run dev`，又跑 `ignore-dev.mjs`）時，兩者共用 `.astro/data-store.json`，新起的 dev server 可能讀到另一個專案的筆記，直到下一次重新同步（既有行為，與 ignore 無關；依序切換筆記資料夾時 Astro 會偵測設定變更而清空 store，不受影響）。`ignore-dev.mjs` 遇到時會觸碰 `ignore.json` 強制重新同步
 - 取消排除一個會被 plugin 規則命中、但不符 schema 的資料檔，build 會照「失敗一律 build fail」失敗——這是預期，但作者可能以為是 ignore 的問題

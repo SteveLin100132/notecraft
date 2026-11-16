@@ -4,7 +4,7 @@ Project Name: NoteCraft — 多個工作區同時執行（每個工作區獨立�
 文件版本: v0.1.0
 開發模式: Waterfall
 技術選型: 確定 —— 沿用既有技術棧，不新增依賴
-文件狀態: 決策已定 —— §11 的 7 題已全數確認（2026-11-16），可拆 Task
+文件狀態: 已實作（notecraftapp v1.16.0，Task 157–160，2026-11-16）—— §11 的 7 題已全數確認；實作後回填見 §13（Windows 實機待驗證）
 文件作者: 建宇
 建立日期: 2026-11-16
 更新日期: 2026-11-16
@@ -296,6 +296,29 @@ C 方案只隔離「不同」筆記資料夾。同一個資料夾開兩次，兩
 | [159](tasks/task-159-multi-instance-fixture.md) | `scripts/fixtures/multi-instance.mjs`；Windows 實機驗證 |
 | [160](tasks/task-160-multi-instance-docs-release.md) | 文件：CLAUDE.md（「`--outDir` 必須在 astro 的 cwd 底下」改寫成執行目錄、新增本節）、README、官網文件、CHANGELOG、1.16.0；本文 §13 回填 |
 
-## 13. 實作後回填
+## 13. 實作後回填（2026-11-16，notecraftapp v1.16.0，Task 157–160）
 
-（待實作）
+### 13.1 與本文不同之處
+
+| 項目 | 本文原寫 | 實際 | 原因 |
+| :-- | :-- | :-- | :-- |
+| 鎖檔位置（§6） | `<執行目錄>/.nc-state/lock.json` | `~/.notecraft/cache/<hash>/run.lock.json`（執行目錄外） | 要先拿到鎖才能重建執行目錄，而重建會整個刪掉 `app/`；鎖放在裡面會被刪掉，或刪到正在執行的那一份 |
+| `acquireLock` 的參數 | `runRoot` | `cacheDir` | 同上 |
+| 不複製的項目（§5.2） | `bin/`、`README.md`、`CHANGELOG.md`、`LICENSE` | 另加 `skill-template/`；`package.json` 一律複製 | `skill-template/` 只有 CLI 的 `init-skill` 用（讀 app 本體）；`package.json` 不在 `files` 裡但 npm 一定發佈，`workbench.ts` 以 cwd 讀它取版本 |
+| app 本體路徑給 `.ts` 的方式（§5.6） | 由 `defs-state.mjs` 或 `notes-ignore-state.mjs` 擇一提供 | `notes-ignore-state.mjs` 的 `getAppRoot()`，兩道護欄共用 | 第一版直接寫在 `workbench.ts` 讓 tsc 多出 `process` 的錯誤（`.ts` 端不碰 `node:*`／`process` 的規則） |
+| 主 repo 的環境變數 | 未提 | 主 repo 模式明確設 `NOTECRAFT_RUN_ROOT=""` | 避免從外層 shell 繼承到 `1`，讓主 repo 的設定被改掉 |
+
+### 13.2 驗證
+
+- `npm run check:run-root`：10 組（清單以真實 `package.json` 斷言、戳記比對 7 種情況、鎖的三態、文案、實跑建立／沿用／換版／連結壞掉、鎖的取得／釋放／過期／壞檔）
+- `node scripts/fixtures/multi-instance.mjs --build`（macOS，Node 22.16）：8 項全過 —— 兩個 `view` 同時與各自存檔、重複啟動被擋並顯示網址、`view` 中 `build` 被擋、SIGKILL 後重開、鎖檔刪除、兩個 `serve --rebuild` 同時 build、單獨重啟沿用快取
+- 同一支 fixture 在修正前的 commit（`295c896`）上跑：見 Task 159 實作記錄
+- 瀏覽器：執行目錄下 `view` 的筆記頁 console 無錯誤，dev toolbar 的 entrypoint 200（spike 時是 403）
+- 護欄：筆記內文寫入 app 本體的絕對路徑 → `build` 失敗並指出該路徑
+- `npm run check-plugins`、`npm run check:upd` 通過；`npx tsc --noEmit` 錯誤 45 → 40（無新增）
+
+### 13.3 已知限制
+
+- **主 repo 模式**（有 `.git`）仍共用一個 root，不支援多個筆記資料夾同時執行（Q5）；啟動時會印一行提示
+- **Windows 實機尚未驗證**（junction、`fs.allow` 的真實路徑、跨磁碟）；見 Task 159
+- 不再使用的執行目錄（專案搬家後留下的 `cache/<hash>/`）不會自動清除（§9.3）

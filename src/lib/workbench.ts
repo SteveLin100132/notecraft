@@ -28,6 +28,7 @@ import type {
 } from "@/lib/wb-types";
 
 import { getDefIndex } from "@/lib/defs-state.mjs";
+import { getAppRoot } from "@/lib/notes-ignore-state.mjs";
 import { buildGraphEdges } from "@/lib/wb-graph";
 import { slug as githubSlug } from "github-slugger";
 export type * from "@/lib/wb-types";
@@ -357,7 +358,7 @@ export function publicIndex(index: WbIndex): WbIndex {
 
 /** 序列化後若含專案根或 notesDir 的絕對路徑就 throw —— 讓 build 失敗，而不是悄悄洩漏。 */
 export function assertNoAbsolutePath(serialized: string, where: string): void {
-  const needles = new Set([process.cwd(), projectRoot(), notesDirAbs()]);
+  const needles = new Set([process.cwd(), getAppRoot(), projectRoot(), notesDirAbs()]);
   for (const needle of needles) {
     if (needle.length > 1 && serialized.includes(needle)) {
       throw new Error(`[workbench] ${where} 的輸出含本機絕對路徑（${needle}）。請檢查是哪個欄位帶進來的。`);

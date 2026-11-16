@@ -112,6 +112,7 @@ npx notecraftapp@1.7.0 serve ./notes
 
 | 版本 | 注意事項 |
 | :-- | :-- |
+| 1.16.0 | 不同的筆記資料夾可以同時執行。每個筆記資料夾第一次啟動時會建立自己的執行目錄（`~/.notecraft/cache/<hash>/app/`，約 3 MB），並重新 build 一次。同一個筆記資料夾重複啟動會被擋下，見[內部運作](/docs/advanced/internals/#同時開多個筆記資料夾) |
 | 1.10.0 | 新增 [`ignore.json`](/docs/getting-started/ignore/)。筆記資料夾裡 `node_modules/`、`dist/` 底下的 `.md`／`.mdx` 不再被當成筆記；第一次 `build`／`serve` 若因此筆記數不同，會自動重建一次 |
 | 1.8.5 | 從本機資料夾安裝的 plugin，來源改為只顯示 `local:<資料夾名>`（舊安裝不必重裝）。`build` 會檢查產物，含本機絕對路徑就失敗並列出檔案 |
 | 1.8.1 | `build`／`serve` 的快取改為自動失效：版本、`NOTECRAFT_BASE`、執行的資料夾任一跟上次不同就重建，不再需要 `--rebuild` |

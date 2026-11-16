@@ -18,6 +18,10 @@ description: 從各頁文件整理出最常踩到的問題，依安裝啟動、�
 
 兩者預設都用 port `4321`。要同時開，其中一個加 `--port` 換個 port，例如 `npx notecraftapp serve ./docs --port 4322`；或照教學的做法，先在 `view` 的終端機按 `Ctrl+C` 停掉，再開 `serve`。見[五分鐘教學](/docs/getting-started/tutorial/#5-開-serve請-claude-code-生成)與 [CLI](/docs/reference/cli/)。
 
+### 兩個不同的筆記資料夾可以同時開嗎？
+
+1.16.0 起可以，各自用不同的 port 就好，例如 `npx notecraftapp view ./a --port 4321` 和 `npx notecraftapp view ./b --port 4322`。1.15 以前同時開兩個時，畫面可能顯示另一個資料夾的筆記，請升級。同一個筆記資料夾重複啟動會被擋下，並告訴你它已經在哪個網址執行。見[內部運作](/docs/advanced/internals/#同時開多個筆記資料夾)。
+
 ### 頁首沒有「+ 新增筆記」，也不能改標籤？
 
 寫入 UI 只在 `view` 出現。`serve`、`build` 的產物與部署出去的站都是唯讀的。要新增或編輯，改用 `npx notecraftapp view`。見[三個子命令怎麼選](/docs/getting-started/install/#三個子命令怎麼選)。

@@ -3,6 +3,7 @@ import type { LoadedNotesIgnore } from "./notes-ignore.mjs";
 
 export function getNotesDir(): string;
 export function getNotecraftDir(): string;
+export function getAppRoot(): string;
 export function getNotesIgnore(): LoadedNotesIgnore;
 export function resetNotesIgnore(): void;
 export function isIgnoredAbs(abs: string, isDir?: boolean): boolean;

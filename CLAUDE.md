@@ -133,8 +133,8 @@ status: pending | generated | locked | failed
 - **資料夾與顯示用路徑一律來自真實檔案路徑**（`WbNoteRow.path`），不是會被 slug 化的 `entry.id`；`?folder=` 的值也是真實路徑。slug 只用於 `/notes/<slug>` 與 localStorage key
 - **本機絕對路徑不得出現在任何輸出的 HTML／JSON**（`/wb-index.json` 序列化後若含 cwd 會直接 throw）。唯一例外是 dev-only 的 `vscode://` 連結。
   build 完由 `src/lib/no-local-path-integration.mjs` 掃整個產物的 `.html`／`.json` 兜底（含 island props）；要給 dev 用的路徑（如 `rendererPath`）一律 `isDev &&` 守衛
-- **`astro build --outDir` 必須在 astro 的 cwd（app 根）底下**：否則 Astro 5 經 `<cwd>/.astro/` 中轉、把 content layer 的 `data-store.json`（筆記原文＋本機路徑）等整包複製進產物，並在 build 後刪掉 `.astro/`。
-  CLI 一律 build 到 `node_modules/.notecraft-build/<hash>/` 再搬進快取（`runAstroBuild` 會斷言）；`src/lib/content-layer-guard-integration.mjs` 在產物端兜底，`node scripts/fixtures/content-layer-leak.mjs [--app <另一磁碟的 app>]` 是整合驗證（1.10.1）
+- **`astro build --outDir` 必須在 astro 的 cwd（viewer 是執行目錄、主 repo 是 app 根）底下**：否則 Astro 5 經 `<cwd>/.astro/` 中轉、把 content layer 的 `data-store.json`（筆記原文＋本機路徑）等整包複製進產物，並在 build 後刪掉 `.astro/`。
+  CLI 一律 build 到 staging 再搬進快取（viewer：`<執行目錄>/.nc-state/build/`；主 repo：`node_modules/.notecraft-build/<hash>/`；`runAstroBuild` 會斷言）；`src/lib/content-layer-guard-integration.mjs` 在產物端兜底，`node scripts/fixtures/content-layer-leak.mjs [--app <另一磁碟的 app>]` 是整合驗證（1.10.1）
 - **相對於「今天」的量在瀏覽器算**（`lib/wb-time.ts`，當地時區），SSR 以「—」佔位；靠 localStorage 的東西（閱讀進度、收藏、偏好）SSR 一律當作沒有
 - 篩選全在 query string（`?folder=`、`?series=`、`?tag=`、`?pending=1`、`?fav=1`、`?view=`），island 內切換用 `history.replaceState`；分組與搜尋字串不進網址
 - `Escape` 走 `lib/wb-escape.ts` 的共用堆疊（Palette → Modal → Drawer → Sidebar 抽屜），浮層不要各自掛 keydown
@@ -177,6 +177,13 @@ status: pending | generated | locked | failed
   語法**不加 handoff 的別名**（`warning` 不是 `warn`、`{collapsible open}` 不是 `fold`、`<PluginView src>`）。新語法：`:::code-group`（分頁名取 `title=`）、`:::details[問題]{open}`（連續的包成 `.nc-dets`）、`:::figures`、`:::dl`（每項以粗體開頭）、`==螢光==`、` ```diff `（`lang=ts` 指定內容語言）、`$…$`；步驟多 `err`／`skip`，寫了 `status` 才有狀態 pill（`.is-set`）。
   `.nc-viz`（GeneratedFrame）裡的標題屬於元件，不套品牌的底線與金線、不插錨點；**放大檢視（VizZoom）與「複製提示詞」維持原樣**。待生成標記在原位畫（`data-pagefind-ignore`），文首不再列。目錄**維持 H1–H3**。不做暗色模式。
   改了 remark plugin 要重啟 dev server；驗收 fixture `node scripts/fixtures/note-page-sample.mjs --out tmp/note-page-ws`（再用 launch.json 的 `note-page-fixture-win`）或 `--build`
+- **多個筆記資料夾同時執行**（v1.16.0，[docs/notecraft-multi-instance.md](docs/notecraft-multi-instance.md)）：Astro 的 content layer 狀態（`.astro/data-store.json`、`node_modules/.astro/`）放在 root 底下、不分筆記資料夾，
+  所以 viewer 的 astro 一律在**每個筆記資料夾一份的執行目錄** `~/.notecraft/cache/<hash>/app/` 跑（`bin/run-root.mjs`；複製 `package.json` 的 `files` 扣掉 `bin/` 等，`node_modules` 是連到 `app-<version>` 的連結，Windows 用 junction）。
+  **主 repo（packageRoot 有 `.git`）不用執行目錄**（要改 `src` 即 HMR），仍不支援多開；`NOTECRAFTAPP_DEV=1` 的 pack 套件會用、且每次啟動重新同步。
+  `NOTECRAFT_RUN_ROOT=1` 時 `astro.config.mjs` 把 `cacheDir`／`vite.cacheDir` 指到 `.nc-state/`、`fs.allow` 加 `node_modules` 的真實路徑；**沒有這個變數時設定不可有任何差異**。
+  新增執行期需要的頂層資料夾或設定檔時，確認 `runRootEntries` 收得到（`check:run-root` 以真實 `package.json` 斷言）。
+  同一個筆記資料夾只能有一個行程：鎖檔 `cache/<hash>/run.lock.json`（**在執行目錄外**，要先拿鎖才能重建執行目錄）。「產物不可含本機絕對路徑」的兩道護欄要涵蓋 app 本體路徑（`node_modules` 真實路徑的上一層）。
+  整合驗證 `node scripts/fixtures/multi-instance.mjs [--build]`
 - **空狀態插圖**（v1.5.1，[docs/notecraft-workbench-empty-states.md](docs/notecraft-workbench-empty-states.md)）：只有更新日誌與 AI 佇列用 `wb/EmptyState.tsx`（class 沿用 prototype 的 `pt-empty*`），其他空狀態仍是 `wb-empty`／`dv-empty` 單行字；插圖 SVG 的顏色用 `style` 寫 `--wb-*` 變數（presentation attribute 在部分瀏覽器不解析）、不新增 token；更新日誌空時清單加 `is-empty`（不捲），矮視窗（≤820 高）規則縮插圖
 
 ## Plugin System（v0.6.0）
