@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-11-25
+
+<!-- 重點：init-skill 裝出來的 Subagent 與 Skill，frontmatter 回到第一行，rulesync 等工具讀得到 -->
+
+### 修正
+
+- `init-skill` 安裝的 6 個 Subagent 與 2 個 `SKILL.md`，檔案最前面多了一段「generated, do NOT edit」註解，`---` frontmatter 不在第一行，`rulesync import` 等工具讀不到 `name`、`description`（報 `Invalid frontmatter`），Claude Code 也可能載入不到 Subagent 的 `name`／`tools`。現在 frontmatter 在第一行，註解移到結尾 `---` 之後；沒有 frontmatter 的 `references/atoms.md` 維持註解在最前面。`sync-skill` 結束前會以 gray-matter 檢查每個有 frontmatter 的產出檔，解析不出 `name` 或 `description` 就中止
+
+### 變更
+
+- content-visualize skill 升到 `2.1.1-alpha.1`、content-present skill 升到 `1.1.2-alpha.1`；已安裝的工作區再跑一次 `npx notecraftapp init-skill` 即可更新（舊檔內容不同，會被視為衝突，互動式選覆蓋，或帶 `--force`）
+
 ## [1.16.0] - 2026-11-16
 
 <!-- 重點：不同的筆記資料夾可以同時開，不會再看到另一個資料夾的筆記 -->
